@@ -8,7 +8,7 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Most Likely To | ✅ Playable |
 | Slevens (7-Eleven Doubles) | ✅ Playable |
 | Ride the Bus | Planned |
-| Mad Max | Planned |
+| Mad Max | ✅ Playable |
 
 ## Run locally
 ```bash

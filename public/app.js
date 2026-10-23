@@ -181,10 +181,11 @@ socket.on('kicked', () => {
 });
 
 // Full-screen "drink!" alert when someone hands you sips.
-socket.on('drink', ({ sips, reason, from }) => {
+socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
   const el = document.getElementById('drink-alert');
-  el.innerHTML = `<div class="big">🍺 DRINK ${PB.esc(sips)} SIP${sips === 1 ? "" : "S"}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
+  const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
+  el.innerHTML = `<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
   el.hidden = false;
   clearTimeout(el.t);
   el.t = setTimeout(() => (el.hidden = true), 4000);
