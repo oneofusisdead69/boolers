@@ -13,15 +13,24 @@ function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
 }
 
-// Random dot positions as percentages of the play area. Consecutive dots are kept apart
-// so every trace needs a real drag.
+// Random dot positions as percentages of the touch pad. Dots stay clear of the dice in the
+// middle and the pass arrow in the corner, and consecutive dots are kept apart so every
+// trace needs a real drag.
+function inDiceZone(d) {
+  return d.x > 14 && d.x < 86 && d.y > 36 && d.y < 64;
+}
+function inArrowZone(d) {
+  return d.x > 76 && d.y > 82;
+}
+
 function randomDots(count) {
   const dots = [];
   while (dots.length < count) {
-    const dot = { x: 12 + Math.random() * 76, y: 12 + Math.random() * 76 };
+    const dot = { x: Math.round(10 + Math.random() * 80), y: Math.round(8 + Math.random() * 82) };
     const prev = dots[dots.length - 1];
+    if (inDiceZone(dot) || inArrowZone(dot)) continue;
     if (prev && Math.hypot(dot.x - prev.x, dot.y - prev.y) < 30) continue;
-    dots.push({ x: Math.round(dot.x), y: Math.round(dot.y) });
+    dots.push(dot);
   }
   return dots;
 }
@@ -141,4 +150,6 @@ module.exports = {
   },
 
   isHit,
+  inDiceZone,
+  inArrowZone,
 };

@@ -1,6 +1,8 @@
 // Screens for Slevens. Server logic: games/slevens.js
+// Full-screen layout: a slim header, then a touch pad filling the rest of the screen with the
+// dice in the middle. Buttons, dots and the pass arrow all sit on the pad.
 (() => {
-  const { esc, name } = PB;
+  const { esc } = PB;
   let spinTimer = null;
   let tracing = false; // a finger is down mid-trace; don't redraw under it
   let lastKey = null;
@@ -18,36 +20,45 @@
     }
   }
 
-  function stage(s, mine) {
+  function centre(s, mine) {
+    const g = s.game;
+    if (s.phase === 'ready' && g.traceLen === 1 && mine) {
+      return '<button class="roll-btn" data-act="roll">ROLL</button>';
+    }
+    if (s.phase === 'spinning') return `<div class="dice-centre" id="dice-box">${PB.dice([1, 1], { rolling: true })}</div>`;
+    if (g.dice) return `<div class="dice-centre">${PB.dice(g.dice)}</div>`;
+    return `<div class="dice-centre faded">${PB.dice([0, 0])}</div>`;
+  }
+
+  function overlay(s, mine) {
     const g = s.game;
     if (s.phase === 'reverse') {
       return `
         <div class="reverse">🔄 REVERSE!</div>
-        ${mine ? PB.playerPicker('pick', { exclude: [s.me] }) : ''}`;
+        ${mine ? `<div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>` : ''}`;
     }
-    if (!mine) return '<div class="stage"></div>';
-
-    if (s.phase === 'ready' && g.traceLen === 1) {
-      return '<div class="stage"><button class="roll-btn" data-act="roll">ROLL</button></div>';
-    }
-    if (s.phase === 'ready') {
+    if (!mine) return '';
+    if (s.phase === 'ready' && g.traceLen > 1) {
       return `
-        <div class="stage trace" id="stage">
-          <svg class="trail"><polyline points="" /></svg>
-          ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}
-          <p class="stage-hint" id="trace-hint">Press the dot, then drag to the next one</p>
-        </div>`;
+        <svg class="trail"><polyline points="" /></svg>
+        ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
     }
     if (s.phase === 'claim' && g.claimDot) {
       // Shrinks over the 5-second window, lined up with the server clock.
       const elapsed = Math.max(0, g.claimMs - (g.claimEndsAt - PB.now()));
-      return `
-        <div class="stage">
-          <button class="claim-dot" data-act="claim" aria-label="Claim"
-            style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>
-        </div>`;
+      return `<button class="claim-dot" data-act="claim" aria-label="Claim"
+        style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
     }
-    return '<div class="stage"></div>';
+    return '';
+  }
+
+  function topText(s, mine) {
+    const g = s.game;
+    if (g.notice) return `<p class="pad-top notice">${esc(g.notice)}</p>`;
+    if (mine && s.phase === 'ready' && g.traceLen > 1) {
+      return '<p class="pad-top" id="trace-hint">Press the glowing dot, then drag to the next one</p>';
+    }
+    return '';
   }
 
   function render(s) {
@@ -59,15 +70,22 @@
     clearInterval(spinTimer);
 
     const mine = g.rollerId === s.me;
-    const dice = s.phase === 'spinning' ? PB.dice([1, 1], { rolling: true }) : g.dice ? PB.dice(g.dice) : '';
+    const last = s.feed[s.feed.length - 1];
 
     return `
-      ${PB.turn(g.rollerId, subtitle(s, mine))}
-      <div id="dice-box" class="dice-box">${dice}</div>
-      ${g.notice ? `<p class="notice">${esc(g.notice)}</p>` : ''}
-      ${stage(s, mine)}
-      ${PB.feed(3)}
-      ${mine && s.phase !== 'spinning' ? `<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>` : ''}
+      <div class="fs-screen">
+        <div class="fs-header">
+          ${PB.turn(g.rollerId, subtitle(s, mine))}
+          ${PB.endButton('end-mini')}
+        </div>
+        <div class="pad" id="pad">
+          ${topText(s, mine)}
+          ${centre(s, mine)}
+          ${overlay(s, mine)}
+          ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
+          ${mine && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
+        </div>
+      </div>
     `;
   }
 
@@ -82,23 +100,23 @@
 
   // Press the first dot, then drag through each dot as it appears. Lifting the finger starts over.
   function setupTrace() {
-    const stageEl = document.getElementById('stage');
+    const pad = document.getElementById('pad');
     const hint = document.getElementById('trace-hint');
-    const dots = [...stageEl.querySelectorAll('.dot')];
-    const line = stageEl.querySelector('polyline');
+    const dots = [...pad.querySelectorAll('.dot')];
+    const line = pad.querySelector('polyline');
     let idx = 0;
     let points = [];
 
     const local = (x, y) => {
-      const r = stageEl.getBoundingClientRect();
+      const r = pad.getBoundingClientRect();
       return [x - r.left, y - r.top];
     };
-    const centre = (el) => {
+    const centreOf = (el) => {
       const r = el.getBoundingClientRect();
       return [r.left + r.width / 2, r.top + r.height / 2];
     };
     const near = (e, el) => {
-      const [cx, cy] = centre(el);
+      const [cx, cy] = centreOf(el);
       return Math.hypot(e.clientX - cx, e.clientY - cy) < el.offsetWidth * 0.75;
     };
     const draw = (e) => {
@@ -107,7 +125,7 @@
     };
     const reach = (i) => {
       dots[i].classList.add('reached');
-      points.push(local(...centre(dots[i])));
+      points.push(local(...centreOf(dots[i])));
       idx = i + 1;
       navigator.vibrate?.(15);
       if (idx < dots.length) dots[idx].hidden = false;
@@ -120,15 +138,15 @@
       draw();
     };
 
-    stageEl.addEventListener('pointerdown', (e) => {
+    pad.addEventListener('pointerdown', (e) => {
       if (!near(e, dots[0])) return;
       tracing = true;
-      stageEl.setPointerCapture(e.pointerId);
-      hint.textContent = 'Keep your finger down…';
+      pad.setPointerCapture(e.pointerId);
+      if (hint) hint.textContent = 'Keep your finger down…';
       reach(0);
       draw(e);
     });
-    stageEl.addEventListener('pointermove', (e) => {
+    pad.addEventListener('pointermove', (e) => {
       if (!tracing) return;
       if (near(e, dots[idx])) {
         reach(idx);
@@ -144,13 +162,14 @@
     const lift = () => {
       if (!tracing) return;
       reset();
-      hint.textContent = 'You let go! Start again from the first dot';
+      if (hint) hint.textContent = 'You let go! Start again from the glowing dot';
     };
-    stageEl.addEventListener('pointerup', lift);
-    stageEl.addEventListener('pointercancel', lift);
+    pad.addEventListener('pointerup', lift);
+    pad.addEventListener('pointercancel', lift);
   }
 
   PB.register('slevens', {
+    fullscreen: true,
     render,
     afterRender(s) {
       if (s.phase === 'spinning') spin();

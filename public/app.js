@@ -94,6 +94,11 @@ const PB = {
     return '<span class="timer" id="timer"></span>';
   },
 
+  // The host's "End game" button (empty for everyone else).
+  endButton(className = 'link') {
+    return PB.state.isHost ? `<button class="${className}" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>` : '';
+  },
+
   // Current time on the server's clock, for lining up countdowns across phones.
   now() {
     return Date.now() + clockOffset;
@@ -324,10 +329,11 @@ function renderGame() {
   // A screen returns null to keep what's showing (e.g. while a finger is mid-gesture).
   const html = screens.render(s);
   if (html === null) return;
-  $app.innerHTML = `
+  // Full-screen games place PB.endButton() themselves.
+  $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
-    ${s.isHost ? '<button class="link" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>' : ''}
+    ${PB.endButton()}
   `;
   screens.afterRender?.(s);
 }

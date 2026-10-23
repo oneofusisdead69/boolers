@@ -256,37 +256,91 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .drink-alert .big { font-size: 3rem; font-weight: 900; }
 .drink-alert small { opacity: 0.75; margin-top: 16px; }
 
-/* ---------- Slevens ---------- */
+/* ---------- Full-screen game layout ---------- */
 
-.dice-box { min-height: 76px; }
-.dice.spinning .die { transform: rotate(var(--r, 12deg)); }
-.dice.spinning .die:nth-child(2) { --r: -14deg; }
-.notice { text-align: center; color: var(--danger); font-weight: 700; }
+.fs-screen {
+  position: fixed;
+  inset: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+}
+.fs-header { display: flex; gap: 8px; align-items: stretch; }
+.fs-header .turn { flex: 1; font-size: 1.05rem; padding: 8px 12px; }
+.fs-header .turn span { font-size: 0.85rem; }
+.end-mini {
+  width: auto;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--card);
+  color: var(--muted);
+}
 
-.stage {
+.pad {
   position: relative;
   flex: 1;
-  min-height: 46vh;
-  border-radius: var(--radius);
+  border-radius: 20px;
+  background: var(--card);
+  overflow: hidden;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
-.stage.trace { background: var(--card); }
-.stage-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+.pad-top {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+.pad-top.notice { color: var(--danger); font-weight: 700; font-size: 1rem; }
+.pad-feed {
+  position: absolute;
+  left: 16px;
+  right: 84px;
+  bottom: 22px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ---------- Slevens ---------- */
+
+.dice-centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.dice-centre .dice { gap: 20px; }
+.dice-centre .die { width: 96px; height: 96px; padding: 13px; border-radius: 18px; }
+.dice-centre.faded { opacity: 0.18; }
+.dice.spinning .die { transform: rotate(var(--r, 12deg)); }
+.dice.spinning .die:nth-child(2) { --r: -14deg; }
 
 .roll-btn {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 168px;
-  height: 168px;
+  width: 176px;
+  height: 176px;
   border-radius: 50%;
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 900;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 0 10px rgba(255, 204, 51, 0.15), 0 10px 30px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 12px rgba(255, 204, 51, 0.15), 0 10px 30px rgba(0,0,0,0.4);
 }
 .roll-btn:active { transform: translate(-50%, -50%) scale(0.95); }
 
@@ -300,11 +354,12 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   box-shadow: 0 0 0 8px rgba(255, 204, 51, 0.2);
   animation: pop 0.2s ease-out;
   pointer-events: none;
+  z-index: 2;
 }
 .dot[hidden] { display: none; }
 .dot.start { animation: pop 0.2s ease-out, glow 1.2s ease-in-out infinite; }
 .dot.reached { background: var(--ok); box-shadow: 0 0 0 8px rgba(61, 220, 151, 0.25); animation: none; }
-.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 .trail polyline { fill: none; stroke: var(--ok); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
 @keyframes pop { from { transform: scale(0); } }
 @keyframes glow { 50% { box-shadow: 0 0 0 16px rgba(255, 204, 51, 0.1); } }
@@ -321,29 +376,42 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   animation-name: shrink;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
+  z-index: 2;
 }
 @keyframes shrink { to { transform: scale(0.25); opacity: 0.4; } }
 
 .reverse {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18%;
   text-align: center;
-  font-size: 2.8rem;
+  font-size: 2.6rem;
   font-weight: 900;
   color: var(--ok);
-  padding: 12px 0;
   animation: pulse 0.5s ease-in-out 3;
+}
+.pad-picker {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 64%;
+  max-height: calc(36% - 84px);
+  overflow-y: auto;
+  touch-action: pan-y;
 }
 
 .next-arrow {
-  position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
   width: 52px;
   height: 52px;
   padding: 0;
   border-radius: 50%;
-  background: rgba(255, 77, 109, 0.12);
+  background: rgba(255, 77, 109, 0.14);
   color: var(--danger);
   font-size: 1.7rem;
   line-height: 1;
-  z-index: 5;
+  z-index: 3;
 }
