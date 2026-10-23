@@ -9,7 +9,7 @@
 // The red arrow passes the dice to the next player (the drinker finished first). The dice only
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
-const SPIN_MS = 800;
+const SPIN_MS = [500, 1000, 2000, 3000]; // host picks how long the dice roll in the lobby
 const WINDOW_SECONDS = [2, 3, 4, 5]; // host picks the hands-off time in the lobby
 const WINDOW_GRACE_MS = 300; // allowance for network lag on the 3-second window
 
@@ -87,6 +87,12 @@ module.exports = {
   order: 2,
   options: [
     {
+      id: 'spinMs',
+      label: 'Dice roll time',
+      default: 1000,
+      choices: SPIN_MS.map((ms) => ({ value: ms, label: `${ms / 1000} sec` })),
+    },
+    {
       id: 'seconds',
       label: 'Hands-off time after a hit',
       default: 3,
@@ -103,6 +109,7 @@ module.exports = {
   start(room, ctx, options = {}) {
     Object.assign(room.game, {
       order: room.players.map((p) => p.id),
+      spinMs: SPIN_MS.includes(options.spinMs) ? options.spinMs : 1000,
       windowMs: (WINDOW_SECONDS.includes(options.seconds) ? options.seconds : 3) * 1000,
       dotConnect: options.dotConnect !== false,
       rollNo: 0,
@@ -124,7 +131,7 @@ module.exports = {
       g.hit = false;
       g.dice = ctx.dice.roll(2);
       g.phase = 'spinning';
-      ctx.setTimer(room, SPIN_MS, () => openWindow(room, ctx));
+      ctx.setTimer(room, g.spinMs, () => openWindow(room, ctx));
     } else if (action.type === 'pick' && g.phase === 'reverse') {
       const target = ctx.player(room, action.targetId);
       if (!target || target.id === player.id) return;

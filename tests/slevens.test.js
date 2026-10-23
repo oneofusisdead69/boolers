@@ -184,3 +184,15 @@ test('the hands-off timer uses the chosen time', () => {
   assert.ok(t.room.deadline - Date.now() <= 2300 + 50);
   t.cleanup();
 });
+
+test('the dice roll for the chosen time before they land', () => {
+  const t = setup(game, 2, { spinMs: 3000 });
+  t.act(0, 'roll');
+  assert.strictEqual(t.room.game.phase, 'spinning');
+  assert.ok(t.room.deadline - Date.now() > 2900 && t.room.deadline - Date.now() <= 3000);
+  t.cleanup();
+  const d = setup(game, 2);
+  d.act(0, 'roll');
+  assert.ok(d.room.deadline - Date.now() > 900 && d.room.deadline - Date.now() <= 1000, 'defaults to 1 second');
+  d.cleanup();
+});
