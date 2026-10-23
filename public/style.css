@@ -76,6 +76,7 @@ button {
   cursor: pointer;
   width: 100%;
 }
+button { touch-action: manipulation; }
 button:active { transform: scale(0.98); }
 button:disabled { opacity: 0.4; }
 button.secondary { background: var(--card-2); color: var(--text); }
@@ -289,6 +290,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .pad-top {
   position: absolute;
@@ -378,7 +380,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   animation-fill-mode: forwards;
   z-index: 2;
 }
-@keyframes shrink { to { transform: scale(0.25); opacity: 0.4; } }
+@keyframes shrink { to { transform: scale(0.55); opacity: 0.5; } }
 
 .reverse {
   position: absolute;

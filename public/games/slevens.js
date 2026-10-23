@@ -115,9 +115,16 @@
       const r = el.getBoundingClientRect();
       return [r.left + r.width / 2, r.top + r.height / 2];
     };
+    let last = null; // previous finger position, so a fast swipe can't jump over a dot
+    // Distance from the dot's centre to the finger's path since the last move event.
     const near = (e, el) => {
       const [cx, cy] = centreOf(el);
-      return Math.hypot(e.clientX - cx, e.clientY - cy) < el.offsetWidth * 0.75;
+      const [x1, y1] = [e.clientX, e.clientY];
+      const [x0, y0] = last || [x1, y1];
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const t = dx || dy ? Math.max(0, Math.min(1, ((cx - x0) * dx + (cy - y0) * dy) / (dx * dx + dy * dy))) : 0;
+      return Math.hypot(x0 + t * dx - cx, y0 + t * dy - cy) < el.offsetWidth * 0.9;
     };
     const draw = (e) => {
       const all = e ? [...points, local(e.clientX, e.clientY)] : points;
@@ -139,8 +146,10 @@
     };
 
     pad.addEventListener('pointerdown', (e) => {
+      last = null;
       if (!near(e, dots[0])) return;
       tracing = true;
+      last = [e.clientX, e.clientY];
       pad.setPointerCapture(e.pointerId);
       if (hint) hint.textContent = 'Keep your finger down…';
       reach(0);
@@ -157,6 +166,7 @@
           return;
         }
       }
+      last = [e.clientX, e.clientY];
       draw(e);
     });
     const lift = () => {
