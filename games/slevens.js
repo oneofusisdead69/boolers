@@ -1,11 +1,12 @@
 // Slevens (7-Eleven Doubles). The app only follows the roller; the drinking happens at the table.
 //
-// The roller rolls two dice. After each roll a blue dot appears for 5 seconds: if the roll is a
-// 7, 11 or doubles, tapping it in time is a REVERSE. Someone at the table drinks, and as soon as
-// their cup touches their lips the roller rolls again, racing to hit before they finish. Every
-// hit in a row makes rolling one dot harder: a single tap, then tracing 2 dots, then 3, and so
-// on. Misses don't change the count. If the drinker finishes first, the roller taps the red
-// arrow and the dice pass to the next player, back to a single tap.
+// The roller rolls two dice. After each roll a blue dot appears for 5 seconds. On a 7, 11 or
+// doubles, tapping it in time is a HIT: someone at the table drinks, and as soon as their cup
+// touches their lips the roller rolls again, racing to hit before they finish. Every hit in a row
+// makes rolling one dot harder: a single tap, then tracing 2 dots, then 3, and so on.
+// Missing a hit (too slow, or rolling on past it) is a REVERSE: the roller picks who rolls next.
+// If the drinker finishes first, the roller taps the red arrow and the dice pass to the next
+// player. Those are the only ways the dice change hands; a new roller starts at a single tap.
 
 const SPIN_MS = 800;
 const CLAIM_MS = 5000;
@@ -57,7 +58,7 @@ function newTurn(room, ctx, playerId) {
   const g = room.game;
   g.rollerId = playerId;
   g.hits = 0;
-  g.reverse = false;
+  g.hit = false;
   g.dice = null;
   ready(room, ctx);
 }
@@ -71,15 +72,20 @@ function openClaimWindow(room, ctx) {
   g.claimDot = randomDots(1, { avoidDice: true, awayFrom: g.dots[0] })[0];
   g.claimEndsAt = Date.now() + CLAIM_MS;
   ctx.setTimer(room, CLAIM_MS + CLAIM_GRACE_MS, () => {
-    if (isHit(g.dice)) missedHit(room, ctx);
-    ready(room, ctx, { keepDots: true });
+    if (isHit(g.dice)) reverse(room, ctx);
+    else ready(room, ctx, { keepDots: true });
   });
 }
 
-function missedHit(room, ctx) {
+// A missed hit: the roller picks who rolls next.
+function reverse(room, ctx) {
   const g = room.game;
-  g.notice = 'Missed it! That was a hit.';
-  ctx.log(room, `😬 ${ctx.name(room, g.rollerId)} missed a hit (${g.dice.join(' + ')})`);
+  ctx.clearTimer(room);
+  g.phase = 'reverse';
+  g.hit = false;
+  g.claimDot = null;
+  g.notice = '';
+  ctx.log(room, `🔄 ${ctx.name(room, g.rollerId)} missed a ${g.dice.join(' + ')}. REVERSE!`);
 }
 
 module.exports = {
@@ -103,26 +109,31 @@ module.exports = {
     if (player.id !== g.rollerId) return;
 
     if (action.type === 'roll' && (g.phase === 'ready' || g.phase === 'claim')) {
-      // Rolling on instead of tapping the blue dot means passing on a hit.
-      if (g.phase === 'claim' && isHit(g.dice)) missedHit(room, ctx);
-      else g.notice = '';
+      // Rolling on instead of tapping the blue dot misses the hit.
+      if (g.phase === 'claim' && isHit(g.dice)) return reverse(room, ctx);
       ctx.clearTimer(room);
-      g.reverse = false;
+      g.notice = '';
+      g.hit = false;
       g.dice = ctx.dice.roll(2);
       g.phase = 'spinning';
       ctx.setTimer(room, SPIN_MS, () => openClaimWindow(room, ctx));
     } else if (action.type === 'claim' && g.phase === 'claim') {
       if (isHit(g.dice)) {
         g.hits += 1;
-        g.reverse = true;
+        g.hit = true;
         g.notice = '';
-        ctx.log(room, `🔄 ${player.name} rolled ${g.dice.join(' + ')}. REVERSE!`);
+        ctx.log(room, `🍺 ${player.name} hit ${g.dice.join(' + ')}!`);
         ready(room, ctx); // next roll, one dot harder
       } else {
         g.notice = 'Not a hit!';
         ctx.log(room, `🙈 ${player.name} tapped on a ${g.dice.join(' + ')}`);
         ready(room, ctx, { keepDots: true });
       }
+    } else if (action.type === 'pick' && g.phase === 'reverse') {
+      const target = ctx.player(room, action.targetId);
+      if (!target || target.id === player.id) return;
+      ctx.log(room, `🎲 ${player.name} picked ${target.name} to roll`);
+      newTurn(room, ctx, target.id);
     } else if (action.type === 'pass' && g.phase !== 'spinning') {
       const next = ctx.turns.next(room, g.order, player.id);
       if (!next || next === player.id) return;
@@ -149,7 +160,7 @@ module.exports = {
     return {
       rollerId: g.rollerId,
       hits: g.hits,
-      reverse: g.reverse,
+      hit: g.hit,
       traceLen: traceLen(g),
       rollNo: g.rollNo,
       dots: g.dots,

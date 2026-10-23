@@ -18,7 +18,7 @@ function hit(t, i) {
   rollAs(t, i, [3, 4]);
   t.act(i, 'claim');
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.ok(t.room.game.reverse);
+  assert.ok(t.room.game.hit);
 }
 
 test('7, 11 and doubles are hits', () => {
@@ -41,29 +41,53 @@ test('a turn starts with a single tap; only the roller can roll', () => {
   t.cleanup();
 });
 
-test('misses keep the same dot count, and the next roll is available right away', () => {
+test('misses keep the same roller and dot count, and the next roll is available right away', () => {
   const t = setup(game, 3);
+  hit(t, 0);
   rollAs(t, 0, [1, 2]);
-  assert.strictEqual(t.room.game.dots.length, 1, 'next roll dot is already showing');
+  assert.strictEqual(t.room.game.dots.length, 2, 'next roll dots are already showing');
   t.act(0, 'roll'); // roll again without waiting out the window
   assert.strictEqual(t.room.game.phase, 'spinning');
+  t.room.game.dice = [1, 2];
   t.fireTimer();
-  t.fireTimer(); // window runs out
+  t.fireTimer(); // window runs out on a non-hit
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.strictEqual(t.view(0).traceLen, 1);
+  assert.strictEqual(t.room.game.rollerId, 'p0');
+  assert.strictEqual(t.view(0).traceLen, 2);
   t.cleanup();
 });
 
-test('rolling on past a hit, or letting the window run out, misses it', () => {
+test('missing a hit by waiting out the 5 seconds is a REVERSE', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [3, 4]);
+  t.fireTimer();
+  assert.strictEqual(t.room.game.phase, 'reverse');
+  t.cleanup();
+});
+
+test('rolling on past a hit is a REVERSE too, and the dice do not roll', () => {
+  const t = setup(game, 3);
+  rollAs(t, 0, [6, 6]);
   t.act(0, 'roll');
-  assert.match(t.room.game.notice, /Missed/);
+  assert.strictEqual(t.room.game.phase, 'reverse');
+  assert.deepStrictEqual(t.room.game.dice, [6, 6]);
+  t.cleanup();
+});
+
+test('on a REVERSE the roller picks the next roller, who starts at a single tap', () => {
+  const t = setup(game, 3);
+  hit(t, 0);
+  hit(t, 0);
+  rollAs(t, 0, [5, 6]);
   t.fireTimer();
-  t.room.game.dice = [5, 5];
-  t.fireTimer();
-  assert.match(t.room.game.notice, /Missed/);
+  t.act(1, 'pick', { targetId: 'p1' }); // only the roller picks
+  t.act(0, 'pick', { targetId: 'p0' }); // can't pick yourself
+  t.act(0, 'roll');
+  assert.strictEqual(t.room.game.phase, 'reverse');
+  t.act(0, 'pick', { targetId: 'p2' });
+  assert.strictEqual(t.room.game.rollerId, 'p2');
   assert.strictEqual(t.room.game.phase, 'ready');
+  assert.strictEqual(t.view(0).traceLen, 1);
   t.cleanup();
 });
 
@@ -77,19 +101,19 @@ test('tapping the blue dot on a non-hit just says so', () => {
   t.cleanup();
 });
 
-test('a hit shows REVERSE and the next roll needs one more dot', () => {
+test('a claimed hit keeps the dice with the roller, one dot harder', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [5, 6]);
   t.act(1, 'claim'); // only the roller can claim
   assert.strictEqual(t.room.game.phase, 'claim');
   t.act(0, 'claim');
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.ok(t.view(1).reverse, 'everyone sees the REVERSE');
+  assert.ok(t.view(1).hit, 'everyone sees the HIT');
   assert.strictEqual(t.room.game.rollerId, 'p0', 'the roller keeps the dice');
   assert.strictEqual(t.view(0).traceLen, 2);
   assert.strictEqual(t.room.game.dots.length, 2);
   t.act(0, 'roll');
-  assert.ok(!t.room.game.reverse, 'REVERSE clears once the next roll starts');
+  assert.ok(!t.room.game.hit, 'HIT clears once the next roll starts');
   t.cleanup();
 });
 
@@ -100,6 +124,7 @@ test('each hit in a row adds exactly one dot; misses add none', () => {
   rollAs(t, 0, [1, 2]);
   t.fireTimer();
   assert.strictEqual(t.view(0).traceLen, 2);
+  assert.strictEqual(t.room.game.rollerId, 'p0');
   hit(t, 0);
   assert.strictEqual(t.view(0).traceLen, 3);
   hit(t, 0);

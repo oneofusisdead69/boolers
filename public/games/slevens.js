@@ -13,11 +13,12 @@
     const g = s.game;
     switch (s.phase) {
       case 'ready':
-        if (g.reverse) return mine ? 'Roll when their cup touches their lips' : 'REVERSE! Someone drinks';
+        if (g.hit) return mine ? 'Roll when their cup touches their lips' : 'Hit! Someone drinks';
         if (g.traceLen === 1) return mine ? 'Tap to roll' : 'About to roll';
         return mine ? `Trace ${g.traceLen} dots to roll` : `Tracing ${g.traceLen} dots`;
       case 'spinning': return 'Rolling…';
       case 'claim': return mine ? 'Hit? Tap blue. Miss? Roll again' : 'Checking the dice…';
+      case 'reverse': return mine ? 'You missed a hit. Pick who rolls next' : 'Missed a hit! Picking who rolls next';
       default: return '';
     }
   }
@@ -37,7 +38,7 @@
   function topText(s) {
     const g = s.game;
     if (g.notice) return `<p class="pad-top notice">${esc(g.notice)}</p>`;
-    if (g.hits > 0) return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row · next roll needs ${PB.plural(g.traceLen, 'dot')}</p>`;
+    if (g.hits > 0 && s.phase !== 'reverse') return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row · next roll needs ${PB.plural(g.traceLen, 'dot')}</p>`;
     return '';
   }
 
@@ -55,6 +56,8 @@
       overlay = `${traceDots(g)}
         <button class="claim-dot" data-act="claim" aria-label="Claim the hit"
           style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
+    } else if (s.phase === 'reverse') {
+      overlay = `<div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>`;
     }
     return `${topText(s)}${centre}${overlay}`;
   }
@@ -78,7 +81,8 @@
         </div>
         <div class="pad" id="pad">
           ${mine ? rollerPad(s) : `${topText(s)}${diceHtml(g, s.phase)}`}
-          ${g.reverse ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
+          ${s.phase === 'reverse' ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
+          ${g.hit ? '<div class="reverse hit">🍺 HIT!</div>' : ''}
           ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
           ${mine && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
         </div>
