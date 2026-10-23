@@ -17,7 +17,7 @@
         if (g.traceLen === 1) return mine ? 'Tap to roll' : 'About to roll';
         return mine ? `Trace ${g.traceLen} dots to roll` : `Tracing ${g.traceLen} dots`;
       case 'spinning': return 'Rolling…';
-      case 'window': return mine ? 'Hit? Hands off for 5 seconds' : 'Checking the dice…';
+      case 'window': return mine ? 'Hit? Hands off for 3 seconds' : 'Checking the dice…';
       case 'reverse': return mine ? 'You touched a hit! Pick who rolls next' : 'Touched a hit! Picking who rolls next';
       default: return '';
     }
@@ -95,7 +95,7 @@
 
   // Press the first dot (the dice start spinning), then drag through each dot as it appears.
   // Reaching the last dot rolls. Lifting the finger starts over. Touching the first dot also
-  // tells the server, which turns it into a REVERSE if the dice show a hit and the 5 seconds
+  // tells the server, which turns it into a REVERSE if the dice show a hit and the 3 seconds
   // aren't up.
   function setupTrace() {
     const pad = document.getElementById('pad');

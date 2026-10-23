@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const { setup } = require('./helpers');
 const game = require('../games/slevens');
 
-// Rolls with fixed dice, then ends the spin so the 5-second window opens.
+// Rolls with fixed dice, then ends the spin so the 3-second window opens.
 function rollAs(t, i, dice) {
   const real = t.ctx.dice.roll;
   t.ctx.dice.roll = () => dice;
@@ -13,7 +13,7 @@ function rollAs(t, i, dice) {
   assert.strictEqual(t.room.game.phase, 'window');
 }
 
-// Roller i rolls a hit and keeps their hands off for the 5 seconds.
+// Roller i rolls a hit and keeps their hands off for the 3 seconds.
 function hit(t, i) {
   rollAs(t, i, [3, 4]);
   t.fireTimer();
@@ -59,7 +59,7 @@ test('on a non-hit the roller can roll again straight away; the count stays the 
   assert.strictEqual(t.room.game.phase, 'spinning');
   t.room.game.dice = [2, 4];
   t.fireTimer();
-  t.fireTimer(); // the 5 seconds pass on a non-hit
+  t.fireTimer(); // the 3 seconds pass on a non-hit
   assert.strictEqual(t.room.game.phase, 'ready');
   assert.strictEqual(t.room.game.rollerId, 'p0');
   assert.strictEqual(t.view(0).traceLen, 2);
@@ -67,7 +67,7 @@ test('on a non-hit the roller can roll again straight away; the count stays the 
   t.cleanup();
 });
 
-test('leaving a hit alone for 5 seconds counts: HIT, same roller, one more dot', () => {
+test('leaving a hit alone for 3 seconds counts: HIT, same roller, one more dot', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [5, 6]);
   t.act(0, 'roll'); // can't roll on through a hit
@@ -92,7 +92,7 @@ test('each hit in a row adds exactly one dot', () => {
   t.cleanup();
 });
 
-test('touching the dot within 5 seconds of a hit is a REVERSE; the roller picks who is next', () => {
+test('touching the dot within 3 seconds of a hit is a REVERSE; the roller picks who is next', () => {
   const t = setup(game, 3);
   hit(t, 0);
   rollAs(t, 0, [2, 2]);
@@ -112,7 +112,7 @@ test('touching the dot within 5 seconds of a hit is a REVERSE; the roller picks 
   t.cleanup();
 });
 
-test('touching the dot after the 5 seconds is just the next roll', () => {
+test('touching the dot after the 3 seconds is just the next roll', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [3, 4]);
   t.fireTimer();

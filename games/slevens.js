@@ -1,17 +1,17 @@
 // Slevens (7-Eleven Doubles). The app only follows the roller; the drinking happens at the table.
 //
 // The roller rolls two dice, and the dot for the next roll appears straight away. On a 7, 11 or
-// doubles the roller must leave it alone for 5 seconds: that's a HIT. Someone at the table
+// doubles the roller must leave it alone for 3 seconds: that's a HIT. Someone at the table
 // drinks, and the next roll takes one more dot to trace (a single tap, then 2 dots, then 3...),
-// racing to hit again before they finish. Touching the dot within 5 seconds of a hit means the
+// racing to hit again before they finish. Touching the dot within 3 seconds of a hit means the
 // roller wasn't reading the dice: that's a REVERSE, and the roller picks who rolls next.
 // On anything else the roller just presses the dot and traces to roll again.
 // The red arrow passes the dice to the next player (the drinker finished first). The dice only
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
 const SPIN_MS = 800;
-const WINDOW_MS = 5000;
-const WINDOW_GRACE_MS = 600; // allowance for network lag on the 5-second window
+const WINDOW_MS = 3000;
+const WINDOW_GRACE_MS = 300; // allowance for network lag on the 3-second window
 
 function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
@@ -60,8 +60,8 @@ function newTurn(room, ctx, playerId) {
   ready(room, ctx);
 }
 
-// The dice have landed and the next roll's dot is showing. For 5 seconds, touching it on a
-// hit is a REVERSE; once the 5 seconds pass, a hit counts and the next roll gets one more dot.
+// The dice have landed and the next roll's dot is showing. For 3 seconds, touching it on a
+// hit is a REVERSE; once the 3 seconds pass, a hit counts and the next roll gets one more dot.
 function openWindow(room, ctx) {
   const g = room.game;
   ready(room, ctx);
@@ -82,7 +82,7 @@ function openWindow(room, ctx) {
 module.exports = {
   id: 'slevens',
   name: 'Slevens',
-  description: 'Roll 7, 11 or doubles and keep your hands off for 5 seconds. Each hit adds a dot to trace.',
+  description: 'Roll 7, 11 or doubles and keep your hands off for 3 seconds. Each hit adds a dot to trace.',
   minPlayers: 2,
   order: 2,
 
@@ -99,7 +99,7 @@ module.exports = {
     if (player.id !== g.rollerId) return;
 
     if (action.type === 'press' && g.phase === 'window' && isHit(g.dice)) {
-      // Touched the dot on a hit before the 5 seconds were up.
+      // Touched the dot on a hit before the 3 seconds were up.
       ctx.clearTimer(room);
       g.phase = 'reverse';
       ctx.log(room, `🔄 ${player.name} touched the dot on a ${g.dice.join(' + ')}. REVERSE!`);
