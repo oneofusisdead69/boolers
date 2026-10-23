@@ -149,3 +149,109 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   font-weight: 600;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
+
+/* ---------- Shared game components ---------- */
+
+.vote-grid button.offline { opacity: 0.45; }
+.players .count { font-weight: 800; color: var(--accent); }
+.players .voters { display: block; font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+
+.turn {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.3rem;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--card);
+}
+.turn.mine { background: var(--accent); color: var(--accent-text); }
+.turn span { display: block; font-size: 0.95rem; font-weight: 500; opacity: 0.8; }
+
+.option { display: flex; flex-direction: column; gap: 6px; }
+.segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+.segmented button { flex: 1; padding: 10px; font-size: 0.95rem; background: var(--card-2); color: var(--text); border: 2px solid transparent; width: auto; }
+.segmented button.selected { border-color: var(--accent); }
+
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+
+.feed { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.feed li:first-child { color: var(--text); }
+
+/* Playing cards */
+.cards { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.pcard {
+  position: relative;
+  width: 64px;
+  height: 92px;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex: none;
+  animation: deal 0.25s ease-out;
+}
+.pcard.red { color: #d61f3c; }
+.pcard.joker { color: #7b3fe4; }
+.pcard .pip { font-size: 2rem; }
+.pcard .corner { position: absolute; top: 4px; left: 6px; font-size: 0.85rem; line-height: 1; text-align: center; }
+.pcard .corner.br { top: auto; left: auto; bottom: 4px; right: 6px; transform: rotate(180deg); }
+.pcard.back {
+  background: repeating-linear-gradient(45deg, #5b3fd1 0 6px, #4a31b5 6px 12px);
+  border: 4px solid #fff;
+}
+.pcard.lg { width: 110px; height: 158px; }
+.pcard.lg .pip { font-size: 3.6rem; }
+.pcard.lg .corner { font-size: 1.2rem; top: 6px; left: 8px; }
+.pcard.lg .corner.br { bottom: 6px; right: 8px; }
+.pcard.sm { width: 44px; height: 64px; border-radius: 6px; }
+.pcard.sm .pip { font-size: 1.3rem; }
+.pcard.sm .corner { font-size: 0.65rem; top: 3px; left: 4px; }
+.pcard.sm .corner.br { display: none; }
+@keyframes deal { from { transform: translateY(-12px) scale(0.9); opacity: 0; } }
+
+/* Dice */
+.dice { display: flex; gap: 16px; justify-content: center; }
+.die {
+  width: 76px;
+  height: 76px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+.die i { border-radius: 50%; margin: 3px; }
+.die i.on { background: #111; }
+.die.rolling { animation: roll 0.5s ease-out; }
+@keyframes roll {
+  0% { transform: rotate(-200deg) scale(0.6); }
+  70% { transform: rotate(15deg) scale(1.08); }
+  100% { transform: rotate(0) scale(1); }
+}
+
+/* "Drink!" alert when someone hands you sips */
+.drink-alert {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 77, 109, 0.96);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+  font-size: 1.2rem;
+  z-index: 10;
+  animation: pulse 0.6s ease-in-out 2;
+}
+.drink-alert[hidden] { display: none; }
+.drink-alert .big { font-size: 3rem; font-weight: 900; }
+.drink-alert small { opacity: 0.75; margin-top: 16px; }

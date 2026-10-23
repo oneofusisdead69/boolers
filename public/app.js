@@ -1,30 +1,113 @@
+// PartyBox phone client. This file handles joining, the lobby, and shared UI pieces.
+// Each game's screens live in /games/<gameId>.js and are loaded the first time they're needed.
+// See /games/README.md in the repo for how to write one.
+
 const socket = io();
 const $app = document.getElementById('app');
+const params = new URLSearchParams(location.search);
+const urlRoom = params.get('room');
 
+// ?seat=N gives each tab/iframe its own identity (used by dev.html to fake several phones).
+const seat = params.get('seat');
+const prefix = seat ? `pb${seat}_` : 'pb_';
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
-  del(k) { try { localStorage.removeItem(k); } catch {} },
+  get(k) { try { return localStorage.getItem(prefix + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(prefix + k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(prefix + k); } catch {} },
 };
 
-let playerId = store.get('pb_id');
+let playerId = store.get('id');
 if (!playerId) {
   playerId = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  store.set('pb_id', playerId);
+  store.set('id', playerId);
 }
 
-let state = null; // latest room state from the server; null = home screen
 let clockOffset = 0; // serverNow - localNow
-let lastDrinkRound = null;
 let homeError = '';
+const gameScreens = {}; // gameId -> { render(state) }
+const loading = {};
 
-const urlRoom = new URLSearchParams(location.search).get('room');
+// ---------- Shared helpers for game screens ----------
 
-// ---------- helpers ----------
+const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣', X: '★' };
+const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 0: '🃏' };
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+const PB = {
+  state: null,
+  socket,
+
+  register(gameId, screens) {
+    gameScreens[gameId] = screens;
+  },
+
+  esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  },
+
+  name(id) {
+    if (id === PB.state.me) return 'You';
+    return PB.state.players.find((p) => p.id === id)?.name ?? '???';
+  },
+
+  // Sends a game action to the server, e.g. PB.act('roll') or PB.act('guess', { pick: 'red' }).
+  // In HTML, <button data-act="guess" data-pick="red"> does the same thing on tap.
+  act(type, data = {}) {
+    socket.emit('action', { type, ...data });
+  },
+
+  plural(n, word) {
+    return `${n} ${word}${n === 1 ? '' : 's'}`;
+  },
+
+  // A playing card. Pass null or { faceDown: true } for a card back.
+  card(card, { size = '', faceDown = false } = {}) {
+    if (!card || faceDown) return `<div class="pcard back ${size}"></div>`;
+    const suit = SUIT_SYMBOLS[card.suit];
+    const rank = RANK_LABELS[card.rank] ?? card.rank;
+    const color = card.suit === 'H' || card.suit === 'D' ? 'red' : card.suit === 'X' ? 'joker' : 'black';
+    return `<div class="pcard ${color} ${size}"><span class="corner">${rank}<br>${suit}</span><span class="pip">${suit}</span><span class="corner br">${rank}<br>${suit}</span></div>`;
+  },
+
+  dice(values, { rolling = false } = {}) {
+    return `<div class="dice">${values.map((v) => `<div class="die ${rolling ? 'rolling' : ''}">${
+      Array.from({ length: 9 }, (_, i) => `<i class="${PIPS[v]?.includes(i) ? 'on' : ''}"></i>`).join('')
+    }</div>`).join('')}</div>`;
+  },
+
+  // Header showing whose turn it is.
+  turn(playerId, text = '') {
+    const mine = playerId === PB.state.me;
+    return `<div class="turn ${mine ? 'mine' : ''}">${mine ? 'Your turn' : `${PB.esc(PB.name(playerId))}'s turn`}${text ? ` <span>${PB.esc(text)}</span>` : ''}</div>`;
+  },
+
+  // Grid of player buttons. Tapping one sends `action` with { targetId }.
+  playerPicker(action, { exclude = [], selected = null, extra = {} } = {}) {
+    const data = Object.entries(extra).map(([k, v]) => `data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${PB.esc(v)}"`).join(' ');
+    return `<div class="vote-grid">${PB.state.players
+      .filter((p) => !exclude.includes(p.id))
+      .map((p) => `<button data-act="${PB.esc(action)}" data-target-id="${PB.esc(p.id)}" ${data} class="${selected === p.id ? 'selected' : ''} ${p.connected ? '' : 'offline'}">${PB.esc(p.name)}${p.id === PB.state.me ? ' (you)' : ''}</button>`)
+      .join('')}</div>`;
+  },
+
+  timer() {
+    return '<span class="timer" id="timer"></span>';
+  },
+
+  // Recent things that happened (drinks handed out etc.).
+  feed(limit = 4) {
+    const items = PB.state.feed.slice(-limit).reverse();
+    if (!items.length) return '';
+    return `<ul class="feed">${items.map((f) => `<li>${PB.esc(f.text)}</li>`).join('')}</ul>`;
+  },
+
+  scoreboard() {
+    const rows = PB.state.players.slice().sort((a, b) => b.drinks - a.drinks);
+    return `<div class="card"><h2>Total sips</h2><ul class="players">${rows.map((p) => `
+      <li class="${p.connected ? '' : 'offline'}"><span class="name">${PB.esc(p.name)}${p.id === PB.state.me ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
+  },
+};
+window.PB = PB;
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -34,32 +117,38 @@ function toast(msg) {
   toast.t = setTimeout(() => (el.hidden = true), 2500);
 }
 
-function playerName(id) {
-  return state.players.find((p) => p.id === id)?.name ?? '???';
-}
-
 function joinUrl() {
-  return `${location.origin}/?room=${state.code}`;
+  return `${location.origin}/?room=${PB.state.code}`;
 }
 
 function leaveRoom() {
   socket.emit('leave');
-  store.del('pb_room');
-  state = null;
-  history.replaceState(null, '', '/');
+  store.del('room');
+  PB.state = null;
+  history.replaceState(null, '', seat ? `/?seat=${seat}` : '/');
   render();
 }
 
-// ---------- connection ----------
+// Taps on anything with data-act send a game action; data-cmd sends a room command.
+$app.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act], [data-cmd]');
+  if (!el || el.disabled) return;
+  if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
+  const { act, cmd, confirm: _, ...data } = el.dataset;
+  if (act) PB.act(act, data);
+  else socket.emit(cmd, data);
+});
+
+// ---------- Connection ----------
 
 socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
-  const room = store.get('pb_room');
+  const room = store.get('room');
   if (room) {
-    socket.emit('join', { code: room, playerId, name: store.get('pb_name') }, (res) => {
+    socket.emit('join', { code: room, playerId, name: store.get('name') }, (res) => {
       if (res.error) {
-        store.del('pb_room');
-        state = null;
+        store.del('room');
+        PB.state = null;
         render();
       }
     });
@@ -68,36 +157,47 @@ socket.on('connect', () => {
 
 socket.on('state', (s) => {
   clockOffset = s.serverNow - Date.now();
-  state = s;
-  store.set('pb_room', s.code);
+  PB.state = s;
+  store.set('room', s.code);
   if (!s.players.some((p) => p.id === playerId)) return leaveRoom();
   render();
 });
 
 socket.on('kicked', () => {
-  store.del('pb_room');
-  state = null;
+  store.del('room');
+  PB.state = null;
   homeError = 'You were removed from the room';
   render();
 });
 
-// ---------- screens ----------
+// Full-screen "drink!" alert when someone hands you sips.
+socket.on('drink', ({ sips, reason, from }) => {
+  navigator.vibrate?.([200, 100, 200]);
+  const el = document.getElementById('drink-alert');
+  el.innerHTML = `<div class="big">🍺 DRINK ${PB.esc(sips)} SIP${sips === 1 ? "" : "S"}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
+  el.hidden = false;
+  clearTimeout(el.t);
+  el.t = setTimeout(() => (el.hidden = true), 4000);
+});
+document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden = true);
+
+// ---------- Screens ----------
 
 function renderHome() {
-  const savedName = store.get('pb_name') || '';
+  const savedName = store.get('name') || (seat ? `Player ${seat}` : '');
   $app.innerHTML = `
     <h1>Party<span>Box</span></h1>
     <p class="tagline">Drinking games for your phones</p>
     <div class="card">
-      <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${esc(savedName)}">
+      <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
     <div class="card">
-      <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${esc(urlRoom || '')}">
+      <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${PB.esc(urlRoom || '')}">
       <button id="join">Join room</button>
     </div>
     <p class="or">or</p>
     <button id="create" class="secondary">Create a new room</button>
-    <p class="error" id="err">${esc(homeError)}</p>
+    <p class="error" id="err">${PB.esc(homeError)}</p>
   `;
   const $name = document.getElementById('name');
   const $code = document.getElementById('code');
@@ -106,12 +206,12 @@ function renderHome() {
   function go(event, payload) {
     const name = $name.value.trim();
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
-    store.set('pb_name', name);
+    store.set('name', name);
     socket.emit(event, { ...payload, name, playerId }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
-      store.set('pb_room', res.code);
-      history.replaceState(null, '', `/?room=${res.code}`);
+      store.set('room', res.code);
+      if (!seat) history.replaceState(null, '', `/?room=${res.code}`);
     });
   }
 
@@ -122,163 +222,119 @@ function renderHome() {
   };
   document.getElementById('create').onclick = () => go('create', {});
   $code.addEventListener('keydown', (e) => e.key === 'Enter' && document.getElementById('join').click());
-  (urlRoom && !savedName ? $name : urlRoom ? $code : $name).focus();
+  if (!seat) (urlRoom && !savedName ? $name : urlRoom ? $code : $name).focus();
 }
 
 function playerList({ showKick }) {
-  return `<ul class="players">${state.players.map((p) => `
+  const s = PB.state;
+  return `<ul class="players">${s.players.map((p) => `
     <li class="${p.connected ? '' : 'offline'}">
-      <span class="name">${esc(p.name)}${p.id === state.me ? ' (you)' : ''}</span>
-      ${p.id === state.hostId ? '<span class="tag">👑 host</span>' : ''}
+      <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span>
+      ${p.id === s.hostId ? '<span class="tag">👑 host</span>' : ''}
       ${!p.connected ? '<span class="tag">offline</span>' : ''}
-      ${showKick && p.id !== state.me ? `<button class="kick" data-kick="${esc(p.id)}">✕</button>` : ''}
+      ${showKick && p.id !== s.me ? `<button class="kick" data-cmd="kick" data-player-id="${PB.esc(p.id)}" data-confirm="Remove ${PB.esc(p.name)}?">✕</button>` : ''}
     </li>`).join('')}</ul>`;
 }
 
+function renderOptions() {
+  const s = PB.state;
+  if (!s.options.length) return '';
+  return s.options.map((o) => `
+    <div class="option">
+      <span class="muted">${PB.esc(o.label)}</span>
+      ${s.isHost
+        ? `<div class="segmented">${o.choices.map((c) => `
+            <button class="${c.value === o.value ? 'selected' : ''}" data-option="${PB.esc(o.id)}" data-value='${PB.esc(JSON.stringify(c.value))}'>${PB.esc(c.label)}</button>`).join('')}</div>`
+        : `<strong>${PB.esc(o.choices.find((c) => c.value === o.value)?.label)}</strong>`}
+    </div>`).join('');
+}
+
 function renderLobby() {
-  const host = state.isHost;
-  const game = state.games.find((g) => g.id === state.selectedGame);
-  const online = state.players.filter((p) => p.connected).length;
+  const s = PB.state;
+  const host = s.isHost;
+  const game = s.games.find((g) => g.id === s.selectedGame);
+  const online = s.players.filter((p) => p.connected).length;
   const canStart = online >= game.minPlayers;
 
   $app.innerHTML = `
     <div class="card center">
       <h2>Room code</h2>
-      <div class="room-code">${esc(state.code)}</div>
-      <img class="qr" src="/qr/${esc(state.code)}" alt="QR code to join">
+      <div class="room-code">${PB.esc(s.code)}</div>
+      <img class="qr" src="/qr/${PB.esc(s.code)}" alt="QR code to join">
       <button id="share" class="secondary">Share invite link</button>
     </div>
     <div class="card">
-      <h2>Players (${state.players.length})</h2>
+      <h2>Players (${s.players.length})</h2>
       ${playerList({ showKick: host })}
     </div>
     <div class="card">
       <h2>Game</h2>
       ${host
-        ? `<div class="games">${state.games.map((g) => `
-            <button class="game-option ${g.id === state.selectedGame ? 'selected' : ''}" data-game="${esc(g.id)}">
-              ${esc(g.name)}<small>${esc(g.description)}</small>
+        ? `<div class="games">${s.games.map((g) => `
+            <button class="game-option ${g.id === s.selectedGame ? 'selected' : ''}" data-cmd="selectGame" data-game-id="${PB.esc(g.id)}">
+              ${PB.esc(g.name)}<small>${PB.esc(g.description)}</small>
             </button>`).join('')}</div>`
-        : `<p><strong>${esc(game.name)}</strong></p><p class="muted">${esc(game.description)}</p>`}
+        : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
+      ${renderOptions()}
     </div>
     ${host
-      ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${game.minPlayers - online} more player${game.minPlayers - online === 1 ? '' : 's'}`}</button>`
-      : `<p class="center muted">Waiting for ${esc(playerName(state.hostId))} to start…</p>`}
+      ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
+      : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
     <button id="leave" class="link">Leave room</button>
   `;
 
   document.getElementById('share').onclick = async () => {
     const url = joinUrl();
     if (navigator.share) {
-      try { await navigator.share({ title: 'Join my PartyBox room', text: `Room code ${state.code}`, url }); } catch {}
+      try { await navigator.share({ title: 'Join my PartyBox room', text: `Room code ${s.code}`, url }); } catch {}
     } else {
       try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast(url); }
     }
   };
   document.getElementById('leave').onclick = leaveRoom;
-  $app.querySelectorAll('[data-kick]').forEach((b) => {
-    b.onclick = () => confirm(`Remove ${playerName(b.dataset.kick)}?`) && socket.emit('kick', { playerId: b.dataset.kick });
-  });
-  $app.querySelectorAll('[data-game]').forEach((b) => {
-    b.onclick = () => socket.emit('selectGame', { gameId: b.dataset.game });
+  $app.querySelectorAll('[data-option]').forEach((b) => {
+    b.onclick = () => socket.emit('setOption', { id: b.dataset.option, value: JSON.parse(b.dataset.value) });
   });
   const $start = document.getElementById('start');
   if ($start) $start.onclick = () => socket.emit('start', {}, (res) => res.error && toast(res.error));
 }
 
-function hostMenu() {
-  return state.isHost ? '<button id="end" class="link">End game</button>' : '';
+function loadGame(gameId) {
+  if (loading[gameId]) return;
+  loading[gameId] = true;
+  const script = document.createElement('script');
+  script.src = `/games/${encodeURIComponent(gameId)}.js`;
+  script.onload = render;
+  script.onerror = () => { $app.innerHTML = `<p class="error">Couldn't load ${PB.esc(gameId)}</p>`; };
+  document.head.appendChild(script);
 }
 
-function bindHostMenu() {
-  const $end = document.getElementById('end');
-  if ($end) $end.onclick = () => confirm('End the game for everyone?') && socket.emit('endGame');
-}
-
-function renderMostLikelyQuestion() {
-  const g = state.game;
-  const online = state.players.filter((p) => p.connected);
-  const voted = online.filter((p) => g.votedIds.includes(p.id)).length;
-
-  $app.innerHTML = `
-    <div class="topbar"><span>Round ${g.round}</span><span class="timer" id="timer"></span></div>
-    <div class="prompt"><small>Who's most likely to…</small>${esc(g.question)}?</div>
-    <div class="vote-grid">${state.players.map((p) => `
-      <button data-vote="${esc(p.id)}" class="${g.myVote === p.id ? 'selected' : ''}">
-        ${esc(p.name)}${p.id === state.me ? ' (you)' : ''}
-        ${g.votedIds.includes(p.id) ? '<span class="check">✓ voted</span>' : ''}
-      </button>`).join('')}</div>
-    <p class="center muted">${voted} / ${online.length} voted${g.myVote ? ' · tap to change your vote' : ''}</p>
-    <div class="spacer"></div>
-    ${hostMenu()}
-  `;
-  $app.querySelectorAll('[data-vote]').forEach((b) => {
-    b.onclick = () => socket.emit('action', { type: 'vote', targetId: b.dataset.vote });
-  });
-  bindHostMenu();
-}
-
-function renderMostLikelyReveal() {
-  const g = state.game;
-  const { counts, drinkers, sips, noVotes } = g.result;
-  const iDrink = drinkers.includes(state.me);
-
-  if (iDrink && lastDrinkRound !== g.round) {
-    lastDrinkRound = g.round;
-    navigator.vibrate?.([200, 100, 200]);
+function renderGame() {
+  const s = PB.state;
+  const screens = gameScreens[s.gameType];
+  if (!screens) {
+    $app.innerHTML = '<p class="center muted">Loading…</p>';
+    return loadGame(s.gameType);
   }
-
-  const sipText = `${sips} sip${sips === 1 ? '' : 's'}`;
-  let banner;
-  if (noVotes) {
-    banner = `<div class="drink me"><div class="big">Nobody voted 🤷</div><div class="sips">Everybody drinks ${sipText}!</div></div>`;
-  } else if (iDrink) {
-    const others = drinkers.filter((id) => id !== state.me).map(playerName);
-    banner = `<div class="drink me"><div class="big">🍺 YOU DRINK!</div><div class="sips">${sipText}${others.length ? ` · with ${esc(others.join(', '))}` : ''}</div></div>`;
-  } else {
-    banner = `<div class="drink"><div class="big">${esc(drinkers.map(playerName).join(' & '))}</div><div class="sips">drink${drinkers.length === 1 ? 's' : ''} ${sipText} 🍺</div></div>`;
-  }
-
-  const rows = state.players
-    .map((p) => ({ p, voters: counts[p.id] || [] }))
-    .sort((a, b) => b.voters.length - a.voters.length)
-    .filter((r) => r.voters.length > 0);
-
-  const tally = state.players.slice().sort((a, b) => b.drinks - a.drinks);
-
   $app.innerHTML = `
-    <div class="topbar"><span>Round ${g.round}</span></div>
-    <div class="prompt"><small>Most likely to…</small>${esc(g.question)}</div>
-    ${banner}
-    ${rows.length ? `<div class="card results"><h2>Votes</h2><ul class="players">${rows.map((r) => `
-      <li><span class="name">${esc(r.p.name)}<span class="voters">${esc(r.voters.map(playerName).join(', '))}</span></span>
-      <span class="count">${r.voters.length}</span></li>`).join('')}</ul></div>` : ''}
-    <div class="card results"><h2>Total sips</h2><ul class="players">${tally.map((p) => `
-      <li><span class="name">${esc(p.name)}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>
+    ${screens.render(s)}
     <div class="spacer"></div>
-    ${state.isHost ? '<button id="next">Next question</button>' : `<p class="center muted">Waiting for ${esc(playerName(state.hostId))} to continue…</p>`}
-    ${hostMenu()}
+    ${s.isHost ? '<button class="link" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>' : ''}
   `;
-  const $next = document.getElementById('next');
-  if ($next) $next.onclick = () => socket.emit('action', { type: 'next' });
-  bindHostMenu();
+  screens.afterRender?.(s);
 }
-
-const SCREENS = {
-  mostLikely: { question: renderMostLikelyQuestion, reveal: renderMostLikelyReveal },
-};
 
 function render() {
-  if (!state) return renderHome();
-  if (state.phase === 'lobby') return renderLobby();
-  SCREENS[state.gameType][state.phase]();
+  if (!PB.state) return renderHome();
+  if (PB.state.phase === 'lobby') return renderLobby();
+  renderGame();
   updateTimer();
 }
 
 function updateTimer() {
   const el = document.getElementById('timer');
-  if (!el || !state?.deadline) return;
-  const left = Math.max(0, Math.ceil((state.deadline - (Date.now() + clockOffset)) / 1000));
+  if (!el || !PB.state?.deadline) return;
+  const left = Math.max(0, Math.ceil((PB.state.deadline - (Date.now() + clockOffset)) / 1000));
   el.textContent = `⏱ ${left}s`;
 }
 setInterval(updateTimer, 250);

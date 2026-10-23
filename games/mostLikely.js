@@ -1,6 +1,8 @@
 // "Most Likely To": everyone votes for who fits the prompt best. Whoever gets the
 // most votes drinks one sip per vote.
 
+const { shuffle } = require('../lib/cards');
+
 const VOTE_MS = 30 * 1000;
 
 const QUESTIONS = [
@@ -66,15 +68,6 @@ const QUESTIONS = [
   'still be single at 50',
 ];
 
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 function nextQuestion(room, ctx) {
   const g = room.game;
   if (g.deck.length === 0) g.deck = shuffle(QUESTIONS);
@@ -103,9 +96,7 @@ function reveal(room, ctx) {
     ? ctx.connectedPlayers(room).map((p) => p.id)
     : Object.keys(counts).filter((id) => counts[id].length === max);
   const sips = noVotes ? 1 : max;
-  for (const p of room.players) {
-    if (drinkers.includes(p.id)) p.drinks += sips;
-  }
+  for (const id of drinkers) ctx.drink(room, id, sips, noVotes ? 'nobody voted' : 'most votes');
 
   g.phase = 'reveal';
   g.result = { counts, drinkers, sips, noVotes };
@@ -116,9 +107,10 @@ module.exports = {
   name: 'Most Likely To',
   description: 'Vote on who fits the prompt best. Most votes drinks.',
   minPlayers: 3,
+  order: 1,
 
   start(room, ctx) {
-    room.game = { type: 'mostLikely', deck: shuffle(QUESTIONS), round: 0 };
+    Object.assign(room.game, { deck: shuffle(QUESTIONS), round: 0 });
     nextQuestion(room, ctx);
   },
 

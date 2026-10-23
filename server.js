@@ -1,13 +1,18 @@
 const express = require('express');
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
+const { createContext } = require('./lib/context');
 
-// Every game module exports: id, name, description, minPlayers, start, handle, check, view.
-// To add a game, write a module in ./games and list it here.
+// Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
-  [require('./games/mostLikely')].map((g) => [g.id, g])
+  fs.readdirSync(path.join(__dirname, 'games'))
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => require(`./games/${f}`))
+    .sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.name.localeCompare(b.name))
+    .map((g) => [g.id, g])
 );
 
 const PORT = process.env.PORT || 3000;
@@ -47,38 +52,20 @@ function cleanName(name) {
   return String(name || '').replace(/\s+/g, ' ').trim().slice(0, 16);
 }
 
-function connectedPlayers(room) {
-  return room.players.filter((p) => p.connected);
-}
-
 function ensureHost(room) {
   const host = room.players.find((p) => p.id === room.hostId);
   if (host && host.connected) return;
-  const next = connectedPlayers(room)[0];
+  const next = ctx.connectedPlayers(room)[0];
   if (next) room.hostId = next.id;
 }
 
-function setTimer(room, ms, fn) {
-  clearTimer(room);
-  room.deadline = Date.now() + ms;
-  room.timer = setTimeout(() => {
-    room.timer = null;
-    room.deadline = null;
-    fn();
-    broadcast(room);
-  }, ms);
+function defaultOptions(game) {
+  return Object.fromEntries((game.options || []).map((o) => [o.id, o.default]));
 }
-
-function clearTimer(room) {
-  if (room.timer) clearTimeout(room.timer);
-  room.timer = null;
-  room.deadline = null;
-}
-
-const ctx = { setTimer, clearTimer, connectedPlayers };
 
 function viewFor(room, player) {
   const game = room.game && GAMES[room.game.type];
+  const selected = GAMES[room.selectedGame];
   return {
     code: room.code,
     me: player.id,
@@ -86,10 +73,12 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers }) => ({ id, name, description, minPlayers })),
+    options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     players: room.players.map(({ id, name, connected, drinks }) => ({ id, name, connected, drinks })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
-    game: game ? game.view(room, player) : null,
+    game: game ? game.view(room, player, ctx) : null,
+    feed: room.feed.slice(-8),
     deadline: room.deadline,
     serverNow: Date.now(),
   };
@@ -102,15 +91,17 @@ function broadcast(room) {
   }
 }
 
-function removePlayer(room, playerId) {
-  room.players = room.players.filter((p) => p.id !== playerId);
-  if (room.game) GAMES[room.game.type].check?.(room, ctx);
-  ensureHost(room);
+function emit(room, playerId, event, data) {
+  const p = room.players.find((x) => x.id === playerId);
+  if (p?.socketId) io.to(p.socketId).emit(event, data);
 }
 
-function endGame(room) {
-  clearTimer(room);
-  room.game = null;
+const ctx = createContext({ emit, broadcast });
+
+function removePlayer(room, playerId) {
+  room.players = room.players.filter((p) => p.id !== playerId);
+  ensureHost(room);
+  if (room.game) GAMES[room.game.type].check?.(room, ctx);
 }
 
 // ---------- Sockets ----------
@@ -138,7 +129,9 @@ io.on('connection', (socket) => {
       hostId: playerId,
       players: [],
       selectedGame: Object.keys(GAMES)[0],
+      options: Object.fromEntries(Object.values(GAMES).map((g) => [g.id, defaultOptions(g)])),
       game: null,
+      feed: [],
       timer: null,
       deadline: null,
       updatedAt: Date.now(),
@@ -167,6 +160,7 @@ io.on('connection', (socket) => {
       }
       p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id };
       r.players.push(p);
+      if (r.game) GAMES[r.game.type].onJoin?.(r, p, ctx);
     }
     attach(r, p);
     ack({ ok: true, code });
@@ -183,28 +177,43 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  socket.on('setOption', ({ id, value } = {}) => {
+    if (!hostOnly() || room.game) return;
+    const opt = (GAMES[room.selectedGame].options || []).find((o) => o.id === id);
+    if (!opt || !opt.choices.some((c) => c.value === value)) return;
+    room.options[room.selectedGame][id] = value;
+    broadcast(room);
+  });
+
   socket.on('start', (_ = {}, ack = () => {}) => {
     if (!hostOnly() || room.game) return ack({ error: 'Only the host can start' });
     const game = GAMES[room.selectedGame];
-    if (connectedPlayers(room).length < game.minPlayers) {
+    if (ctx.connectedPlayers(room).length < game.minPlayers) {
       return ack({ error: `${game.name} needs at least ${game.minPlayers} players` });
     }
+    // Disconnected players don't carry into a new game.
+    room.players = room.players.filter((p) => p.connected);
     for (const p of room.players) p.drinks = 0;
+    room.feed = [];
     room.game = { type: game.id };
-    game.start(room, ctx);
+    game.start(room, ctx, { ...room.options[game.id] });
     ack({ ok: true });
     broadcast(room);
   });
 
   socket.on('action', (action = {}) => {
     if (!room || !player || !room.game) return;
-    GAMES[room.game.type].handle(room, player, action, ctx);
+    try {
+      GAMES[room.game.type].handle(room, player, action, ctx);
+    } catch (err) {
+      console.error(`[${room.code}] ${room.game?.type} action failed`, action, err);
+    }
     broadcast(room);
   });
 
   socket.on('endGame', () => {
-    if (!hostOnly()) return;
-    endGame(room);
+    if (!hostOnly() || !room.game) return;
+    ctx.endGame(room);
     broadcast(room);
   });
 
@@ -248,8 +257,8 @@ io.on('connection', (socket) => {
 setInterval(() => {
   const now = Date.now();
   for (const [code, r] of rooms) {
-    if (connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
-      clearTimer(r);
+    if (ctx.connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
+      ctx.clearTimer(r);
       rooms.delete(code);
     }
   }
@@ -257,4 +266,6 @@ setInterval(() => {
 
 server.listen(PORT, () => {
   console.log(`PartyBox running on http://localhost:${PORT}`);
+  console.log(`Games: ${Object.values(GAMES).map((g) => g.name).join(', ')}`);
+  console.log(`Test with several phones at once: http://localhost:${PORT}/dev.html`);
 });
