@@ -1,0 +1,19 @@
+{
+  "name": "partybox",
+  "version": "1.0.0",
+  "description": "Phone-only party drinking games. One phone creates a room, everyone else joins with a code.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.4"
+  }
+}
