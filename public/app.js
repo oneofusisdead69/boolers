@@ -141,13 +141,62 @@ const fullscreen = {
   },
 };
 
+// ---------- Keep screen on ----------
+// A screen wake lock stops the phone sleeping (and dropping out of the game). The setting is
+// remembered per phone; the browser releases the lock when you switch apps, so it's taken
+// again when you come back.
+
+const stayOn = {
+  supported: 'wakeLock' in navigator,
+  wanted: store.get('stayOn') === '1',
+  lock: null,
+  async acquire() {
+    if (!stayOn.supported || !stayOn.wanted || stayOn.lock || document.visibilityState !== 'visible') return;
+    try {
+      stayOn.lock = await navigator.wakeLock.request('screen');
+      stayOn.lock.addEventListener('release', () => { stayOn.lock = null; stayOn.update(); });
+    } catch {
+      stayOn.lock = null; // not allowed right now (e.g. low battery); tried again on the next tap
+    }
+    stayOn.update();
+  },
+  async toggle() {
+    stayOn.wanted = !stayOn.wanted;
+    store.set('stayOn', stayOn.wanted ? '1' : '0');
+    if (stayOn.wanted) await stayOn.acquire();
+    else await stayOn.lock?.release().catch(() => {});
+    stayOn.update();
+  },
+  // Updates the button text in place.
+  update() {
+    document.querySelectorAll('.stay-btn').forEach((b) => {
+      b.textContent = stayOn.label();
+      b.classList.toggle('on', stayOn.wanted);
+    });
+  },
+  label() {
+    if (!stayOn.wanted) return '☀️ Keep screen on: Off';
+    return stayOn.lock ? '☀️ Keep screen on: On' : '☀️ Keep screen on: On (tap anywhere)';
+  },
+};
+document.addEventListener('visibilitychange', () => stayOn.acquire());
+// Some phones only allow it after a tap, so try again on any tap until it sticks.
+document.addEventListener('click', () => stayOn.acquire());
+stayOn.acquire();
+
 function fullscreenButtons() {
-  if (seat || fullscreen.active() || !fullscreen.canRequest()) return '';
-  return '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>';
+  if (seat) return '';
+  const fs = !fullscreen.active() && fullscreen.canRequest() ? '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>' : '';
+  const stay = stayOn.supported ? `<button class="stay-btn secondary ${stayOn.wanted ? 'on' : ''}" id="stay">${stayOn.label()}</button>` : '';
+  return fs + stay;
 }
 
 function bindFullscreenButtons() {
   document.getElementById('fs')?.addEventListener('click', () => fullscreen.enter());
+  document.getElementById('stay')?.addEventListener('click', (e) => {
+    e.stopPropagation(); // the tap-anywhere retry shouldn't race the toggle
+    stayOn.toggle();
+  });
 }
 
 // Hide the button once full screen (no full redraw, so typed text isn't lost).

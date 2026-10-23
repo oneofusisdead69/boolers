@@ -458,3 +458,5 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 /* ---------- Full screen ---------- */
 .fs-btn { font-size: 0.95rem; padding: 12px; }
 .fs-btn[hidden] { display: none; }
+.stay-btn { font-size: 0.95rem; padding: 12px; }
+.stay-btn.on { color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }

@@ -13,6 +13,8 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 ## Full screen
 Where the browser allows it (Android), the app goes full screen when you create, join or start a game, with a ⛶ button to get back to it. iPhone Safari doesn't let websites go full screen.
 
+**Keep screen on:** a ☀️ toggle on the home and lobby screens stops the phone sleeping mid-game (iPhone iOS 16.4+, Android). It's remembered per phone and re-applied when you come back to the app.
+
 ## Run locally
 ```bash
 npm install
