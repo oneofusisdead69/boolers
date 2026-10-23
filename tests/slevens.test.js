@@ -200,3 +200,63 @@ test('the dice roll for the chosen time before they land', () => {
   assert.ok(q.room.deadline - Date.now() <= 100, 'fastest setting is 0.1 seconds');
   q.cleanup();
 });
+
+// Roller i rolls the given dice and keeps their hands off.
+function waitOut(t, i, dice) {
+  rollAs(t, i, dice);
+  t.fireTimer();
+}
+
+test('a first hit of snake eyes means only snake eyes hits after it', () => {
+  const t = setup(game, 3);
+  waitOut(t, 0, [1, 1]);
+  assert.strictEqual(t.room.game.hit, 'snake');
+  assert.ok(t.view(1).snakeEyes);
+  assert.strictEqual(t.room.game.hits, 1);
+  waitOut(t, 0, [3, 4]); // a 7 no longer hits
+  assert.strictEqual(t.room.game.hits, 1);
+  rollAs(t, 0, [5, 5]);
+  t.act(0, 'press'); // touching on doubles is fine now
+  assert.strictEqual(t.room.game.phase, 'window');
+  t.fireTimer();
+  assert.strictEqual(t.room.game.hits, 1);
+  rollAs(t, 0, [1, 1]);
+  t.act(0, 'roll'); // can't roll on through the snake eyes
+  assert.strictEqual(t.room.game.phase, 'window');
+  t.fireTimer();
+  assert.strictEqual(t.room.game.hits, 2, 'another snake eyes is a hit');
+  assert.ok(!t.room.game.snakeEyes, 'and normal rules are back');
+  waitOut(t, 0, [5, 6]);
+  assert.strictEqual(t.room.game.hits, 3);
+  t.cleanup();
+});
+
+test('touching the dot on the second snake eyes is a REVERSE', () => {
+  const t = setup(game, 3);
+  waitOut(t, 0, [1, 1]);
+  rollAs(t, 0, [1, 1]);
+  t.act(0, 'press');
+  assert.strictEqual(t.room.game.phase, 'reverse');
+  t.act(0, 'pick', { targetId: 'p1' });
+  assert.ok(!t.room.game.snakeEyes, 'a new roller starts with normal rules');
+  t.cleanup();
+});
+
+test('snake eyes later in a streak is just a normal hit', () => {
+  const t = setup(game, 2);
+  waitOut(t, 0, [3, 4]);
+  waitOut(t, 0, [1, 1]);
+  assert.strictEqual(t.room.game.hits, 2);
+  assert.ok(!t.room.game.snakeEyes);
+  waitOut(t, 0, [6, 5]);
+  assert.strictEqual(t.room.game.hits, 3);
+  t.cleanup();
+});
+
+test('the red arrow clears snake eyes mode', () => {
+  const t = setup(game, 2);
+  waitOut(t, 0, [1, 1]);
+  t.act(0, 'pass');
+  assert.ok(!t.room.game.snakeEyes);
+  t.cleanup();
+});

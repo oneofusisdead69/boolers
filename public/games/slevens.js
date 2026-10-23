@@ -39,7 +39,8 @@
     const g = s.game;
     if (g.hits === 0 || s.phase === 'reverse') return '';
     const next = g.dotConnect ? ` · next roll needs ${PB.plural(g.traceLen, 'dot')}` : '';
-    return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row${next}</p>`;
+    const snake = g.snakeEyes ? '<br>🐍 Only snake eyes hits now' : '';
+    return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row${next}${snake}</p>`;
   }
 
   // The big ROLL button only opens a turn; after that every roll is dots.
@@ -74,7 +75,7 @@
         <div class="pad" id="pad">
           ${mine ? rollerPad(s) : `${streak(s)}${diceHtml(g, s.phase)}`}
           ${s.phase === 'reverse' ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
-          ${g.hit ? '<div class="reverse hit">🍺 HIT!</div>' : ''}
+          ${g.hit ? `<div class="reverse hit ${g.hit === 'snake' ? 'long' : ''}">${g.hit === 'snake' ? '🐍 SNAKE EYES!' : '🍺 HIT!'}</div>` : ''}
           ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
           ${mine && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
         </div>

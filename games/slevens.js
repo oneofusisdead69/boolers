@@ -6,16 +6,22 @@
 // racing to hit again before they finish. Touching the dot within 3 seconds of a hit means the
 // roller wasn't reading the dice: that's a REVERSE, and the roller picks who rolls next.
 // On anything else the roller just presses the dot and traces to roll again.
+// Snake eyes: if a turn's first hit is 1 + 1, only another 1 + 1 counts as a hit until one comes up.
 // The red arrow passes the dice to the next player (the drinker finished first). The dice only
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
 const SPIN_MS = [100, 1000, 2000, 3000]; // host picks how long the dice roll in the lobby
 const WINDOW_SECONDS = [2, 3, 4, 5]; // host picks the hands-off time in the lobby
-const WINDOW_GRACE_MS = 300; // allowance for network lag on the 3-second window
+const WINDOW_GRACE_MS = 300; // allowance for network lag on the hands-off window
 
 function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
 }
+
+const isSnakeEyes = ([a, b]) => a === 1 && b === 1;
+
+// What counts as a hit right now: in snake eyes mode, only another snake eyes.
+const hits = (g) => (g.snakeEyes ? isSnakeEyes(g.dice) : isHit(g.dice));
 
 // Random dot positions as percentages of the touch pad. Dots stay clear of the pass arrow in
 // the corner, and consecutive dots are kept apart so every trace needs a real drag. The first
@@ -57,21 +63,27 @@ function newTurn(room, ctx, playerId) {
   g.rollerId = playerId;
   g.hits = 0;
   g.hit = false;
+  g.snakeEyes = false;
   g.dice = null;
   ready(room, ctx);
 }
 
-// The dice have landed and the next roll's dot is showing. For 3 seconds, touching it on a
-// hit is a REVERSE; once the 3 seconds pass, a hit counts and the next roll gets one more dot.
+// The dice have landed and the next roll's dot is showing. Until the hands-off time is up,
+// touching it on a hit is a REVERSE; after that, a hit counts and the next roll gets one more dot.
 function openWindow(room, ctx) {
   const g = room.game;
   ready(room, ctx);
   g.phase = 'window';
   ctx.setTimer(room, g.windowMs + WINDOW_GRACE_MS, () => {
-    if (isHit(g.dice)) {
+    if (hits(g)) {
+      const snake = isSnakeEyes(g.dice);
+      // A first hit of snake eyes starts snake eyes mode; the next snake eyes ends it.
+      g.snakeEyes = snake && !g.snakeEyes && g.hits === 0;
       g.hits += 1;
-      g.hit = true;
-      ctx.log(room, `🍺 ${ctx.name(room, g.rollerId)} hit ${g.dice.join(' + ')}!`);
+      g.hit = snake ? 'snake' : true;
+      ctx.log(room, snake
+        ? `🐍 ${ctx.name(room, g.rollerId)} hit snake eyes!${g.snakeEyes ? ' Only snake eyes hits now' : ''}`
+        : `🍺 ${ctx.name(room, g.rollerId)} hit ${g.dice.join(' + ')}!`);
       ready(room, ctx); // one more dot
     } else {
       g.phase = 'ready'; // same dots, roll whenever
@@ -121,12 +133,12 @@ module.exports = {
     const g = room.game;
     if (player.id !== g.rollerId) return;
 
-    if (action.type === 'press' && g.phase === 'window' && isHit(g.dice)) {
+    if (action.type === 'press' && g.phase === 'window' && hits(g)) {
       // Touched the dot on a hit before the 3 seconds were up.
       ctx.clearTimer(room);
       g.phase = 'reverse';
       ctx.log(room, `🔄 ${player.name} touched the dot on a ${g.dice.join(' + ')}. REVERSE!`);
-    } else if (action.type === 'roll' && (g.phase === 'ready' || (g.phase === 'window' && !isHit(g.dice)))) {
+    } else if (action.type === 'roll' && (g.phase === 'ready' || (g.phase === 'window' && !hits(g)))) {
       ctx.clearTimer(room);
       g.hit = false;
       g.dice = ctx.dice.roll(2);
@@ -163,6 +175,7 @@ module.exports = {
       rollerId: g.rollerId,
       hits: g.hits,
       hit: g.hit,
+      snakeEyes: g.snakeEyes,
       traceLen: traceLen(g),
       seconds: g.windowMs / 1000,
       dotConnect: g.dotConnect,
