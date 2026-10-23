@@ -94,6 +94,11 @@ const PB = {
     return '<span class="timer" id="timer"></span>';
   },
 
+  // Current time on the server's clock, for lining up countdowns across phones.
+  now() {
+    return Date.now() + clockOffset;
+  },
+
   // Recent things that happened (drinks handed out etc.).
   feed(limit = 4) {
     const items = PB.state.feed.slice(-limit).reverse();
@@ -316,8 +321,11 @@ function renderGame() {
     $app.innerHTML = '<p class="center muted">Loading…</p>';
     return loadGame(s.gameType);
   }
+  // A screen returns null to keep what's showing (e.g. while a finger is mid-gesture).
+  const html = screens.render(s);
+  if (html === null) return;
   $app.innerHTML = `
-    ${screens.render(s)}
+    ${html}
     <div class="spacer"></div>
     ${s.isHost ? '<button class="link" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>' : ''}
   `;
@@ -334,7 +342,7 @@ function render() {
 function updateTimer() {
   const el = document.getElementById('timer');
   if (!el || !PB.state?.deadline) return;
-  const left = Math.max(0, Math.ceil((PB.state.deadline - (Date.now() + clockOffset)) / 1000));
+  const left = Math.max(0, Math.ceil((PB.state.deadline - PB.now()) / 1000));
   el.textContent = `⏱ ${left}s`;
 }
 setInterval(updateTimer, 250);

@@ -255,3 +255,95 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .drink-alert[hidden] { display: none; }
 .drink-alert .big { font-size: 3rem; font-weight: 900; }
 .drink-alert small { opacity: 0.75; margin-top: 16px; }
+
+/* ---------- Slevens ---------- */
+
+.dice-box { min-height: 76px; }
+.dice.spinning .die { transform: rotate(var(--r, 12deg)); }
+.dice.spinning .die:nth-child(2) { --r: -14deg; }
+.notice { text-align: center; color: var(--danger); font-weight: 700; }
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 46vh;
+  border-radius: var(--radius);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stage.trace { background: var(--card); }
+.stage-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+
+.roll-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 0 10px rgba(255, 204, 51, 0.15), 0 10px 30px rgba(0,0,0,0.4);
+}
+.roll-btn:active { transform: translate(-50%, -50%) scale(0.95); }
+
+.dot {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 8px rgba(255, 204, 51, 0.2);
+  animation: pop 0.2s ease-out;
+  pointer-events: none;
+}
+.dot[hidden] { display: none; }
+.dot.start { animation: pop 0.2s ease-out, glow 1.2s ease-in-out infinite; }
+.dot.reached { background: var(--ok); box-shadow: 0 0 0 8px rgba(61, 220, 151, 0.25); animation: none; }
+.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.trail polyline { fill: none; stroke: var(--ok); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+@keyframes pop { from { transform: scale(0); } }
+@keyframes glow { 50% { box-shadow: 0 0 0 16px rgba(255, 204, 51, 0.1); } }
+
+.claim-dot {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  padding: 0;
+  border-radius: 50%;
+  background: #33d1ff;
+  box-shadow: 0 0 0 10px rgba(51, 209, 255, 0.25);
+  animation-name: shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes shrink { to { transform: scale(0.25); opacity: 0.4; } }
+
+.reverse {
+  text-align: center;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: var(--ok);
+  padding: 12px 0;
+  animation: pulse 0.5s ease-in-out 3;
+}
+
+.next-arrow {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 77, 109, 0.12);
+  color: var(--danger);
+  font-size: 1.7rem;
+  line-height: 1;
+  z-index: 5;
+}

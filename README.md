@@ -6,7 +6,7 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Game | Status |
 |---|---|
 | Most Likely To | ✅ Playable |
-| 7-Eleven Doubles | Planned |
+| Slevens (7-Eleven Doubles) | ✅ Playable |
 | Ride the Bus | Planned |
 | Mad Max | Planned |
 
