@@ -1,7 +1,7 @@
 # Render blueprint: New > Blueprint in the Render dashboard picks this up automatically.
 services:
   - type: web
-    name: partybox
+    name: boolers
     runtime: node
     plan: free
     buildCommand: npm install

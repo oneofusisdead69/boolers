@@ -1,4 +1,4 @@
-# PartyBox
+# Boolers
 
 Phone-only party drinking games. One person creates a room on their phone, and everyone else joins by scanning the QR code, tapping the shared link or typing the 4-letter room code. No app, no TV.
 

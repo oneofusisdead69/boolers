@@ -1,4 +1,4 @@
-// PartyBox phone client. This file handles joining, the lobby, and shared UI pieces.
+// Boolers phone client. This file handles joining, the lobby, and shared UI pieces.
 // Each game's screens live in /games/<gameId>.js and are loaded the first time they're needed.
 // See /games/README.md in the repo for how to write one.
 
@@ -186,7 +186,7 @@ document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden 
 function renderHome() {
   const savedName = store.get('name') || (seat ? `Player ${seat}` : '');
   $app.innerHTML = `
-    <h1>Party<span>Box</span></h1>
+    <h1>Bool<span>ers</span></h1>
     <p class="tagline">Drinking games for your phones</p>
     <div class="card">
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
@@ -286,7 +286,7 @@ function renderLobby() {
   document.getElementById('share').onclick = async () => {
     const url = joinUrl();
     if (navigator.share) {
-      try { await navigator.share({ title: 'Join my PartyBox room', text: `Room code ${s.code}`, url }); } catch {}
+      try { await navigator.share({ title: 'Join my Boolers room', text: `Room code ${s.code}`, url }); } catch {}
     } else {
       try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast(url); }
     }

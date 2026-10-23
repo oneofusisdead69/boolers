@@ -1,5 +1,5 @@
 {
-  "name": "partybox",
+  "name": "boolers",
   "version": "1.0.0",
   "description": "Phone-only party drinking games. One phone creates a room, everyone else joins with a code.",
   "main": "server.js",
