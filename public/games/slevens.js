@@ -7,7 +7,7 @@
   let tracing = false; // a finger is down mid-trace; don't redraw under it
   let lastKey = null;
 
-  const rolling = (phase) => phase === 'ready' || phase === 'claim';
+  const rolling = (phase) => phase === 'ready' || phase === 'window';
 
   function subtitle(s, mine) {
     const g = s.game;
@@ -17,8 +17,8 @@
         if (g.traceLen === 1) return mine ? 'Tap to roll' : 'About to roll';
         return mine ? `Trace ${g.traceLen} dots to roll` : `Tracing ${g.traceLen} dots`;
       case 'spinning': return 'Rolling…';
-      case 'claim': return mine ? 'Hit? Tap blue. Miss? Roll again' : 'Checking the dice…';
-      case 'reverse': return mine ? 'You missed a hit. Pick who rolls next' : 'Missed a hit! Picking who rolls next';
+      case 'window': return mine ? 'Hit? Hands off for 5 seconds' : 'Checking the dice…';
+      case 'reverse': return mine ? 'You touched a hit! Pick who rolls next' : 'Touched a hit! Picking who rolls next';
       default: return '';
     }
   }
@@ -35,31 +35,22 @@
       ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
   }
 
-  function topText(s) {
+  function streak(s) {
     const g = s.game;
-    if (g.notice) return `<p class="pad-top notice">${esc(g.notice)}</p>`;
-    if (g.hits > 0 && s.phase !== 'reverse') return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row · next roll needs ${PB.plural(g.traceLen, 'dot')}</p>`;
-    return '';
+    if (g.hits === 0 || s.phase === 'reverse') return '';
+    return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row · next roll needs ${PB.plural(g.traceLen, 'dot')}</p>`;
   }
+
+  // The big ROLL button only opens a turn; after that every roll is dots.
+  const rollButton = (s) => s.phase === 'ready' && !s.game.dice;
 
   function rollerPad(s) {
     const g = s.game;
-    let centre = diceHtml(g, s.phase);
+    if (rollButton(s)) return '<button class="roll-btn" data-act="roll">ROLL</button>';
     let overlay = '';
-    if (s.phase === 'ready' && g.traceLen === 1) {
-      centre = '<button class="roll-btn" data-act="roll">ROLL</button>';
-    } else if (s.phase === 'ready') {
-      overlay = traceDots(g);
-    } else if (s.phase === 'claim') {
-      // Blue dot to claim a hit, and the next roll's dots right alongside it.
-      const elapsed = Math.max(0, g.claimMs - (g.claimEndsAt - PB.now()));
-      overlay = `${traceDots(g)}
-        <button class="claim-dot" data-act="claim" aria-label="Claim the hit"
-          style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
-    } else if (s.phase === 'reverse') {
-      overlay = `<div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>`;
-    }
-    return `${topText(s)}${centre}${overlay}`;
+    if (rolling(s.phase)) overlay = traceDots(g);
+    else if (s.phase === 'reverse') overlay = `<div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>`;
+    return `${streak(s)}${diceHtml(g, s.phase)}${overlay}`;
   }
 
   function render(s) {
@@ -80,7 +71,7 @@
           ${PB.endButton('end-mini')}
         </div>
         <div class="pad" id="pad">
-          ${mine ? rollerPad(s) : `${topText(s)}${diceHtml(g, s.phase)}`}
+          ${mine ? rollerPad(s) : `${streak(s)}${diceHtml(g, s.phase)}`}
           ${s.phase === 'reverse' ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
           ${g.hit ? '<div class="reverse hit">🍺 HIT!</div>' : ''}
           ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
@@ -103,7 +94,9 @@
   }
 
   // Press the first dot (the dice start spinning), then drag through each dot as it appears.
-  // Reaching the last dot rolls. Lifting the finger starts over.
+  // Reaching the last dot rolls. Lifting the finger starts over. Touching the first dot also
+  // tells the server, which turns it into a REVERSE if the dice show a hit and the 5 seconds
+  // aren't up.
   function setupTrace() {
     const pad = document.getElementById('pad');
     const dots = [...pad.querySelectorAll('.dot')];
@@ -156,6 +149,7 @@
       tracing = true;
       last = [e.clientX, e.clientY];
       pad.setPointerCapture(e.pointerId);
+      PB.act('press');
       reach(0);
       spin();
       if (idx === dots.length) return finish();
@@ -192,8 +186,7 @@
     render,
     afterRender(s) {
       if (s.phase === 'spinning') spin();
-      const g = s.game;
-      if (g.rollerId === s.me && rolling(s.phase) && !(s.phase === 'ready' && g.traceLen === 1)) setupTrace();
+      if (s.game.rollerId === s.me && rolling(s.phase) && !rollButton(s)) setupTrace();
     },
   });
 })();
