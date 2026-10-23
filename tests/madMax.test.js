@@ -318,8 +318,7 @@ test('final battle: the last two play a 5-card war, winner takes all', () => {
   assert.strictEqual(g.war.size, 5);
   assert.ok(!t.view(0).war.canJoin);
   t.act(g.war.challengers[0] === 'p1' ? 1 : 2, 'terms', { terms: 'high' });
-  const caller = g.war.callerId === 'p1' ? 1 : 2;
-  for (let i = 0; i < 5; i++) t.act(caller, 'warCall', { call: 'high' });
+  for (let i = 0; i < 5; i++) t.act(Number(g.war.callerId.slice(1)), 'warCall', { call: 'high' });
   assert.strictEqual(g.phase, 'over');
   assert.strictEqual(g.winnerId, 'p1');
   assert.strictEqual(g.hands.p1.length, 14, 'every card: both hands and the pile');
@@ -376,10 +375,70 @@ test('a short player who wins the final battle keeps everything', () => {
   assert.strictEqual(g.war.challengers[0], 'p1');
   t.act(1, 'terms', { terms: 'high' });
   assert.strictEqual(g.war.borrowed.p1.n, 3);
-  for (let i = 0; i < 5; i++) t.act(2, 'warCall', { call: 'high' });
+  for (let i = 0; i < 5; i++) t.act(Number(g.war.callerId.slice(1)), 'warCall', { call: 'high' });
   assert.strictEqual(g.phase, 'over');
   assert.strictEqual(g.winnerId, 'p1');
   assert.strictEqual(g.hands.p1.length, 12, 'all the cards');
   assert.strictEqual(g.hands.p2.length, 0);
+  t.cleanup();
+});
+
+test('in the final battle the two players take turns calling, tiebreaks included', () => {
+  const t = setup(game, 3, { takePile: true });
+  rig(t, [
+    [c(9, 'H')],
+    [c(2, 'S'), c(3, 'S'), c(14, 'S'), c(13, 'S'), c(5, 'S'), c(9, 'S'), c(4, 'S')],
+    [c(2, 'D'), c(3, 'D'), c(12, 'D'), c(11, 'D'), c(5, 'D'), c(8, 'D'), c(6, 'D'), c(7, 'D')],
+  ], [c(5, 'C')]);
+  t.act(0, 'call', { call: 'lower' }); // p0 is out: final battle p1 (fewer cards) vs p2
+  const g = t.room.game;
+  t.act(1, 'terms', { terms: 'high' });
+  const callers = [];
+  while (g.phase === 'war') {
+    callers.push(g.war.callerId);
+    t.act(Number(g.war.callerId.slice(1)), 'warCall', { call: 'high' });
+  }
+  // 2v2 tie, 3v3 tie, A v Q p1, K v J p1, 5v5 tie -> p1 wins 2-0 after 5 rounds
+  assert.deepStrictEqual(callers, ['p2', 'p1', 'p2', 'p1', 'p2']);
+  assert.strictEqual(g.winnerId, 'p1');
+  t.cleanup();
+});
+
+test('final battle tiebreaks keep alternating the caller', () => {
+  const t = setup(game, 3, { takePile: true });
+  rig(t, [
+    [c(9, 'H')],
+    [c(2, 'S'), c(3, 'S'), c(4, 'S'), c(5, 'S'), c(6, 'S'), c(7, 'S'), c(8, 'S')],
+    [c(2, 'D'), c(3, 'D'), c(4, 'D'), c(5, 'D'), c(6, 'D'), c(7, 'D'), c(10, 'D'), c(11, 'D')],
+  ], [c(5, 'C')]);
+  t.act(0, 'call', { call: 'lower' });
+  const g = t.room.game;
+  t.act(1, 'terms', { terms: 'high' });
+  const callers = [];
+  while (g.phase === 'war') {
+    callers.push(g.war.callerId);
+    t.act(Number(g.war.callerId.slice(1)), 'warCall', { call: 'high' });
+  }
+  // five ties, a tied tiebreak (7v7), then 8 v 10 -> p2
+  assert.deepStrictEqual(callers, ['p2', 'p1', 'p2', 'p1', 'p2', 'p1', 'p2']);
+  assert.strictEqual(g.winnerId, 'p2');
+  t.cleanup();
+});
+
+test('final battle with colour terms: a right call wins the round for whoever made it', () => {
+  const t = setup(game, 3, { takePile: true });
+  rig(t, [
+    [c(9, 'H')],
+    [c(2, 'S'), c(3, 'H'), c(4, 'S'), c(5, 'H'), c(6, 'S'), c(7, 'S')],
+    [c(2, 'C'), c(3, 'C'), c(4, 'H'), c(5, 'D'), c(6, 'C'), c(8, 'C'), c(9, 'C')],
+  ], [c(5, 'C')]);
+  t.act(0, 'call', { call: 'lower' });
+  const g = t.room.game;
+  t.act(1, 'terms', { terms: 'color' });
+  t.act(2, 'warCall', { call: 'same' }); // S v C same: right -> p2
+  t.act(1, 'warCall', { call: 'same' }); // H v C different: wrong -> p2
+  t.act(2, 'warCall', { call: 'same' }); // S v H different: wrong -> p1
+  t.act(1, 'warCall', { call: 'same' }); // H v D same: right -> p1
+  assert.deepStrictEqual(g.war.rounds.map((r) => r.winnerId), ['p2', 'p2', 'p1', 'p1']);
   t.cleanup();
 });

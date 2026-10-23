@@ -16,7 +16,8 @@
 // new pile. Anyone who wins no rounds finishes their drink.
 // Short of cards for a war? Top up at random from the pile, or, when winners take the pile, from
 // the player with the most cards. A short player who wins gives that many cards back.
-// Final battle (option): when two players are left, a 5-card war for everything.
+// Final battle (option): when two players are left, a 5-card war for everything. The two take
+// turns calling the rounds.
 
 const { newDeck, shuffle, color } = require('../lib/cards');
 
@@ -235,14 +236,14 @@ function playRound(room, ctx, call) {
   const cards = roundCards(w);
   let winnerId = null;
   if (w.terms === 'color') {
-    const mine = cards[w.challengedId];
-    const theirs = cards[w.challengers[0]];
-    if (!mine) winnerId = w.challengers[0];
-    else if (!theirs) winnerId = w.challengedId;
-    else {
-      const same = color(mine) === color(theirs);
-      winnerId = (call === 'same') === same ? w.challengedId : w.challengers[0];
-    }
+    // One on one: a right call wins the round for whoever made it.
+    const caller = w.callerId;
+    const other = warPlayers(w).find((id) => id !== caller);
+    const mine = cards[caller];
+    const theirs = cards[other];
+    if (!mine) winnerId = other;
+    else if (!theirs) winnerId = caller;
+    else winnerId = (call === 'same') === (color(mine) === color(theirs)) ? caller : other;
   } else {
     const played = Object.entries(cards).filter(([, c]) => c);
     const ranks = played.map(([, c]) => c.rank);
@@ -250,10 +251,15 @@ function playRound(room, ctx, call) {
     const leaders = played.filter(([, c]) => c.rank === best);
     if (leaders.length === 1) winnerId = leaders[0][0];
   }
-  w.rounds.push({ call, cards, winnerId, tiebreak, players: [...w.inRound] });
+  w.rounds.push({ call, cards, winnerId, tiebreak, players: [...w.inRound], callerId: w.callerId });
+  // In the final battle the two players take turns calling.
+  const nextCaller = w.final ? warPlayers(w).find((id) => id !== w.callerId) : w.callerId;
 
   // After the last regular round (or a tiebreak), see who has the most round wins.
-  if (w.rounds.length < w.size) return;
+  if (w.rounds.length < w.size) {
+    w.callerId = nextCaller;
+    return;
+  }
   const wins = winsFor(w);
   const most = Math.max(...warPlayers(w).map((id) => wins[id]));
   const leaders = warPlayers(w).filter((id) => wins[id] === most);
@@ -261,7 +267,7 @@ function playRound(room, ctx, call) {
 
   // Tiebreak: the tied players each lay out one more card and play a called round.
   w.inRound = leaders;
-  w.callerId = leaders.includes(w.challengedId) ? w.challengedId : leaders[0];
+  w.callerId = w.final ? nextCaller : leaders.includes(w.challengedId) ? w.challengedId : leaders[0];
   for (const id of leaders) layOut(room, ctx, id, 1);
   ctx.log(room, `🤝 The war is tied. Tiebreak between ${leaders.map((id) => ctx.name(room, id)).join(' and ')}`);
 }

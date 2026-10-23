@@ -68,7 +68,7 @@
         <div class="mm-war-row">
           <div class="mm-war-name">
             <b>${esc(name(id))}</b>
-            <small>${id === w.challengedId ? 'calls' : 'challenger'}${borrowed ? ` · borrowed ${borrowed.n}` : ''}</small>
+            <small>${w.final ? (s.phase === 'war' && id === w.callerId ? 'calling now' : 'takes turns') : id === w.challengedId ? 'calls' : 'challenger'}${borrowed ? ` · borrowed ${borrowed.n}` : ''}</small>
             <span class="mm-wins">${'★'.repeat(w.wins[id] || 0) || '–'}</span>
           </div>
           <div class="cards mm-war-cards">
@@ -94,7 +94,7 @@
     if (lead) {
       const multi = w.challengers.length > 1;
       action = `
-        <p class="center">Set the terms. ${esc(name(w.challengedId))} will call each card.</p>
+        <p class="center">Set the terms. ${w.final ? `You'll take turns calling, ${esc(name(w.challengedId))} first.` : `${esc(name(w.challengedId))} will call each card.`}</p>
         <div class="mm-calls">
           <button data-act="terms" data-terms="high">Highest / lowest</button>
           <button data-act="terms" data-terms="color" ${multi ? 'disabled' : ''}>Same / different color</button>
