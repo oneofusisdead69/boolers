@@ -9,7 +9,7 @@
 // The red arrow passes the dice to the next player (the drinker finished first). The dice only
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
-const SPIN_MS = [500, 1000, 2000, 3000]; // host picks how long the dice roll in the lobby
+const SPIN_MS = [100, 1000, 2000, 3000]; // host picks how long the dice roll in the lobby
 const WINDOW_SECONDS = [2, 3, 4, 5]; // host picks the hands-off time in the lobby
 const WINDOW_GRACE_MS = 300; // allowance for network lag on the 3-second window
 

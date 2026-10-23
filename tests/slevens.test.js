@@ -195,4 +195,8 @@ test('the dice roll for the chosen time before they land', () => {
   d.act(0, 'roll');
   assert.ok(d.room.deadline - Date.now() > 900 && d.room.deadline - Date.now() <= 1000, 'defaults to 1 second');
   d.cleanup();
+  const q = setup(game, 2, { spinMs: 100 });
+  q.act(0, 'roll');
+  assert.ok(q.room.deadline - Date.now() <= 100, 'fastest setting is 0.1 seconds');
+  q.cleanup();
 });
