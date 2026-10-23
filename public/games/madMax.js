@@ -13,8 +13,9 @@
     const g = s.game;
     return `
       <div class="mm-pile">
-        ${g.prev ? `<div class="mm-prev">${PB.card(g.prev, { size: 'sm' })}</div>` : ''}
-        ${PB.card(g.top, { size: 'lg' })}
+        ${g.prev2 ? `<div class="mm-fan fan-2">${PB.card(g.prev2, { size: 'xl' })}</div>` : ''}
+        ${g.prev ? `<div class="mm-fan fan-1">${PB.card(g.prev, { size: 'xl' })}</div>` : ''}
+        <div class="mm-fan">${PB.card(g.top, { size: 'xl' })}</div>
       </div>
       <p class="center muted mm-pile-label">Pile · ${PB.plural(g.pileSize, 'card')}</p>`;
   }
@@ -71,8 +72,8 @@
             <span class="mm-wins">${'★'.repeat(w.wins[id] || 0) || '–'}</span>
           </div>
           <div class="cards mm-war-cards">
-            ${played.map((r) => `<div class="mm-war-card ${r.winnerId === id ? 'won' : ''} ${r.tiebreak ? 'tb' : ''}">${PB.card(r.cards[id], { size: 'sm' })}</div>`).join('')}
-            ${Array.from({ length: faceDown }, () => PB.card(null, { size: 'sm' })).join('')}
+            ${played.map((r) => `<div class="mm-war-card ${r.winnerId === id ? 'won' : ''} ${r.tiebreak ? 'tb' : ''}">${PB.card(r.cards[id], { size: 'md' })}</div>`).join('')}
+            ${Array.from({ length: faceDown }, () => PB.card(null, { size: 'md' })).join('')}
           </div>
         </div>`;
     }).join('')}</div>`;

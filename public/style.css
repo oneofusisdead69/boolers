@@ -208,6 +208,14 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .pcard.lg .pip { font-size: 3.6rem; }
 .pcard.lg .corner { font-size: 1.2rem; top: 6px; left: 8px; }
 .pcard.lg .corner.br { bottom: 6px; right: 8px; }
+.pcard.xl { width: 150px; height: 216px; border-radius: 12px; }
+.pcard.xl .pip { font-size: 5rem; }
+.pcard.xl .corner { font-size: 1.7rem; top: 8px; left: 10px; }
+.pcard.xl .corner.br { bottom: 8px; right: 10px; }
+.pcard.md { width: 68px; height: 98px; border-radius: 8px; }
+.pcard.md .pip { font-size: 2rem; }
+.pcard.md .corner { font-size: 0.95rem; top: 4px; left: 6px; }
+.pcard.md .corner.br { display: none; }
 .pcard.sm { width: 44px; height: 64px; border-radius: 6px; }
 .pcard.sm .pip { font-size: 1.3rem; }
 .pcard.sm .corner { font-size: 0.65rem; top: 3px; left: 4px; }
@@ -408,9 +416,13 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .reverse.long { font-size: 2.1rem; }
 
 /* ---------- Mad Max ---------- */
-.mm-pile { position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 10px; padding-top: 6px; }
-.mm-prev { opacity: 0.75; }
-.mm-pile-label { margin-top: -6px; font-size: 0.85rem; }
+/* The pile: top card in front, the two before it fanned out behind so their numbers show. */
+.mm-pile { position: relative; height: 240px; }
+.mm-fan { position: absolute; left: 50%; bottom: 8px; margin-left: -75px; transform-origin: 50% 100%; }
+.mm-fan .pcard { box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+.mm-fan.fan-1 { transform: translateX(-14px) rotate(-12deg); }
+.mm-fan.fan-2 { transform: translateX(-26px) rotate(-24deg); }
+.mm-pile-label { margin: 0; font-size: 0.85rem; }
 .mm-last { text-align: center; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--card); }
 .mm-last.right { color: var(--ok); }
 .mm-last.wrong { color: var(--danger); }
@@ -428,10 +440,10 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .turn.war-head { background: var(--danger); color: #fff; }
 .mm-war { display: flex; flex-direction: column; gap: 10px; }
 .mm-war-row { display: flex; gap: 10px; align-items: center; background: var(--card); border-radius: 12px; padding: 10px; }
-.mm-war-name { display: flex; flex-direction: column; width: 84px; flex: none; }
+.mm-war-name { display: flex; flex-direction: column; width: 76px; flex: none; }
 .mm-war-name small { color: var(--muted); }
 .mm-wins { color: var(--accent); letter-spacing: 2px; }
-.mm-war-cards { justify-content: flex-start; flex: 1; min-width: 0; gap: 6px; }
+.mm-war-cards { justify-content: flex-start; flex: 1; min-width: 0; gap: 6px; flex-wrap: wrap; }
 .mm-war-card { border-radius: 8px; }
 .mm-war-card.won { box-shadow: 0 0 0 3px var(--accent); }
 .mm-war-card.tb { outline: 2px dashed var(--muted); outline-offset: 2px; }

@@ -442,6 +442,7 @@ module.exports = {
       counts: Object.fromEntries(g.order.map((id) => [id, count(g, id)])),
       top: top(g),
       prev: top(g, 1),
+      prev2: top(g, 2),
       pileSize: g.pile.length,
       lastFlip: g.lastFlip,
       challengeEndsAt: g.challengeEndsAt,
