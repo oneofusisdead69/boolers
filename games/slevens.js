@@ -10,7 +10,7 @@
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
 const SPIN_MS = 800;
-const WINDOW_MS = 3000;
+const WINDOW_SECONDS = [2, 3, 4, 5]; // host picks the hands-off time in the lobby
 const WINDOW_GRACE_MS = 300; // allowance for network lag on the 3-second window
 
 function isHit([a, b]) {
@@ -39,7 +39,8 @@ function randomDots(count) {
   return dots;
 }
 
-const traceLen = (g) => g.hits + 1;
+// With dot connect off, every roll is a single tap.
+const traceLen = (g) => (g.dotConnect ? g.hits + 1 : 1);
 
 // Ready to roll, with a fresh set of dots.
 function ready(room, ctx) {
@@ -66,8 +67,7 @@ function openWindow(room, ctx) {
   const g = room.game;
   ready(room, ctx);
   g.phase = 'window';
-  g.windowEndsAt = Date.now() + WINDOW_MS;
-  ctx.setTimer(room, WINDOW_MS + WINDOW_GRACE_MS, () => {
+  ctx.setTimer(room, g.windowMs + WINDOW_GRACE_MS, () => {
     if (isHit(g.dice)) {
       g.hits += 1;
       g.hit = true;
@@ -82,13 +82,29 @@ function openWindow(room, ctx) {
 module.exports = {
   id: 'slevens',
   name: 'Slevens',
-  description: 'Roll 7, 11 or doubles and keep your hands off for 3 seconds. Each hit adds a dot to trace.',
+  description: 'Roll 7, 11 or doubles and keep your hands off. Each hit adds a dot to trace.',
   minPlayers: 2,
   order: 2,
+  options: [
+    {
+      id: 'seconds',
+      label: 'Hands-off time after a hit',
+      default: 3,
+      choices: WINDOW_SECONDS.map((n) => ({ value: n, label: `${n} sec` })),
+    },
+    {
+      id: 'dotConnect',
+      label: 'Dot connect (one more dot per hit)',
+      default: true,
+      choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }],
+    },
+  ],
 
-  start(room, ctx) {
+  start(room, ctx, options = {}) {
     Object.assign(room.game, {
       order: room.players.map((p) => p.id),
+      windowMs: (WINDOW_SECONDS.includes(options.seconds) ? options.seconds : 3) * 1000,
+      dotConnect: options.dotConnect !== false,
       rollNo: 0,
     });
     newTurn(room, ctx, ctx.turns.first(room, room.game.order));
@@ -141,6 +157,8 @@ module.exports = {
       hits: g.hits,
       hit: g.hit,
       traceLen: traceLen(g),
+      seconds: g.windowMs / 1000,
+      dotConnect: g.dotConnect,
       rollNo: g.rollNo,
       dots: g.dots,
       dice: g.phase === 'spinning' ? null : g.dice, // keep the result secret while spinning

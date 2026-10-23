@@ -157,3 +157,30 @@ test('dots are spread apart, on screen and clear of the arrow; the first stays o
   }
   t.cleanup();
 });
+
+test('lobby options: hands-off time and dot connect', () => {
+  const t = setup(game, 2, { seconds: 5, dotConnect: false });
+  assert.strictEqual(t.room.game.windowMs, 5000);
+  assert.strictEqual(t.view(0).seconds, 5);
+  hit(t, 0);
+  hit(t, 0);
+  assert.strictEqual(t.room.game.hits, 2, 'hits still count');
+  assert.strictEqual(t.view(0).traceLen, 1, 'every roll stays a single tap');
+  assert.strictEqual(t.room.game.dots.length, 1);
+  t.cleanup();
+});
+
+test('options default to 3 seconds with dot connect on', () => {
+  const t = setup(game, 2);
+  assert.strictEqual(t.room.game.windowMs, 3000);
+  hit(t, 0);
+  assert.strictEqual(t.view(0).traceLen, 2);
+  t.cleanup();
+});
+
+test('the hands-off timer uses the chosen time', () => {
+  const t = setup(game, 2, { seconds: 2 });
+  rollAs(t, 0, [3, 4]);
+  assert.ok(t.room.deadline - Date.now() <= 2300 + 50);
+  t.cleanup();
+});
