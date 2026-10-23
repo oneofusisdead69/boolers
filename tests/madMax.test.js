@@ -79,17 +79,35 @@ test('same number is an automatic war: no drink, the flipper picks an opponent',
   t.cleanup();
 });
 
-test('one higher or lower opens a challenge window; no challenge means the call stands', () => {
+test('one higher or lower opens a war chance; once everyone passes the call stands', () => {
   const t = setup(game, 3);
   rig(t, [[c(6, 'H'), c(2, 'C')], [c(9, 'S')], [c(3, 'S')]], [c(5, 'S')]);
   t.act(0, 'call', { call: 'lower' }); // 6 on 5: one off, and wrong
   assert.strictEqual(t.room.game.phase, 'challenge');
+  assert.strictEqual(t.room.timer, null, 'no countdown');
   assert.ok(t.view(1).canChallenge);
   assert.ok(!t.view(0).canChallenge, 'the flipper cannot challenge themselves');
-  assert.deepStrictEqual(t.drinks(), [0, 0, 0], 'no drink until the window closes');
-  t.fireTimer();
+  t.act(0, 'pass'); // the flipper can't pass for everyone
+  t.act(1, 'pass');
+  assert.strictEqual(t.room.game.phase, 'challenge', 'still waiting on Player2');
+  assert.ok(!t.view(1).canChallenge, 'passed players cannot call war');
+  t.act(1, 'war');
+  assert.strictEqual(t.room.game.phase, 'challenge');
+  assert.deepStrictEqual(t.drinks(), [0, 0, 0], 'no drink until the chance closes');
+  t.act(2, 'pass');
   assert.deepStrictEqual(t.drinks(), [1, 0, 0]);
   assert.strictEqual(t.room.game.turnId, 'p0');
+  t.cleanup();
+});
+
+test('a disconnected player never holds up a war chance', () => {
+  const t = setup(game, 3);
+  rig(t, [[c(6, 'H'), c(2, 'C')], [c(9, 'S')], [c(3, 'S')]], [c(5, 'S')]);
+  t.act(0, 'call', { call: 'higher' });
+  t.act(1, 'pass');
+  t.disconnect(2);
+  assert.strictEqual(t.room.game.phase, 'call');
+  assert.strictEqual(t.room.game.turnId, 'p1');
   t.cleanup();
 });
 
@@ -330,8 +348,8 @@ test('random full games always finish without losing or creating cards', () => {
       const v = t.view(0);
       if (g.phase === 'call') t.act(Number(g.turnId.slice(1)), 'call', { call: pick(['same', 'different', 'higher', 'lower', 'S', 'H']) });
       else if (g.phase === 'challenge') {
-        if (Math.random() < 0.5) t.act(pick(t.room.players.map((p, i) => i).filter((i) => `p${i}` !== g.lastFlip.by)), 'war');
-        else t.fireTimer();
+        const others = t.room.players.map((p, i) => i).filter((i) => `p${i}` !== g.lastFlip.by && !g.passed.includes(`p${i}`));
+        t.act(pick(others), Math.random() < 0.3 ? 'war' : 'pass');
       } else if (g.phase === 'pick') t.act(Number(g.lastFlip.by.slice(1)), 'pick', { targetId: pick(t.view(0).pickable) });
       else if (g.phase === 'terms') {
         const joiner = t.room.players.findIndex((p) => t.view(t.room.players.indexOf(p)).war.canJoin);

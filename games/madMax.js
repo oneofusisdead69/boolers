@@ -7,7 +7,8 @@
 // War:
 //   Same number as the card before: automatic war. The flipper picks an opponent.
 //   One higher/lower, or a sandwich (matches the card two plays back): anyone may challenge the
-//   flipper within a few seconds, even players who are out of cards.
+//   flipper, even players who are out of cards. The chance stays open until everyone else has
+//   either called war or tapped ✕ to pass.
 // Others with cards can join as extra challengers until the lead challenger sets the terms:
 // high/low (the only choice with several challengers) or same/different colour. Everyone lays out
 // 3 cards and the challenged player calls each round. Most rounds wins; ties go to a called
@@ -19,7 +20,6 @@
 
 const { newDeck, shuffle, color } = require('../lib/cards');
 
-const CHALLENGE_MS = 5000;
 const WAR_CARDS = 3;
 const FINAL_CARDS = 5;
 const SUITS = ['S', 'H', 'D', 'C'];
@@ -142,11 +142,17 @@ function flip(room, ctx, player, call) {
   } else if (Math.abs(card.rank - prev.rank) === 1 || (before && card.rank === before.rank)) {
     g.lastFlip.chance = Math.abs(card.rank - prev.rank) === 1 ? 'one off' : 'sandwich';
     g.phase = 'challenge';
-    g.challengeEndsAt = Date.now() + CHALLENGE_MS;
-    ctx.setTimer(room, CHALLENGE_MS, () => resolveCall(room, ctx));
+    g.passed = [];
     return;
   }
   resolveCall(room, ctx);
+}
+
+// The war chance closes once every other connected player has passed.
+function checkChallenge(room, ctx) {
+  const g = room.game;
+  const waiting = room.players.filter((p) => p.connected && p.id !== g.lastFlip.by && !g.passed.includes(p.id));
+  if (waiting.length === 0) resolveCall(room, ctx);
 }
 
 // ---------- War ----------
@@ -368,7 +374,10 @@ module.exports = {
 
     if (action.type === 'call' && g.phase === 'call' && me === g.turnId && CALLS.includes(action.call) && count(g, me) > 0) {
       flip(room, ctx, player, action.call);
-    } else if (action.type === 'war' && g.phase === 'challenge' && me !== g.lastFlip.by) {
+    } else if (action.type === 'pass' && g.phase === 'challenge' && me !== g.lastFlip.by && !g.passed.includes(me)) {
+      g.passed.push(me);
+      checkChallenge(room, ctx);
+    } else if (action.type === 'war' && g.phase === 'challenge' && me !== g.lastFlip.by && !g.passed.includes(me)) {
       // Anyone, even a player who is out of cards, may challenge.
       ctx.log(room, `⚔️ ${player.name} challenges ${ctx.name(room, g.lastFlip.by)} to WAR!`);
       startWar(room, ctx, [me], g.lastFlip.by);
@@ -393,9 +402,11 @@ module.exports = {
     }
   },
 
-  // If the player whose turn it is drops out, play moves on.
+  // If the player whose turn it is drops out, play moves on; a dropped phone never holds up a
+  // war chance.
   check(room, ctx) {
     const g = room.game;
+    if (g.phase === 'challenge') checkChallenge(room, ctx);
     if (g.phase === 'call' && !ctx.turns.isActive(room, g.turnId)) {
       const next = nextTurn(room, ctx, g, g.turnId);
       if (next && next !== g.turnId) startTurn(room, ctx, next);
@@ -445,9 +456,8 @@ module.exports = {
       prev2: top(g, 2),
       pileSize: g.pile.length,
       lastFlip: g.lastFlip,
-      challengeEndsAt: g.challengeEndsAt,
-      challengeMs: CHALLENGE_MS,
-      canChallenge: g.phase === 'challenge' && me !== g.lastFlip?.by,
+      passed: g.phase === 'challenge' ? g.passed : [],
+      canChallenge: g.phase === 'challenge' && me !== g.lastFlip?.by && !g.passed.includes(me),
       pickable: g.phase === 'pick' ? holders(room, g).filter((id) => id !== g.lastFlip.by) : [],
       war,
       winnerId: g.winnerId,

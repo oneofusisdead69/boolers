@@ -176,12 +176,18 @@
       const f = g.lastFlip;
       header = PB.turn(f.by, 'War chance!');
       const why = f.chance === 'sandwich' ? 'matches the card two plays back' : `is one off ${cardText(f.prev)}`;
+      // Everyone but the flipper either calls war or taps ✕; the chance closes when all have passed.
+      const deciding = s.players.filter((p) => p.connected && p.id !== f.by && !g.passed.includes(p.id));
+      const waitingOn = `Waiting on ${esc(deciding.map((p) => name(p.id)).join(', '))}`;
       action = `
-        <p class="center">${esc(cardText(f.card))} ${why}. ${PB.timer()}</p>
+        <p class="center">${esc(cardText(f.card))} ${why}.</p>
         ${g.canChallenge
-          ? `<button class="mm-war-btn" data-act="war">⚔️ WAR!</button>
+          ? `<div class="mm-war-row-btns">
+               <button class="mm-war-btn" data-act="war">⚔️ WAR!</button>
+               <button class="mm-pass" data-act="pass" aria-label="Pass">✕</button>
+             </div>
              ${g.counts[s.me] === 0 ? '<p class="center muted">You\'re out, but you can still start a war</p>' : ''}`
-          : '<p class="center muted">Anyone can challenge you to war…</p>'}`;
+          : `<p class="center muted">${f.by === s.me ? 'Anyone can challenge you to war… ' : 'You passed. '}${waitingOn}</p>`}`;
     } else if (s.phase === 'pick') {
       const f = g.lastFlip;
       header = PB.turn(f.by, 'Same number: WAR!');

@@ -436,6 +436,9 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .mm-seat b { font-variant-numeric: tabular-nums; }
 .mm-seat.turn { border-color: var(--accent); }
 .mm-seat.out, .mm-seat.offline { opacity: 0.45; }
+.mm-war-row-btns { display: flex; gap: 10px; }
+.mm-war-row-btns .mm-war-btn { flex: 1; }
+.mm-pass { width: 76px; flex: none; background: var(--card-2); color: var(--muted); font-size: 1.6rem; }
 .mm-war-btn { background: var(--danger); color: #fff; font-size: 1.6rem; font-weight: 900; padding: 20px; animation: pulse 0.9s ease-in-out infinite; }
 .turn.war-head { background: var(--danger); color: #fff; }
 .mm-war { display: flex; flex-direction: column; gap: 10px; }
