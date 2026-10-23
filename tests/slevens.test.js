@@ -34,32 +34,31 @@ test('first roll is a single tap; only the roller can roll', () => {
   t.cleanup();
 });
 
-test('each roll without a reverse adds a dot', () => {
+test('misses never add dots', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [1, 2]);
   t.fireTimer(); // claim window runs out
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.strictEqual(t.room.game.traceLen, 2);
-  assert.strictEqual(t.room.game.dots.length, 2);
-  rollAs(t, 0, [1, 3]);
-  t.fireTimer();
-  assert.strictEqual(t.room.game.dots.length, 3);
-  t.cleanup();
-});
-
-test('missing a hit counts as a miss', () => {
-  const t = setup(game, 3);
+  assert.strictEqual(t.room.game.traceLen, 1);
   rollAs(t, 0, [3, 4]);
-  t.fireTimer();
-  assert.strictEqual(t.room.game.traceLen, 2);
+  t.fireTimer(); // a hit, but not claimed in time
+  assert.strictEqual(t.room.game.traceLen, 1);
   assert.match(t.room.game.notice, /Missed/);
   t.cleanup();
 });
 
-test('claiming a hit reverses and the roller picks the next roller, who starts at 1 dot', () => {
+test('tapping on a non-hit just rolls again', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [1, 2]);
-  t.fireTimer();
+  t.act(0, 'claim');
+  assert.strictEqual(t.room.game.phase, 'ready');
+  assert.strictEqual(t.room.game.traceLen, 1);
+  assert.strictEqual(t.room.game.notice, 'Not a hit!');
+  t.cleanup();
+});
+
+test('a reverse lets the roller pick the next roller, who needs one more dot', () => {
+  const t = setup(game, 3);
   rollAs(t, 0, [5, 6]);
   t.act(0, 'claim');
   assert.strictEqual(t.room.game.phase, 'reverse');
@@ -67,28 +66,23 @@ test('claiming a hit reverses and the roller picks the next roller, who starts a
   assert.strictEqual(t.room.game.phase, 'reverse');
   t.act(0, 'pick', { targetId: 'p2' });
   assert.strictEqual(t.room.game.rollerId, 'p2');
-  assert.strictEqual(t.room.game.traceLen, 1);
-  assert.strictEqual(t.room.game.phase, 'ready');
+  assert.strictEqual(t.room.game.traceLen, 2);
+  assert.strictEqual(t.room.game.dots.length, 2);
+  rollAs(t, 2, [2, 2]);
+  t.act(2, 'claim').act(2, 'pick', { targetId: 'p1' });
+  assert.strictEqual(t.room.game.traceLen, 3, 'each reverse adds exactly one');
   t.cleanup();
 });
 
-test('tapping on a non-hit costs two extra dots', () => {
+test('the red arrow passes to the next player and resets to a single tap', () => {
   const t = setup(game, 3);
-  rollAs(t, 0, [1, 2]);
-  t.act(0, 'claim');
-  assert.strictEqual(t.room.game.phase, 'ready');
-  assert.strictEqual(t.room.game.traceLen, 3);
-  t.cleanup();
-});
-
-test('the red arrow passes to the next player and resets the dots', () => {
-  const t = setup(game, 3);
-  rollAs(t, 0, [1, 2]);
-  t.fireTimer();
-  t.act(0, 'pass');
-  assert.strictEqual(t.room.game.rollerId, 'p1');
+  rollAs(t, 0, [3, 4]);
+  t.act(0, 'claim').act(0, 'pick', { targetId: 'p1' });
+  assert.strictEqual(t.room.game.traceLen, 2);
+  t.act(1, 'pass');
+  assert.strictEqual(t.room.game.rollerId, 'p2');
   assert.strictEqual(t.room.game.traceLen, 1);
-  t.act(1, 'pass').act(2, 'pass');
+  t.act(2, 'pass');
   assert.strictEqual(t.room.game.rollerId, 'p0', 'wraps around');
   t.cleanup();
 });
@@ -106,7 +100,7 @@ test('trace dots are spread apart, on screen, and clear of the arrow', () => {
   rollAs(t, 0, [1, 2]);
   t.fireTimer();
   const dots = t.room.game.dots;
-  assert.strictEqual(dots.length, 9);
+  assert.strictEqual(dots.length, 8);
   for (let i = 0; i < dots.length; i++) {
     assert.ok(dots[i].x >= 10 && dots[i].x <= 90 && dots[i].y >= 8 && dots[i].y <= 90);
     assert.ok(!game.inArrowZone(dots[i]));

@@ -1,13 +1,12 @@
 // Slevens (7-Eleven Doubles). The roller rolls two dice. After each roll a dot appears for
 // 5 seconds: if the roll is a 7, 11 or doubles, tapping it in time is a REVERSE and the roller
-// picks who rolls next. Every roll that doesn't end in a REVERSE makes the next roll harder:
-// roll 1 is a single tap, roll 2 means tracing 2 dots, roll 3 means 3 dots, and so on.
-// When the dice change hands, it goes back to a single tap.
+// picks who rolls next. Misses don't change anything; the roller just rolls again.
+// Each REVERSE makes rolling one dot harder for the next roller: a single tap, then tracing
+// 2 dots, then 3, and so on. Passing the dice with the red arrow resets it to a single tap.
 
 const SPIN_MS = 1200;
 const CLAIM_MS = 5000;
 const CLAIM_GRACE_MS = 600; // allowance for network lag on the 5-second window
-const FALSE_CLAIM_PENALTY = 2; // dots added for tapping the dot when it wasn't a hit
 
 function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
@@ -44,10 +43,10 @@ function ready(room, ctx) {
   g.claimDot = null;
 }
 
-function giveDice(room, ctx, playerId) {
+function giveDice(room, ctx, playerId, traceLen) {
   const g = room.game;
   g.rollerId = playerId;
-  g.traceLen = 1;
+  g.traceLen = traceLen;
   g.dice = null;
   ready(room, ctx);
 }
@@ -61,7 +60,6 @@ function endClaimWindow(room, ctx) {
   } else {
     g.notice = '';
   }
-  g.traceLen += 1;
   ready(room, ctx);
 }
 
@@ -79,7 +77,7 @@ module.exports = {
       dice: null,
       notice: '',
     });
-    giveDice(room, ctx, ctx.turns.first(room, room.game.order));
+    giveDice(room, ctx, ctx.turns.first(room, room.game.order), 1);
   },
 
   handle(room, player, action, ctx) {
@@ -102,9 +100,8 @@ module.exports = {
         g.phase = 'reverse';
         ctx.log(room, `🔄 ${player.name} rolled ${g.dice.join(' + ')}. REVERSE!`);
       } else {
-        g.notice = `Not a hit! +${FALSE_CLAIM_PENALTY} dots.`;
+        g.notice = 'Not a hit!';
         ctx.log(room, `🙈 ${player.name} tapped on a ${g.dice.join(' + ')}`);
-        g.traceLen += FALSE_CLAIM_PENALTY;
         ready(room, ctx);
       }
     } else if (action.type === 'pick' && g.phase === 'reverse') {
@@ -112,13 +109,13 @@ module.exports = {
       if (!target || target.id === player.id) return;
       ctx.log(room, `🎲 ${player.name} picked ${target.name} to roll`);
       g.notice = '';
-      giveDice(room, ctx, target.id);
+      giveDice(room, ctx, target.id, g.traceLen + 1);
     } else if (action.type === 'pass' && g.phase !== 'spinning') {
       const next = ctx.turns.next(room, g.order, player.id);
       if (!next || next === player.id) return;
       ctx.log(room, `➡️ ${player.name} passed the dice to ${ctx.name(room, next)}`);
       g.notice = '';
-      giveDice(room, ctx, next);
+      giveDice(room, ctx, next, 1);
     }
   },
 
@@ -127,7 +124,7 @@ module.exports = {
     const g = room.game;
     if (ctx.turns.isActive(room, g.rollerId)) return;
     const next = ctx.turns.next(room, g.order, g.rollerId);
-    if (next) giveDice(room, ctx, next);
+    if (next) giveDice(room, ctx, next, g.traceLen);
   },
 
   onJoin(room, player) {
