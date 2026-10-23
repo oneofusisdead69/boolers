@@ -119,6 +119,77 @@ const PB = {
 };
 window.PB = PB;
 
+// ---------- Full screen ----------
+// Android browsers can go full screen directly. iPhone Safari can't, but Boolers opens full
+// screen when added to the home screen, so iPhones get instructions for that instead.
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installPrompt = null; // Android's "install app" prompt, when the browser offers one
+
+const fullscreen = {
+  canRequest() {
+    const el = document.documentElement;
+    return !!(el.requestFullscreen || el.webkitRequestFullscreen);
+  },
+  installed() {
+    return matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+  },
+  active() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement) || fullscreen.installed();
+  },
+  // Must run inside a tap. Quietly does nothing where it isn't allowed.
+  enter() {
+    if (seat || fullscreen.active() || !fullscreen.canRequest()) return;
+    const el = document.documentElement;
+    try {
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' })?.catch?.(() => {});
+    } catch {}
+  },
+};
+
+function fullscreenButtons() {
+  if (seat || fullscreen.active()) return '';
+  const install = installPrompt ? '<button class="fs-btn secondary" id="install">📲 Install Boolers</button>' : '';
+  if (fullscreen.canRequest()) return `<button class="fs-btn secondary" id="fs">⛶ Full screen</button>${install}`;
+  if (isIOS) return '<button class="fs-btn secondary" id="fs-ios">📲 Add to Home Screen for full screen</button>';
+  return install;
+}
+
+function bindFullscreenButtons() {
+  document.getElementById('fs')?.addEventListener('click', () => fullscreen.enter());
+  document.getElementById('fs-ios')?.addEventListener('click', showInstallHelp);
+  document.getElementById('install')?.addEventListener('click', async () => {
+    installPrompt?.prompt();
+    installPrompt = null;
+  });
+}
+
+function showInstallHelp() {
+  const el = document.getElementById('sheet');
+  el.innerHTML = `
+    <div class="sheet-card">
+      <h2>Play full screen on iPhone</h2>
+      <ol>
+        <li>Tap the <b>Share</b> button <span class="share-icon">⬆︎</span> in Safari's toolbar.</li>
+        <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+        <li>Open <b>Boolers</b> from your home screen. It runs full screen, like an app.</li>
+      </ol>
+      <button id="sheet-close">Got it</button>
+    </div>`;
+  el.hidden = false;
+  document.getElementById('sheet-close').onclick = () => (el.hidden = true);
+}
+
+// Hide the buttons once full screen (no full redraw, so typed text isn't lost).
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) {
+  document.addEventListener(ev, () => document.querySelectorAll('.fs-btn').forEach((b) => (b.hidden = fullscreen.active())));
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+});
+if ('serviceWorker' in navigator && !seat) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -209,7 +280,10 @@ function renderHome() {
     <p class="or">or</p>
     <button id="create" class="secondary">Create a new room</button>
     <p class="error" id="err">${PB.esc(homeError)}</p>
+    <div class="spacer"></div>
+    ${fullscreenButtons()}
   `;
+  bindFullscreenButtons();
   const $name = document.getElementById('name');
   const $code = document.getElementById('code');
   const $err = document.getElementById('err');
@@ -218,6 +292,7 @@ function renderHome() {
     const name = $name.value.trim();
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
     store.set('name', name);
+    fullscreen.enter();
     socket.emit(event, { ...payload, name, playerId }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
@@ -291,8 +366,10 @@ function renderLobby() {
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
+    ${fullscreenButtons()}
     <button id="leave" class="link">Leave room</button>
   `;
+  bindFullscreenButtons();
 
   document.getElementById('share').onclick = async () => {
     const url = joinUrl();
@@ -307,7 +384,12 @@ function renderLobby() {
     b.onclick = () => socket.emit('setOption', { id: b.dataset.option, value: JSON.parse(b.dataset.value) });
   });
   const $start = document.getElementById('start');
-  if ($start) $start.onclick = () => socket.emit('start', {}, (res) => res.error && toast(res.error));
+  if ($start) {
+    $start.onclick = () => {
+      fullscreen.enter();
+      socket.emit('start', {}, (res) => res.error && toast(res.error));
+    };
+  }
 }
 
 function loadGame(gameId) {

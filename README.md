@@ -10,6 +10,10 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Ride the Bus | Planned |
 | Mad Max | ✅ Playable |
 
+## Full screen
+- **Android:** the app goes full screen when you create or join a room (there's also a ⛶ button), and Chrome offers "Install Boolers".
+- **iPhone:** Safari can't go full screen, so tap 📲 *Add to Home Screen*; launched from the home screen, Boolers runs full screen like an app.
+
 ## Run locally
 ```bash
 npm install
