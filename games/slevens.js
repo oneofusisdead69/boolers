@@ -13,9 +13,9 @@ function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
 }
 
-// Random dot positions as percentages of the touch pad. Dots stay clear of the dice in the
-// middle and the pass arrow in the corner, and consecutive dots are kept apart so every
-// trace needs a real drag.
+// Random dot positions as percentages of the touch pad. Dots stay clear of the pass arrow in
+// the corner, and consecutive dots are kept apart so every trace needs a real drag. Trace dots
+// may cover the dice; the claim dot doesn't (avoidDice), so the roll stays readable.
 function inDiceZone(d) {
   return d.x > 14 && d.x < 86 && d.y > 36 && d.y < 64;
 }
@@ -23,12 +23,12 @@ function inArrowZone(d) {
   return d.x > 76 && d.y > 82;
 }
 
-function randomDots(count) {
+function randomDots(count, { avoidDice = false } = {}) {
   const dots = [];
   while (dots.length < count) {
     const dot = { x: Math.round(10 + Math.random() * 80), y: Math.round(8 + Math.random() * 82) };
     const prev = dots[dots.length - 1];
-    if (inDiceZone(dot) || inArrowZone(dot)) continue;
+    if (inArrowZone(dot) || (avoidDice && inDiceZone(dot))) continue;
     if (prev && Math.hypot(dot.x - prev.x, dot.y - prev.y) < 30) continue;
     dots.push(dot);
   }
@@ -92,7 +92,7 @@ module.exports = {
       g.phase = 'spinning';
       ctx.setTimer(room, SPIN_MS, () => {
         g.phase = 'claim';
-        g.claimDot = randomDots(1)[0];
+        g.claimDot = randomDots(1, { avoidDice: true })[0];
         g.claimEndsAt = Date.now() + CLAIM_MS;
         ctx.setTimer(room, CLAIM_MS + CLAIM_GRACE_MS, () => endClaimWindow(room, ctx));
       });

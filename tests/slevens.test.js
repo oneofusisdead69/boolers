@@ -100,7 +100,7 @@ test('if the roller disconnects the dice move on', () => {
   t.cleanup();
 });
 
-test('trace dots are spread apart, on screen, and clear of the dice and arrow', () => {
+test('trace dots are spread apart, on screen, and clear of the arrow', () => {
   const t = setup(game, 2);
   t.room.game.traceLen = 8;
   rollAs(t, 0, [1, 2]);
@@ -109,8 +109,18 @@ test('trace dots are spread apart, on screen, and clear of the dice and arrow', 
   assert.strictEqual(dots.length, 9);
   for (let i = 0; i < dots.length; i++) {
     assert.ok(dots[i].x >= 10 && dots[i].x <= 90 && dots[i].y >= 8 && dots[i].y <= 90);
-    assert.ok(!game.inDiceZone(dots[i]) && !game.inArrowZone(dots[i]));
+    assert.ok(!game.inArrowZone(dots[i]));
     if (i > 0) assert.ok(Math.hypot(dots[i].x - dots[i - 1].x, dots[i].y - dots[i - 1].y) >= 29);
+  }
+  t.cleanup();
+});
+
+test('the claim dot never covers the dice', () => {
+  const t = setup(game, 2);
+  for (let i = 0; i < 50; i++) {
+    rollAs(t, 0, [1, 2]);
+    assert.ok(!game.inDiceZone(t.room.game.claimDot) && !game.inArrowZone(t.room.game.claimDot));
+    t.act(0, 'pass').act(1, 'pass');
   }
   t.cleanup();
 });
