@@ -294,6 +294,14 @@ function renderHome() {
     <p class="or">or</p>
     <button id="create" class="secondary">Create a new room</button>
     <p class="error" id="err">${PB.esc(homeError)}</p>
+    <div class="card">
+      <h2>📱 Pass and play</h2>
+      <p class="muted">One phone, passed around. No room code needed.</p>
+      <div class="pass-play">
+        <a class="btn-link" href="/play/slevens.html">🎲 Slevens</a>
+        <a class="btn-link" href="/play/madmax.html">🃏 Mad Max</a>
+      </div>
+    </div>
     <div class="spacer"></div>
     ${fullscreenButtons()}
   `;

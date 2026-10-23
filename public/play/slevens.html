@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14111f">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <title>Slevens · Boolers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Keep clear of notches and home bars (the demo viewer adds the same padding itself). */
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  [hidden] { display: none !important; }
+  /* Layout: one-screen arcade app. Slim header, then a touch pad filling the rest of the screen.
+     A single dark look on purpose, matching the Boolers phone app. */
+  :root {
+    --bg: #14111f;
+    --card: #221d33;
+    --card-2: #2d2644;
+    --text: #f4f1ff;
+    --muted: #a59fc2;
+    --accent: #ffcc33;
+    --accent-text: #1a1400;
+    --danger: #ff4d6d;
+    --ok: #3ddc97;
+    --die: #ffffff;
+    --pip: #111111;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { height: 100%; }
+  body {
+    height: 100%;
+    min-height: 560px;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  #app {
+    height: 100%;
+    min-height: 560px; /* keeps the pad usable when embedded in a frame that sizes to its content */
+    max-width: 520px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-block: 12px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  button { font: inherit; border: none; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Setup ---------- */
+  .setup { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding-bottom: 8px; }
+  h1 { font-size: 2.4rem; margin: 16px 0 0; text-align: center; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  h1 .logo-emoji { color: inherit; font-size: 0.8em; display: inline-block; }
+  h1 .logo-emoji:first-child { transform: rotate(-12deg); }
+  h1 .logo-emoji:last-child { transform: rotate(12deg); }
+  .sub { text-align: center; color: var(--muted); margin: 0; }
+  .card { background: var(--card); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .card h2 { margin: 0; font-size: 1rem; color: var(--muted); font-weight: 600; }
+  .rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; line-height: 1.4; }
+  .name-row { display: flex; gap: 8px; }
+  .name-row input {
+    flex: 1; min-width: 0; font: inherit; font-size: 1.1rem; padding: 12px 14px; border-radius: 12px;
+    border: 2px solid transparent; background: var(--card-2); color: var(--text); outline: none;
+  }
+  .name-row input:focus { border-color: var(--accent); }
+  .name-row button { width: 48px; border-radius: 12px; background: var(--card-2); color: var(--muted); font-size: 1.1rem; }
+  .option-label { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  .segmented { display: flex; gap: 6px; }
+  .segmented button { flex: 1; padding: 10px; border-radius: 10px; background: var(--card-2); color: var(--text); border: 2px solid transparent; font-weight: 700; }
+  .segmented button.selected { border-color: var(--accent); }
+  .btn { width: 100%; padding: 16px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; background: var(--accent); color: var(--accent-text); }
+  .btn.secondary { background: var(--card-2); color: var(--text); }
+  .btn:disabled { opacity: 0.4; }
+  .home-link { color: var(--muted); text-align: center; font-size: 0.95rem; }
+  .error { color: var(--danger); text-align: center; min-height: 1.2em; margin: 0; }
+
+  /* ---------- Game ---------- */
+  .header { display: flex; gap: 8px; }
+  .turn { flex: 1; text-align: center; font-weight: 800; font-size: 1.05rem; padding: 8px 12px; border-radius: 12px; background: var(--accent); color: var(--accent-text); }
+  .turn span { display: block; font-size: 0.85rem; font-weight: 500; opacity: 0.8; }
+  .mini { padding: 0 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; background: var(--card); color: var(--muted); }
+
+  .pad {
+    position: relative; flex: 1; border-radius: 20px; background: var(--card); overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .pad-top { position: absolute; top: 12px; left: 16px; right: 16px; text-align: center; color: var(--muted); font-size: 0.9rem; margin: 0; pointer-events: none; z-index: 1; }
+  .pad-top.notice { color: var(--danger); font-weight: 700; font-size: 1rem; }
+  .pad-top.race { color: var(--accent); font-weight: 700; }
+  .pad-feed { position: absolute; left: 16px; right: 84px; top: 40px; text-align: center; color: var(--muted); font-size: 0.8rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+  .dice-centre { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 20px; pointer-events: none; }
+  .dice-centre.faded { opacity: 0.18; }
+  .die { width: 96px; height: 96px; padding: 13px; border-radius: 18px; background: var(--die); display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+  .die i { border-radius: 50%; margin: 3px; }
+  .die i.on { background: var(--pip); }
+  .spinning .die { transform: rotate(12deg); }
+  .spinning .die + .die { transform: rotate(-14deg); }
+
+  .roll-btn {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 176px; height: 176px; border-radius: 50%; background: var(--accent); color: var(--accent-text);
+    font-size: 2.1rem; font-weight: 900; letter-spacing: 0.05em;
+    box-shadow: 0 0 0 12px rgba(255, 204, 51, 0.15), 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .roll-btn:active { transform: translate(-50%, -50%) scale(0.95); }
+
+  .dot { position: absolute; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; background: rgba(255, 204, 51, 0.16); border: 3px solid var(--accent); box-shadow: 0 0 0 8px rgba(255, 204, 51, 0.12); display: flex; align-items: center; justify-content: center; font-size: 2rem; line-height: 1; animation: pop 0.2s ease-out; pointer-events: none; user-select: none; z-index: 2; }
+  .dot.start { animation: pop 0.2s ease-out, glow 1.2s ease-in-out infinite; }
+  .dot.reached { background: rgba(61, 220, 151, 0.22); border-color: var(--ok); box-shadow: 0 0 0 8px rgba(61, 220, 151, 0.2); animation: none; transform: scale(1.08); }
+  .trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  .trail polyline { fill: none; stroke: var(--ok); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+
+
+  .reverse { position: absolute; left: 0; right: 0; top: 18%; text-align: center; font-size: 2.6rem; font-weight: 900; color: var(--ok); pointer-events: none; animation: pulse 0.5s ease-in-out 3; }
+  .reverse.hit { color: var(--accent); }
+  .reverse.long { font-size: 2.1rem; }
+  .picker { position: absolute; left: 16px; right: 16px; top: 64%; bottom: 76px; overflow-y: auto; touch-action: pan-y; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; z-index: 4; }
+  .picker button { padding: 16px 8px; border-radius: 12px; background: var(--card-2); color: var(--text); font-weight: 700; font-size: 1.05rem; word-break: break-word; }
+  .next-arrow { position: absolute; right: 12px; bottom: 12px; width: 52px; height: 52px; padding: 0; border-radius: 50%; background: rgba(255, 77, 109, 0.14); color: var(--danger); font-size: 1.7rem; line-height: 1; z-index: 4; }
+
+  @keyframes pop { from { transform: scale(0); } }
+  @keyframes glow { 50% { box-shadow: 0 0 0 16px rgba(255, 204, 51, 0.1); } }
+  @keyframes pulse { 50% { transform: scale(1.04); } }
+  @media (prefers-reduced-motion: reduce) {
+    .dot.start, .reverse { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="/shared/bundle.js"></script>
+<script>
+// Slevens, pass and play: one phone handed to whoever is rolling. Runs the same rules code as
+// the multiplayer game (games/slevens.js); this page only draws the screens.
+const game = __req('slevens');
+const { createContext } = __req('context');
+const $app = document.getElementById('app');
+const SPIN_MS = [100, 1000, 2000, 3000];
+const SECONDS = [2, 3, 4, 5];
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+// Every dot is a different drink.
+const CUPS = ['🍺', '🍷', '🍸', '🥃', '🍹', '🥂', '🍶', '🧉', '🍾', '🥤', '🍻', '🧋'];
+
+let names = ['Alex', 'Bea', 'Cam'];
+let opts = { spinMs: 1000, seconds: 3, dotConnect: true };
+try {
+  const saved = JSON.parse(localStorage.getItem('slevens-setup'));
+  if (Array.isArray(saved?.names) && saved.names.length >= 2) names = saved.names;
+  if (SPIN_MS.includes(saved?.spinMs)) opts.spinMs = saved.spinMs;
+  if (SECONDS.includes(saved?.seconds)) opts.seconds = saved.seconds;
+  if (typeof saved?.dotConnect === 'boolean') opts.dotConnect = saved.dotConnect;
+} catch {}
+
+let room = null;
+let ctx = null;
+let spinTimer = null;
+let tracing = false; // a finger is down mid-trace; don't redraw under it
+let lastKey = null;
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const nm = (id) => room.players.find((p) => p.id === id)?.name ?? '?';
+const rolling = (phase) => phase === 'ready' || phase === 'window';
+const face = () => 1 + Math.floor(Math.random() * 6);
+
+function diceHtml(values, cls = '') {
+  return `<div class="dice-centre ${cls}" id="dice-box">${values.map((v) =>
+    `<div class="die">${Array.from({ length: 9 }, (_, i) => `<i class="${PIPS[v]?.includes(i) ? 'on' : ''}"></i>`).join('')}</div>`).join('')}</div>`;
+}
+
+// The roller is always the one holding the phone, so every action is theirs.
+function act(type, data = {}) {
+  const roller = room.players.find((p) => p.id === room.game.rollerId);
+  game.handle(room, roller, { type, ...data }, ctx);
+}
+
+// ---------- Setup ----------
+
+function renderSetup(error = '') {
+  if (room) ctx.clearTimer(room);
+  room = null;
+  clearInterval(spinTimer);
+  tracing = false;
+  const seg = (key, choices) => `<div class="segmented">${choices.map(([v, label]) =>
+    `<button class="${opts[key] === v ? 'selected' : ''}" data-opt="${key}" data-val='${JSON.stringify(v)}'>${label}</button>`).join('')}</div>`;
+  $app.innerHTML = `
+    <div class="setup">
+      <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
+      <p class="sub">Slevens · pass and play</p>
+      <a class="home-link" href="/">← Back to Boolers</a>
+      <div class="card">
+        <h2>How it works</h2>
+        <ol class="rules">
+          <li>Tap <b>ROLL</b>. When the dice land, the drink for your next roll appears.</li>
+          <li>7, 11 or doubles? Keep your hands off for the hands-off time: that's a <b>HIT</b>. Point at someone to drink. With dot connect on, your next roll needs one more drink to trace.</li>
+          <li>Touch the drink before the time is up on a hit and it's a <b>REVERSE</b>: pick who rolls next.</li>
+          <li>No hit? Press the drink and trace to roll again.</li>
+          <li>Snake eyes: if your first hit is 1 + 1, only another 1 + 1 counts as a hit until one comes up.</li>
+          <li>Roll when the drinker's cup touches their lips. If they finish first, tap the red arrow to pass the phone on.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Options</h2>
+        <p class="option-label">Dice roll time</p>${seg('spinMs', SPIN_MS.map((ms) => [ms, `${ms / 1000} sec`]))}
+        <p class="option-label">Hands-off time after a hit</p>${seg('seconds', SECONDS.map((n) => [n, `${n} sec`]))}
+        <p class="option-label">Dot connect (one more drink per hit)</p>${seg('dotConnect', [[true, 'On'], [false, 'Off']])}
+      </div>
+      <div class="card">
+        <h2>Players, in turn order</h2>
+        ${names.map((n, i) => `
+          <div class="name-row">
+            <input id="name-${i}" value="${esc(n)}" maxlength="16" autocomplete="off" aria-label="Player ${i + 1} name">
+            <button data-remove="${i}" aria-label="Remove player" ${names.length <= 2 ? 'disabled' : ''}>✕</button>
+          </div>`).join('')}
+        <button class="btn secondary" id="add" ${names.length >= 12 ? 'disabled' : ''}>Add player</button>
+      </div>
+      <p class="error">${esc(error)}</p>
+      <button class="btn" id="start">Start Slevens</button>
+    </div>`;
+
+  const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
+  document.getElementById('add').onclick = () => { names = [...readNames(), `Player ${names.length + 1}`]; renderSetup(); };
+  $app.querySelectorAll('[data-remove]').forEach((b) => {
+    b.onclick = () => { const n = readNames(); n.splice(Number(b.dataset.remove), 1); names = n; renderSetup(); };
+  });
+  $app.querySelectorAll('[data-opt]').forEach((b) => {
+    b.onclick = () => { names = readNames(); opts[b.dataset.opt] = JSON.parse(b.dataset.val); renderSetup(); };
+  });
+  document.getElementById('start').onclick = () => {
+    const n = readNames();
+    if (n.some((x) => !x)) return renderSetup('Every player needs a name.');
+    if (new Set(n.map((x) => x.toLowerCase())).size !== n.length) return renderSetup('Each name must be different.');
+    names = n;
+    try { localStorage.setItem('slevens-setup', JSON.stringify({ names, ...opts })); } catch {}
+    startGame();
+  };
+}
+
+function startGame() {
+  room = {
+    code: 'LOCAL',
+    players: names.map((name, i) => ({ id: `p${i}`, name, drinks: 0, connected: true })),
+    feed: [],
+    game: { type: 'slevens' },
+    timer: null,
+    deadline: null,
+  };
+  ctx = createContext({ emit: () => {}, broadcast: () => render() });
+  game.start(room, ctx, opts);
+  render();
+}
+
+// ---------- Game screen ----------
+
+function subtitle(g, phase) {
+  switch (phase) {
+    case 'ready':
+      if (g.hit) return 'Roll when their cup touches their lips';
+      return g.traceLen === 1 ? 'Tap to roll' : `Trace ${g.traceLen} drinks to roll`;
+    case 'spinning': return 'Rolling…';
+    case 'window': return `Hit? Hands off for ${g.seconds} seconds`;
+    case 'reverse': return 'You touched a hit! Pick who rolls next';
+  }
+  return '';
+}
+
+function render() {
+  if (!room) return;
+  const g = game.view(room);
+  const phase = room.game.phase;
+  const key = `${g.rollNo}:${rolling(phase) ? 'roll' : phase}`;
+  if (tracing && key === lastKey) return; // keep the screen still under a moving finger
+  tracing = false;
+  lastKey = key;
+  clearInterval(spinTimer);
+
+  const rollButton = phase === 'ready' && !g.dice;
+  let centre;
+  if (rollButton) centre = '<button class="roll-btn" id="roll">ROLL</button>';
+  else if (phase === 'spinning') centre = diceHtml([1, 1], 'spinning');
+  else if (g.dice) centre = diceHtml(g.dice);
+  else centre = diceHtml([0, 0], 'faded');
+
+  let overlay = '';
+  if (phase === 'reverse') {
+    overlay = `<div class="picker">${room.players.filter((p) => p.id !== g.rollerId).map((p) => `<button data-pick="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
+  } else if (rolling(phase) && !rollButton) {
+    const shift = g.dots[0].x + g.dots[0].y;
+    overlay = `<svg class="trail"><polyline points="" /></svg>
+      ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}>${CUPS[(shift + i) % CUPS.length]}</div>`).join('')}`;
+  }
+
+  let top = '';
+  if (g.hits > 0 && phase !== 'reverse') {
+    const next = g.dotConnect ? ` · next roll needs ${plural(g.traceLen, 'drink')}` : '';
+    top = `<p class="pad-top race">🔥 ${plural(g.hits, 'hit')} in a row${next}${g.snakeEyes ? '<br>🐍 Only snake eyes hits now' : ''}</p>`;
+  }
+  const last = room.feed[room.feed.length - 1];
+
+  $app.innerHTML = `
+    <div class="header">
+      <div class="turn">${esc(nm(g.rollerId))}'s turn<span>${esc(subtitle(g, phase))}</span></div>
+      <button class="mini" id="players">Players</button>
+    </div>
+    <div class="pad" id="pad">
+      ${top}
+      ${last && !top ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
+      ${centre}
+      ${overlay}
+      ${phase === 'reverse' ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
+      ${g.hit ? `<div class="reverse hit ${g.hit === 'snake' ? 'long' : ''}">${g.hit === 'snake' ? '🐍 SNAKE EYES!' : '🍺 HIT!'}</div>` : ''}
+      ${phase !== 'spinning' ? '<button class="next-arrow" id="pass" aria-label="Pass to next player">➜</button>' : ''}
+    </div>`;
+
+  document.getElementById('players').onclick = () => renderSetup();
+  document.getElementById('roll')?.addEventListener('click', () => { act('roll'); render(); });
+  document.getElementById('pass')?.addEventListener('click', () => { act('pass'); render(); });
+  $app.querySelectorAll('[data-pick]').forEach((b) => { b.onclick = () => { act('pick', { targetId: b.dataset.pick }); render(); }; });
+
+  if (phase === 'spinning') spin();
+  if (rolling(phase) && !rollButton) setupTrace();
+}
+
+function spin() {
+  clearInterval(spinTimer);
+  // outerHTML replaces the node, so look it up fresh each tick
+  spinTimer = setInterval(() => {
+    const box = document.getElementById('dice-box');
+    if (box) box.outerHTML = diceHtml([face(), face()], 'spinning');
+  }, 90);
+}
+
+// Press the first drink (the dice start spinning), then drag through each drink as it appears.
+// Reaching the last one rolls. Lifting the finger starts over. Touching the first drink on a
+// hit inside the hands-off time is a REVERSE.
+function setupTrace() {
+  const pad = document.getElementById('pad');
+  const dots = [...pad.querySelectorAll('.dot')];
+  const line = pad.querySelector('polyline');
+  const resting = document.getElementById('dice-box').outerHTML;
+  let idx = 0;
+  let points = [];
+  let last = null; // previous finger position, so a fast swipe can't jump over a drink
+
+  const local = (x, y) => { const r = pad.getBoundingClientRect(); return [x - r.left, y - r.top]; };
+  const centreOf = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  // Distance from the drink's centre to the finger's path since the last move event.
+  const near = (e, el) => {
+    const [cx, cy] = centreOf(el);
+    const [x1, y1] = [e.clientX, e.clientY];
+    const [x0, y0] = last || [x1, y1];
+    const dx = x1 - x0, dy = y1 - y0;
+    const t = dx || dy ? Math.max(0, Math.min(1, ((cx - x0) * dx + (cy - y0) * dy) / (dx * dx + dy * dy))) : 0;
+    return Math.hypot(x0 + t * dx - cx, y0 + t * dy - cy) < el.offsetWidth * 0.9;
+  };
+  const draw = (e) => {
+    const all = e ? [...points, local(e.clientX, e.clientY)] : points;
+    line.setAttribute('points', all.map((p) => p.join(',')).join(' '));
+  };
+  const reach = (i) => {
+    dots[i].classList.add('reached');
+    points.push(local(...centreOf(dots[i])));
+    idx = i + 1;
+    navigator.vibrate?.(15);
+    if (idx < dots.length) dots[idx].hidden = false;
+  };
+  const finish = () => { tracing = false; act('roll'); render(); };
+
+  pad.addEventListener('pointerdown', (e) => {
+    last = null;
+    if (!near(e, dots[0])) return;
+    act('press');
+    if (room.game.phase === 'reverse') { navigator.vibrate?.([200, 100, 200]); render(); return; }
+    tracing = true;
+    last = [e.clientX, e.clientY];
+    pad.setPointerCapture(e.pointerId);
+    reach(0);
+    spin();
+    if (idx === dots.length) return finish();
+    draw(e);
+  });
+  pad.addEventListener('pointermove', (e) => {
+    if (!tracing) return;
+    if (near(e, dots[idx])) {
+      reach(idx);
+      if (idx === dots.length) return finish();
+    }
+    last = [e.clientX, e.clientY];
+    draw(e);
+  });
+  const lift = () => {
+    if (!tracing) return;
+    tracing = false;
+    // Anything that changed while the finger was down (the hands-off time ending) shows now.
+    if (`${room.game.rollNo}:${rolling(room.game.phase) ? 'roll' : room.game.phase}` !== lastKey) return render();
+    idx = 0;
+    points = [];
+    clearInterval(spinTimer);
+    const box = document.getElementById('dice-box');
+    if (box) box.outerHTML = resting;
+    dots.forEach((d, i) => { d.hidden = i > 0; d.classList.remove('reached'); });
+    draw();
+  };
+  pad.addEventListener('pointerup', lift);
+  pad.addEventListener('pointercancel', lift);
+}
+
+renderSetup();
+</script>
+
+</body>
+</html>

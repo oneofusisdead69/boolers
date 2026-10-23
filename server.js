@@ -28,6 +28,10 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
 
+// The game rules, packed for pass-and-play games that run entirely on one phone.
+const sharedBundle = require('./lib/bundle').buildBundle(__dirname);
+app.get('/shared/bundle.js', (req, res) => res.type('application/javascript').send(sharedBundle));
+
 // QR code that links straight to the join screen for a room.
 app.get('/qr/:code', async (req, res) => {
   const code = String(req.params.code).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
