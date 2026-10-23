@@ -282,7 +282,7 @@ document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden 
 function renderHome() {
   const savedName = store.get('name') || (seat ? `Player ${seat}` : '');
   $app.innerHTML = `
-    <h1>Bool<span>ers</span></h1>
+    <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
     <p class="tagline">Drinking games for your phones</p>
     <div class="card">
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">

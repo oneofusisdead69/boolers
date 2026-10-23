@@ -29,10 +29,14 @@
     return `<div class="dice-centre faded" id="dice-box">${PB.dice([0, 0])}</div>`;
   }
 
+  // Every dot is a different drink. The set shifts with each roll so it isn't always the same order.
+  const CUPS = ['🍺', '🍷', '🍸', '🥃', '🍹', '🥂', '🍶', '🧉', '🍾', '🥤', '🍻', '🧋'];
+
   function traceDots(g) {
+    const shift = g.dots.length ? g.dots[0].x + g.dots[0].y : 0;
     return `
       <svg class="trail"><polyline points="" /></svg>
-      ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
+      ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}>${CUPS[(shift + i) % CUPS.length]}</div>`).join('')}`;
   }
 
   function streak(s) {
