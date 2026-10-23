@@ -120,22 +120,16 @@ const PB = {
 window.PB = PB;
 
 // ---------- Full screen ----------
-// Android browsers can go full screen directly. iPhone Safari can't, but Boolers opens full
-// screen when added to the home screen, so iPhones get instructions for that instead.
-
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-let installPrompt = null; // Android's "install app" prompt, when the browser offers one
+// Browsers that allow it (Android) go full screen when you create, join or start a game, and
+// show a button to get back to it. iPhone Safari doesn't allow websites to go full screen.
 
 const fullscreen = {
   canRequest() {
     const el = document.documentElement;
     return !!(el.requestFullscreen || el.webkitRequestFullscreen);
   },
-  installed() {
-    return matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
-  },
   active() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement) || fullscreen.installed();
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
   },
   // Must run inside a tap. Quietly does nothing where it isn't allowed.
   enter() {
@@ -148,47 +142,18 @@ const fullscreen = {
 };
 
 function fullscreenButtons() {
-  if (seat || fullscreen.active()) return '';
-  const install = installPrompt ? '<button class="fs-btn secondary" id="install">📲 Install Boolers</button>' : '';
-  if (fullscreen.canRequest()) return `<button class="fs-btn secondary" id="fs">⛶ Full screen</button>${install}`;
-  if (isIOS) return '<button class="fs-btn secondary" id="fs-ios">📲 Add to Home Screen for full screen</button>';
-  return install;
+  if (seat || fullscreen.active() || !fullscreen.canRequest()) return '';
+  return '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>';
 }
 
 function bindFullscreenButtons() {
   document.getElementById('fs')?.addEventListener('click', () => fullscreen.enter());
-  document.getElementById('fs-ios')?.addEventListener('click', showInstallHelp);
-  document.getElementById('install')?.addEventListener('click', async () => {
-    installPrompt?.prompt();
-    installPrompt = null;
-  });
 }
 
-function showInstallHelp() {
-  const el = document.getElementById('sheet');
-  el.innerHTML = `
-    <div class="sheet-card">
-      <h2>Play full screen on iPhone</h2>
-      <ol>
-        <li>Tap the <b>Share</b> button <span class="share-icon">⬆︎</span> in Safari's toolbar.</li>
-        <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
-        <li>Open <b>Boolers</b> from your home screen. It runs full screen, like an app.</li>
-      </ol>
-      <button id="sheet-close">Got it</button>
-    </div>`;
-  el.hidden = false;
-  document.getElementById('sheet-close').onclick = () => (el.hidden = true);
-}
-
-// Hide the buttons once full screen (no full redraw, so typed text isn't lost).
+// Hide the button once full screen (no full redraw, so typed text isn't lost).
 for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) {
   document.addEventListener(ev, () => document.querySelectorAll('.fs-btn').forEach((b) => (b.hidden = fullscreen.active())));
 }
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  installPrompt = e;
-});
-if ('serviceWorker' in navigator && !seat) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 function toast(msg) {
   const el = document.getElementById('toast');
