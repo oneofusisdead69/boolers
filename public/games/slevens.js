@@ -1,76 +1,122 @@
 // Screens for Slevens. Server logic: games/slevens.js
 // Full-screen layout: a slim header, then a touch pad filling the rest of the screen with the
-// dice in the middle. Buttons, dots and the pass arrow all sit on the pad.
+// dice in the middle. The roller rolls and traces on the pad; the drinker's pad turns into a
+// START button (cup touches lips) and then a giant DONE button.
 (() => {
-  const { esc } = PB;
+  const { esc, name } = PB;
   let spinTimer = null;
   let tracing = false; // a finger is down mid-trace; don't redraw under it
   let lastKey = null;
+  let buzzedFor = null;
+
+  const rolling = (phase) => phase === 'ready' || phase === 'claim';
 
   function subtitle(s, mine) {
     const g = s.game;
+    const drinker = name(g.drinkerId);
     switch (s.phase) {
       case 'ready':
         if (g.traceLen === 1) return mine ? 'Tap to roll' : 'About to roll';
         return mine ? `Trace ${g.traceLen} dots to roll` : `Tracing ${g.traceLen} dots`;
       case 'spinning': return 'Rolling…';
-      case 'claim': return mine ? '7, 11 or doubles? Tap the dot!' : 'Checking the dice…';
-      case 'reverse': return mine ? 'Pick who rolls next' : 'Picking the next roller';
+      case 'claim': return mine ? 'Hit? Tap blue. Miss? Roll again' : 'Checking the dice…';
+      case 'pick': return mine ? 'Pick who drinks' : 'Picking who drinks';
+      case 'waiting': return g.drinkerId === s.me ? 'Drink!' : `Waiting for ${drinker} to start drinking`;
       default: return '';
     }
   }
 
-  function centre(s, mine) {
-    const g = s.game;
-    if (s.phase === 'ready' && g.traceLen === 1 && mine) {
-      return '<button class="roll-btn" data-act="roll">ROLL</button>';
-    }
-    if (s.phase === 'spinning') return `<div class="dice-centre" id="dice-box">${PB.dice([1, 1], { rolling: true })}</div>`;
-    if (g.dice) return `<div class="dice-centre">${PB.dice(g.dice)}</div>`;
-    return `<div class="dice-centre faded">${PB.dice([0, 0])}</div>`;
+  function diceHtml(g, phase) {
+    if (phase === 'spinning') return `<div class="dice-centre" id="dice-box">${PB.dice([1, 1], { rolling: true })}</div>`;
+    if (g.dice) return `<div class="dice-centre" id="dice-box">${PB.dice(g.dice)}</div>`;
+    return `<div class="dice-centre faded" id="dice-box">${PB.dice([0, 0])}</div>`;
   }
 
-  function overlay(s, mine) {
-    const g = s.game;
-    if (s.phase === 'reverse') {
-      return `
-        <div class="reverse">🔄 REVERSE!</div>
-        ${mine ? `<div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>` : ''}`;
-    }
-    if (!mine) return '';
-    if (s.phase === 'ready' && g.traceLen > 1) {
-      return `
-        <svg class="trail"><polyline points="" /></svg>
-        ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
-    }
-    if (s.phase === 'claim' && g.claimDot) {
-      // Shrinks over the 5-second window, lined up with the server clock.
-      const elapsed = Math.max(0, g.claimMs - (g.claimEndsAt - PB.now()));
-      return `<button class="claim-dot" data-act="claim" aria-label="Claim"
-        style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
-    }
-    return '';
+  function traceDots(g) {
+    return `
+      <svg class="trail"><polyline points="" /></svg>
+      ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
   }
 
-  function topText(s, mine) {
+  // The race banner along the top of the pad.
+  function raceText(s) {
     const g = s.game;
     if (g.notice) return `<p class="pad-top notice">${esc(g.notice)}</p>`;
-    if (mine && s.phase === 'ready' && g.traceLen > 1) {
-      return '<p class="pad-top" id="trace-hint">Press the glowing dot, then drag to the next one</p>';
+    if (g.drinking && s.phase !== 'pick') {
+      return `<p class="pad-top race">🍺 ${esc(name(g.drinkerId))} ${g.drinkerId === s.me ? 'are' : 'is'} drinking · hit #${g.hits + 1} needs ${PB.plural(g.traceLen, 'dot')}</p>`;
     }
     return '';
+  }
+
+  function rollerPad(s) {
+    const g = s.game;
+    let centre = diceHtml(g, s.phase);
+    let overlay = '';
+    if (s.phase === 'ready' && g.traceLen === 1) {
+      centre = '<button class="roll-btn" data-act="roll">ROLL</button>';
+    } else if (s.phase === 'ready') {
+      overlay = traceDots(g);
+    } else if (s.phase === 'claim') {
+      // Blue dot to claim a hit, and the next roll's dots right alongside it.
+      const elapsed = Math.max(0, g.claimMs - (g.claimEndsAt - PB.now()));
+      overlay = `${traceDots(g)}
+        <button class="claim-dot" data-act="claim" aria-label="Claim the hit"
+          style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
+    } else if (s.phase === 'pick') {
+      overlay = `<div class="reverse">🔄 REVERSE!</div>
+        <div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>`;
+    } else if (s.phase === 'waiting') {
+      overlay = `<div class="pad-bottom"><button class="secondary" data-act="start">${esc(name(g.drinkerId))} is drinking. Go!</button></div>`;
+    }
+    return `${raceText(s)}${centre}${overlay}`;
+  }
+
+  function drinkerPad(s) {
+    const g = s.game;
+    if (s.phase === 'waiting') {
+      return `
+        <div class="drinker">
+          <div class="drinker-big">🍺 YOU DRINK</div>
+          <div class="drinker-amount">${esc(g.amount)}</div>
+          <button class="drinker-btn" data-act="start">START</button>
+          <p>Tap as your cup touches your lips.<br>Then ${esc(name(g.rollerId))} races to hit again.</p>
+        </div>`;
+    }
+    return `
+      <div class="drinker racing">
+        <p>${esc(name(g.rollerId))} is ${s.phase === 'spinning' ? 'rolling' : `tracing ${PB.plural(g.traceLen, 'dot')}`}…</p>
+        <button class="drinker-btn done" data-act="done">DONE</button>
+        <p>Tap the moment you finish: <b>${esc(g.amount.toLowerCase())}</b></p>
+        ${g.dice ? `<div class="drinker-dice">${PB.dice(s.phase === 'spinning' ? [0, 0] : g.dice)}</div>` : ''}
+      </div>`;
+  }
+
+  function watcherPad(s) {
+    const g = s.game;
+    const overlay = s.phase === 'pick' ? '<div class="reverse">🔄 REVERSE!</div>' : '';
+    return `${raceText(s)}${diceHtml(g, s.phase)}${overlay}`;
   }
 
   function render(s) {
     const g = s.game;
-    const key = `${g.rollNo}:${s.phase}`;
+    const key = `${g.rollNo}:${rolling(s.phase) ? 'roll' : s.phase}:${g.drinking}`;
     if (tracing && key === lastKey) return null;
     tracing = false;
     lastKey = key;
     clearInterval(spinTimer);
 
     const mine = g.rollerId === s.me;
+    const drinkingNow = g.drinkerId === s.me && (s.phase === 'waiting' || (g.drinking && s.phase !== 'pick'));
+    if (g.drinkerId === s.me && s.phase === 'waiting' && buzzedFor !== g.rollNo) {
+      buzzedFor = g.rollNo;
+      navigator.vibrate?.([200, 100, 200]);
+    }
     const last = s.feed[s.feed.length - 1];
+
+    let pad;
+    if (drinkingNow) pad = drinkerPad(s);
+    else if (mine) pad = rollerPad(s);
+    else pad = watcherPad(s);
 
     return `
       <div class="fs-screen">
@@ -78,34 +124,39 @@
           ${PB.turn(g.rollerId, subtitle(s, mine))}
           ${PB.endButton('end-mini')}
         </div>
-        <div class="pad" id="pad">
-          ${topText(s, mine)}
-          ${centre(s, mine)}
-          ${overlay(s, mine)}
-          ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
-          ${mine && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
+        <div class="pad ${drinkingNow ? 'pad-drinker' : ''}" id="pad">
+          ${pad}
+          ${last && !drinkingNow ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
+          ${mine && !drinkingNow && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
         </div>
       </div>
     `;
   }
 
   function spin() {
-    const box = document.getElementById('dice-box');
+    clearInterval(spinTimer);
     const face = () => 1 + Math.floor(Math.random() * 6);
     spinTimer = setInterval(() => {
+      const box = document.getElementById('dice-box');
+      if (!box) return clearInterval(spinTimer);
+      box.classList.remove('faded');
       box.innerHTML = PB.dice([face(), face()]);
       box.firstElementChild.classList.add('spinning');
     }, 90);
   }
 
-  // Press the first dot, then drag through each dot as it appears. Lifting the finger starts over.
+  // Press the first dot (the dice start spinning), then drag through each dot as it appears.
+  // Reaching the last dot rolls. Lifting the finger starts over.
   function setupTrace() {
     const pad = document.getElementById('pad');
-    const hint = document.getElementById('trace-hint');
     const dots = [...pad.querySelectorAll('.dot')];
     const line = pad.querySelector('polyline');
+    const box = document.getElementById('dice-box');
+    const restingDice = box?.innerHTML;
+    const restingFaded = box?.classList.contains('faded');
     let idx = 0;
     let points = [];
+    let last = null; // previous finger position, so a fast swipe can't jump over a dot
 
     const local = (x, y) => {
       const r = pad.getBoundingClientRect();
@@ -115,7 +166,6 @@
       const r = el.getBoundingClientRect();
       return [r.left + r.width / 2, r.top + r.height / 2];
     };
-    let last = null; // previous finger position, so a fast swipe can't jump over a dot
     // Distance from the dot's centre to the finger's path since the last move event.
     const near = (e, el) => {
       const [cx, cy] = centreOf(el);
@@ -137,12 +187,10 @@
       navigator.vibrate?.(15);
       if (idx < dots.length) dots[idx].hidden = false;
     };
-    const reset = () => {
-      idx = 0;
-      points = [];
+    const finish = () => {
       tracing = false;
-      dots.forEach((d, i) => { d.hidden = i > 0; d.classList.remove('reached'); });
       draw();
+      PB.act('roll');
     };
 
     pad.addEventListener('pointerdown', (e) => {
@@ -151,28 +199,32 @@
       tracing = true;
       last = [e.clientX, e.clientY];
       pad.setPointerCapture(e.pointerId);
-      if (hint) hint.textContent = 'Keep your finger down…';
       reach(0);
+      spin();
+      if (idx === dots.length) return finish();
       draw(e);
     });
     pad.addEventListener('pointermove', (e) => {
       if (!tracing) return;
       if (near(e, dots[idx])) {
         reach(idx);
-        if (idx === dots.length) {
-          tracing = false;
-          draw();
-          PB.act('roll');
-          return;
-        }
+        if (idx === dots.length) return finish();
       }
       last = [e.clientX, e.clientY];
       draw(e);
     });
     const lift = () => {
       if (!tracing) return;
-      reset();
-      if (hint) hint.textContent = 'You let go! Start again from the glowing dot';
+      tracing = false;
+      idx = 0;
+      points = [];
+      clearInterval(spinTimer);
+      if (box) {
+        box.innerHTML = restingDice;
+        box.classList.toggle('faded', restingFaded);
+      }
+      dots.forEach((d, i) => { d.hidden = i > 0; d.classList.remove('reached'); });
+      draw();
     };
     pad.addEventListener('pointerup', lift);
     pad.addEventListener('pointercancel', lift);
@@ -183,7 +235,9 @@
     render,
     afterRender(s) {
       if (s.phase === 'spinning') spin();
-      if (s.phase === 'ready' && s.game.rollerId === s.me && s.game.traceLen > 1) setupTrace();
+      const g = s.game;
+      const drinkingNow = g.drinkerId === s.me && g.drinking;
+      if (g.rollerId === s.me && !drinkingNow && rolling(s.phase) && !(s.phase === 'ready' && g.traceLen === 1)) setupTrace();
     },
   });
 })();
