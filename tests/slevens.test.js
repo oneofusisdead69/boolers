@@ -13,12 +13,12 @@ function rollAs(t, i, dice) {
   assert.strictEqual(t.room.game.phase, 'claim');
 }
 
-// Roller i hits, picks drinker j, and the drinker starts drinking.
-function hitAndPick(t, i, j) {
+// Roller i rolls a hit and claims it.
+function hit(t, i) {
   rollAs(t, i, [3, 4]);
-  t.act(i, 'claim').act(i, 'pick', { targetId: `p${j}` }).act(j, 'start');
+  t.act(i, 'claim');
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.ok(t.room.game.drinking);
+  assert.ok(t.room.game.reverse);
 }
 
 test('7, 11 and doubles are hits', () => {
@@ -77,96 +77,46 @@ test('tapping the blue dot on a non-hit just says so', () => {
   t.cleanup();
 });
 
-test('a hit lets the roller pick a drinker; rolling waits until the drinker starts', () => {
+test('a hit shows REVERSE and the next roll needs one more dot', () => {
   const t = setup(game, 3);
   rollAs(t, 0, [5, 6]);
+  t.act(1, 'claim'); // only the roller can claim
+  assert.strictEqual(t.room.game.phase, 'claim');
   t.act(0, 'claim');
-  assert.strictEqual(t.room.game.phase, 'pick');
-  t.act(0, 'pick', { targetId: 'p0' }); // can't pick yourself
-  assert.strictEqual(t.room.game.phase, 'pick');
-  t.act(0, 'pick', { targetId: 'p2' });
-  assert.strictEqual(t.room.game.phase, 'waiting');
-  assert.strictEqual(t.room.game.drinkerId, 'p2');
-  t.act(0, 'roll');
-  assert.strictEqual(t.room.game.phase, 'waiting', 'no rolling before the cup touches lips');
-  t.act(1, 'start'); // a bystander can't start it
-  assert.strictEqual(t.room.game.phase, 'waiting');
-  t.act(2, 'start');
   assert.strictEqual(t.room.game.phase, 'ready');
-  assert.strictEqual(t.view(0).traceLen, 2, 'one more dot after a hit');
-  assert.strictEqual(t.room.game.dots.length, 2);
-  t.cleanup();
-});
-
-test('the roller can also start the race for the drinker', () => {
-  const t = setup(game, 3);
-  rollAs(t, 0, [3, 4]);
-  t.act(0, 'claim').act(0, 'pick', { targetId: 'p1' }).act(0, 'start');
-  assert.ok(t.room.game.drinking);
-  t.cleanup();
-});
-
-test('each hit in a row adds exactly one dot', () => {
-  const t = setup(game, 3);
-  hitAndPick(t, 0, 1);
+  assert.ok(t.view(1).reverse, 'everyone sees the REVERSE');
+  assert.strictEqual(t.room.game.rollerId, 'p0', 'the roller keeps the dice');
   assert.strictEqual(t.view(0).traceLen, 2);
-  hitAndPick(t, 0, 2);
-  assert.strictEqual(t.view(0).traceLen, 3);
-  hitAndPick(t, 0, 1);
-  assert.strictEqual(t.view(0).traceLen, 4);
-  assert.strictEqual(t.room.game.rollerId, 'p0', 'the roller keeps the dice while they keep hitting');
-  t.cleanup();
-});
-
-test('if the drinker finishes first the dice pass on and reset', () => {
-  const t = setup(game, 3);
-  hitAndPick(t, 0, 2);
-  hitAndPick(t, 0, 2);
-  t.act(1, 'done'); // only the drinker can finish
-  assert.strictEqual(t.room.game.rollerId, 'p0');
-  t.act(2, 'done');
-  assert.strictEqual(t.room.game.rollerId, 'p1', 'next player after the roller');
-  assert.strictEqual(t.view(0).traceLen, 1);
-  assert.strictEqual(t.room.game.drinkerId, null);
-  t.cleanup();
-});
-
-test('the drinker can finish while the dice are still spinning', () => {
-  const t = setup(game, 3);
-  hitAndPick(t, 0, 1);
+  assert.strictEqual(t.room.game.dots.length, 2);
   t.act(0, 'roll');
-  assert.strictEqual(t.room.game.phase, 'spinning');
-  t.act(1, 'done');
-  assert.strictEqual(t.room.game.rollerId, 'p1');
-  assert.strictEqual(t.room.game.phase, 'ready');
+  assert.ok(!t.room.game.reverse, 'REVERSE clears once the next roll starts');
   t.cleanup();
 });
 
-test('once the roller hits, the drinker can no longer finish that round', () => {
+test('each hit in a row adds exactly one dot; misses add none', () => {
   const t = setup(game, 3);
-  hitAndPick(t, 0, 1);
-  rollAs(t, 0, [6, 6]);
-  t.act(0, 'claim');
-  t.act(1, 'done');
-  assert.strictEqual(t.room.game.phase, 'pick');
-  assert.strictEqual(t.room.game.rollerId, 'p0');
+  hit(t, 0);
+  assert.strictEqual(t.view(0).traceLen, 2);
+  rollAs(t, 0, [1, 2]);
+  t.fireTimer();
+  assert.strictEqual(t.view(0).traceLen, 2);
+  hit(t, 0);
+  assert.strictEqual(t.view(0).traceLen, 3);
+  hit(t, 0);
+  assert.strictEqual(t.view(0).traceLen, 4);
   t.cleanup();
 });
 
 test('the red arrow passes to the next player and resets', () => {
   const t = setup(game, 3);
-  hitAndPick(t, 0, 2);
+  hit(t, 0);
+  t.act(1, 'pass'); // only the roller can pass
+  assert.strictEqual(t.room.game.rollerId, 'p0');
   t.act(0, 'pass');
   assert.strictEqual(t.room.game.rollerId, 'p1');
   assert.strictEqual(t.view(0).traceLen, 1);
   t.act(1, 'pass').act(2, 'pass');
   assert.strictEqual(t.room.game.rollerId, 'p0', 'wraps around');
-  t.cleanup();
-});
-
-test('the drink amount comes from the lobby option', () => {
-  const t = setup(game, 2, { amount: 'all' });
-  assert.strictEqual(t.view(0).amount, 'Finish your cup');
   t.cleanup();
 });
 
@@ -179,7 +129,7 @@ test('if the roller disconnects the dice move on', () => {
 
 test('dots are spread apart, on screen, clear of the arrow; the blue dot never covers the dice', () => {
   const t = setup(game, 2);
-  for (let i = 0; i < 6; i++) hitAndPick(t, 0, 1);
+  for (let i = 0; i < 6; i++) hit(t, 0);
   rollAs(t, 0, [1, 2]);
   const { dots, claimDot } = t.room.game;
   assert.strictEqual(dots.length, 7);

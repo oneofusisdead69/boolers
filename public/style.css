@@ -391,6 +391,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   font-size: 2.6rem;
   font-weight: 900;
   color: var(--ok);
+  pointer-events: none;
   animation: pulse 0.5s ease-in-out 3;
 }
 .pad-picker {
@@ -418,36 +419,5 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   z-index: 3;
 }
 
-/* Slevens race: banner, roller's "go" button, and the drinker's screen */
+/* Slevens streak banner */
 .pad-top.race { color: var(--accent); font-weight: 700; }
-.pad-bottom { position: absolute; left: 16px; right: 80px; bottom: 14px; z-index: 3; }
-.pad-bottom button { padding: 14px; font-size: 1rem; }
-
-.pad.pad-drinker { background: var(--danger); color: #fff; }
-.drinker {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 20px;
-  text-align: center;
-}
-.drinker p { margin: 0; font-size: 1rem; line-height: 1.4; opacity: 0.9; }
-.drinker-big { font-size: 2.6rem; font-weight: 900; }
-.drinker-amount { font-size: 1.4rem; font-weight: 700; }
-.drinker-btn {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--danger);
-  font-size: 2.4rem;
-  font-weight: 900;
-  box-shadow: 0 0 0 14px rgba(255, 255, 255, 0.2), 0 10px 30px rgba(0,0,0,0.3);
-}
-.drinker-btn.done { width: 240px; height: 240px; font-size: 3rem; animation: pulse 0.9s ease-in-out infinite; }
-.drinker-dice .die { width: 52px; height: 52px; padding: 7px; border-radius: 10px; }
-@media (prefers-reduced-motion: reduce) { .drinker-btn.done { animation: none; } }

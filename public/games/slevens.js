@@ -1,27 +1,23 @@
 // Screens for Slevens. Server logic: games/slevens.js
 // Full-screen layout: a slim header, then a touch pad filling the rest of the screen with the
-// dice in the middle. The roller rolls and traces on the pad; the drinker's pad turns into a
-// START button (cup touches lips) and then a giant DONE button.
+// dice in the middle. Only the roller plays on the pad; everyone else watches the dice.
 (() => {
-  const { esc, name } = PB;
+  const { esc } = PB;
   let spinTimer = null;
   let tracing = false; // a finger is down mid-trace; don't redraw under it
   let lastKey = null;
-  let buzzedFor = null;
 
   const rolling = (phase) => phase === 'ready' || phase === 'claim';
 
   function subtitle(s, mine) {
     const g = s.game;
-    const drinker = name(g.drinkerId);
     switch (s.phase) {
       case 'ready':
+        if (g.reverse) return mine ? 'Roll when their cup touches their lips' : 'REVERSE! Someone drinks';
         if (g.traceLen === 1) return mine ? 'Tap to roll' : 'About to roll';
         return mine ? `Trace ${g.traceLen} dots to roll` : `Tracing ${g.traceLen} dots`;
       case 'spinning': return 'Rolling…';
       case 'claim': return mine ? 'Hit? Tap blue. Miss? Roll again' : 'Checking the dice…';
-      case 'pick': return mine ? 'Pick who drinks' : 'Picking who drinks';
-      case 'waiting': return g.drinkerId === s.me ? 'Drink!' : `Waiting for ${drinker} to start drinking`;
       default: return '';
     }
   }
@@ -38,13 +34,10 @@
       ${g.dots.map((d, i) => `<div class="dot ${i === 0 ? 'start' : ''}" style="left:${d.x}%;top:${d.y}%" ${i > 0 ? 'hidden' : ''}></div>`).join('')}`;
   }
 
-  // The race banner along the top of the pad.
-  function raceText(s) {
+  function topText(s) {
     const g = s.game;
     if (g.notice) return `<p class="pad-top notice">${esc(g.notice)}</p>`;
-    if (g.drinking && s.phase !== 'pick') {
-      return `<p class="pad-top race">🍺 ${esc(name(g.drinkerId))} ${g.drinkerId === s.me ? 'are' : 'is'} drinking · hit #${g.hits + 1} needs ${PB.plural(g.traceLen, 'dot')}</p>`;
-    }
+    if (g.hits > 0) return `<p class="pad-top race">🔥 ${PB.plural(g.hits, 'hit')} in a row · next roll needs ${PB.plural(g.traceLen, 'dot')}</p>`;
     return '';
   }
 
@@ -62,61 +55,20 @@
       overlay = `${traceDots(g)}
         <button class="claim-dot" data-act="claim" aria-label="Claim the hit"
           style="left:${g.claimDot.x}%;top:${g.claimDot.y}%;animation-duration:${g.claimMs}ms;animation-delay:-${elapsed}ms"></button>`;
-    } else if (s.phase === 'pick') {
-      overlay = `<div class="reverse">🔄 REVERSE!</div>
-        <div class="pad-picker">${PB.playerPicker('pick', { exclude: [s.me] })}</div>`;
-    } else if (s.phase === 'waiting') {
-      overlay = `<div class="pad-bottom"><button class="secondary" data-act="start">${esc(name(g.drinkerId))} is drinking. Go!</button></div>`;
     }
-    return `${raceText(s)}${centre}${overlay}`;
-  }
-
-  function drinkerPad(s) {
-    const g = s.game;
-    if (s.phase === 'waiting') {
-      return `
-        <div class="drinker">
-          <div class="drinker-big">🍺 YOU DRINK</div>
-          <div class="drinker-amount">${esc(g.amount)}</div>
-          <button class="drinker-btn" data-act="start">START</button>
-          <p>Tap as your cup touches your lips.<br>Then ${esc(name(g.rollerId))} races to hit again.</p>
-        </div>`;
-    }
-    return `
-      <div class="drinker racing">
-        <p>${esc(name(g.rollerId))} is ${s.phase === 'spinning' ? 'rolling' : `tracing ${PB.plural(g.traceLen, 'dot')}`}…</p>
-        <button class="drinker-btn done" data-act="done">DONE</button>
-        <p>Tap the moment you finish: <b>${esc(g.amount.toLowerCase())}</b></p>
-        ${g.dice ? `<div class="drinker-dice">${PB.dice(s.phase === 'spinning' ? [0, 0] : g.dice)}</div>` : ''}
-      </div>`;
-  }
-
-  function watcherPad(s) {
-    const g = s.game;
-    const overlay = s.phase === 'pick' ? '<div class="reverse">🔄 REVERSE!</div>' : '';
-    return `${raceText(s)}${diceHtml(g, s.phase)}${overlay}`;
+    return `${topText(s)}${centre}${overlay}`;
   }
 
   function render(s) {
     const g = s.game;
-    const key = `${g.rollNo}:${rolling(s.phase) ? 'roll' : s.phase}:${g.drinking}`;
+    const key = `${g.rollNo}:${rolling(s.phase) ? 'roll' : s.phase}`;
     if (tracing && key === lastKey) return null;
     tracing = false;
     lastKey = key;
     clearInterval(spinTimer);
 
     const mine = g.rollerId === s.me;
-    const drinkingNow = g.drinkerId === s.me && (s.phase === 'waiting' || (g.drinking && s.phase !== 'pick'));
-    if (g.drinkerId === s.me && s.phase === 'waiting' && buzzedFor !== g.rollNo) {
-      buzzedFor = g.rollNo;
-      navigator.vibrate?.([200, 100, 200]);
-    }
     const last = s.feed[s.feed.length - 1];
-
-    let pad;
-    if (drinkingNow) pad = drinkerPad(s);
-    else if (mine) pad = rollerPad(s);
-    else pad = watcherPad(s);
 
     return `
       <div class="fs-screen">
@@ -124,10 +76,11 @@
           ${PB.turn(g.rollerId, subtitle(s, mine))}
           ${PB.endButton('end-mini')}
         </div>
-        <div class="pad ${drinkingNow ? 'pad-drinker' : ''}" id="pad">
-          ${pad}
-          ${last && !drinkingNow ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
-          ${mine && !drinkingNow && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
+        <div class="pad" id="pad">
+          ${mine ? rollerPad(s) : `${topText(s)}${diceHtml(g, s.phase)}`}
+          ${g.reverse ? '<div class="reverse">🔄 REVERSE!</div>' : ''}
+          ${last ? `<p class="pad-feed">${esc(last.text)}</p>` : ''}
+          ${mine && s.phase !== 'spinning' ? '<button class="next-arrow" data-act="pass" aria-label="Pass to next player">➜</button>' : ''}
         </div>
       </div>
     `;
@@ -236,8 +189,7 @@
     afterRender(s) {
       if (s.phase === 'spinning') spin();
       const g = s.game;
-      const drinkingNow = g.drinkerId === s.me && g.drinking;
-      if (g.rollerId === s.me && !drinkingNow && rolling(s.phase) && !(s.phase === 'ready' && g.traceLen === 1)) setupTrace();
+      if (g.rollerId === s.me && rolling(s.phase) && !(s.phase === 'ready' && g.traceLen === 1)) setupTrace();
     },
   });
 })();

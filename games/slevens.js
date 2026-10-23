@@ -1,22 +1,15 @@
-// Slevens (7-Eleven Doubles): a race between the roller and a drinker.
+// Slevens (7-Eleven Doubles). The app only follows the roller; the drinking happens at the table.
 //
 // The roller rolls two dice. After each roll a blue dot appears for 5 seconds: if the roll is a
-// 7, 11 or doubles, tapping it in time is a REVERSE and the roller picks someone to drink.
-// As soon as the drinker's cup touches their lips (they tap START), the roller may roll again,
-// racing to hit before the drinker finishes. Every hit in a row makes rolling one dot harder:
-// a single tap, then tracing 2 dots, then 3, and so on. If the drinker taps DONE first, the
-// dice pass to the next player, back to a single tap. The red arrow passes the dice any time.
+// 7, 11 or doubles, tapping it in time is a REVERSE. Someone at the table drinks, and as soon as
+// their cup touches their lips the roller rolls again, racing to hit before they finish. Every
+// hit in a row makes rolling one dot harder: a single tap, then tracing 2 dots, then 3, and so
+// on. Misses don't change the count. If the drinker finishes first, the roller taps the red
+// arrow and the dice pass to the next player, back to a single tap.
 
 const SPIN_MS = 800;
 const CLAIM_MS = 5000;
 const CLAIM_GRACE_MS = 600; // allowance for network lag on the 5-second window
-
-const AMOUNTS = {
-  sip: 'Take a sip',
-  three: 'Take 3 sips',
-  half: 'Drink half your cup',
-  all: 'Finish your cup',
-};
 
 function isHit([a, b]) {
   return a + b === 7 || a + b === 11 || a === b;
@@ -59,13 +52,12 @@ function ready(room, ctx, { keepDots = false } = {}) {
   }
 }
 
-// A fresh turn: no drinker, no streak, a single tap to roll.
+// A fresh turn: no streak, a single tap to roll.
 function newTurn(room, ctx, playerId) {
   const g = room.game;
   g.rollerId = playerId;
   g.hits = 0;
-  g.drinkerId = null;
-  g.drinking = false;
+  g.reverse = false;
   g.dice = null;
   ready(room, ctx);
 }
@@ -96,19 +88,10 @@ module.exports = {
   description: 'Hit 7, 11 or doubles to make someone drink, then race to hit again before they finish.',
   minPlayers: 2,
   order: 2,
-  options: [
-    {
-      id: 'amount',
-      label: 'A hit means…',
-      default: 'three',
-      choices: Object.entries(AMOUNTS).map(([value, label]) => ({ value, label })),
-    },
-  ],
 
-  start(room, ctx, options) {
+  start(room, ctx) {
     Object.assign(room.game, {
       order: room.players.map((p) => p.id),
-      amount: AMOUNTS[options.amount] || AMOUNTS.three,
       rollNo: 0,
       notice: '',
     });
@@ -117,47 +100,30 @@ module.exports = {
 
   handle(room, player, action, ctx) {
     const g = room.game;
-    const isRoller = player.id === g.rollerId;
-    const isDrinker = player.id === g.drinkerId;
+    if (player.id !== g.rollerId) return;
 
-    if (action.type === 'roll' && isRoller && (g.phase === 'ready' || g.phase === 'claim')) {
+    if (action.type === 'roll' && (g.phase === 'ready' || g.phase === 'claim')) {
       // Rolling on instead of tapping the blue dot means passing on a hit.
       if (g.phase === 'claim' && isHit(g.dice)) missedHit(room, ctx);
       else g.notice = '';
       ctx.clearTimer(room);
+      g.reverse = false;
       g.dice = ctx.dice.roll(2);
       g.phase = 'spinning';
       ctx.setTimer(room, SPIN_MS, () => openClaimWindow(room, ctx));
-    } else if (action.type === 'claim' && isRoller && g.phase === 'claim') {
+    } else if (action.type === 'claim' && g.phase === 'claim') {
       if (isHit(g.dice)) {
-        ctx.clearTimer(room);
-        g.phase = 'pick';
         g.hits += 1;
-        g.drinking = false;
+        g.reverse = true;
         g.notice = '';
         ctx.log(room, `🔄 ${player.name} rolled ${g.dice.join(' + ')}. REVERSE!`);
+        ready(room, ctx); // next roll, one dot harder
       } else {
         g.notice = 'Not a hit!';
         ctx.log(room, `🙈 ${player.name} tapped on a ${g.dice.join(' + ')}`);
         ready(room, ctx, { keepDots: true });
       }
-    } else if (action.type === 'pick' && isRoller && g.phase === 'pick') {
-      const target = ctx.player(room, action.targetId);
-      if (!target || target.id === player.id) return;
-      g.drinkerId = target.id;
-      g.drinking = false;
-      g.phase = 'waiting';
-      ctx.log(room, `🍺 ${player.name} picked ${target.name} to drink`);
-    } else if (action.type === 'start' && (isDrinker || isRoller) && g.phase === 'waiting') {
-      // The drinker's cup touched their lips: the race is on.
-      g.drinking = true;
-      ready(room, ctx);
-    } else if (action.type === 'done' && isDrinker && g.drinking && ['ready', 'spinning', 'claim'].includes(g.phase)) {
-      const next = ctx.turns.next(room, g.order, g.rollerId);
-      ctx.log(room, `🏁 ${player.name} finished first! Dice go to ${ctx.name(room, next)}`);
-      g.notice = '';
-      newTurn(room, ctx, next);
-    } else if (action.type === 'pass' && isRoller && g.phase !== 'spinning') {
+    } else if (action.type === 'pass' && g.phase !== 'spinning') {
       const next = ctx.turns.next(room, g.order, player.id);
       if (!next || next === player.id) return;
       ctx.log(room, `➡️ ${player.name} passed the dice to ${ctx.name(room, next)}`);
@@ -166,8 +132,7 @@ module.exports = {
     }
   },
 
-  // If the roller leaves, the dice move on. (A drinker whose phone drops out doesn't end the
-  // race; the roller can pass with the red arrow if things stall.)
+  // If the roller leaves, the dice move on.
   check(room, ctx) {
     const g = room.game;
     if (ctx.turns.isActive(room, g.rollerId)) return;
@@ -183,10 +148,8 @@ module.exports = {
     const g = room.game;
     return {
       rollerId: g.rollerId,
-      drinkerId: g.drinkerId,
-      drinking: g.drinking,
-      amount: g.amount,
       hits: g.hits,
+      reverse: g.reverse,
       traceLen: traceLen(g),
       rollNo: g.rollNo,
       dots: g.dots,
