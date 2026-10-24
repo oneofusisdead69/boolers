@@ -100,6 +100,11 @@ const PB = {
   },
 
   // Current time on the server's clock, for lining up countdowns across phones.
+  // Redraws the current screen, for local-only changes like selecting a card.
+  rerender() {
+    render();
+  },
+
   now() {
     return Date.now() + clockOffset;
   },

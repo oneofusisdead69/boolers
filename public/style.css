@@ -485,3 +485,44 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   color: var(--text);
 }
 .btn-link:active { transform: scale(0.98); }
+
+/* ---------- Ride the Bus ---------- */
+.red-btn { background: var(--danger); color: #fff; }
+.black-btn { background: #0b0a10; color: #fff; box-shadow: inset 0 0 0 2px var(--card-2); }
+.rb-label { margin: 0; font-size: 0.95rem; color: var(--muted); }
+.rb-hand { justify-content: flex-start; gap: 8px; }
+.rb-card-btn { width: auto; padding: 0; background: none; border-radius: 10px; box-shadow: 0 0 0 3px var(--accent); }
+.rb-card-btn.selected { box-shadow: 0 0 0 4px var(--ok); transform: translateY(-6px); }
+.rb-card.dim { opacity: 0.45; }
+.rb-pyramid { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0; }
+.rb-row { position: relative; display: flex; gap: 6px; justify-content: center; }
+.rb-sips { position: absolute; left: -26px; top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 800; font-size: 0.85rem; }
+.rb-spot { border-radius: 8px; }
+.rb-spot.current { box-shadow: 0 0 0 3px var(--accent); }
+.rb-claim { border: 2px solid var(--danger); }
+.rb-claim p { margin: 0; }
+.rb-plays { margin-top: -4px; }
+.rb-bus { display: flex; gap: 10px; align-items: flex-start; justify-content: center; }
+.rb-bus-start { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); font-size: 0.75rem; }
+.rb-bus-row { gap: 6px; flex: 1; justify-content: flex-start; }
+
+/* ---------- Kings Cup ---------- */
+.kc-deck { display: flex; justify-content: center; padding: 8px 0; }
+.kc-draw { width: auto; padding: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--accent); }
+.kc-draw .pcard { box-shadow: 0 0 0 4px var(--accent), 0 10px 30px rgba(0,0,0,0.4); }
+.kc-card { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.kc-rule { background: var(--card); border-radius: 16px; padding: 14px 16px; text-align: center; width: 100%; }
+.kc-rule p { margin: 6px 0 0; line-height: 1.4; }
+.kc-title { font-size: 1.6rem; font-weight: 900; color: var(--accent); }
+.kc-prompt { margin-top: 10px; font-size: 1.5rem; font-weight: 800; padding: 10px; border-radius: 12px; background: var(--card-2); }
+.kc-cup { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); }
+.kc-crowns { display: flex; gap: 10px; font-size: 1.6rem; }
+.kc-crowns span { filter: grayscale(1); opacity: 0.35; }
+.kc-crowns span.on { filter: none; opacity: 1; }
+.kc-effects { list-style: none; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--card); display: flex; flex-direction: column; gap: 6px; font-size: 0.95rem; }
+.kc-effects small { color: var(--muted); }
+.kc-tap { font-size: 1.8rem; font-weight: 900; padding: 48px 16px; background: var(--danger); color: #fff; animation: pulse 0.7s ease-in-out infinite; }
+.kc-tapped { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 16px; border-radius: 16px; background: var(--card); font-size: 1.6rem; font-weight: 900; color: var(--ok); }
+.kc-tapped small { font-size: 0.95rem; font-weight: 500; color: var(--muted); }
+.kc-rule-form { display: flex; flex-direction: column; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .kc-tap { animation: none; } }
