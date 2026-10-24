@@ -701,3 +701,5 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .sp-tab-head { color: var(--muted); }
 .sp-tab-head small { text-align: right; width: 96px; }
 .sp-tab-head small:last-child { width: 64px; }
+.tab-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tab-head button { width: auto; padding: 6px 12px; font-size: 0.9rem; }

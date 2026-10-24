@@ -68,8 +68,10 @@
   // this room) in sips.
   function tab(s) {
     const g = s.game;
+    const { head, hidden } = PB.tabHead('🍺 Tab');
+    if (hidden) return `<div class="card sp-tab">${head}</div>`;
     const rows = s.players.slice().sort((a, b) => b.drinks - a.drinks || (b.total || 0) - (a.total || 0));
-    return `<div class="card sp-tab"><h2>🍺 Tab</h2>
+    return `<div class="card sp-tab">${head}
       <ul><li class="sp-tab-head"><span></span><small>This game</small><small>Tonight</small></li>${rows.map((p) => `
       <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id, 'sm')}<span>${esc(p.name)}${isMe(s, p.id) ? ' (you)' : ''}</span>
         <b>${p.drinks ? esc(shotText(p.drinks, g.perShot)) : '–'}</b><em>${PB.plural(p.total || 0, 'sip')}</em></li>`).join('')}</ul></div>`;

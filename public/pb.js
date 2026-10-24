@@ -228,10 +228,27 @@
       return `<ul class="feed">${items.map((f) => `<li>${PB.esc(f.text)}</li>`).join('')}</ul>`;
     },
 
+    // The tab can be folded away (remembered on this phone); the 🍺 Tab button always shows it.
+    tabHidden() {
+      try { return localStorage.getItem('tab-hidden') === '1'; } catch { return false; }
+    },
+
+    // A tab card's heading with its Hide / Show button. Returns { head, hidden }.
+    tabHead(title) {
+      const hidden = PB.tabHidden();
+      return {
+        hidden,
+        head: `<div class="tab-head"><h2>${title}</h2><button class="secondary" data-tab-toggle>${hidden ? '👁 Show' : '🙈 Hide'}</button></div>`,
+      };
+    },
+
     // The whole night's tab in this room: every sip and finished drink, across all games.
-    tab() {
+    // { toggle: false } for the pop-up, which always shows it.
+    tab({ toggle = true } = {}) {
+      const { head, hidden } = toggle ? PB.tabHead("🍺 Tonight's tab") : { head: '', hidden: false };
+      if (hidden) return `<div class="card tab">${head}</div>`;
       const rows = PB.state.players.slice().sort((a, b) => (b.total || 0) - (a.total || 0) || (b.finished || 0) - (a.finished || 0));
-      return `<div class="card tab"><h2>🍺 Tonight's tab</h2><ul class="players">${rows.map((p) => `
+      return `<div class="card tab">${head}<ul class="players">${rows.map((p) => `
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span>
           <span class="tab-n">${PB.plural(p.total || 0, 'sip')}${p.finished ? `<small>🥃 finished ×${p.finished}</small>` : ''}</span></li>`).join('')}</ul></div>`;
     },
@@ -242,7 +259,7 @@
       overlay.className = 'prefs-overlay';
       overlay.innerHTML = `<div class="prefs-panel" role="dialog" aria-modal="true" aria-label="Tonight's tab">
         <header><h2>🍺 Tonight's tab</h2><button class="prefs-close" aria-label="Close">✕</button></header>
-        ${PB.tab().replace('<h2>🍺 Tonight\'s tab</h2>', '')}</div>`;
+        ${PB.tab({ toggle: false })}</div>`;
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay || e.target.closest('.prefs-close')) overlay.remove();
       });
@@ -259,9 +276,13 @@
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
     },
   };
-  // Any 🍺 Tab button opens the tab.
+  // Any 🍺 Tab button opens the tab; Hide / Show folds it away.
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-tab]') && PB.state) PB.showTab();
+    if (e.target.closest('[data-tab-toggle]')) {
+      try { localStorage.setItem('tab-hidden', PB.tabHidden() ? '0' : '1'); } catch {}
+      PB.rerender();
+    }
   });
   window.PB = PB;
 })();
