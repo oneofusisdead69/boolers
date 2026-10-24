@@ -390,10 +390,10 @@ function roomStyleCard(s) {
     return `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(s.venue || style.label)}</b>${style.welcome ? `<br><span class="muted">${PB.esc(style.welcome)}</span>` : ''}</p>`;
   }
   return `<div class="card room-style-card">
-      <h2>Your venue</h2>
+      <h2>Venue &amp; style</h2>
       <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
-      <div class="room-styles">${Object.entries(STYLES).map(([id, st]) => `
-        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>
+      ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([, st]) => !!st.seasonal === seasonal).map(([id, st]) => `
+        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('')}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;
 }

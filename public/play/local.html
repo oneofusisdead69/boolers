@@ -195,8 +195,8 @@
         </div>
         <div class="card room-style-card">
           <h2>Room style</h2>
-          <div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).map(([id, st]) => `
-            <button class="${id === roomStyle ? 'selected' : ''}" data-room-style="${id}"><span>${esc(st.emoji)}</span>${esc(st.label)}</button>`).join('')}</div>
+          ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).filter(([, st]) => !!st.seasonal === seasonal).map(([id, st]) => `
+            <button class="${id === roomStyle ? 'selected' : ''}" data-room-style="${id}"><span>${esc(st.emoji)}</span>${esc(st.label)}</button>`).join('')}</div>`).join('')}
         </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;

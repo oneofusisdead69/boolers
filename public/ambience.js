@@ -1,8 +1,11 @@
 // Background sound for the TV, to match the room style. Everything is made on the fly with the Web
 // Audio API (no audio files): crowd murmur and clinking glasses in the dive bar, a crackling fire
 // and a lute in the tavern, a four-on-the-floor beat in the club, wind and torches in the castle,
-// a walking bass, ride cymbal and piano in the jazz club, and chatter and a sizzling grill in the
-// diner. Classic is quiet.
+// a walking bass, ride cymbal and piano in the jazz club, chatter and a sizzling grill in the
+// diner, waves and a ukulele at the tiki bar, slot machines in the casino, a honky-tonk piano in
+// the saloon, gulls and creaking timbers on the pirate ship, an oompah band in the beer hall, a
+// synth pad in space, sleigh bells at Christmas, a pipe organ and thunder at Halloween, and a jig
+// for St Patrick's. Classic is quiet.
 //
 //   Ambience.set(style, level)   start, switch or stop (level 0 = off, up to 1)
 (() => {
@@ -201,6 +204,138 @@
         bed(out, { type: 'highpass', freq: 5000, gain: 0.025, wobble: 0.6, rate: 0.4 }), // the grill
         // Order up!
         now(25, (t) => { note(out, t, { freq: 2093, len: 1.2, gain: 0.05, type: 'sine' }); note(out, t, { freq: 4186, len: 0.6, gain: 0.015, type: 'sine' }); }),
+      ];
+    },
+    tiki(out) {
+      // Waves rolling in, torches, and a ukulele now and then.
+      const chords = [[67, 71, 74, 79], [65, 69, 72, 77], [64, 67, 72, 76], [62, 67, 71, 74]];
+      return [
+        bed(out, { freq: 700, gain: 0.2, wobble: 0.9, rate: 0.11, sweep: 300 }),
+        crackles(out, 0.07),
+        now(6, (t) => { const c = pick(chords); for (let k = 0; k < 2; k++) c.forEach((m, i) => note(out, t + k * 0.45 + i * 0.03, { freq: hz(m), len: 0.7, gain: 0.04 })); }),
+      ];
+    },
+    speakeasy(out) {
+      // Low chatter, clinking glasses and a piano in the corner.
+      const chords = [[57, 60, 64, 67], [55, 59, 62, 65], [53, 57, 60, 64], [52, 56, 59, 62]];
+      return [
+        bed(out, { freq: 500, gain: 0.16, wobble: 0.4, rate: 0.12 }),
+        now(5, (t) => note(out, t, { freq: 2800 + Math.random() * 900, len: 0.4, gain: 0.03, type: 'sine' })),
+        sequencer(84, (t, n) => {
+          if (n % 2) return;
+          const c = chords[Math.floor(n / 8) % 4];
+          note(out, t, { freq: hz(c[0] - 12), len: 0.9, gain: 0.07 });
+          c.slice(1).forEach((m) => note(out, t + 0.36, { freq: hz(m), len: 0.6, gain: 0.025, type: 'sine' }));
+        }),
+      ];
+    },
+    casino(out) {
+      // The floor's buzz, chips clacking and slot machines paying out.
+      return [
+        bed(out, { type: 'bandpass', freq: 800, q: 0.6, gain: 0.14, wobble: 0.3, rate: 0.2 }),
+        now(0.9, (t) => hit(out, t, { type: 'bandpass', freq: 3200, q: 4, gain: 0.05, len: 0.03 })),
+        now(9, (t) => { for (let k = 0; k < 8; k++) note(out, t + k * 0.07, { freq: hz(pick([84, 88, 91, 96])), len: 0.2, gain: 0.03, type: 'square' }); }),
+      ];
+    },
+    saloon(out) {
+      // A honky-tonk piano, a little out of tune.
+      const prog = [[48, [64, 67, 72]], [53, [65, 69, 72]], [55, [62, 67, 71]], [48, [64, 67, 72]]];
+      return [
+        bed(out, { freq: 400, gain: 0.08, wobble: 0.4, rate: 0.1 }),
+        sequencer(150, (t, n) => {
+          const [bass, chord] = prog[Math.floor(n / 4) % 4];
+          if (n % 2 === 0) note(out, t, { freq: hz(bass - (n % 4 === 2 ? 5 : 0)), len: 0.3, gain: 0.1 });
+          else chord.forEach((m) => { note(out, t, { freq: hz(m) * 1.004, len: 0.22, gain: 0.03, type: 'square' }); note(out, t, { freq: hz(m) * 0.996, len: 0.22, gain: 0.02, type: 'triangle' }); });
+        }),
+      ];
+    },
+    pirate(out) {
+      // Waves against the hull, creaking timbers, gulls and the ship's bell.
+      return [
+        bed(out, { freq: 500, gain: 0.2, wobble: 0.9, rate: 0.09, sweep: 250 }),
+        now(5, (t) => note(out, t, { freq: 90 + Math.random() * 40, to: 60, len: 1.2, gain: 0.06, type: 'sawtooth', attack: 0.4 })),
+        now(11, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 0.25, { freq: 1400, to: 900, len: 0.22, gain: 0.025, type: 'sine' }); }),
+        now(30, (t) => { note(out, t, { freq: 1046, len: 2, gain: 0.04, type: 'sine' }); note(out, t + 0.4, { freq: 1046, len: 2, gain: 0.03, type: 'sine' }); }),
+      ];
+    },
+    beerhall(out) {
+      // Oompah: tuba on the beat, the band on the off-beat, a hall full of people.
+      const prog = [[43, [67, 71, 74]], [38, [66, 69, 72]], [38, [66, 69, 72]], [43, [67, 71, 74]]];
+      return [
+        bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.12, wobble: 0.4, rate: 0.15 }),
+        sequencer(116, (t, n) => {
+          const [bass, chord] = prog[Math.floor(n / 4) % 4];
+          if (n % 2 === 0) note(out, t, { freq: hz(bass + (n % 4 === 2 ? 7 : 0)), len: 0.35, gain: 0.18, type: 'sawtooth', attack: 0.02 });
+          else chord.forEach((m) => note(out, t, { freq: hz(m), len: 0.18, gain: 0.03, type: 'square' }));
+        }),
+      ];
+    },
+    space(out) {
+      // A slow synth pad drifting, with the odd bleep from the ship's computer.
+      const pad = [hz(45), hz(52), hz(57), hz(64)].map((f, i) => {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = f;
+        o.detune.value = (i - 1.5) * 7;
+        return o;
+      });
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 600;
+      const lfo = ac.createOscillator();
+      lfo.frequency.value = 0.05;
+      const depth = ac.createGain();
+      depth.gain.value = 400;
+      lfo.connect(depth).connect(f.frequency);
+      const g = ac.createGain();
+      g.gain.value = 0.03;
+      pad.forEach((o) => { o.connect(f); o.start(); });
+      f.connect(g).connect(out);
+      lfo.start();
+      return [
+        () => { pad.forEach((o) => o.stop()); lfo.stop(); },
+        now(8, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 0.12, { freq: hz(pick([84, 88, 91, 95])), len: 0.1, gain: 0.025, type: 'sine' }); }),
+      ];
+    },
+    christmas(out) {
+      // A crackling fire, sleigh bells and a music box.
+      const scale = [72, 74, 76, 79, 81, 84];
+      return [
+        bed(out, { freq: 160, gain: 0.12, wobble: 0.2, rate: 0.05 }),
+        crackles(out, 0.1),
+        sequencer(100, (t, n) => {
+          if (n % 16 < 8) for (let k = 0; k < 2; k++) hit(out, t + k * 0.15, { type: 'bandpass', freq: 7500, q: 3, gain: 0.04, len: 0.08 });
+          if (n % 2 === 0 && Math.random() < 0.7) note(out, t, { freq: hz(pick(scale)), len: 1.2, gain: 0.04, type: 'sine' });
+        }),
+      ];
+    },
+    halloween(out) {
+      // Howling wind, a low organ, distant thunder, an owl and a creaking door.
+      const organ = [hz(38), hz(45), hz(50), hz(53)].map((freq) => { const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = freq; return o; });
+      const g = ac.createGain();
+      g.gain.value = 0.02;
+      organ.forEach((o) => { o.connect(g); o.start(); });
+      g.connect(out);
+      return [
+        () => organ.forEach((o) => o.stop()),
+        bed(out, { type: 'bandpass', freq: 700, q: 3, gain: 0.12, wobble: 0.8, rate: 0.07, sweep: 400 }),
+        now(20, (t) => { hit(out, t, { type: 'lowpass', freq: 200, gain: 0.5, len: 2.5 }); hit(out, t + 0.3, { type: 'lowpass', freq: 120, gain: 0.4, len: 3 }); }),
+        now(14, (t) => { note(out, t, { freq: 440, to: 400, len: 0.35, gain: 0.04, type: 'sine', attack: 0.05 }); note(out, t + 0.5, { freq: 430, to: 380, len: 0.6, gain: 0.04, type: 'sine', attack: 0.05 }); }),
+        now(25, (t) => note(out, t, { freq: 220, to: 600, len: 1.6, gain: 0.03, type: 'sawtooth', attack: 0.3 })),
+      ];
+    },
+    stpatricks(out) {
+      // A pub session: a jig on the fiddle, a bodhrán and the crowd.
+      const scale = [62, 64, 66, 67, 69, 71, 73, 74, 76, 78];
+      let i = 4;
+      return [
+        bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.1, wobble: 0.4, rate: 0.15 }),
+        sequencer(118, (t, n, dur) => {
+          // Jigs go in threes.
+          if (n % 3 === 0) hit(out, t, { type: 'lowpass', freq: 180, gain: 0.25, len: 0.18 });
+          i = Math.max(0, Math.min(scale.length - 1, i + pick([-1, -1, 1, 1, 2, -2])));
+          note(out, t, { freq: hz(scale[i]), len: dur * 0.95, gain: 0.05, type: 'sawtooth', attack: 0.02 });
+        }, { div: 3 }),
       ];
     },
   };
