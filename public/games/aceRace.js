@@ -109,6 +109,8 @@
   }
 
   PB.register('aceRace', {
+    // Sideways: these go on the left.
+    stage: '.ar-track, .ar-last',
     sounds(prev, s) {
       if (s.game.winner && !prev.game.winner) return ['win'];
       return s.game.flips !== prev.game.flips ? ['card'] : [];

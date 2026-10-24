@@ -212,5 +212,6 @@
     return JSON.stringify(flips(prev)) !== JSON.stringify(flips(s)) ? ['card'] : [];
   }
 
-  PB.register('madMax', { render, sounds });
+  // Sideways: the pile (or the war table) goes on the left.
+  PB.register('madMax', { render, sounds, stage: '.mm-pile, .mm-pile-label, .mm-war' });
 })();

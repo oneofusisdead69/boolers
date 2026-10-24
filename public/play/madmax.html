@@ -121,6 +121,14 @@
 
   /* War table */
   .war { display: flex; flex-direction: column; gap: 10px; }
+  /* Sideways: the pile (or war table) on the left, pinned; everything else on the right. */
+  #app.ls { max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .ls-stage, .ls-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .ls-stage { position: sticky; top: 10px; }
+  #app.ls .pile { height: 190px; }
+  #app.ls .pcard.xl { width: 112px; height: 162px; }
+  #app.ls .pcard.xl .pip { font-size: 3.6rem; }
+  #app.ls .fan { margin-left: -56px; }
   .war-row { display: flex; gap: 10px; align-items: center; background: var(--card); border-radius: 12px; padding: 10px; }
   .war-name { display: flex; flex-direction: column; width: 76px; flex: none; }
   .war-name small { color: var(--muted); }
@@ -216,12 +224,12 @@ function renderSetup(error = '') {
   const seg = (key, choices) => `<div class="segmented">${choices.map(([v, label]) =>
     `<button class="${opts[key] === v ? 'selected' : ''}" data-opt="${key}" data-val='${JSON.stringify(v)}'>${label}</button>`).join('')}</div>`;
   $app.innerHTML = `
-    <h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
-    <p class="center muted">Mad Max · pass and play</p>
+    <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
+    <p class="center muted ls-l">Mad Max · pass and play</p>
     <a class="home-link" href="/">← Back to Bool Games</a>
     ${Prefs.button()}
     ${Prefs.feedbackButton()}
-    <div class="card">
+    <div class="card ls-l">
       <h2>How it works</h2>
       <ol class="rules">
         <li>Everyone gets a face-down stack. On your turn, call how your next card compares with the top of the pile, then flip it.</li>
@@ -248,6 +256,7 @@ function renderSetup(error = '') {
     </div>
     <p class="error">${esc(error)}</p>
     <button id="start">Deal the cards</button>`;
+  PB.layout($app, '.ls-l');
 
   const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
   document.getElementById('add').onclick = () => { names = [...readNames(), `Player ${names.length + 1}`]; renderSetup(); };
@@ -461,10 +470,14 @@ function sounds() {
   lastSound = { key, phase: G.phase };
 }
 
+// Turning the phone redraws the game for the new shape.
+PB.redraw = () => room && render();
+
 function render() {
   if (!room) return renderSetup();
   sounds();
   $app.innerHTML = screen();
+  PB.layout($app, '.pile, .pile-label, .war');
   const G = g();
   document.getElementById('setup')?.addEventListener('click', () => renderSetup());
   document.getElementById('again')?.addEventListener('click', startGame);

@@ -355,6 +355,8 @@
   }
 
   PB.register('horseRace', {
+    // Sideways: these go on the left.
+    stage: '.hz-wrap',
     sounds(prev, s) {
       if (s.game.winner && !prev.game.winner) return ['win'];
       return s.phase === 'race' && prev.phase !== 'race' ? ['bell'] : [];

@@ -170,6 +170,8 @@
   }
 
   PB.register('shotPoker', {
+    // Sideways: these go on the left.
+    stage: '.sp-banner, .sp-table, .ld-mine-head, .sp-hole',
     // A card for each new deal: your hand, then the flop, turn and river.
     sounds: (prev, s) => (s.game.hand !== prev.game.hand || s.game.community.length !== prev.game.community.length ? ['card'] : []),
     render(s) {

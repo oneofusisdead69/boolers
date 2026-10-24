@@ -174,6 +174,8 @@
   }
 
   PB.register('liarsDice', {
+    // Sideways: these go on the left.
+    stage: '.ld-bid, .ld-mine-head, .ld-dice, .ld-reveal',
     // Dice rattle for a new roll, and again when they're all shown.
     sounds: (prev, s) => (s.game.round !== prev.game.round || (s.game.reveal && !prev.game.reveal) ? ['dice'] : []),
     render(s) {

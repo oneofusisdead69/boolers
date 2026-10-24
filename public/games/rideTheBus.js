@@ -31,7 +31,7 @@
 
   function hand(s, { playable = null } = {}) {
     const cards = s.game.myHand;
-    if (!cards.length) return '<p class="center muted">No cards in your hand</p>';
+    if (!cards.length) return '<p class="center muted rb-hand">No cards in your hand yet</p>';
     return `<div class="cards rb-hand">${cards.map((card, i) => {
       const canPlay = playable && playable(card);
       return canPlay
@@ -176,6 +176,8 @@
   }
 
   PB.register('rideTheBus', {
+    // Sideways: these go on the left.
+    stage: '.rb-pyramid, .rb-bus, .rb-label, .rb-hand',
     // A card turned over: a guess, a pyramid flip or a bus card.
     sounds(prev, s) {
       const flips = (x) => [x.game.last, x.game.pyramid?.flipped, x.game.bus?.last, x.game.bus?.attempts];

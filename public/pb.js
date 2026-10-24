@@ -256,6 +256,32 @@
         `<div class="ar-bet-row">${PB.avatar(id, 'sm')}<span>${PB.esc(PB.name(id))}</span><b>${PB.plural(n, 'sip')}</b></div>`).join('')}</div>`;
     },
 
+    // ---------- Sideways ----------
+    // Turned sideways, screens split in two: the stage (the track, the table, the cards) on the
+    // left, pinned while you scroll, and everything else on the right. Each screen says what its
+    // stage is with a CSS selector for its top-level pieces.
+
+    landscape() {
+      return window.matchMedia('(orientation: landscape) and (min-width: 560px)').matches;
+    },
+
+    // Rearranges `root`'s children into stage and panel columns when sideways.
+    layout(root, stage) {
+      root.classList.remove('ls');
+      if (!stage || !PB.landscape()) return;
+      const kids = [...root.children];
+      const left = kids.filter((el) => el.matches(stage));
+      if (!left.length || left.length === kids.length) return;
+      const col = (cls, els) => {
+        const div = document.createElement('div');
+        div.className = cls;
+        div.append(...els);
+        return div;
+      };
+      root.append(col('ls-stage', left), col('ls-panel', kids.filter((el) => !left.includes(el))));
+      root.classList.add('ls');
+    },
+
     // Recent things that happened (drinks handed out etc.).
     feed(limit = 4) {
       const items = PB.state.feed.slice(-limit).reverse();
@@ -311,6 +337,9 @@
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
     },
   };
+  // Turning the phone redraws the screen for the new shape.
+  window.matchMedia('(orientation: landscape) and (min-width: 560px)').addEventListener?.('change', () => PB.redraw());
+
   // Any 🍺 Tab button opens the tab; Hide / Show folds it away; + / − hand out race winnings.
   document.addEventListener('click', (e) => {
     const h = e.target.closest('[data-handout]');

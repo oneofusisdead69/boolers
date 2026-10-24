@@ -168,6 +168,8 @@
   }
 
   PB.register('kingsCup', {
+    // Sideways: these go on the left.
+    stage: '.kc-ring, .kc-card, .kc-cup',
     render,
     sounds: (prev, s) => (s.game.card && JSON.stringify(s.game.card) !== JSON.stringify(prev.game.card) ? ['card'] : []),
     afterRender(s) {

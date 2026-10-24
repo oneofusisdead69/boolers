@@ -272,19 +272,19 @@ document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden 
 function renderHome() {
   const savedName = store.get('name') || (seat ? `Player ${seat}` : '');
   $app.innerHTML = `
-    <h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
-    <p class="tagline">Drinking games for your phones</p>
-    <div class="card name-card">
+    <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
+    <p class="tagline ls-l">Drinking games for your phones</p>
+    <div class="card name-card ls-l">
       <button class="av-btn" data-look aria-label="Pick your avatar">${PB.avatarOf(myLook(), 'lg')}</button>
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
-    <div class="card">
+    <div class="card ls-l">
       <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${PB.esc(urlRoom || '')}">
       <button id="join">Join room</button>
     </div>
-    <p class="or">or</p>
-    <button id="create" class="secondary">Create a new room</button>
-    <p class="error" id="err">${PB.esc(homeError)}</p>
+    <p class="or ls-l">or</p>
+    <button id="create" class="secondary ls-l">Create a new room</button>
+    <p class="error ls-l" id="err">${PB.esc(homeError)}</p>
     <div class="card">
       <h2>📱 Pass and play</h2>
       <p class="muted">One phone, passed around. No room code needed.</p>
@@ -302,6 +302,7 @@ function renderHome() {
     <div class="spacer"></div>
     ${fullscreenButtons()}
   `;
+  PB.layout($app, '.ls-l');
   bindFullscreenButtons();
   const $name = document.getElementById('name');
   const $code = document.getElementById('code');
@@ -363,13 +364,13 @@ function renderLobby() {
   const canStart = online >= game.minPlayers;
 
   $app.innerHTML = `
-    <div class="card center">
+    <div class="card center ls-l">
       <h2>Room code</h2>
       <div class="room-code">${PB.esc(s.code)}</div>
       <img class="qr" src="/qr/${PB.esc(s.code)}" alt="QR code to join">
       <button id="share" class="secondary">Share invite link</button>
     </div>
-    <div class="card">
+    <div class="card ls-l">
       <h2>Players (${s.players.length})</h2>
       ${playerList({ showKick: host })}
     </div>
@@ -395,6 +396,7 @@ function renderLobby() {
     ${fullscreenButtons()}
     <button id="leave" class="link">Leave room</button>
   `;
+  PB.layout($app, '.ls-l');
   bindFullscreenButtons();
 
   document.getElementById('share').onclick = async () => {
@@ -445,6 +447,7 @@ function renderGame() {
     <div class="spacer"></div>
     <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
+  if (!screens.fullscreen) PB.layout($app, screens.stage);
   screens.afterRender?.(s);
 }
 

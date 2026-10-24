@@ -241,6 +241,8 @@
   }
 
   PB.register('bigTom', {
+    // Sideways: these go on the left.
+    stage: '.bt-prompt, .bt-answers, .bt-canvas, .bt-gallery',
     sounds(prev, s) {
       if (s.phase !== prev.phase && (s.phase === 'answer' || s.phase === 'vote')) return ['turn'];
       if (s.phase === 'reveal' && prev.phase !== 'reveal') return ['card'];
