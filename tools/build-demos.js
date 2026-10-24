@@ -37,7 +37,8 @@ for (const name of ['slevens', 'madmax']) {
 }
 
 // Games played through the general pass-and-play page, with their screens baked in.
-for (const id of ['rideTheBus', 'kingsCup']) {
+const TITLES = { rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice" };
+for (const id of Object.keys(TITLES)) {
   const parts = pageParts(read('public/play/local.html'));
   let body = parts.body
     .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
@@ -48,7 +49,7 @@ for (const id of ['rideTheBus', 'kingsCup']) {
   if (start < 0 || end < start) throw new Error('screen loader not found in local.html');
   body = `${body.slice(0, start)}    renderSetup();${body.slice(end)}`;
   write(`${id}-demo.html`, {
-    title: `<title>${id === 'kingsCup' ? 'Kings Cup' : 'Ride the Bus'} · Boolers</title>`,
+    title: `<title>${TITLES[id]} · Boolers</title>`,
     style: `${read('public/style.css')}\n${parts.style}`,
     body,
   });

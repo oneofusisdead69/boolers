@@ -569,3 +569,31 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .kc-cup-emoji { font-size: 3.4rem; line-height: 1; }
 .kc-center .kc-crowns { font-size: 1.1rem; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .kc-slot.dealing { animation: none; } .kc-slot { transition: none; } }
+
+/* Liar's Dice */
+.ld-dice { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ld-die .dice { gap: 0; }
+.ld-die .die { width: 46px; height: 46px; padding: 6px; border-radius: 10px; }
+.ld-die .die i { margin: 2px; }
+.ld-die.dim { opacity: 0.25; }
+.ld-die.mini .die { width: 30px; height: 30px; padding: 4px; border-radius: 7px; }
+.ld-die.mini .die i { margin: 1px; }
+.ld-bid { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ld-bid-main { display: flex; align-items: center; gap: 10px; font-size: 1.8rem; }
+.ld-builder { display: flex; flex-direction: column; gap: 12px; }
+.ld-qty { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.ld-qty button { width: 56px; font-size: 1.6rem; padding: 6px 0; }
+.ld-qty b { font-size: 2.2rem; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+.ld-faces { display: flex; gap: 6px; justify-content: center; }
+.ld-faces button { width: auto; flex: 1; max-width: 56px; padding: 4px; background: transparent; border: 2px solid transparent; border-radius: 12px; }
+.ld-faces button.selected { border-color: var(--accent); }
+.ld-faces button.low { opacity: 0.35; }
+.ld-faces .dice { gap: 0; }
+.ld-faces .die { width: 100%; height: auto; aspect-ratio: 1; padding: 5px; border-radius: 8px; }
+.ld-faces .die i { margin: 1px; }
+.mm-calls.one { grid-template-columns: 1fr; }
+.ld-pass { display: flex; flex-direction: column; gap: 12px; padding: 24px 16px; }
+.ld-reveal { display: flex; flex-direction: column; gap: 8px; }
+.ld-hand { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--card); border: 2px solid transparent; }
+.ld-hand > span { font-size: 0.9rem; color: var(--muted); text-align: center; }
+.ld-hand.loser { border-color: var(--danger); }
