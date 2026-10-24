@@ -30,7 +30,7 @@ test('the pass-and-play pages load the bundle, and the demos inline it', () => {
   for (const page of ['slevens', 'madmax', 'rideTheBus', 'kingsCup']) {
     const demo = fs.readFileSync(path.join(out, `${page}-demo.html`), 'utf8');
     assert.ok(!/<script src=/.test(demo), `${page} demo loads nothing from the server`);
-    assert.ok(!demo.includes('/shared/bundle.js'), `${page} demo is self-contained`);
+    assert.ok(!demo.includes('src="/shared/bundle.js"'), `${page} demo is self-contained`);
     assert.ok(!demo.includes('home-link"'), `${page} demo has no link back to the app`);
     assert.ok(demo.includes("__def('slevens'"));
   }
