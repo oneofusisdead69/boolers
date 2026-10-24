@@ -74,6 +74,7 @@ module.exports = {
   HORSES,
   options: [
     { id: 'laps', label: 'Laps', default: 2, choices: [1, 2, 3, 5].map((n) => ({ value: n, label: `${n}` })) },
+    { id: 'racers', label: 'Racers', default: 'animals', choices: [{ value: 'animals', label: '🐆 Animals' }, { value: 'horses', label: '🐎 Horses' }] },
     {
       id: 'jockey',
       label: 'Be the jockey: one player per horse, ride it with a dial',
@@ -90,6 +91,7 @@ module.exports = {
       laps: [1, 2, 3, 5].includes(options.laps) ? options.laps : 2,
       speed: options.speed === 'fast' ? 'fast' : 'normal',
       jockey: options.jockey === true,
+      racers: options.racers === 'horses' ? 'horses' : 'animals',
       ...betting.fromOptions(options),
       race: 0,
     });
@@ -140,6 +142,7 @@ module.exports = {
       speed: g.speed,
       tickMs: TICK_MS[g.speed],
       jockey: g.jockey,
+      racers: g.racers,
       mult: g.mult,
       progress: g.progress,
       ticks: g.ticks,

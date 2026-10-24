@@ -4,15 +4,18 @@
 // standings.
 (() => {
   const { esc, name } = PB;
+  // Each racer is an animal (or, with the Horses option, a horse) on a disc of its colour.
   const HORSES = [
-    { id: '1', name: 'Thunder', color: '#e53950' },
-    { id: '2', name: 'Lucky Lager', color: '#3d7cff' },
-    { id: '3', name: 'Tipsy Tina', color: '#f5c518' },
-    { id: '4', name: 'Last Call', color: '#2fbf71' },
-    { id: '5', name: 'Hangover Hank', color: '#9b5cff' },
-    { id: '6', name: 'Jägerbomb', color: '#ff8a1f' },
+    { id: '1', name: 'Thunder', color: '#e53950', animal: '🐎' },
+    { id: '2', name: 'Lucky Lager', color: '#3d7cff', animal: '🐕' },
+    { id: '3', name: 'Tipsy Tina', color: '#f5c518', animal: '🦘' },
+    { id: '4', name: 'Last Call', color: '#2fbf71', animal: '🐢' },
+    { id: '5', name: 'Hangover Hank', color: '#9b5cff', animal: '🐖' },
+    { id: '6', name: 'Jägerbomb', color: '#ff8a1f', animal: '🐆' },
   ];
   const horse = (id) => HORSES.find((h) => h.id === id);
+  let racers = 'animals'; // the room's choice, set on each render
+  const emoji = (h) => (racers === 'horses' ? '🐎' : h.animal);
   let draft = null;
   let draftFor = null;
 
@@ -107,6 +110,13 @@
     const [x, y] = point(g.progress[id], radius(i));
     return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
   };
+  // Animal emoji face left; flip them when they're running right.
+  const facing = (g, i, id) => {
+    const r = radius(i);
+    const [x0] = point(g.progress[id], r);
+    const [x1] = point(g.progress[id] + 0.004, r);
+    return `scaleX(${x1 > x0 ? -1 : 1})`;
+  };
 
   function track(s) {
     const g = s.game;
@@ -121,12 +131,13 @@
     }
     const tokens = HORSES.map((h, i) => `
       <g class="hz-horse ${g.winner === h.id ? 'won' : ''}" data-horse="${h.id}" style="transform:${place(g, i, h.id)};transition-duration:${g.tickMs}ms">
-        <circle r="12" fill="${h.color}"/>
-        <text y="0.5">${h.id}</text>
+        <circle r="13" fill="${h.color}"/>
+        <g class="hz-face" style="transform:${facing(g, i, h.id)}"><text class="hz-emoji" style="animation-delay:-${(i * 0.07).toFixed(2)}s">${emoji(h)}</text></g>
+        <g class="hz-num"><circle cx="10" cy="-10" r="6" fill="${h.color}"/><text x="10" y="-9.5">${h.id}</text></g>
       </g>`).join('');
     return `
       <div class="hz-wrap">
-        <svg class="hz-track" id="hz-track" data-race="${g.race}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Race track">
+        <svg class="hz-track ${s.phase === 'race' ? 'running' : ''}" id="hz-track" data-race="${g.race}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Race track">
           <path d="${stadium(mid)}" class="hz-dirt" style="stroke-width:${outer - inner}"/>
           <path d="${stadium(inner - 3)}" class="hz-infield"/>
           ${dividers}
@@ -142,7 +153,7 @@
   const lapText = (g) => (g.winner ? `🏆 ${horse(g.winner).name}` : g.ticks ? `Lap ${lapOf(g, leader(g))} of ${g.laps}` : `${g.laps} lap${g.laps === 1 ? '' : 's'}`);
 
   const backers = (s, id) => Object.entries(s.game.bets).filter(([, b]) => b.pick === id).map(([pid]) => pid);
-  const chip = (h) => `<span class="hz-chip" style="background:${h.color}">${h.id}</span>`;
+  const chip = (h) => `<span class="hz-chip" style="background:${h.color}" title="${h.id}">${emoji(h)}</span>`;
 
   // Horses in race order, with who backed each.
   function standings(s) {
@@ -229,7 +240,9 @@
     if (!svg || svg.dataset.race !== String(g.race)) return false;
     HORSES.forEach((h, i) => {
       const el = svg.querySelector(`[data-horse="${h.id}"]`);
-      if (el) el.style.transform = place(g, i, h.id);
+      if (!el) return;
+      el.style.transform = place(g, i, h.id);
+      el.querySelector('.hz-face').style.transform = facing(g, i, h.id);
     });
     document.getElementById('hz-laps').textContent = lapText(g);
     const st = document.getElementById('hz-standings');
@@ -249,6 +262,7 @@
       return s.phase === 'race' && prev.phase !== 'race' ? ['bell'] : [];
     },
     render(s) {
+      racers = s.game.racers;
       if (s.phase === 'race' && document.getElementById('hz-standings') && moveHorses(s)) return null;
       if (s.phase === 'betting') return bettingScreen(s);
       if (s.phase === 'race') return raceScreen(s);
