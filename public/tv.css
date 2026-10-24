@@ -131,3 +131,4 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-banner .drink .sips { font-size: 2rem; }
 .tv-banner .hz-horse, .tv-banner svg { height: 1em; width: auto; }
 body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-items: center; }
+#tv-center .dt-board { max-width: none; }

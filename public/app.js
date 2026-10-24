@@ -250,7 +250,7 @@ function playSounds(prev, s) {
   if (turn(s) === s.me && turn(prev) !== s.me) sounds.add('turn');
   if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
   // One at a time, the most important first.
-  const pick = ['win', 'bell', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
+  const pick = ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x));
   if (pick) Prefs.play(pick);
   if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
 }
@@ -298,6 +298,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
         <a class="btn-link" href="/play/local.html?game=horseRace">🏇 Horse Race</a>
         <a class="btn-link" href="/play/local.html?game=aceRace">♠️ Ace Race</a>
+        <a class="btn-link" href="/play/local.html?game=darts">🎯 Darts</a>
       </div>
     </div>
     <div class="spacer"></div>
@@ -347,7 +348,8 @@ function playerList({ showKick }) {
 function renderOptions() {
   const s = PB.state;
   if (!s.options.length) return '';
-  return s.options.map((o) => `
+  const values = Object.fromEntries(s.options.map((o) => [o.id, o.value]));
+  return s.options.filter((o) => PB.optionShown(o, values)).map((o) => `
     <div class="option">
       <span class="muted">${PB.esc(o.label)}</span>
       ${s.isHost

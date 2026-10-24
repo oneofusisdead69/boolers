@@ -167,7 +167,7 @@
               <small>${PB.hasCustom(gameId) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
               <button class="secondary" id="customize">✏️ Customize</button>
             </div>` : ''}
-          ${options.map((o) => `
+          ${options.filter((o) => PB.optionShown(o, opts)).map((o) => `
             <div class="option">
               <span class="muted">${esc(o.label)}</span>
               <div class="segmented">${o.choices.map((c) => `

@@ -24,6 +24,8 @@ module.exports = {
   options: [
     { id: 'sips', label: 'Sips per penalty', default: 1,
       choices: [{ value: 1, label: '1' }, { value: 2, label: '2' }] },
+    // showIf: only offer this option for some values of another one.
+    { id: 'rounds', label: 'Rounds', showIf: { mode: ['short'] }, default: 3, choices: [...] },
   ],
 
   // Optional: content the host can write their own of (see lib/custom.js). Their edits arrive,
@@ -73,6 +75,10 @@ Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
     stage: '.my-board',       // optional: what goes on the left when the phone is sideways
     tvStage: '.my-board, .drink', // optional: the shared parts the TV shows in the middle of the table
     tv(s) {},                 // optional: the TV's own screen (HTML), or undefined to use tvStage
+    tvTable: false,           // optional: no table and seats on the TV, just the game (horse race, darts)
+    tvLeft: '.my-scores',     // optional, with tvTable: false: parts to put in a column on the left
+    tvBanner: '.my-winner',   // optional: parts to put in a banner right across the TV
+    tvRules(s, rules) {},     // optional: which rules the TV shows (e.g. only this mode's)
   });
 })();
 ```
@@ -92,6 +98,7 @@ Add `data-confirm="Sure?"` to ask first. The host's "End game" button is added f
 | `PB.scoreboard()` | Sip totals |
 | `PB.avatar(id, size)` | The player's emoji avatar in their colour (`size`: `''`, `'sm'`, `'lg'`) |
 | `PB.name(id)`, `PB.esc(text)`, `PB.plural(n, word)` | Text helpers. **Always `esc` player-typed text.** |
+| `PB.isTV`, `s.tv` | `PB.isTV` is true when drawing for the TV; `s.tv` is true on phones while a TV is watching |
 
 The app adds the "your turn" chime (when `game.turnId` or `game.rollerId` becomes you), the drink
 buzzer and the win fanfare (phase `'over'`) itself, so `sounds` only needs the game's own moments.

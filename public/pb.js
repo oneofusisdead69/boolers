@@ -62,6 +62,12 @@
       PB.send(type, data);
     },
 
+    // Options can apply to only some settings of another option, e.g.
+    // showIf: { mode: [301, 501] } shows it only when the mode is 301 or 501.
+    optionShown(option, values) {
+      return Object.entries(option.showIf || {}).every(([id, allowed]) => allowed.includes(values[id]));
+    },
+
     plural(n, word) {
       return `${n} ${word}${n === 1 ? '' : 's'}`;
     },
