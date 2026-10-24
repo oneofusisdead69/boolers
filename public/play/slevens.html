@@ -58,7 +58,7 @@
   /* ---------- Setup ---------- */
   .setup { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding-bottom: 8px; }
   h1 { font-size: 2.4rem; margin: 16px 0 0; text-align: center; letter-spacing: -0.02em; }
-  h1 span { color: var(--accent); }
+  h1 span { color: var(--accent-ink, var(--accent)); }
   h1 .logo-emoji { color: inherit; font-size: 0.8em; display: inline-block; }
   h1 .logo-emoji:first-child { transform: rotate(-12deg); }
   h1 .logo-emoji:last-child { transform: rotate(12deg); }
@@ -95,7 +95,7 @@
   }
   .pad-top { position: absolute; top: 12px; left: 16px; right: 16px; text-align: center; color: var(--muted); font-size: 0.9rem; margin: 0; pointer-events: none; z-index: 1; }
   .pad-top.notice { color: var(--danger); font-weight: 700; font-size: 1rem; }
-  .pad-top.race { color: var(--accent); font-weight: 700; }
+  .pad-top.race { color: var(--accent-ink, var(--accent)); font-weight: 700; }
   .pad-feed { position: absolute; left: 16px; right: 84px; top: 40px; text-align: center; color: var(--muted); font-size: 0.8rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 
   .dice-centre { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 20px; pointer-events: none; }
@@ -122,7 +122,7 @@
 
 
   .reverse { position: absolute; left: 0; right: 0; top: 18%; text-align: center; font-size: 2.6rem; font-weight: 900; color: var(--ok); pointer-events: none; animation: pulse 0.5s ease-in-out 3; }
-  .reverse.hit { color: var(--accent); }
+  .reverse.hit { color: var(--accent-ink, var(--accent)); }
   .reverse.long { font-size: 2.1rem; }
   .picker { position: absolute; left: 16px; right: 16px; top: 64%; bottom: 76px; overflow-y: auto; touch-action: pan-y; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; z-index: 4; }
   .picker button { padding: 16px 8px; border-radius: 12px; background: var(--card-2); color: var(--text); font-weight: 700; font-size: 1.05rem; word-break: break-word; }
@@ -139,6 +139,7 @@
 <body>
 <div id="app"></div>
 
+<script src="/prefs.js"></script>
 <script src="/shared/bundle.js"></script>
 <script>
 // Slevens, pass and play: one phone handed to whoever is rolling. Runs the same rules code as
@@ -199,6 +200,7 @@ function renderSetup(error = '') {
       <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
       <p class="sub">Slevens · pass and play</p>
       <a class="home-link" href="/">← Back to Boolers</a>
+      ${Prefs.button()}
       <div class="card">
         <h2>How it works</h2>
         <ol class="rules">
@@ -282,6 +284,7 @@ function render() {
   const key = `${g.rollNo}:${rolling(phase) ? 'roll' : phase}`;
   if (tracing && key === lastKey) return; // keep the screen still under a moving finger
   tracing = false;
+  if (phase === 'spinning' && key !== lastKey) Prefs.play('dice');
   lastKey = key;
   clearInterval(spinTimer);
 
@@ -311,6 +314,7 @@ function render() {
   $app.innerHTML = `
     <div class="header">
       <div class="turn">${esc(nm(g.rollerId))}'s turn<span>${esc(subtitle(g, phase))}</span></div>
+      <button class="mini" data-prefs aria-label="Settings">⚙️</button>
       <button class="mini" id="players">Players</button>
     </div>
     <div class="pad" id="pad">

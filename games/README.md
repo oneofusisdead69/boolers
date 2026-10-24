@@ -25,6 +25,12 @@ module.exports = {
       choices: [{ value: 1, label: '1' }, { value: 2, label: '2' }] },
   ],
 
+  // Optional: content the host can write their own of (see lib/custom.js). Their edits arrive,
+  // cleaned, as options.custom.
+  custom: [
+    { id: 'prompts', kind: 'list', label: 'Your prompts', hint: 'One per line', maxItems: 100, maxLen: 120 },
+  ],
+
   start(room, ctx, options) {},          // set up room.game (room.game.type is already set)
   handle(room, player, action, ctx) {},  // a phone sent { type, ...data }; validate everything
   check(room, ctx) {},                   // optional: a player left or disconnected
@@ -60,6 +66,9 @@ Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
       return `${PB.turn(s.game.turnId)} <button data-act="roll">Roll</button>`;
     },
     afterRender(s) {},        // optional: attach custom listeners
+    sounds(prev, s) {         // optional: sound effects for what changed since the last state
+      return s.game.roll !== prev.game.roll ? ['dice'] : [];   // dice | card | turn | drink | win
+    },
   });
 })();
 ```
@@ -77,7 +86,13 @@ Add `data-confirm="Sure?"` to ask first. The host's "End game" button is added f
 | `PB.timer()` | Countdown for the current `ctx.setTimer` |
 | `PB.feed(n)` | The last n activity lines |
 | `PB.scoreboard()` | Sip totals |
+| `PB.avatar(id, size)` | The player's emoji avatar in their colour (`size`: `''`, `'sm'`, `'lg'`) |
 | `PB.name(id)`, `PB.esc(text)`, `PB.plural(n, word)` | Text helpers. **Always `esc` player-typed text.** |
+
+The app adds the "your turn" chime (when `game.turnId` or `game.rollerId` becomes you), the drink
+buzzer and the win fanfare (phase `'over'`) itself, so `sounds` only needs the game's own moments.
+Colours come from CSS variables (`--bg`, `--card`, `--accent`, `--die`, `--back-1`…) so themes
+and dice / card styles apply to your screens too.
 
 ## Testing
 

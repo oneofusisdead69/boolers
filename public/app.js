@@ -22,6 +22,19 @@ if (!playerId) {
   store.set('id', playerId);
 }
 
+// Your avatar and colour, remembered on this phone. Until you pick one yourself, the room hands
+// you one nobody else has (and the phone remembers that).
+function myLook() {
+  let look = { avatar: store.get('avatar'), color: store.get('color') };
+  if (!LOOKS.AVATARS.includes(look.avatar) || !LOOKS.COLORS.includes(look.color)) {
+    look = LOOKS.choose(look, [], true);
+    store.set('avatar', look.avatar);
+    store.set('color', look.color);
+  }
+  return look;
+}
+const lookToSend = () => (store.get('lookPicked') ? myLook() : {});
+
 let homeError = '';
 const loading = {};
 
@@ -96,10 +109,10 @@ document.addEventListener('click', () => stayOn.acquire());
 stayOn.acquire();
 
 function fullscreenButtons() {
-  if (seat) return '';
+  if (seat) return Prefs.button();
   const fs = !fullscreen.active() && fullscreen.canRequest() ? '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>' : '';
   const stay = stayOn.supported ? `<button class="stay-btn secondary ${stayOn.wanted ? 'on' : ''}" id="stay">${stayOn.label()}</button>` : '';
-  return fs + stay;
+  return fs + stay + Prefs.button();
 }
 
 function bindFullscreenButtons() {
@@ -151,7 +164,7 @@ socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
   if (room) {
-    socket.emit('join', { code: room, playerId, name: store.get('name') }, (res) => {
+    socket.emit('join', { code: room, playerId, name: store.get('name'), ...lookToSend() }, (res) => {
       if (res.error) {
         store.del('room');
         PB.state = null;
@@ -163,9 +176,16 @@ socket.on('connect', () => {
 
 socket.on('state', (s) => {
   PB.clockOffset = s.serverNow - Date.now();
+  playSounds(PB.state, s);
   PB.state = s;
   store.set('room', s.code);
   if (!s.players.some((p) => p.id === playerId)) return leaveRoom();
+  // Keep the look the room gave you, if you haven't picked your own.
+  const meNow = s.players.find((p) => p.id === playerId);
+  if (!store.get('lookPicked') && meNow.avatar) {
+    store.set('avatar', meNow.avatar);
+    store.set('color', meNow.color);
+  }
   render();
 });
 
@@ -176,9 +196,68 @@ socket.on('kicked', () => {
   render();
 });
 
+// ---------- Avatar picker ----------
+// Opened from your avatar on the home screen or in the lobby. In a room, changes go straight to
+// everyone else.
+
+let lookPicker = null;
+function openLookPicker() {
+  const look = myLook();
+  if (!lookPicker) {
+    lookPicker = document.createElement('div');
+    lookPicker.className = 'prefs-overlay';
+    lookPicker.addEventListener('click', (e) => {
+      if (e.target === lookPicker || e.target.closest('[data-look-done]')) {
+        lookPicker.remove();
+        const typed = document.getElementById('name')?.value.trim();
+        if (typed) store.set('name', typed); // the home screen redraws; keep what was typed
+        return render();
+      }
+      const b = e.target.closest('[data-av], [data-color]');
+      if (!b) return;
+      store.set('lookPicked', '1');
+      if (b.dataset.av) store.set('avatar', b.dataset.av);
+      if (b.dataset.color) store.set('color', b.dataset.color);
+      if (PB.state) socket.emit('setLook', myLook());
+      openLookPicker();
+    });
+  }
+  lookPicker.innerHTML = `
+    <div class="prefs-panel look-panel" role="dialog" aria-modal="true" aria-label="Your avatar">
+      <header><h2>Your avatar</h2>${PB.avatarOf(look, 'lg')}</header>
+      <div class="look-colors">${LOOKS.COLORS.map((c) => `
+        <button class="${c === look.color ? 'on' : ''}" data-color="${c}" style="--pc:${c}" aria-label="Colour ${c}"></button>`).join('')}</div>
+      <div class="look-avatars">${LOOKS.AVATARS.map((a) => `
+        <button class="${a === look.avatar ? 'on' : ''}" data-av="${a}" style="--pc:${look.color}">${a}</button>`).join('')}</div>
+      <button data-look-done>Done</button>
+    </div>`;
+  if (!lookPicker.isConnected) document.body.appendChild(lookPicker);
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-look]')) openLookPicker();
+});
+
+// ---------- Sound effects ----------
+// Compares each new state with the last: a game's screens say which of its moments make a sound
+// (dice rolled, card flipped), and the app adds "your turn" and the game ending.
+
+function playSounds(prev, s) {
+  if (!prev || !s.game || prev.gameType !== s.gameType || prev.code !== s.code) return;
+  const screens = PB.screens[s.gameType];
+  const sounds = new Set(screens?.sounds?.(prev, s) || []);
+  const turn = (x) => x.game?.turnId ?? x.game?.rollerId ?? null;
+  if (turn(s) === s.me && turn(prev) !== s.me) sounds.add('turn');
+  if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
+  // One at a time, the most important first.
+  const pick = ['win', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
+  if (pick) Prefs.play(pick);
+  if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
+}
+
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
+  Prefs.play('drink');
   const el = document.getElementById('drink-alert');
   const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
   el.innerHTML = `<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
@@ -195,7 +274,8 @@ function renderHome() {
   $app.innerHTML = `
     <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
     <p class="tagline">Drinking games for your phones</p>
-    <div class="card">
+    <div class="card name-card">
+      <button class="av-btn" data-look aria-label="Pick your avatar">${PB.avatarOf(myLook(), 'lg')}</button>
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
     <div class="card">
@@ -213,6 +293,8 @@ function renderHome() {
         <a class="btn-link" href="/play/madmax.html">🃏 Mad Max</a>
         <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
         <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
+        <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
+        <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
       </div>
     </div>
     <div class="spacer"></div>
@@ -228,7 +310,7 @@ function renderHome() {
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
     store.set('name', name);
     fullscreen.enter();
-    socket.emit(event, { ...payload, name, playerId }, (res) => {
+    socket.emit(event, { ...payload, name, playerId, ...lookToSend() }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
       store.set('room', res.code);
@@ -250,7 +332,8 @@ function playerList({ showKick }) {
   const s = PB.state;
   return `<ul class="players">${s.players.map((p) => `
     <li class="${p.connected ? '' : 'offline'}">
-      <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span>
+      ${p.id === s.me ? `<button class="av-btn" data-look aria-label="Change your avatar">${PB.avatar(p.id)}</button>` : PB.avatar(p.id)}
+      <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you) <small class="muted">tap your avatar to change it</small>' : ''}</span>
       ${p.id === s.hostId ? '<span class="tag">👑 host</span>' : ''}
       ${!p.connected ? '<span class="tag">offline</span>' : ''}
       ${showKick && p.id !== s.me ? `<button class="kick" data-cmd="kick" data-player-id="${PB.esc(p.id)}" data-confirm="Remove ${PB.esc(p.name)}?">✕</button>` : ''}
@@ -297,7 +380,13 @@ function renderLobby() {
             </button>`).join('')}</div>`
         : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
       ${renderOptions()}
+      ${host && s.custom.length ? `
+        <div class="custom-row">
+          <small>${PB.hasCustom(game.id) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
+          <button class="secondary" id="customize">✏️ Customize</button>
+        </div>` : ''}
     </div>
+    ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
@@ -318,11 +407,12 @@ function renderLobby() {
   $app.querySelectorAll('[data-option]').forEach((b) => {
     b.onclick = () => socket.emit('setOption', { id: b.dataset.option, value: JSON.parse(b.dataset.value) });
   });
+  document.getElementById('customize')?.addEventListener('click', () => PB.editCustom(game.id, game.name, s.custom, render));
   const $start = document.getElementById('start');
   if ($start) {
     $start.onclick = () => {
       fullscreen.enter();
-      socket.emit('start', {}, (res) => res.error && toast(res.error));
+      socket.emit('start', { custom: PB.customFor(game.id) }, (res) => res.error && toast(res.error));
     };
   }
 }
@@ -351,7 +441,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
-    ${PB.endButton()}
+    <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   screens.afterRender?.(s);
 }

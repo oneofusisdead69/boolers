@@ -32,14 +32,20 @@ function write(name, { title, style, body }) {
 // Hand-built pass-and-play pages.
 for (const name of ['slevens', 'madmax']) {
   const parts = pageParts(read(`public/play/${name}.html`));
-  parts.body = parts.body.replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`);
+  parts.body = parts.body
+    .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
+    .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>`)
+    .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`);
   write(`${name}-demo.html`, parts);
 }
 
 // Games played through the general pass-and-play page, with their screens baked in.
-for (const id of ['rideTheBus', 'kingsCup']) {
+const TITLES = { rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice", shotPoker: 'Shot Poker' };
+for (const id of Object.keys(TITLES)) {
   const parts = pageParts(read('public/play/local.html'));
   let body = parts.body
+    .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
+    .replace('<script src="/looks.js"></script>', `<script>\n${read('lib/looks.js')}</script>`)
     .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
     .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`)
     .replace("const gameId = params.get('game');", `const gameId = '${id}';`);
@@ -48,7 +54,7 @@ for (const id of ['rideTheBus', 'kingsCup']) {
   if (start < 0 || end < start) throw new Error('screen loader not found in local.html');
   body = `${body.slice(0, start)}    renderSetup();${body.slice(end)}`;
   write(`${id}-demo.html`, {
-    title: `<title>${id === 'kingsCup' ? 'Kings Cup' : 'Ride the Bus'} · Boolers</title>`,
+    title: `<title>${TITLES[id]} · Boolers</title>`,
     style: `${read('public/style.css')}\n${parts.style}`,
     body,
   });

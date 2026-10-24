@@ -31,7 +31,7 @@ const CALL_NAMES = {
   high: 'highest wins', low: 'lowest wins',
 };
 const RANKS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
-const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
+const SUIT_SYMBOLS = { S: '♠\uFE0E', H: '♥\uFE0E', D: '♦\uFE0E', C: '♣\uFE0E' };
 const cardName = (c) => `${RANKS[c.rank] || c.rank}${SUIT_SYMBOLS[c.suit]}`;
 
 // ---------- Helpers ----------

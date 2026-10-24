@@ -5,6 +5,8 @@ const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
+const LOOKS = require('./lib/looks');
+const custom = require('./lib/custom');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -27,6 +29,8 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
+// Avatar and colour lists, shared with the phones.
+app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
 
 // The game rules, packed for pass-and-play games that run entirely on one phone.
 const sharedBundle = require('./lib/bundle').buildBundle(__dirname);
@@ -78,7 +82,8 @@ function viewFor(room, player) {
     selectedGame: room.selectedGame,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers }) => ({ id, name, description, minPlayers })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
-    players: room.players.map(({ id, name, connected, drinks }) => ({ id, name, connected, drinks })),
+    custom: room.hostId === player.id ? selected.custom || [] : [],
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     game: game ? game.view(room, player, ctx) : null,
@@ -123,7 +128,7 @@ io.on('connection', (socket) => {
     ensureHost(r);
   }
 
-  socket.on('create', ({ name, playerId } = {}, ack = () => {}) => {
+  socket.on('create', ({ name, playerId, avatar, color } = {}, ack = () => {}) => {
     name = cleanName(name);
     if (!name) return ack({ error: 'Enter your name' });
     if (!playerId) return ack({ error: 'Missing player id' });
@@ -141,14 +146,14 @@ io.on('connection', (socket) => {
       updatedAt: Date.now(),
     };
     rooms.set(code, r);
-    const p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id };
+    const p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }) };
     r.players.push(p);
     attach(r, p);
     ack({ ok: true, code });
     broadcast(r);
   });
 
-  socket.on('join', ({ code, name, playerId } = {}, ack = () => {}) => {
+  socket.on('join', ({ code, name, playerId, avatar, color } = {}, ack = () => {}) => {
     code = String(code || '').toUpperCase().trim();
     const r = rooms.get(code);
     if (!r) return ack({ error: `No room called ${code || '????'}` });
@@ -162,7 +167,7 @@ io.on('connection', (socket) => {
       if (r.players.some((x) => x.name.toLowerCase() === name.toLowerCase())) {
         return ack({ error: 'That name is taken in this room' });
       }
-      p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id };
+      p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }, r.players) };
       r.players.push(p);
       if (r.game) GAMES[r.game.type].onJoin?.(r, p, ctx);
     }
@@ -174,6 +179,14 @@ io.on('connection', (socket) => {
   function hostOnly() {
     return room && player && room.hostId === player.id;
   }
+
+  // Change your avatar or colour, any time.
+  socket.on('setLook', ({ avatar, color } = {}) => {
+    if (!room || !player) return;
+    if (LOOKS.AVATARS.includes(avatar)) player.avatar = avatar;
+    if (LOOKS.COLORS.includes(color)) player.color = color;
+    broadcast(room);
+  });
 
   socket.on('selectGame', ({ gameId } = {}) => {
     if (!hostOnly() || room.game || !GAMES[gameId]) return;
@@ -189,7 +202,8 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
-  socket.on('start', (_ = {}, ack = () => {}) => {
+  // The host's phone sends its custom content (questions, rules…) along with the start.
+  socket.on('start', ({ custom: mine } = {}, ack = () => {}) => {
     if (!hostOnly() || room.game) return ack({ error: 'Only the host can start' });
     const game = GAMES[room.selectedGame];
     if (ctx.connectedPlayers(room).length < game.minPlayers) {
@@ -200,7 +214,7 @@ io.on('connection', (socket) => {
     for (const p of room.players) p.drinks = 0;
     room.feed = [];
     room.game = { type: game.id };
-    game.start(room, ctx, { ...room.options[game.id] });
+    game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
     ack({ ok: true });
     broadcast(room);
   });

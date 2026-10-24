@@ -60,7 +60,7 @@ function endRace(room, ctx) {
   const g = room.game;
   if (g.phase !== 'race') return;
   ctx.clearTimer(room);
-  const rule = CARDS[g.card.rank];
+  const rule = g.cards[g.card.rank];
   const waiting = ctx.connectedPlayers(room).filter((p) => !g.race.tapped.includes(p.id)).map((p) => p.id);
   // Last one in: whoever is left when everyone else has tapped (or everyone who hadn't by the deadline).
   const losers = waiting.length ? waiting : g.race.tapped.slice(-1);
@@ -90,12 +90,28 @@ module.exports = {
       choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }],
     },
   ],
+  custom: [
+    {
+      id: 'cards',
+      kind: 'cards',
+      label: 'Card rules',
+      hint: 'Change what a card says. Leave a box blank to keep the usual rule. What the phones do stays the same (2 still has you pick who drinks, 8 a mate…).',
+      items: [14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((r) => ({ key: String(r), label: { 14: 'A', 11: 'J', 12: 'Q', 13: 'K' }[r] || String(r), title: CARDS[r].title, text: CARDS[r].text })),
+    },
+    { id: 'categories', kind: 'list', label: 'Categories (10)', hint: 'One per line', maxItems: 200, maxLen: 60, defaults: CATEGORIES },
+    { id: 'rhymes', kind: 'list', label: 'Words to rhyme with (9)', hint: 'One per line', maxItems: 200, maxLen: 30, defaults: RHYMES },
+  ],
   CARDS,
 
   start(room, ctx, options = {}) {
     const order = room.players.map((p) => p.id);
+    const custom = options.custom || {};
     Object.assign(room.game, {
       order,
+      // The host's own wording for any card, on top of the usual rules.
+      cards: Object.fromEntries(Object.entries(CARDS).map(([r, card]) => [r, { ...card, ...custom.cards?.[r] }])),
+      categories: custom.categories || CATEGORIES,
+      rhymes: custom.rhymes || RHYMES,
       deck: newDeck(), // the ring: deck[slot] is the card lying in that spot
       taken: [], // slots already drawn
       reactions: options.reactions !== false,
@@ -121,7 +137,7 @@ module.exports = {
     const me = player.id;
     const myTurn = me === g.turnId;
     const target = action.targetId && action.targetId !== me ? ctx.player(room, action.targetId) : null;
-    const rule = g.card && CARDS[g.card.rank];
+    const rule = g.card && g.cards[g.card.rank];
 
     if (action.type === 'draw' && g.phase === 'draw' && myTurn) {
       // You pick your card from the ring (or, with no pick, the first one still there).
@@ -135,8 +151,8 @@ module.exports = {
       g.taken.push(slot);
       g.card = card;
       g.history.push({ by: me, card, slot });
-      const r = CARDS[card.rank];
-      g.prompt = card.rank === 9 ? pick(RHYMES) : card.rank === 10 ? pick(CATEGORIES) : null;
+      const r = g.cards[card.rank];
+      g.prompt = card.rank === 9 ? pick(g.rhymes) : card.rank === 10 ? pick(g.categories) : null;
       g.resolved = ['info', 'prompt', 'self', 'qm', 'king'].includes(r.kind);
       g.phase = 'card';
       ctx.log(room, `🃏 ${player.name} drew ${rankName(card.rank)}: ${r.title}`);
@@ -203,7 +219,7 @@ module.exports = {
     return {
       turnId: g.turnId,
       card: g.card,
-      rule: g.card ? CARDS[g.card.rank] : null,
+      rule: g.card ? g.cards[g.card.rank] : null,
       prompt: g.prompt,
       resolved: g.resolved,
       kings: g.kings,

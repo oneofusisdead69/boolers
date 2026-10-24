@@ -40,7 +40,7 @@
       <div class="prompt"><small>Most likely to…</small>${esc(g.question)}</div>
       ${banner}
       ${rows.length ? `<div class="card"><h2>Votes</h2><ul class="players">${rows.map((r) => `
-        <li><span class="name">${esc(r.p.name)}<span class="voters">${esc(r.voters.map(name).join(', '))}</span></span>
+        <li>${PB.avatar(r.p.id)}<span class="name">${esc(r.p.name)}<span class="voters">${esc(r.voters.map(name).join(', '))}</span></span>
         <span class="count">${r.voters.length}</span></li>`).join('')}</ul></div>` : ''}
       ${PB.scoreboard()}
       ${s.isHost

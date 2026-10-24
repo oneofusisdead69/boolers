@@ -74,6 +74,7 @@
       <div class="fs-screen">
         <div class="fs-header">
           ${PB.turn(g.rollerId, subtitle(s, mine))}
+          ${Prefs.button({ mini: true })}
           ${PB.endButton('end-mini')}
         </div>
         <div class="pad" id="pad">
@@ -190,6 +191,7 @@
   PB.register('slevens', {
     fullscreen: true,
     render,
+    sounds: (prev, s) => (s.phase === 'spinning' && prev.phase !== 'spinning' ? ['dice'] : []),
     afterRender(s) {
       if (s.phase === 'spinning') spin();
       if (s.game.rollerId === s.me && rolling(s.phase) && !rollButton(s)) setupTrace();
