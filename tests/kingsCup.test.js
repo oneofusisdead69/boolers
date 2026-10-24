@@ -5,15 +5,32 @@ const game = require('../games/kingsCup');
 
 const c = (rank, suit = 'S') => ({ rank, suit });
 
-// Makes the given cards the next ones drawn, in order.
+// Puts the given cards in the next free spots of the ring, so they're drawn next, in order.
 function deal(t, ...cards) {
-  t.room.game.deck.push(...cards.slice().reverse());
+  const g = t.room.game;
+  const free = g.deck.map((_, i) => i).filter((i) => !g.taken.includes(i));
+  cards.forEach((card, k) => { g.deck[free[k]] = card; });
 }
 
 function drawAs(t, i, card) {
   deal(t, card);
   t.act(i, 'draw');
 }
+
+test('the deck is laid in a ring of 52; you draw the card you pick, once', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  assert.strictEqual(t.view(0).ringSize, 52);
+  const chosen = g.deck[17];
+  t.act(0, 'draw', { slot: 17 });
+  assert.deepStrictEqual(g.card, chosen);
+  assert.deepStrictEqual(t.view(1).taken, [17]);
+  assert.strictEqual(t.view(1).deckLeft, 51);
+  t.act(0, 'next');
+  t.act(1, 'draw', { slot: 17 }); // already taken: falls back to the first free spot
+  assert.deepStrictEqual(g.taken, [17, 0]);
+  t.cleanup();
+});
 
 test('every rank has a rule', () => {
   for (let r = 2; r <= 14; r++) assert.ok(game.CARDS[r].title, `rank ${r}`);

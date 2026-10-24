@@ -1,5 +1,6 @@
-// Kings Cup: take turns drawing cards; every card has a rule. The first three kings pour into the
-// King's Cup, and whoever draws the fourth drinks it.
+// Kings Cup: the deck is laid face down in a ring around the King's Cup. Take turns picking a card
+// from the ring; every card has a rule. The first three kings pour into the King's Cup, and
+// whoever draws the fourth drinks it.
 //
 // The phones do the bookkeeping: they remember mates (your mate drinks when you do), the question
 // master and any rules people make, and they run the reaction cards (4 Floor, 7 Heaven) as a
@@ -85,7 +86,8 @@ module.exports = {
     const order = room.players.map((p) => p.id);
     Object.assign(room.game, {
       order,
-      deck: newDeck(),
+      deck: newDeck(), // the ring: deck[slot] is the card lying in that spot
+      taken: [], // slots already drawn
       reactions: options.reactions !== false,
       turnId: order[0],
       phase: 'draw',
@@ -110,9 +112,15 @@ module.exports = {
     const rule = g.card && CARDS[g.card.rank];
 
     if (action.type === 'draw' && g.phase === 'draw' && myTurn) {
-      const card = g.deck.pop();
+      // You pick your card from the ring (or, with no pick, the first one still there).
+      let slot = Number(action.slot);
+      if (!Number.isInteger(slot) || slot < 0 || slot >= g.deck.length || g.taken.includes(slot)) {
+        slot = g.deck.findIndex((_, i) => !g.taken.includes(i));
+      }
+      const card = g.deck[slot];
+      g.taken.push(slot);
       g.card = card;
-      g.history.push({ by: me, card });
+      g.history.push({ by: me, card, slot });
       const r = CARDS[card.rank];
       g.prompt = card.rank === 9 ? pick(RHYMES) : card.rank === 10 ? pick(CATEGORIES) : null;
       g.resolved = ['info', 'prompt', 'self', 'qm', 'king'].includes(r.kind);
@@ -186,7 +194,9 @@ module.exports = {
       rules: g.rules,
       race: g.race && { ...g.race, endsAt: g.raceEndsAt, ms: RACE_MS, iTapped: g.race.tapped.includes(player.id) },
       reactions: g.reactions,
-      deckLeft: g.deck.length,
+      ringSize: g.deck.length,
+      taken: g.taken,
+      deckLeft: g.deck.length - g.taken.length,
       history: g.history.slice(-6),
       loserId: g.loserId,
     };

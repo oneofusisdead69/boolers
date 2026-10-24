@@ -1,6 +1,28 @@
 // Screens for Kings Cup. Server logic: games/kingsCup.js
 (() => {
   const { esc, name } = PB;
+  let picked = null; // the ring spot you've picked but not drawn yet
+  let pickedFor = null;
+  let dealt = false; // the dealing animation plays once per game
+
+  // The deck laid face down in a ring around the King's Cup. On your turn, tap a card to pick it.
+  function ring(s, mine) {
+    const g = s.game;
+    const key = `${g.turnId}:${g.taken.length}`;
+    if (pickedFor !== key) { picked = null; pickedFor = key; }
+    const dealing = !dealt && g.taken.length === 0;
+    dealt = true;
+    const n = g.ringSize;
+    const crowns = Array.from({ length: 4 }, (_, i) => `<span class="${i < g.kings ? 'on' : ''}">👑</span>`).join('');
+    const slots = Array.from({ length: n }, (_, i) => (g.taken.includes(i) ? '' : `
+      <button class="kc-slot ${dealing ? 'dealing' : ''} ${picked === i ? 'picked' : ''}" data-slot="${i}"
+        style="--a:${(i * 360) / n}deg;--i:${i}" ${mine ? '' : 'disabled'} aria-label="Card ${i + 1}">${PB.card(null, { size: 'sm' })}</button>`)).join('');
+    return `
+      <div class="kc-ring ${mine ? 'active' : ''}">
+        ${slots}
+        <div class="kc-center"><div class="kc-cup-emoji">🍺</div><div class="kc-crowns">${crowns}</div></div>
+      </div>`;
+  }
 
   function cup(g) {
     const crowns = Array.from({ length: 4 }, (_, i) => `<span class="${i < g.kings ? 'on' : ''}">👑</span>`).join('');
@@ -59,6 +81,7 @@
     const mine = g.turnId === s.me;
 
     if (s.phase === 'over') {
+      dealt = false; // the next game deals again
       return `
         <div class="drink"><div class="big">👑 ${g.loserId === s.me ? 'You' : esc(name(g.loserId))} drew the fourth king!</div><div class="sips">Drink the King's Cup</div></div>
         ${cup(g)}
@@ -80,10 +103,14 @@
     }
 
     if (s.phase === 'draw') {
+      const ready = mine && picked !== null && !g.taken.includes(picked);
       return `
-        ${PB.turn(g.turnId, mine ? 'Draw a card' : 'About to draw')}
-        <div class="kc-deck">${mine ? `<button class="kc-draw" data-act="draw">${PB.card(null, { size: 'xl' })}<span>Tap to draw</span></button>` : PB.card(null, { size: 'xl' })}</div>
-        ${cup(g)}
+        ${PB.turn(g.turnId, mine ? 'Pick a card from the ring' : 'Picking a card')}
+        ${ring(s, mine)}
+        ${mine
+          ? ready ? `<button data-act="draw" data-slot="${picked}">Draw this card</button>` : '<p class="center muted">Tap any card in the ring</p>'
+          : ''}
+        <p class="center muted">${4 - g.kings} king${4 - g.kings === 1 ? '' : 's'} to go · ${g.deckLeft} cards left</p>
         ${effects(g)}
         ${PB.feed(3)}`;
     }
@@ -101,6 +128,12 @@
   PB.register('kingsCup', {
     render,
     afterRender() {
+      document.querySelectorAll('.kc-slot:not([disabled])').forEach((b) => {
+        b.onclick = () => {
+          picked = Number(b.dataset.slot);
+          PB.rerender();
+        };
+      });
       const input = document.getElementById('kc-rule');
       const add = () => {
         const text = input.value.trim();
