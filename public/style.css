@@ -1054,3 +1054,45 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .trip-host { display: flex; flex-direction: column; gap: 8px; }
 .trip-chip { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; }
 .trip-chip .link { width: auto; padding: 4px 8px; }
+
+/* ---------- Moving scenery for room styles (public/scenery.js) ---------- */
+#scenery { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+main#app, #tv { position: relative; z-index: 1; }
+.sc { position: absolute; line-height: 1; will-change: transform; }
+@keyframes sc-drift { to { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); } }
+.sc-face-l svg { transform: scaleX(-1); }
+.sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
+@keyframes sc-flap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
+.sc-fog { background: radial-gradient(ellipse at 50% 60%, rgba(190, 160, 220, 0.22), transparent 70%); filter: blur(8px); }
+@keyframes sc-fog { from { transform: translateX(-6vw); } to { transform: translateX(6vw); } }
+/* The disco ball drops from the ceiling, bounces, and spins. */
+.sc-disco { width: 80px; animation: sc-drop 1.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes sc-drop { from { transform: translateY(-160px); } to { transform: translateY(0); } }
+.sc-ball-string { width: 2px; height: 70px; margin: 0 auto; background: #888; }
+.sc-ball {
+  width: 80px; height: 80px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), transparent 25%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    radial-gradient(circle at 50% 50%, #dfe6f0, #7a8496 70%, #3c4250);
+  background-size: auto, 200% 100%, auto, auto;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.35);
+  animation: sc-ball-spin 3s linear infinite;
+}
+@keyframes sc-ball-spin { to { background-position: 0 0, -80px 0, 0 0, 0 0; } }
+.sc-spot { width: 14px; height: 14px; border-radius: 50%; filter: blur(2px); opacity: 0.55; box-shadow: 0 0 12px currentColor; }
+@keyframes sc-spot { to { transform: translate(var(--sx), var(--sy)); } }
+.sc-star { width: 120px; height: 2px; background: linear-gradient(90deg, transparent, #fff); border-radius: 2px; transform-origin: right center; transform: rotate(-25deg); }
+@keyframes sc-shoot { from { opacity: 0; translate: 0 0; } 15% { opacity: 1; } to { opacity: 0; translate: 220px 100px; } }
+.sc-ember { width: 4px; height: 4px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 6px #ff8a1a; }
+.sc-smoke { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, rgba(220, 210, 200, 0.12), transparent 70%); filter: blur(6px); }
+.sc-bubble { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.45); }
+.sc-bubble.beer { border-color: rgba(255, 210, 90, 0.6); background: rgba(255, 210, 90, 0.15); }
+.sc-firefly { width: 5px; height: 5px; border-radius: 50%; background: #ffe58a; box-shadow: 0 0 10px #ffd23f; animation-name: sc-fly; }
+@keyframes sc-fly { 0% { transform: translate(0, 0); opacity: 0.2; } 50% { opacity: 1; } 100% { transform: translate(var(--sx), var(--sy)); opacity: 0.3; } }
+.sc-torch { width: 26px; height: 40px; }
+.sc-flame { width: 26px; height: 40px; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff3b0, #ffb347 40%, #ff5a1a 70%, transparent 72%); filter: blur(1px); animation: sc-flicker 0.15s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+@keyframes sc-flicker { from { transform: scale(1, 1) skewX(-2deg); opacity: 0.85; } to { transform: scale(0.92, 1.08) skewX(3deg); opacity: 1; } }
+.sc-neon { width: 50vw; height: 40vh; background: radial-gradient(ellipse, rgba(255, 70, 40, 0.35), transparent 65%); animation: sc-neon 7s steps(1) infinite; }
+@keyframes sc-neon { 0%, 70%, 74%, 78%, 100% { opacity: 1; } 72%, 76% { opacity: 0.25; } }

@@ -323,6 +323,7 @@ function gameScreen(s) {
 function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.style);
+  Scenery.set(s?.style);
   music();
   if (!s) return joinScreen();
   if (s.trip && s.phase === 'lobby') {
