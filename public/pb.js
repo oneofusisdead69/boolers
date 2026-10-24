@@ -4,6 +4,14 @@
 (() => {
   const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣', X: '★' };
   const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 0: '🃏' };
+  // The big suit in the middle of a card, drawn as a shape rather than a text character so it
+  // sits dead centre whatever the phone's font (and ♥ never turns into an emoji). 100×100 box.
+  const SUIT_PATHS = {
+    S: 'M50 6C30 28 8 42 8 60c0 14 11 22 23 22 8 0 14-4 17-9-1 9-5 16-12 21h28c-7-5-11-12-12-21 3 5 9 9 17 9 12 0 23-8 23-22C92 42 70 28 50 6Z',
+    H: 'M50 91C20 69 6 53 6 35 6 21 17 11 30 11c9 0 16 5 20 13 4-8 11-13 20-13 13 0 24 10 24 24 0 18-14 34-44 56Z',
+    D: 'M50 5 86 50 50 95 14 50Z',
+    C: 'M50 7a19 19 0 0 1 15.6 29.8A19 19 0 1 1 54 66.2C54.6 80 58 88 66 94H34c8-6 11.4-14 12-27.8A19 19 0 1 1 34.4 36.8 19 19 0 0 1 50 7Z',
+  };
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 
   const PB = {
@@ -63,7 +71,13 @@
       const suit = SUIT_SYMBOLS[card.suit];
       const rank = RANK_LABELS[card.rank] ?? card.rank;
       const color = card.suit === 'H' || card.suit === 'D' ? 'red' : card.suit === 'X' ? 'joker' : 'black';
-      return `<div class="pcard ${color} ${size}"><span class="corner">${rank}<br>${suit}</span><span class="pip">${suit}</span><span class="corner br">${rank}<br>${suit}</span></div>`;
+      return `<div class="pcard ${color} ${size}"><span class="corner">${rank}<br>${suit}</span>${PB.pip(card.suit)}<span class="corner br">${rank}<br>${suit}</span></div>`;
+    },
+
+    // The middle suit of a card (a star for a joker).
+    pip(suit) {
+      if (!SUIT_PATHS[suit]) return `<span class="pip">${SUIT_SYMBOLS[suit] ?? ''}</span>`;
+      return `<svg class="pip" viewBox="0 0 100 100" aria-hidden="true"><path d="${SUIT_PATHS[suit]}"/></svg>`;
     },
 
     dice(values, { rolling = false } = {}) {

@@ -80,6 +80,7 @@
   .pcard { position: relative; width: 68px; height: 98px; border-radius: 8px; background: var(--paper); color: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; font-weight: 800; flex: none; }
   .pcard.red { color: var(--red-ink); }
   .pcard .pip { font-size: 2rem; }
+  .pcard svg.pip { width: 0.8em; height: 0.8em; fill: currentColor; display: block; }
   .pcard .corner { position: absolute; top: 4px; left: 6px; font-size: 0.95rem; line-height: 1; text-align: center; }
   .pcard .corner.br { display: none; }
   .pcard.back { background: repeating-linear-gradient(45deg, var(--back-1) 0 6px, var(--back-2) 6px 12px); border: 4px solid var(--paper); }
@@ -146,6 +147,7 @@
 <div id="alert" class="alert" hidden></div>
 
 <script src="/prefs.js"></script>
+<script src="/pb.js"></script>
 <script src="/shared/bundle.js"></script>
 
 <script>
@@ -183,7 +185,7 @@ function card(c, size = '') {
   if (!c) return `<div class="pcard back ${size}"></div>`;
   const s = SUITS[c.suit];
   const r = RANKS[c.rank] || c.rank;
-  return `<div class="pcard ${c.suit === 'H' || c.suit === 'D' ? 'red' : ''} ${size}"><span class="corner">${r}<br>${s}</span><span class="pip">${s}</span><span class="corner br">${r}<br>${s}</span></div>`;
+  return `<div class="pcard ${c.suit === 'H' || c.suit === 'D' ? 'red' : ''} ${size}"><span class="corner">${r}<br>${s}</span>${PB.pip(c.suit)}<span class="corner br">${r}<br>${s}</span></div>`;
 }
 
 // Runs a player's action through the real game code, then redraws.

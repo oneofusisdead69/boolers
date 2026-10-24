@@ -34,6 +34,7 @@ for (const name of ['slevens', 'madmax']) {
   const parts = pageParts(read(`public/play/${name}.html`));
   parts.body = parts.body
     .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
+    .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>`)
     .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`);
   write(`${name}-demo.html`, parts);
 }

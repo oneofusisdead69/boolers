@@ -656,3 +656,5 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .custom-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .custom-row .secondary { width: auto; padding: 10px 14px; font-size: 0.95rem; }
 .custom-row small { color: var(--muted); }
+/* Middle suit as a shape: square, filled in the card's ink colour */
+.pcard svg.pip { width: 0.8em; height: 0.8em; fill: currentColor; display: block; }
