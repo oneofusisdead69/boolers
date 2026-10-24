@@ -26,7 +26,7 @@
             <li><b>${esc(g.name)}</b>${g.winnerId ? ` <span class="muted">won by</span> ${PB.avatar(g.winnerId, 'sm')} ${esc(name(s, g.winnerId))}` : ''}</li>`).join('')}</ul></div>` : ''}
           ${r.highlights.length ? `<div class="card"><h2>✨ Moments</h2><ul class="recap-list">${r.highlights.map((h) => `<li>${esc(h.text)}</li>`).join('')}</ul></div>` : ''}
           <div class="card"><h2>🍺 The tab</h2><ul class="recap-list">${r.players.map((p) => `
-            <li>${PB.avatar(p.id, 'sm')} ${esc(p.name)} <span class="recap-n">${p.sips}${p.finished ? ` · 🥃×${p.finished}` : ''}${p.water ? ` · 💧${p.water}` : ''}</span></li>`).join('')}</ul></div>
+            <li>${PB.avatar(p.id, 'sm')} ${esc(p.name)} <span class="recap-n">${p.sips}${p.finished ? ` · 🥃×${p.finished}` : ''}</span></li>`).join('')}</ul></div>
         </div>
         ${tv ? '' : `
           <button id="recap-share">📸 Share the night</button>
@@ -145,7 +145,7 @@
         c.fillText(p.name, 100, yy);
         c.textAlign = 'right';
         c.font = 'bold 32px system-ui, sans-serif';
-        c.fillText(`${p.sips}${p.finished ? ` · 🥃×${p.finished}` : ''}${p.water ? ` · 💧${p.water}` : ''}`, W - 100, yy);
+        c.fillText(`${p.sips}${p.finished ? ` · 🥃×${p.finished}` : ''}`, W - 100, yy);
       });
       c.textAlign = 'left';
     }

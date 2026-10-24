@@ -142,7 +142,6 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-front .ld-front { max-width: 9rem; gap: 0.3rem; }
 .tv-front .ld-die.mini .die, .tv-front .ld-hidden { width: 2rem; height: 2rem; }
 .tv-front .ld-die.mini.dim { opacity: 0.45; }
-.tv-drink.water { background: #228ce6; }
 /* Cards in front of the players (Shot Poker, Ride the Bus): a small overlapping fan. */
 .tv-front .cards { display: flex; justify-content: center; }
 .tv-front .cards .pcard + .pcard { margin-left: -1.4rem; }
@@ -168,3 +167,11 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 /* Room sound, top left under the title. */
 .tv-music { position: fixed; left: 2vw; top: 9vh; width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; opacity: 0.6; z-index: 5; background: var(--card-2); color: var(--text); }
 .tv-music:hover { opacity: 1; }
+/* Shot Poker's debts across the TV. */
+.tv-banner .sp-takeover { position: fixed; inset: 0; }
+.tv-banner .sp-takeover span { font-size: 5rem; }
+.tv-banner .sp-flash { position: static; font-size: 1.4rem; padding: 1.4rem 4vw; border-top: 0.3rem solid var(--danger); border-bottom: 0.3rem solid var(--danger); }
+.tv-banner .sp-flash-text { font-size: 2.4rem; }
+.tv-banner .sp-flash-list { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0.6rem 2.4rem; }
+.tv-banner .sp-flash-list li em { margin-left: 0.6rem; }
+.tv-banner:has(.sp-flash) { top: auto; bottom: 0; transform: none; }

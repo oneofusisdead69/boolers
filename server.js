@@ -107,14 +107,12 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
-    settings: { cap: 0, breaks: true, ...room.settings },
     // The end-of-night recap, while the host has it open.
     recap: room.recap ? night.summary(room, ROOM_STYLES.STYLES[room.style]?.label) : null,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, water = 0, waterMode = false, avatar, color }) =>
-      ({ id, name, connected, drinks, total, finished, water, waterMode, avatar, color })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     game: game ? game.view(room, player, ctx) : null,
@@ -152,13 +150,13 @@ function emit(room, playerId, event, data) {
   }
 }
 
-// A message for every phone in the room and the TV (e.g. a water break).
+// A message for every phone in the room and the TV (e.g. the water reminder).
 function notifyAll(room, event, data) {
   for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
   for (const id of room.tvs || []) io.to(id).emit(event, data);
 }
 
-const ctx = createContext({ emit, broadcast, notifyAll });
+const ctx = createContext({ emit, broadcast });
 
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
@@ -257,16 +255,6 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
-  // Pacing, set by the host: an hourly sip limit and water breaks (see lib/context.js).
-  const SETTINGS = { cap: [0, 10, 15, 20, 30], breaks: [true, false] };
-  socket.on('setSetting', ({ id, value } = {}) => {
-    if (!hostOnly() || !SETTINGS[id]) return;
-    const v = SETTINGS[id].find((x) => String(x) === String(value));
-    if (v === undefined) return;
-    room.settings = { cap: 0, breaks: true, ...room.settings, [id]: v };
-    broadcast(room);
-  });
-
   // The host wraps up the night: everyone's phone (and the TV) shows the recap.
   socket.on('recap', ({ open } = {}) => {
     if (!hostOnly() || room.game) return;
@@ -277,19 +265,11 @@ io.on('connection', (socket) => {
   // A new night: everyone's tab starts again from zero.
   socket.on('newNight', () => {
     if (!hostOnly() || room.game) return;
-    for (const p of room.players) Object.assign(p, { drinks: 0, total: 0, finished: 0, water: 0, log: [] });
+    for (const p of room.players) Object.assign(p, { drinks: 0, total: 0, finished: 0 });
     room.night = null;
     room.recap = false;
     room.feed = [];
     ctx.log(room, '🌙 A new night begins');
-    broadcast(room);
-  });
-
-  // Anyone can switch themselves to water (and back), any time.
-  socket.on('setWater', ({ on } = {}) => {
-    if (!room || !player) return;
-    player.waterMode = on === true || on === 'true';
-    ctx.log(room, player.waterMode ? `💧 ${player.name} is on water for now` : `🍺 ${player.name} is back on the drinks`);
     broadcast(room);
   });
 
@@ -331,6 +311,11 @@ io.on('connection', (socket) => {
     analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
     ack({ ok: true });
     broadcast(room);
+    // A new game (or the third in a row): everyone has some water.
+    if (night.waterDue(room, game.id)) {
+      ctx.log(room, '💧 Water break: everyone have some water');
+      notifyAll(room, 'notice', { title: '💧 WATER BREAK', text: 'New game, new glass of water. Everyone have a drink of water before you start.' });
+    }
   });
 
   socket.on('action', (action = {}) => {

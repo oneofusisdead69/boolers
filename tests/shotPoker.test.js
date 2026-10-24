@@ -114,11 +114,15 @@ test('bets stop at the max shots; owing a whole shot needs ☠️🥃 before the
   assert.strictEqual(g.dealerId, 'p0', 'the button moves on');
 });
 
-test('small debts are just drunk: no ☠️🥃 needed', () => {
+test('every debt, even a sip, has to be settled before the next hand', () => {
   const t = setup(game, 2);
   t.act(0, 'fold');
-  assert.deepStrictEqual(t.room.game.debts.p0, { sips: 1, text: '1 sip', paid: true });
-  assert.deepStrictEqual(t.view(0).waitingOn, []);
+  assert.deepStrictEqual(t.room.game.debts.p0, { sips: 1, text: '1 sip', paid: false });
+  assert.deepStrictEqual(t.view(1).waitingOn, ['p0']);
+  t.act(1, 'deal');
+  assert.strictEqual(t.room.game.phase, 'showdown');
+  t.act(0, 'paid');
+  assert.deepStrictEqual(t.view(1).waitingOn, []);
 });
 
 test('a raise reopens the betting for everyone still in', () => {
@@ -144,6 +148,7 @@ test('a player who drops on their turn folds; late joiners wait for the next han
   assert.strictEqual(t.view(3).inHand, false);
   t.act(1, 'fold');
   t.room.players[0].connected = true;
+  t.act(0, 'paid').act(1, 'paid'); // everyone settles their tab first
   t.act(0, 'deal');
   assert.strictEqual(t.view(3).inHand, true);
   assert.strictEqual(t.view(3).myCards.length, 2);

@@ -58,7 +58,7 @@ socket.on('state', (s) => {
 // Every drink pops up on the TV, with a buzz.
 socket.on('drink', (d) => {
   const el = document.createElement('div');
-  el.className = `tv-drink ${d.water ? 'water' : ''}`;
+  el.className = 'tv-drink';
   el.innerHTML = `${PB.avatar(d.playerId)}<div><b>${esc(d.who)}</b>${d.title ? `: ${esc(d.title)}` : ` drinks ${PB.plural(d.sips, 'sip')}`}
     ${d.from ? `<small>from ${esc(d.from)}</small>` : ''}${d.reason ? `<small>${esc(d.reason)}</small>` : ''}</div>`;
   $drinks.prepend(el);
@@ -69,7 +69,7 @@ socket.on('drink', (d) => {
   Prefs.play('drink');
 });
 
-// A water break: a big banner for the whole room.
+// The water reminder: a big banner for the whole room.
 socket.on('notice', ({ title, text }) => {
   let el = document.getElementById('tv-notice');
   if (!el) {
@@ -308,7 +308,7 @@ function gameScreen(s) {
         <header class="tv-head"><b class="tv-title">${esc(game.name)}</b><div id="tv-turn" class="tv-turn"></div><span class="tv-code">Join: <b>${esc(s.code)}</b></span></header>
         ${screens.tvTable === false
           ? '<div class="tv-wide"><div class="tv-left-box"><div id="tv-left"></div></div><div class="tv-center-box"><div id="tv-center"></div></div></div><div id="tv-banner" class="tv-banner"></div>'
-          : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'}
+          : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div><div id="tv-banner" class="tv-banner"></div>'}
         <aside class="tv-side" id="tv-side"></aside>
       </div>
       ${soundButton()}`;

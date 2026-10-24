@@ -139,14 +139,32 @@
     const entries = Object.entries(g.debts);
     if (!entries.length) return '<p class="center muted">Nobody owes anything this hand</p>';
     return `<ul class="sp-debts">${entries.map(([id, d]) => {
-      const big = d.sips >= g.perShot;
       let status = '';
-      if (!big) status = '<small>drink up</small>';
-      else if (d.paid) status = '<small class="ok">☠️🥃 paid</small>';
-      else if (id === s.me) status = `<button class="sp-pay" data-act="paid" aria-label="I've paid my debt">☠️🥃</button>`;
+      if (d.paid) status = '<small class="ok">✅ settled</small>';
+      else if (id === s.me) status = '<button class="sp-pay" data-act="paid">✅ Tab settled</button>';
       else status = '<small class="owed">unpaid</small>';
       return `<li>${PB.avatar(id, 'sm')}<span>${esc(name(id))}<small>${esc(d.text)}</small></span>${status}</li>`;
     }).join('')}</ul>`;
+  }
+
+  // While anyone still owes, "All debts must be paid" flashes across the whole screen, with a
+  // "Tab settled" button for each player who owes until they've paid.
+  let flash = { hand: null, at: 0 };
+  function debtFlash(s) {
+    const g = s.game;
+    if (!g.waitingOn.length) return '';
+    const mine = g.debts[s.me] && !g.debts[s.me].paid && !PB.isTV;
+    // The full-screen flash plays once a hand (carrying on through redraws); after that the
+    // reminder stays at the bottom.
+    if (flash.hand !== g.hand) flash = { hand: g.hand, at: Date.now() };
+    const elapsed = Date.now() - flash.at;
+    return `${elapsed < 2600 ? `<div class="sp-takeover" style="animation-delay:-${elapsed}ms"><span>☠️ ALL DEBTS MUST BE PAID BEFORE THE NEXT ROUND…</span></div>` : ''}
+    <div class="sp-flash">
+      <div class="sp-flash-text">☠️ All debts must be paid before the next round…</div>
+      <ul class="sp-flash-list">${Object.entries(g.debts).map(([id, d]) => `
+        <li class="${d.paid ? 'paid' : ''}">${PB.avatar(id, 'sm')}<b>${esc(realName(s, id))}</b><span>${esc(d.text)}</span><em>${d.paid ? '✅ Settled' : '⏳ Owes'}</em></li>`).join('')}</ul>
+      ${mine ? `<button class="sp-settle" data-act="paid">✅ Tab settled</button>` : ''}
+    </div>`;
   }
 
   function showdownScreen(s) {
@@ -158,13 +176,14 @@
     const waiting = g.waitingOn.map((id) => esc(name(id))).join(', ');
     return `
       ${banner()}
-      <div class="turn">🏆 ${winners} ${r.winners.length > 1 ? 'split it' : 'wins'}<span>${how}</span></div>
+      <div class="turn">🏆 ${winners} ${r.winners.length > 1 ? 'split it' : isMe(s, r.winners[0]) ? 'win' : 'wins'}<span>${how}</span></div>
       ${table(g)}
       ${seats(s, { reveal: true })}
       <div class="card"><h2>Debts</h2>${debtsList(s)}</div>
       ${canDeal
-        ? `<button data-act="deal" ${waiting ? 'disabled' : ''}>${waiting ? `Waiting on ☠️🥃 from ${waiting}` : 'Deal the next hand'}</button>`
-        : `<p class="center muted">${waiting ? `Waiting on ☠️🥃 from ${waiting}` : `${esc(name(g.nextDealerId))} deals next…`}</p>`}
+        ? `<button data-act="deal" ${waiting ? 'disabled' : ''}>${waiting ? `Waiting on ${waiting} to settle up` : 'Deal the next hand'}</button>`
+        : `<p class="center muted">${waiting ? `Waiting on ${waiting} to settle up` : `${esc(name(g.nextDealerId))} deals next…`}</p>`}
+      ${debtFlash(s)}
       ${tab(s)}
       ${PB.feed(4)}`;
   }
@@ -173,7 +192,8 @@
     // Sideways: these go on the left.
     stage: '.sp-banner, .sp-table, .ld-mine-head, .sp-hole',
     // On the TV: the shared parts of the screen.
-    tvStage: '.sp-banner, .sp-table',
+    tvStage: '.sp-table, .sp-takeover, .sp-flash',
+    tvBanner: '.sp-takeover, .sp-flash',
     // On the TV, everyone's two cards sit in front of them: face down, face up at the showdown,
     // pushed away when they fold. With what they've put in and what they last did.
     tvFront(s, id) {
@@ -185,7 +205,7 @@
       const cards = h ? h.cards.map((c) => PB.card(c, { size: 'sm' })).join('') : PB.card(null, { size: 'sm' }) + PB.card(null, { size: 'sm' });
       return `<div class="sp-front ${x.folded ? 'folded' : ''} ${won ? 'won' : ''} ${x.id === g.turnId ? 'acting' : ''}">
         <div class="cards">${cards}</div>
-        <small>${x.id === g.dealerId ? '<span class="sp-dealer">D</span> ' : ''}${[h ? esc(h.name) : x.folded ? 'Folded' : x.allIn ? 'All in' : esc(x.last || ''), `🍺 ${x.committed}`, g.waitingOn.includes(id) && '⏳ drink up'].filter(Boolean).join(' · ')}</small>
+        <small>${x.id === g.dealerId ? '<span class="sp-dealer">D</span> ' : ''}${[h ? esc(h.name) : x.folded ? 'Folded' : x.allIn ? 'All in' : esc(x.last || ''), `🍺 ${x.committed}`, g.debts[id] && (g.debts[id].paid ? '✅ settled' : '⏳ owes')].filter(Boolean).join(' · ')}</small>
       </div>`;
     },
     // A card for each new deal: your hand, then the flop, turn and river.

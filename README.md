@@ -55,13 +55,11 @@ Where the browser allows it (Android), the app goes full screen when you create,
 ## Sideways
 Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
 
-## Pacing
-- **Water mode:** anyone can tap **💧 Water** (in the lobby, or at the bottom of any game) to stay in the game with water instead: their sips come up as blue "sips of water" alerts and don't count towards the tab. Tap again to switch back.
-- **Hourly limit (host):** No limit / 10 / 15 / 20 / 30 sips per person per hour. Past it, that person's sips turn into water until the hour rolls on.
-- **Water breaks (host, on by default):** every so often (about 12 sips per person in the room) everyone gets a "💧 Water break" alert, and the TV shows it across the screen.
+## Water breaks
+Whenever the room switches to a different game, or after three games in a row, every phone and the TV get a "💧 Water break" reminder to have some water before the next game. Pass and play does the same every third game.
 
 ## End-of-night recap
-When the night winds down, the host taps **🏁 Wrap up the night** in the lobby. Every phone and the TV show the recap: awards (🍺 Thirstiest, 🎁 Most generous, 🥃 Bottoms up, 💧 Hydration hero, 🏆 Champion), the games played and who won, the best moments (the best darts turn, the biggest Liar's Dice lie, the biggest Shot Poker pot, the biggest race win) and the whole tab. **📸 Share the night** makes an image in the room's style to post or send. The host can go back to the lobby, or **start a new night** with everyone's tab back at zero. Games report moments with `ctx.highlight(room, key, playerId, value, text)` (see `lib/night.js`).
+When the night winds down, the host taps **🏁 Wrap up the night** in the lobby. Every phone and the TV show the recap: awards (🍺 Thirstiest, 🎁 Most generous, 🥃 Bottoms up, 🏆 Champion), the games played and who won, the best moments (the best darts turn, the biggest Liar's Dice lie, the biggest Shot Poker pot, the biggest race win) and the whole tab. **📸 Share the night** makes an image in the room's style to post or send. The host can go back to the lobby, or **start a new night** with everyone's tab back at zero. Games report moments with `ctx.highlight(room, key, playerId, value, text)` (see `lib/night.js`).
 
 ## Room styles
 The host can dress the room up from the lobby: **Classic, Dive bar, Tavern, Club, Castle, Jazz club or Diner**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. On the TV each style also has its own background sound, made live in the browser (`public/ambience.js`): murmur and clinking glasses, a crackling fire and a lute, a club beat, wind and torches, a jazz trio, diner chatter and a sizzling grill. A 🎵 button on the TV sets it to Off, Low or High. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.

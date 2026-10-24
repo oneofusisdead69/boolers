@@ -256,15 +256,14 @@ function playSounds(prev, s) {
 }
 
 // Full-screen "drink!" alert when someone hands you sips.
-// Sips of water (water mode, or over the room's hourly limit) come up blue.
-socket.on('drink', ({ sips, reason, from, title, water, why }) => {
+socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
   if (!PB.state?.tv) Prefs.play('drink'); // with a TV, the TV buzzes
   const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
-  showAlert(`<div class="big">${water ? '💧' : '🍺'} ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>${why ? `<div class="why">${PB.esc(why)}</div>` : ''}`, water ? 'water' : '', 4000);
+  showAlert(`<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
 });
 
-// A water break (or another message for the whole room).
+// A message for the whole room, like the water reminder between games.
 socket.on('notice', ({ title, text }) => {
   navigator.vibrate?.([100, 60, 100]);
   showAlert(`<div class="big">${PB.esc(title)}</div><div>${PB.esc(text)}</div>`, 'water', 8000);
@@ -382,28 +381,6 @@ function renderRecap() {
   };
 }
 
-// Switch yourself to water (and back) any time.
-function waterButton() {
-  const me = PB.state.players.find((p) => p.id === PB.state.me);
-  return `<button class="prefs-btn ${me?.waterMode ? 'on' : ''}" data-cmd="setWater" data-on="${!me?.waterMode}">💧 ${me?.waterMode ? 'On water' : 'Water'}</button>`;
-}
-
-// Pacing: an hourly sip limit (sips past it become water) and water breaks. The host sets it.
-function pacingCard(s) {
-  const { cap, breaks } = s.settings;
-  const seg = (id, choices, value) => `<div class="segmented">${choices.map(([v, label]) =>
-    `<button class="${v === value ? 'selected' : ''}" data-cmd="setSetting" data-id="${id}" data-value="${v}">${label}</button>`).join('')}</div>`;
-  const me = s.players.find((p) => p.id === s.me);
-  return `<div class="card pacing-card">
-      <h2>💧 Pacing</h2>
-      ${s.isHost ? `
-        <div class="option"><span class="muted">Sips per person per hour (then it's water)</span>${seg('cap', [[0, 'No limit'], [10, '10'], [15, '15'], [20, '20'], [30, '30']], cap)}</div>
-        <div class="option"><span class="muted">Water breaks for everyone</span>${seg('breaks', [[true, 'On'], [false, 'Off']], breaks)}</div>`
-        : `<p class="muted">${cap ? `Up to ${cap} sips each an hour, then water.` : 'No hourly limit.'} Water breaks ${breaks ? 'on' : 'off'}.</p>`}
-      <button class="${me?.waterMode ? '' : 'secondary'}" data-cmd="setWater" data-on="${!me?.waterMode}">${me?.waterMode ? '💧 You’re on water · tap to switch back' : '💧 Switch me to water'}</button>
-    </div>`;
-}
-
 // The host picks how the room looks; everyone's phone (and the TV) follows.
 function roomStyleCard(s) {
   const { STYLES } = ROOM_STYLES;
@@ -452,14 +429,13 @@ function renderLobby() {
         </div>` : ''}
     </div>
     ${roomStyleCard(s)}
-    ${pacingCard(s)}
     <div class="card tv-card">
       ${s.tv
         ? '<p>📺 <b>TV connected.</b> The table, scores and sounds are on the big screen.</p>'
         : `<p>📺 <b>Got a TV?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter <b>${PB.esc(s.code)}</b>.</p>`}
     </div>
     ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
-    ${host && s.players.some((p) => p.total || p.water || p.finished)
+    ${host && s.players.some((p) => p.total || p.finished)
       ? '<button class="secondary" data-cmd="recap" data-open="true">🏁 Wrap up the night</button>' : ''}
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
@@ -516,7 +492,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
-    <div class="game-foot">${PB.tabButton()}${waterButton()}${Prefs.button()}${PB.endButton()}</div>
+    <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   if (!screens.fullscreen) PB.layout($app, screens.stage);
   screens.afterRender?.(s);

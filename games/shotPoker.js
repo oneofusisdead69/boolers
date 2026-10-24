@@ -170,13 +170,13 @@ function advance(room, ctx, from) {
   g.turnId = nextActor(g, from);
 }
 
-// A debt of a whole shot or more needs ☠️🥃 tapped before the next hand.
+// Every debt has to be settled (the player taps "Tab settled") before the next hand.
 function owe(room, ctx, id, reason) {
   const g = room.game;
   const sips = g.committed[id];
   if (!sips) return;
   const big = sips >= g.perShot;
-  g.debts[id] = { sips, text: shotText(sips, g.perShot), paid: !big };
+  g.debts[id] = { sips, text: shotText(sips, g.perShot), paid: false };
   ctx.drink(room, id, sips, reason, null, big ? { title: `TAKE ${shotText(sips, g.perShot).toUpperCase()}` } : {});
 }
 
@@ -302,7 +302,7 @@ module.exports = {
       advance(room, ctx, me);
     } else if (action.type === 'paid' && g.debts[me] && !g.debts[me].paid) {
       g.debts[me].paid = true;
-      ctx.log(room, `☠️🥃 ${player.name} paid their debt (${g.debts[me].text})`);
+      ctx.log(room, `✅ ${player.name} settled their tab (${g.debts[me].text})`);
     } else if (action.type === 'deal' && g.phase === 'showdown' && (me === room.hostId || me === ctx.turns.next(room, g.order, g.dealerId))) {
       if (unpaid(room, ctx).length) return;
       if (ctx.connectedPlayers(room).length < 2) return;

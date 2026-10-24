@@ -103,6 +103,8 @@
         hint: (room, id) => room.game.debts[id] && !room.game.debts[id].paid,
       },
     };
+    // Games played since this page opened, for the water reminder.
+    const localNight = {};
     // The room style (dive bar, tavern…) is remembered on this phone.
     let roomStyle = 'classic';
     try { roomStyle = localStorage.getItem('local-room-style') || 'classic'; } catch {}
@@ -250,15 +252,15 @@
           showAlert();
         },
         broadcast: () => render(),
-        // A water break is for everyone at once.
-        notifyAll: (r, event, data) => {
-          alerts.push({ who: 'Everyone', title: data.title, reason: data.text });
-          showAlert();
-        },
       });
       holder = null;
       const custom = __req('custom').clean(game.custom, PB.customFor(gameId));
       game.start(room, ctx, { ...opts, ...local.locked, custom });
+      // Every third game on this phone: water for everyone.
+      if (__req('night').waterDue(localNight, gameId)) {
+        alerts.push({ who: 'Everyone', title: '💧 WATER BREAK', reason: 'Another game, another glass of water. Everyone have some water first.' });
+        showAlert();
+      }
       window.Analytics?.event('local_game_started', { game: gameId, players: names.length });
       render();
     }
