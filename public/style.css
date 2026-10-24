@@ -697,3 +697,46 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .sp-tab-head small:last-child { width: 64px; }
 .tab-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tab-head button { width: auto; padding: 6px 12px; font-size: 0.9rem; }
+
+/* Horse Race */
+.hr-track { display: flex; flex-direction: column; gap: 3px; padding: 10px 8px; border-radius: 18px; background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0e4a2e 100%); box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25); }
+.hr-row { display: grid; grid-template-columns: 48px repeat(4, 1fr); align-items: center; gap: 4px; min-height: 46px; }
+.hr-row.finish { border-bottom: 3px dashed rgba(255,255,255,0.7); padding-bottom: 3px; }
+.hr-row.start { border-top: 3px solid rgba(255,255,255,0.35); padding-top: 3px; }
+.hr-lane { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px; min-height: 40px; border-radius: 8px; background: rgba(0,0,0,0.12); }
+.hr-bettors { min-height: 0; }
+.hr-bettors .hr-lane { background: none; min-height: 0; }
+.hr-side { display: flex; justify-content: center; }
+.hr-side .pcard.sm { width: 30px; height: 42px; border-width: 2px; }
+.hr-side .pcard.sm .pip { font-size: 1rem; }
+.hr-side .pcard.sm .corner { font-size: 0.55rem; }
+.hr-side.flash .pcard { box-shadow: 0 0 0 3px var(--danger); }
+.hr-flag { font-size: 1.6rem; text-align: center; }
+.hr-start { font-size: 0.75rem; font-weight: 800; color: #e9fff3; text-align: center; text-transform: uppercase; }
+.hr-horse { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: #fff; color: #111; box-shadow: 0 3px 8px rgba(0,0,0,0.4); }
+.hr-horse.red { color: #d61f3c; }
+.hr-horse svg.pip { width: 22px; height: 22px; fill: currentColor; display: block; }
+.hr-horse.moved { animation: hr-hop 0.45s ease-out; }
+.hr-horse.knocked { animation: hr-knock 0.6s ease-out; box-shadow: 0 0 0 3px var(--danger); }
+.hr-horse.won { box-shadow: 0 0 0 4px var(--accent); animation: pulse 0.9s ease-in-out infinite; }
+@keyframes hr-hop { 0% { transform: translateY(46px); } 70% { transform: translateY(-6px); } 100% { transform: none; } }
+@keyframes hr-knock { 0% { transform: translateY(-46px) rotate(-20deg); } 60% { transform: rotate(10deg); } 100% { transform: none; } }
+.hr-last { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 64px; }
+.hr-last p { font-weight: 700; }
+.hr-knock { color: var(--danger); }
+.hr-place { gap: 12px; }
+.hr-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hr-suits button { padding: 12px 0; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
+.hr-suits button.red { color: var(--danger); }
+.hr-suits button.selected { border-color: var(--accent); }
+.hr-suits svg.pip { width: 1.8rem; height: 1.8rem; display: block; margin: 0 auto; fill: currentColor; }
+.hr-bets { gap: 8px; }
+.hr-bet-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+.hr-bet-row > span:not(.av) { flex: 1; }
+.hr-bet-row .hr-horse { width: 30px; height: 30px; flex: none; }
+.hr-bet-row .hr-horse svg.pip { width: 16px; height: 16px; }
+.hr-give { gap: 8px; }
+.hr-give-row { display: flex; align-items: center; gap: 10px; }
+.hr-give-row > span:not(.av) { flex: 1; font-weight: 600; }
+.hr-give-row button { width: 44px; padding: 6px 0; font-size: 1.3rem; }
+.hr-give-row b { min-width: 24px; text-align: center; font-size: 1.2rem; font-variant-numeric: tabular-nums; }

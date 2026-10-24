@@ -295,6 +295,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
         <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
         <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
+        <a class="btn-link" href="/play/local.html?game=horseRace">🏇 Horse Race</a>
       </div>
     </div>
     <div class="spacer"></div>
