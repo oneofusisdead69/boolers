@@ -549,11 +549,12 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   background: none;
   border-radius: 6px;
   transform: rotate(var(--a)) translateY(calc(-1 * var(--r)));
-  transition: transform 0.2s ease-out;
+  transition: transform 0.15s ease-out;
+  pointer-events: none;
 }
-.kc-slot:disabled { opacity: 1; }
 .kc-slot .pcard { box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
-.kc-ring.active .kc-slot:not(.picked):hover .pcard { box-shadow: 0 0 0 2px var(--accent); }
+/* Your ring: touching it never scrolls the page, selects text or opens the long-press menu. */
+.kc-ring.active { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
 /* A picked card slides out of the ring toward the cup. */
 .kc-slot.picked { z-index: 2; transform: rotate(var(--a)) translateY(calc(-1 * var(--r) + 30px)) scale(1.15); }
 .kc-slot.picked .pcard { box-shadow: 0 0 0 3px var(--accent), 0 8px 20px rgba(0,0,0,0.5); }

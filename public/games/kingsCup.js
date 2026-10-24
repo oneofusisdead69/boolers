@@ -4,8 +4,11 @@
   let picked = null; // the ring spot you've picked but not drawn yet
   let pickedFor = null;
   let dealt = false; // the dealing animation plays once per game
+  let dragging = false; // a finger is on the ring
+  let missed = false; // an update came in while it was
 
-  // The deck laid face down in a ring around the King's Cup. On your turn, tap a card to pick it.
+  // The deck laid face down in a ring around the King's Cup. On your turn, touch the ring to pick
+  // the card at that spot; slide around the ring to change it.
   function ring(s, mine) {
     const g = s.game;
     const key = `${g.turnId}:${g.taken.length}`;
@@ -15,13 +18,44 @@
     const n = g.ringSize;
     const crowns = Array.from({ length: 4 }, (_, i) => `<span class="${i < g.kings ? 'on' : ''}">👑</span>`).join('');
     const slots = Array.from({ length: n }, (_, i) => (g.taken.includes(i) ? '' : `
-      <button class="kc-slot ${dealing ? 'dealing' : ''} ${picked === i ? 'picked' : ''}" data-slot="${i}"
-        style="--a:${(i * 360) / n}deg;--i:${i}" ${mine ? '' : 'disabled'} aria-label="Card ${i + 1}">${PB.card(null, { size: 'sm' })}</button>`)).join('');
+      <div class="kc-slot ${dealing ? 'dealing' : ''} ${picked === i ? 'picked' : ''}" data-slot="${i}"
+        style="--a:${(i * 360) / n}deg;--i:${i}">${PB.card(null, { size: 'sm' })}</div>`)).join('');
     return `
-      <div class="kc-ring ${mine ? 'active' : ''}">
+      <div class="kc-ring ${mine ? 'active' : ''}" id="kc-ring" ${mine ? 'role="listbox" aria-label="Cards in the ring"' : ''}>
         ${slots}
         <div class="kc-center"><div class="kc-cup-emoji">🍺</div><div class="kc-crowns">${crowns}</div></div>
       </div>`;
+  }
+
+  function drawArea() {
+    return picked !== null
+      ? `<button data-act="draw" data-slot="${picked}">Draw this card</button>`
+      : '<p class="center muted">Touch the ring to pick a card. Slide to change it.</p>';
+  }
+
+  // The free spot nearest to where the finger is, by angle around the ring.
+  function slotAt(e, ringEl, g) {
+    const r = ringEl.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const deg = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+    let best = null;
+    let bestGap = Infinity;
+    for (let i = 0; i < g.ringSize; i++) {
+      if (g.taken.includes(i)) continue;
+      const diff = Math.abs((i * 360) / g.ringSize - deg);
+      const gap = Math.min(diff, 360 - diff);
+      if (gap < bestGap) { bestGap = gap; best = i; }
+    }
+    return best;
+  }
+
+  // Moves the highlight and the Draw button without redrawing the screen under the finger.
+  function showPick() {
+    document.querySelectorAll('.kc-slot.picked').forEach((el) => el.classList.remove('picked'));
+    document.querySelector(`.kc-slot[data-slot="${picked}"]`)?.classList.add('picked');
+    const area = document.getElementById('kc-draw-area');
+    if (area) area.innerHTML = drawArea();
   }
 
   function cup(g) {
@@ -103,13 +137,13 @@
     }
 
     if (s.phase === 'draw') {
-      const ready = mine && picked !== null && !g.taken.includes(picked);
-      return `
+      if (dragging) { missed = true; return null; } // keep the ring still under a moving finger
+      const html = `
         ${PB.turn(g.turnId, mine ? 'Pick a card from the ring' : 'Picking a card')}
-        ${ring(s, mine)}
-        ${mine
-          ? ready ? `<button data-act="draw" data-slot="${picked}">Draw this card</button>` : '<p class="center muted">Tap any card in the ring</p>'
-          : ''}
+        ${ring(s, mine)}`;
+      return `
+        ${html}
+        ${mine ? `<div id="kc-draw-area">${drawArea()}</div>` : ''}
         <p class="center muted">${4 - g.kings} king${4 - g.kings === 1 ? '' : 's'} to go · ${g.deckLeft} cards left</p>
         ${effects(g)}
         ${PB.feed(3)}`;
@@ -127,13 +161,31 @@
 
   PB.register('kingsCup', {
     render,
-    afterRender() {
-      document.querySelectorAll('.kc-slot:not([disabled])').forEach((b) => {
-        b.onclick = () => {
-          picked = Number(b.dataset.slot);
-          PB.rerender();
+    afterRender(s) {
+      const ringEl = document.querySelector('#kc-ring.active');
+      if (ringEl) {
+        const choose = (e) => {
+          const slot = slotAt(e, ringEl, s.game);
+          if (slot !== null && slot !== picked) {
+            picked = slot;
+            showPick();
+            navigator.vibrate?.(8);
+          }
         };
-      });
+        ringEl.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          dragging = true;
+          ringEl.setPointerCapture(e.pointerId);
+          choose(e);
+        });
+        ringEl.addEventListener('pointermove', (e) => dragging && choose(e));
+        const lift = () => {
+          dragging = false;
+          if (missed) { missed = false; PB.rerender(); }
+        };
+        ringEl.addEventListener('pointerup', lift);
+        ringEl.addEventListener('pointercancel', lift);
+      }
       const input = document.getElementById('kc-rule');
       const add = () => {
         const text = input.value.trim();
