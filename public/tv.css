@@ -165,3 +165,6 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-recap .recap-emoji { font-size: 3rem; }
 .tv-recap .recap-cols { flex-direction: row; align-items: flex-start; }
 .tv-recap .recap-cols > .card { flex: 1; font-size: 1.1rem; }
+/* Room sound, top left under the title. */
+.tv-music { position: fixed; left: 2vw; top: 9vh; width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; opacity: 0.6; z-index: 5; background: var(--card-2); color: var(--text); }
+.tv-music:hover { opacity: 1; }

@@ -90,7 +90,31 @@ document.addEventListener('pointerdown', () => {
   if (soundOn) return;
   soundOn = true;
   document.getElementById('tv-sound')?.remove();
+  music();
 }, { capture: true });
+
+// Background sound to match the room style (public/ambience.js): off, low or high, remembered.
+const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
+let musicLevel = 1;
+try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length; } catch {}
+function music() {
+  if (soundOn) Ambience.set(PB.state?.style, MUSIC[musicLevel][1]);
+  let btn = document.getElementById('tv-music');
+  const show = PB.state && PB.state.style && PB.state.style !== 'classic';
+  if (!show) return btn?.remove();
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'tv-music';
+    btn.className = 'tv-music';
+    btn.onclick = () => {
+      musicLevel = (musicLevel + 1) % MUSIC.length;
+      try { localStorage.setItem('tv-music', musicLevel); } catch {}
+      music();
+    };
+    document.body.appendChild(btn);
+  }
+  btn.textContent = `🎵 Room sound: ${MUSIC[musicLevel][0]}`;
+}
 
 function playSounds(prev, s) {
   if (!prev || !s.game || prev.gameType !== s.gameType) return;
@@ -302,6 +326,7 @@ function gameScreen(s) {
 function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.style);
+  music();
   if (!s) return joinScreen();
   if (s.recap && s.phase === 'lobby') {
     delete $tv.dataset.game;
