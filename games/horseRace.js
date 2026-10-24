@@ -3,6 +3,10 @@
 // horse has a chance of being pushed forward a random amount. First past the post after the set
 // number of laps wins; everyone who backed another horse drinks their bet, and the winners hand
 // out their winnings (their bet, or double) to whoever they like.
+//
+// Jockey mode: each horse can be backed by only one player, who rides it. Their phone shows a dial
+// with a needle sweeping across red, yellow and green: a tap on green speeds the horse up, red
+// slows it down, yellow does nothing. The faster the horse, the faster the needle.
 
 const betting = require('../lib/betting');
 
@@ -24,11 +28,19 @@ const PUSH_CHANCE = 0.4;
 const PUSH_MIN = 0.015;
 const PUSH_MAX = 0.065;
 
+// Jockey mode: each horse's speed multiplier, and how a tap on the dial changes it.
+const SPEED_MIN = 0.4;
+const SPEED_MAX = 2.2;
+const HIT = { green: 0.12, yellow: 0, red: -0.25 };
+const TAP_GAP_MS = 250; // fastest a jockey can tap
+
 function newRace(room, ctx) {
   const g = room.game;
   ctx.clearTimer(room);
   g.race += 1;
   g.progress = Object.fromEntries(IDS.map((id) => [id, 0])); // in laps
+  g.mult = Object.fromEntries(IDS.map((id) => [id, 1]));
+  g.lastTap = {};
   g.ticks = 0;
   betting.reset(g);
   g.phase = 'betting';
@@ -39,7 +51,7 @@ function tick(room, ctx, rand = Math.random) {
   if (g.phase !== 'race') return;
   g.ticks += 1;
   for (const id of IDS) {
-    if (rand() < PUSH_CHANCE) g.progress[id] += PUSH_MIN + rand() * (PUSH_MAX - PUSH_MIN);
+    if (rand() < PUSH_CHANCE) g.progress[id] += (PUSH_MIN + rand() * (PUSH_MAX - PUSH_MIN)) * g.mult[id];
   }
   const done = IDS.filter((id) => g.progress[id] >= g.laps);
   if (done.length) {
@@ -62,6 +74,12 @@ module.exports = {
   HORSES,
   options: [
     { id: 'laps', label: 'Laps', default: 2, choices: [1, 2, 3, 5].map((n) => ({ value: n, label: `${n}` })) },
+    {
+      id: 'jockey',
+      label: 'Be the jockey: one player per horse, ride it with a dial',
+      default: false,
+      choices: [{ value: false, label: 'Off' }, { value: true, label: 'On' }],
+    },
     ...betting.options,
     { id: 'speed', label: 'Race speed', default: 'normal', choices: [{ value: 'normal', label: 'Normal' }, { value: 'fast', label: 'Fast' }] },
   ],
@@ -71,6 +89,7 @@ module.exports = {
       order: room.players.map((p) => p.id),
       laps: [1, 2, 3, 5].includes(options.laps) ? options.laps : 2,
       speed: options.speed === 'fast' ? 'fast' : 'normal',
+      jockey: options.jockey === true,
       ...betting.fromOptions(options),
       race: 0,
     });
@@ -83,7 +102,15 @@ module.exports = {
     const host = me === room.hostId;
 
     if (action.type === 'bet' && g.phase === 'betting') {
-      betting.bet(g, me, action.horse, action.sips, IDS);
+      // Jockey mode: one rider per horse.
+      const taken = g.jockey && Object.entries(g.bets).some(([id, b]) => id !== me && b.pick === action.horse);
+      if (!taken) betting.bet(g, me, action.horse, action.sips, IDS);
+    } else if (action.type === 'ride' && g.phase === 'race' && g.jockey && g.bets[me] && Object.hasOwn(HIT, action.hit)) {
+      const now = Date.now();
+      if (now - (g.lastTap[me] || 0) < TAP_GAP_MS) return;
+      g.lastTap[me] = now;
+      const h = g.bets[me].pick;
+      g.mult[h] = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round((g.mult[h] + HIT[action.hit]) * 100) / 100));
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
       g.phase = 'race';
       ctx.log(room, `🔔 Race ${g.race} is off: ${g.laps} lap${g.laps === 1 ? '' : 's'}!`);
@@ -112,10 +139,13 @@ module.exports = {
       laps: g.laps,
       speed: g.speed,
       tickMs: TICK_MS[g.speed],
+      jockey: g.jockey,
+      mult: g.mult,
       progress: g.progress,
       ticks: g.ticks,
     };
   },
 
   tick,
+  HIT,
 };

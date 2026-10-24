@@ -767,3 +767,16 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .hz-backers { display: flex; gap: 2px; }
 .hz-winner .big { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .hz-winner .hz-chip { width: 40px; height: 40px; font-size: 1.3rem; }
+.hz-pick button:disabled { opacity: 0.4; }
+.hz-speed { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hz-dial { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px 14px; background: var(--card); color: var(--text); border-radius: 18px; border: 3px solid transparent; touch-action: none; user-select: none; -webkit-user-select: none; transition: border-color 0.1s; }
+.hz-dial svg { width: 100%; max-width: 320px; height: auto; }
+.hz-zones path { fill: none; stroke-width: 26; }
+#hz-needle line { stroke: var(--text); stroke-width: 5; stroke-linecap: round; }
+#hz-needle circle { fill: var(--text); }
+#hz-needle { transform-origin: 100px 100px; }
+.hz-dial-info { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.hz-dial-info small { color: var(--muted); font-size: 0.85rem; }
+.hz-dial[data-hit="green"] { border-color: #3ddc97; background: color-mix(in srgb, #3ddc97 18%, var(--card)); }
+.hz-dial[data-hit="yellow"] { border-color: #ffcc33; }
+.hz-dial[data-hit="red"] { border-color: #ff4d6d; background: color-mix(in srgb, #ff4d6d 18%, var(--card)); }

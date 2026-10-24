@@ -16,6 +16,65 @@
   let draft = null;
   let draftFor = null;
 
+  // ---------- Jockey dial ----------
+  // A needle sweeps across a half circle: red at the edges, yellow, green in the middle. Tap to
+  // stop it on a colour. It sweeps faster the faster your horse is going.
+  const ZONES = [[14, 'green'], [40, 'yellow'], [90, 'red']]; // by distance from straight up, in degrees
+  const zoneAt = (angle) => ZONES.find(([edge]) => Math.abs(angle) <= edge)[1];
+  const dial = { angle: -90, dir: 1, last: 0, mult: 1, cooldown: 0, running: false };
+  const needleSpeed = (mult) => 150 * mult ** 1.4; // degrees a second
+
+  function dialHtml(g, myHorse) {
+    const h = horse(myHorse);
+    const arc = (from, to, color) => {
+      const p = (deg) => {
+        const r = ((deg - 90) * Math.PI) / 180;
+        return `${(100 + 84 * Math.cos(r)).toFixed(1)} ${(100 + 84 * Math.sin(r)).toFixed(1)}`;
+      };
+      return `<path d="M ${p(from)} A 84 84 0 0 1 ${p(to)}" stroke="${color}"/>`;
+    };
+    return `
+      <button class="hz-dial" id="hz-dial" aria-label="Tap when the needle is on green">
+        <svg viewBox="0 0 200 116">
+          <g class="hz-zones">
+            ${arc(-90, -40, '#ff4d6d')}${arc(-40, -14, '#ffcc33')}${arc(-14, 14, '#3ddc97')}${arc(14, 40, '#ffcc33')}${arc(40, 90, '#ff4d6d')}
+          </g>
+          <g id="hz-needle" style="transform:rotate(${dial.angle}deg)"><line x1="100" y1="100" x2="100" y2="22"/><circle cx="100" cy="100" r="7"/></g>
+        </svg>
+        <span class="hz-dial-info">${chip(h)} <b id="hz-mult">×${g.mult[myHorse].toFixed(2)}</b> <small>Tap on green!</small></span>
+      </button>`;
+  }
+
+  function runDial() {
+    if (dial.running) return;
+    dial.running = true;
+    dial.last = performance.now();
+    const frame = (now) => {
+      const needle = document.getElementById('hz-needle');
+      if (!needle) { dial.running = false; return; }
+      const dt = Math.min(0.05, (now - dial.last) / 1000);
+      dial.last = now;
+      dial.angle += dial.dir * needleSpeed(dial.mult) * dt;
+      if (dial.angle > 90) { dial.angle = 90; dial.dir = -1; }
+      if (dial.angle < -90) { dial.angle = -90; dial.dir = 1; }
+      needle.style.transform = `rotate(${dial.angle}deg)`;
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  function tapDial(btn) {
+    const now = performance.now();
+    if (now < dial.cooldown) return;
+    dial.cooldown = now + 280;
+    const hit = zoneAt(dial.angle);
+    PB.act('ride', { hit });
+    navigator.vibrate?.(hit === 'green' ? 20 : hit === 'red' ? [40, 30, 40] : 10);
+    btn.dataset.hit = hit;
+    clearTimeout(tapDial.t);
+    tapDial.t = setTimeout(() => delete btn.dataset.hit, 250);
+  }
+
   // ---------- Track geometry ----------
   // A stadium shape: two straights joined by half circles. Lane i runs at radius LANE0 + i * LANE_W
   // from the two curve centres. Distance is measured from the finish line (middle of the bottom
@@ -92,6 +151,7 @@
     return order.map((h, i) => `
       <div class="hz-stand ${g.winner === h.id ? 'won' : ''}">
         <b class="hz-pos">${i + 1}</b>${chip(h)}<span class="hz-name">${esc(h.name)}</span>
+        ${g.jockey && s.phase !== 'betting' ? `<small class="hz-speed">×${g.mult[h.id].toFixed(1)}</small>` : ''}
         <span class="hz-backers">${backers(s, h.id).map((id) => PB.avatar(id, 'sm')).join('')}</span>
       </div>`).join('');
   }
@@ -108,11 +168,15 @@
       <div class="turn">🏇 Race ${g.race}<span>Place your bets · ${g.laps} lap${g.laps === 1 ? '' : 's'}</span></div>
       ${track(s)}
       <div class="card hz-place">
-        <div class="hz-pick">${HORSES.map((h) => `
-          <button class="${draft.horse === h.id ? 'selected' : ''}" data-hz="horse" data-horse="${h.id}">
+        ${g.jockey ? '<p class="center muted">🏇 Jockey mode: one rider per horse. You\'ll steer yours with a dial.</p>' : ''}
+        <div class="hz-pick">${HORSES.map((h) => {
+          const takenBy = g.jockey && backers(s, h.id).find((id) => id !== s.me);
+          return `
+          <button class="${draft.horse === h.id ? 'selected' : ''}" data-hz="horse" data-horse="${h.id}" ${takenBy ? 'disabled' : ''}>
             ${chip(h)}<span>${esc(h.name)}</span>
             <small>${backers(s, h.id).map((id) => PB.avatar(id, 'sm')).join('')}</small>
-          </button>`).join('')}</div>
+          </button>`;
+        }).join('')}</div>
         <div class="ld-qty">
           <button class="secondary" data-hz="sips" data-step="-1" ${draft.sips <= 1 ? 'disabled' : ''}>−</button>
           <b>${draft.sips}</b>
@@ -132,9 +196,13 @@
   }
 
   function raceScreen(s) {
+    const g = s.game;
+    const riding = g.jockey && g.myBet?.pick;
+    if (riding) dial.mult = g.mult[riding];
     return `
-      <div class="turn">🏇 Race ${s.game.race}<span>And they're off!</span></div>
+      <div class="turn">🏇 Race ${g.race}<span>${riding ? `You're riding ${esc(horse(riding).name)}!` : 'And they\'re off!'}</span></div>
       ${track(s)}
+      ${riding ? dialHtml(g, riding) : ''}
       <div class="card hz-standings" id="hz-standings">${standings(s)}</div>`;
   }
 
@@ -166,6 +234,12 @@
     document.getElementById('hz-laps').textContent = lapText(g);
     const st = document.getElementById('hz-standings');
     if (st) st.innerHTML = standings(s);
+    const riding = g.jockey && g.myBet?.pick;
+    if (riding) {
+      dial.mult = g.mult[riding];
+      const m = document.getElementById('hz-mult');
+      if (m) m.textContent = `×${dial.mult.toFixed(2)}`;
+    }
     return true;
   }
 
@@ -182,6 +256,11 @@
       return '';
     },
     afterRender(s) {
+      const dialBtn = document.getElementById('hz-dial');
+      if (dialBtn) {
+        dialBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tapDial(dialBtn); });
+        runDial();
+      }
       document.querySelectorAll('[data-hz]').forEach((b) => {
         b.onclick = () => {
           if (b.dataset.hz === 'horse') draft.horse = b.dataset.horse;

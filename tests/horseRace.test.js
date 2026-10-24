@@ -65,3 +65,53 @@ test('a whole race runs on its timer and always finishes', () => {
   assert.ok(g.ticks > 25 && g.ticks < 200, `race took ${g.ticks} ticks`);
   t.cleanup();
 });
+
+test("jockey mode: one rider per horse, and the dial changes your horse's speed", () => {
+  const t = setup(game, 3, { jockey: true });
+  const g = t.room.game;
+  t.act(0, 'bet', { horse: '1', sips: 1 });
+  t.act(1, 'bet', { horse: '1', sips: 1 }); // taken
+  assert.strictEqual(g.bets.p1, undefined);
+  t.act(1, 'bet', { horse: '2', sips: 1 });
+  t.act(0, 'ride', { hit: 'green' }); // not racing yet
+  assert.strictEqual(g.mult['1'], 1);
+  t.act(0, 'startRace');
+  const realNow = Date.now;
+  let now = 1e6;
+  Date.now = () => now;
+  try {
+    t.act(0, 'ride', { hit: 'green' });
+    assert.strictEqual(g.mult['1'], 1.12);
+    t.act(0, 'ride', { hit: 'green' }); // too soon after the last tap
+    assert.strictEqual(g.mult['1'], 1.12);
+    now += 300;
+    t.act(0, 'ride', { hit: 'yellow' });
+    assert.strictEqual(g.mult['1'], 1.12);
+    now += 300;
+    t.act(1, 'ride', { hit: 'red' });
+    assert.strictEqual(g.mult['2'], 0.75, 'each rider steers only their own horse');
+    now += 300;
+    t.act(2, 'ride', { hit: 'green' }); // no horse
+    t.act(1, 'ride', { hit: 'toString' });
+    assert.deepStrictEqual([g.mult['3'], g.mult['2']], [1, 0.75]);
+    for (let i = 0; i < 20; i++) { now += 300; t.act(0, 'ride', { hit: 'green' }); }
+    assert.strictEqual(g.mult['1'], 2.2, 'speed tops out');
+  } finally {
+    Date.now = realNow;
+  }
+  // A faster horse gets bigger pushes.
+  const before = g.progress['1'];
+  game.tick(t.room, t.ctx, (() => { const r = [0.1, 0.5]; return () => (r.length ? r.shift() : 0.9); })());
+  assert.ok(Math.abs(g.progress['1'] - before - 0.04 * 2.2) < 1e-9);
+  t.cleanup();
+});
+
+test('without jockey mode, several people can back the same horse and nobody rides', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  t.act(0, 'bet', { horse: '4', sips: 1 }).act(1, 'bet', { horse: '4', sips: 2 });
+  assert.strictEqual(Object.keys(g.bets).length, 2);
+  t.act(0, 'startRace').act(0, 'ride', { hit: 'green' });
+  assert.strictEqual(g.mult['4'], 1);
+  t.cleanup();
+});

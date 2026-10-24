@@ -80,7 +80,7 @@
         hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
       },
       horseRace: {
-        locked: {},
+        locked: { jockey: false }, // riders all tap at once: needs a phone each
         actor(room, holder) {
           const g = room.game;
           if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
