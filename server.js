@@ -4,6 +4,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
+const compression = require('compression');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
@@ -35,6 +36,7 @@ const server = http.createServer(app);
 // Bigger messages (a full game state) are compressed.
 const io = new Server(server, { perMessageDeflate: { threshold: 1024 } });
 
+app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
 app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public/tv.html')));
@@ -95,6 +97,41 @@ function makeCode() {
     code = Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join('');
   } while (rooms.has(code));
   return code;
+}
+
+// A room by its code. One this server doesn't have may have been made by another server (during a
+// deploy both run for a moment), and one loaded when this server started may have been saved by the
+// old server since: either way the saved copy is read before anyone joins.
+async function findRoom(code) {
+  const here = rooms.get(code);
+  if (here && !here.restored) return here;
+  if (!roomStore.enabled) return here || null;
+  const saved = await roomStore.loadOne(code, { games: GAMES, log: ctx.log });
+  const now = rooms.get(code); // someone else may have loaded it meanwhile
+  if (now && !now.restored) return now;
+  if (saved && (!now || saved.savedAt > now.savedAt)) {
+    rooms.set(code, { ...saved, restored: false, updatedAt: Date.now() });
+    forgetAbsent(rooms.get(code));
+  } else if (now) {
+    now.restored = false;
+  }
+  return rooms.get(code) || null;
+}
+
+// After a restart, people who don't come back within a couple of minutes leave the list (their
+// tab is kept, as for anyone who misses a game).
+const RESTORE_GRACE_MS = 2 * 60 * 1000;
+function forgetAbsent(room) {
+  setTimeout(() => {
+    if (rooms.get(room.code) !== room || room.game) return;
+    const gone = room.players.filter((p) => !p.connected);
+    if (!gone.length) return;
+    room.away ||= {};
+    for (const p of gone) room.away[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
+    room.players = room.players.filter((p) => p.connected);
+    ensureHost(room);
+    broadcast(room);
+  }, RESTORE_GRACE_MS).unref();
 }
 
 const MAX_ROOMS = 2000;
@@ -280,10 +317,11 @@ io.on('connection', (socket) => {
   // Every handler gets an object payload and a callable ack, whatever a client sends, and an error
   // in one never takes the server down.
   const on = (event, fn) => socket.on(event, (data, ack) => {
+    const failed = (err) => console.error(`[${room?.code || '----'}] ${event} failed`, err);
     try {
-      fn(data && typeof data === 'object' && !Array.isArray(data) ? data : {}, typeof ack === 'function' ? ack : () => {});
+      Promise.resolve(fn(data && typeof data === 'object' && !Array.isArray(data) ? data : {}, typeof ack === 'function' ? ack : () => {})).catch(failed);
     } catch (err) {
-      console.error(`[${room?.code || '----'}] ${event} failed`, err);
+      failed(err);
     }
   });
 
@@ -335,10 +373,10 @@ io.on('connection', (socket) => {
     broadcast(r);
   });
 
-  on('join', ({ code, name, playerId, key, avatar, color } = {}, ack = () => {}) => {
+  on('join', async ({ code, name, playerId, key, avatar, color } = {}, ack = () => {}) => {
     code = String(code || '').toUpperCase().trim().slice(0, 4);
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
-    const r = rooms.get(code);
+    const r = await findRoom(code);
     if (!r) {
       guessing(clientIp(socket), true);
       return ack({ error: `No room called ${code || '????'}` });
@@ -367,6 +405,13 @@ io.on('connection', (socket) => {
     }
     attach(r, p);
     ack({ ok: true, code });
+    // Back after a restart in the middle of Around the World: it carries on with a new vote.
+    // (Once a couple of people are back, so there's something to vote on.)
+    if (r.tripResume && !r.trip && !r.game && ctx.connectedPlayers(r).length >= 2) {
+      const saved = r.tripResume;
+      r.tripResume = null;
+      trips.resume(r, saved);
+    }
     broadcast(r);
   });
 
@@ -504,9 +549,9 @@ io.on('connection', (socket) => {
   });
 
   // A TV joins a room to show it on a big screen.
-  on('watch', ({ code } = {}, ack = () => {}) => {
+  on('watch', async ({ code } = {}, ack = () => {}) => {
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
-    const r = rooms.get(String(code || '').toUpperCase().trim().slice(0, 4));
+    const r = await findRoom(String(code || '').toUpperCase().trim().slice(0, 4));
     if (!r) {
       guessing(clientIp(socket), true);
       return ack({ error: `No room called ${code || '????'}` });
@@ -567,7 +612,11 @@ process.on('SIGTERM', async () => {
 
 roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
   // Everyone gets the usual idle window to reconnect, counted from now.
-  for (const r of saved) if (!rooms.has(r.code)) rooms.set(r.code, { ...r, updatedAt: Date.now() });
+  for (const r of saved) {
+    if (rooms.has(r.code)) continue;
+    rooms.set(r.code, { ...r, updatedAt: Date.now() });
+    forgetAbsent(rooms.get(r.code));
+  }
   if (roomStore.enabled) console.log(`Room store on (${process.env.ROOM_STORE}): ${saved.length} room(s) restored`);
   server.listen(PORT, listening);
 });
