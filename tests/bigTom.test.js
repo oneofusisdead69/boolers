@@ -109,21 +109,85 @@ test('the host can start answering early; Big Tom writes the missing questions',
   t.cleanup();
 });
 
-test('rounds end with a summary, then a new round', () => {
-  const t = setup(game, 3);
-  writeAll(t, 3);
-  answerAll(t, 3);
+// Plays a whole round: questions, answers, and a vote for side b in every matchup.
+function playRound(t, n) {
+  writeAll(t, n);
+  answerAll(t, n);
   const g = t.room.game;
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < g.matchups.length; k++) {
     const m = g.matchups[k];
-    const voter = [0, 1, 2].find((i) => `p${i}` !== m.a && `p${i}` !== m.b);
-    t.act(voter, 'vote', { side: 'b' });
+    for (let i = 0; i < n; i++) if (`p${i}` !== m.a && `p${i}` !== m.b) t.act(i, 'vote', { side: 'b' });
     t.act(0, 'next');
   }
+}
+const PNG = 'data:image/png;base64,iVBORw0KGgo=';
+
+test('three rounds, then a final round answered by drawing', () => {
+  const t = setup(game, 3);
+  const g = t.room.game;
+  playRound(t, 3);
   assert.strictEqual(g.phase, 'summary');
   assert.strictEqual(t.view(0).results.length, 3);
   t.act(0, 'nextRound');
-  assert.strictEqual(g.phase, 'write');
   assert.strictEqual(g.round, 2);
+  playRound(t, 3);
+  t.act(0, 'nextRound');
+  playRound(t, 3);
+  assert.strictEqual(g.round, game.ROUNDS);
+  t.act(0, 'nextRound');
+  assert.strictEqual(g.phase, 'draw');
+  assert.ok(t.view(1).finalQuestion);
+  t.cleanup();
+});
+
+test('final: drawings are checked, voted on anonymously; fewest votes drink double, winner hands out double', () => {
+  const t = setup(game, 4, { sips: 2 });
+  const g = t.room.game;
+  for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 4); t.act(0, 'nextRound'); }
+  assert.strictEqual(g.phase, 'draw');
+  t.act(0, 'drawing', { image: 'javascript:alert(1)' });
+  t.act(0, 'drawing', { image: `data:image/png;base64,${'A'.repeat(400000)}` });
+  assert.deepStrictEqual(g.drawings, {});
+  for (let i = 0; i < 4; i++) t.act(i, 'drawing', { image: PNG });
+  assert.strictEqual(g.phase, 'finalVote');
+  const v = t.view(0);
+  assert.strictEqual(v.drawings.length, 4);
+  assert.ok(v.drawings.every((d) => d.by === null), 'no names while voting');
+  const indexOf = (id) => g.finalOrder.indexOf(id);
+  const before = t.drinks();
+  const pointsBefore = { ...g.points };
+  t.act(0, 'finalVote', { i: indexOf('p0') }); // not your own
+  assert.strictEqual(g.finalVotes.p0, undefined);
+  // p1 gets 2 votes, p2 gets 1, p3 gets 1, p0 gets 0.
+  t.act(0, 'finalVote', { i: indexOf('p1') }).act(2, 'finalVote', { i: indexOf('p1') });
+  t.act(1, 'finalVote', { i: indexOf('p3') }).act(3, 'finalVote', { i: indexOf('p2') });
+  assert.strictEqual(g.phase, 'final');
+  assert.deepStrictEqual(g.finalResult.winners, ['p1']);
+  assert.deepStrictEqual(g.finalResult.losers, ['p0']);
+  assert.strictEqual(t.drinks()[0], before[0] + 4);
+  assert.deepStrictEqual(g.give, { from: 'p1', sips: 4 });
+  t.act(1, 'give', { targetId: 'p3' });
+  assert.strictEqual(t.drinks()[3], before[3] + 4);
+  assert.strictEqual(g.points.p1, (pointsBefore.p1 || 0) + 2, 'final votes are points');
+  assert.strictEqual(t.view(2).drawings.find((d) => d.by === 'p1').image, PNG);
+  t.act(0, 'playAgain');
+  assert.strictEqual(g.phase, 'write');
+  assert.strictEqual(g.round, 1);
+  assert.deepStrictEqual(g.points, {});
+  t.cleanup();
+});
+
+test('final: the host can move on; anyone who did not draw drinks double', () => {
+  const t = setup(game, 3, { sips: 3 });
+  const g = t.room.game;
+  for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 3); t.act(0, 'nextRound'); }
+  t.act(0, 'drawing', { image: PNG }).act(1, 'drawing', { image: PNG });
+  t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'finalVote');
+  const before = t.drinks();
+  t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'final');
+  assert.ok(g.finalResult.losers.includes('p2'));
+  assert.ok(t.drinks()[2] >= before[2] + 6);
   t.cleanup();
 });

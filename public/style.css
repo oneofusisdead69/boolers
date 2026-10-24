@@ -808,3 +808,18 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .bt-results p { margin: 0; }
 .bt-results small { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .hz-track.running .hz-emoji { animation: none; } }
+.bt-canvas { width: 100%; aspect-ratio: 1; border-radius: 14px; background: #fff; touch-action: none; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+.bt-palette { display: flex; justify-content: center; gap: 8px; }
+.bt-swatch { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 3px solid var(--card-2); flex: none; }
+.bt-swatch.on { border-color: var(--accent); transform: scale(1.12); }
+.bt-tools { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; }
+.bt-tools button { padding: 10px 6px; font-size: 0.9rem; border: 2px solid transparent; }
+.bt-tools button.on { border-color: var(--accent); }
+.bt-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bt-art { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 14px; background: var(--card-2); border: 3px solid transparent; color: var(--text); }
+.bt-art img { width: 100%; aspect-ratio: 1; border-radius: 10px; background: #fff; display: block; }
+.bt-art small { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.bt-art.selected { border-color: var(--accent); }
+.bt-art.won { border-color: var(--ok); }
+.bt-art.lost { opacity: 0.75; }
+.bt-art:disabled { opacity: 0.6; }
