@@ -2,7 +2,8 @@
 // (app.js) and the pass-and-play runner (play/local.html); each page plugs in PB.send (how a
 // game action is sent) and PB.redraw (how the screen is redrawn).
 (() => {
-  const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣', X: '★' };
+  // \uFE0E asks for the text symbol, so phones don't swap in an emoji (a big red ♥).
+  const SUIT_SYMBOLS = { S: '♠\uFE0E', H: '♥\uFE0E', D: '♦\uFE0E', C: '♣\uFE0E', X: '★' };
   const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 0: '🃏' };
   // The big suit in the middle of a card, drawn as a shape rather than a text character so it
   // sits dead centre whatever the phone's font (and ♥ never turns into an emoji). 100×100 box.

@@ -1,7 +1,8 @@
 // Screens for Ride the Bus. Server logic: games/rideTheBus.js
 (() => {
   const { esc, name } = PB;
-  const SUITS = { S: '♠', H: '♥', D: '♦', C: '♣' };
+  const SUITS = { S: '♠\uFE0E', H: '♥\uFE0E', D: '♦\uFE0E', C: '♣\uFE0E' };
+  const SUIT_NAMES = { S: 'Spades', H: 'Hearts', D: 'Diamonds', C: 'Clubs' };
   const RANKS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
   const ROUND_NAMES = ['Red or black?', 'Higher or lower?', 'Inside or outside?', 'Pick the suit'];
   const cardText = (c) => (c ? `${RANKS[c.rank] || c.rank}${SUITS[c.suit]}` : '?');
@@ -22,8 +23,8 @@
           <button class="secondary" data-act="${act}" data-guess="inside">Inside ${esc(cardText(a))}–${esc(cardText(b))}</button>
           <button class="secondary" data-act="${act}" data-guess="outside">Outside</button></div>`;
       }
-      case 'suit': return `<div class="mm-suits">${Object.entries(SUITS).map(([k, sym]) =>
-        `<button class="secondary ${k === 'H' || k === 'D' ? 'red' : ''}" data-act="${act}" data-guess="${k}">${sym}</button>`).join('')}</div>`;
+      case 'suit': return `<div class="mm-suits">${Object.keys(SUITS).map((k) =>
+        `<button class="secondary ${k === 'H' || k === 'D' ? 'red' : ''}" data-act="${act}" data-guess="${k}" aria-label="${SUIT_NAMES[k]}">${PB.pip(k)}</button>`).join('')}</div>`;
       default: return '';
     }
   }
@@ -125,7 +126,7 @@
         ${PB.playerPicker('play', { exclude: [s.me], extra: { cardIdx: selected } })}
         <button class="link" data-select="none">Cancel</button>`;
     } else if (spot && g.myHand.some(matches)) {
-      action = `<p class="center">${g.bluff ? 'Tap a card to play it (bluffing allowed)' : `You have a ${esc(cardText(spot.card).slice(0, -1))}! Tap it to give ${PB.plural(spot.sips, 'sip')}`}</p>`;
+      action = `<p class="center">${g.bluff ? 'Tap a card to play it (bluffing allowed)' : `You have a ${esc(RANKS[spot.card.rank] || spot.card.rank)}! Tap it to give ${PB.plural(spot.sips, 'sip')}`}</p>`;
     }
 
     return `

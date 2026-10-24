@@ -1,11 +1,11 @@
 // Screens for Mad Max. Server logic: games/madMax.js
 (() => {
   const { esc, name } = PB;
-  const SUITS = { S: '♠', H: '♥', D: '♦', C: '♣' };
+  const SUITS = { S: '♠\uFE0E', H: '♥\uFE0E', D: '♦\uFE0E', C: '♣\uFE0E' };
   const RANKS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
   const CALL_NAMES = {
     same: 'same color', different: 'different color', higher: 'higher', lower: 'lower',
-    S: '♠ spades', H: '♥ hearts', D: '♦ diamonds', C: '♣ clubs', high: 'highest wins', low: 'lowest wins',
+    S: '♠\uFE0E spades', H: '♥\uFE0E hearts', D: '♦\uFE0E diamonds', C: '♣\uFE0E clubs', high: 'highest wins', low: 'lowest wins',
   };
   const cardText = (c) => (c ? `${RANKS[c.rank] || c.rank}${SUITS[c.suit]}` : '?');
 
@@ -44,8 +44,8 @@
         <button class="secondary" data-act="call" data-call="higher">Higher ▲</button>
         <button class="secondary" data-act="call" data-call="lower">Lower ▼</button>
       </div>
-      <div class="mm-suits">${Object.entries(SUITS).map(([k, sym]) =>
-        `<button class="secondary ${k === 'H' || k === 'D' ? 'red' : ''}" data-act="call" data-call="${k}" aria-label="${CALL_NAMES[k]}">${sym}</button>`).join('')}</div>
+      <div class="mm-suits">${Object.keys(SUITS).map((k) =>
+        `<button class="secondary ${k === 'H' || k === 'D' ? 'red' : ''}" data-act="call" data-call="${k}" aria-label="${CALL_NAMES[k]}">${PB.pip(k)}</button>`).join('')}</div>
       <p class="center muted">Suit calls are 2 sips if you're wrong · you have ${PB.plural(s.game.counts[s.me], 'card')}</p>`;
   }
 

@@ -441,6 +441,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .mm-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .mm-suits button { font-size: 1.8rem; padding: 10px 0; color: var(--text); }
 .mm-suits button.red { color: var(--danger); }
+.mm-suits button svg.pip { width: 1.6rem; height: 1.6rem; display: block; margin: 0 auto; fill: currentColor; }
 .mm-seats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .mm-seat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 12px; border-radius: 12px; background: var(--card); min-width: 76px; font-size: 0.85rem; border: 2px solid transparent; }
 .mm-seat b { font-variant-numeric: tabular-nums; }
