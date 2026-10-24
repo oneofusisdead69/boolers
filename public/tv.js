@@ -26,6 +26,7 @@ const { esc } = PB;
 PB.send = () => {};
 PB.redraw = () => render();
 PB.passAndPlay = true; // names, never "you"
+PB.isTV = true; // games can draw things only the TV shows
 
 // ---------- Connection ----------
 
@@ -79,7 +80,7 @@ function playSounds(prev, s) {
   const screens = PB.screens[s.gameType];
   const sounds = new Set(screens?.sounds?.(prev, s) || []);
   if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
-  const pick = ['win', 'bell', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
+  const pick = ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x));
   if (pick) Prefs.play(pick);
 }
 
@@ -150,11 +151,13 @@ function seats(s) {
 
 function sidebar(s) {
   const game = s.games.find((x) => x.id === s.gameType);
+  // A game can pick the rules that apply to how it's being played (e.g. the darts mode).
+  const rules = PB.screens[s.gameType]?.tvRules?.(s, game?.rules || []) || game?.rules || [];
   const board = s.players.slice().sort((a, b) => b.drinks - a.drinks || (b.total || 0) - (a.total || 0));
   return `
     <div class="card tv-board"><h2>🍺 Leaderboard</h2><ol>${board.map((p) => `
       <li>${PB.avatar(p.id, 'sm')}<span>${esc(p.name)}</span><b>${p.drinks}</b><small>${p.total || 0} tonight</small></li>`).join('')}</ol></div>
-    ${game?.rules.length ? `<div class="card tv-rules-card"><h2>📜 ${esc(game.name)}</h2><ul class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` : ''}
+    ${rules.length ? `<div class="card tv-rules-card"><h2>📜 ${esc(game.name)}</h2><ul class="tv-rules">${rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` : ''}
     ${PB.feed(5)}`;
 }
 

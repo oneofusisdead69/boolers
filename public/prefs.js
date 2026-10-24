@@ -2,7 +2,7 @@
 // page (the app, pass and play, and the stand-alone Slevens and Mad Max pages), so it brings its
 // own styles and needs nothing else.
 //
-//   Prefs.play('dice')      play a sound: dice, card, turn, drink, win, bell
+//   Prefs.play('dice')      play a sound: dice, card, dart, turn, drink, win, bell
 //   Prefs.button()          HTML for a ⚙️ button; tapping any [data-prefs] opens the panel
 //   Prefs.feedbackButton()  HTML for a 💬 button; tapping any [data-feedback] opens the form
 //
@@ -184,6 +184,12 @@
     card(ac, out) {
       burst(ac, out, { len: 0.14, freq: 900, sweepTo: 4200, q: 0.8, gain: 0.5 });
       burst(ac, out, { at: 0.11, len: 0.03, freq: 2500, q: 2, gain: 0.35 });
+    },
+    // A dart: a short swish, then the thunk into the board.
+    dart(ac, out) {
+      burst(ac, out, { len: 0.12, freq: 2500, sweepTo: 900, q: 0.7, gain: 0.25 });
+      tone(ac, out, { freq: 140, type: 'triangle', at: 0.11, len: 0.09, gain: 0.5 });
+      burst(ac, out, { at: 0.11, len: 0.04, freq: 700, q: 1.5, gain: 0.6 });
     },
     // Two-note chime: your turn.
     turn(ac, out) {
