@@ -107,6 +107,105 @@
       return Date.now() + PB.clockOffset;
     },
 
+    // ---------- Custom game content ----------
+    // The host's own questions, rules and lists for a game, kept on this phone and sent when the
+    // game starts. Fields come from the game's `custom` list (see lib/custom.js).
+
+    customFor(gameId) {
+      try { return JSON.parse(localStorage.getItem(`custom-${gameId}`)) || {}; } catch { return {}; }
+    },
+
+    hasCustom(gameId) {
+      return Object.keys(PB.customFor(gameId)).length > 0;
+    },
+
+    // Opens the editor; onClose runs after Save or Cancel.
+    editCustom(gameId, gameName, fields, onClose = () => {}) {
+      const saved = PB.customFor(gameId);
+      const esc = PB.esc;
+      const field = (f) => {
+        if (f.kind === 'list') {
+          const lines = saved[f.id] || f.defaults || [];
+          return `<section class="cx-field">
+            <h3>${esc(f.label)}</h3>${f.hint ? `<p class="cx-hint">${esc(f.hint)}</p>` : ''}
+            <textarea data-cx="${esc(f.id)}" rows="${f.defaults ? 8 : 6}" placeholder="${f.defaults ? '' : 'One per line'}">${esc(lines.join('\n'))}</textarea>
+            ${f.defaults ? `<button class="cx-reset" data-cx-reset="${esc(f.id)}">Reset to the usual list</button>` : ''}
+          </section>`;
+        }
+        if (f.kind === 'cards') {
+          const mine = saved[f.id] || {};
+          return `<section class="cx-field">
+            <h3>${esc(f.label)}</h3>${f.hint ? `<p class="cx-hint">${esc(f.hint)}</p>` : ''}
+            ${f.items.map((it) => `
+              <div class="cx-card" data-cx-card="${esc(f.id)}" data-key="${esc(it.key)}">
+                <b class="cx-rank">${esc(it.label)}</b>
+                <div class="cx-card-body">
+                  <input data-part="title" maxlength="24" placeholder="${esc(it.title)}" value="${esc(mine[it.key]?.title || '')}">
+                  <textarea data-part="text" rows="2" maxlength="160" placeholder="${esc(it.text)}">${esc(mine[it.key]?.text || '')}</textarea>
+                </div>
+              </div>`).join('')}
+          </section>`;
+        }
+        return '';
+      };
+
+      const overlay = document.createElement('div');
+      overlay.className = 'prefs-overlay';
+      overlay.innerHTML = `
+        <div class="prefs-panel cx-panel" role="dialog" aria-modal="true" aria-label="Customize ${esc(gameName)}">
+          <header><h2>✏️ ${esc(gameName)}</h2><button class="prefs-close" data-cx-cancel aria-label="Close">✕</button></header>
+          <p class="cx-hint">Saved on this phone, and used whenever you start ${esc(gameName)}.</p>
+          ${fields.map(field).join('')}
+          <div class="cx-actions">
+            <button class="cx-clear" data-cx-clear>Use the usual game</button>
+            <button class="cx-save" data-cx-save>Save</button>
+          </div>
+        </div>`;
+      const close = () => { overlay.remove(); onClose(); };
+
+      // Reads the form. Lists left exactly as the usual one, and blank cards, aren't saved.
+      const read = () => {
+        const out = {};
+        for (const f of fields) {
+          if (f.kind === 'list') {
+            const lines = overlay.querySelector(`[data-cx="${f.id}"]`).value.split('\n').map((x) => x.trim()).filter(Boolean);
+            if (lines.length && (!f.defaults || lines.join('\n') !== f.defaults.join('\n'))) out[f.id] = lines;
+          } else if (f.kind === 'cards') {
+            const cards = {};
+            overlay.querySelectorAll(`[data-cx-card="${f.id}"]`).forEach((el) => {
+              const title = el.querySelector('[data-part="title"]').value.trim();
+              const text = el.querySelector('[data-part="text"]').value.trim();
+              if (title || text) cards[el.dataset.key] = { ...(title && { title }), ...(text && { text }) };
+            });
+            if (Object.keys(cards).length) out[f.id] = cards;
+          }
+        }
+        return out;
+      };
+      const store = (value) => {
+        try {
+          if (Object.keys(value).length) localStorage.setItem(`custom-${gameId}`, JSON.stringify(value));
+          else localStorage.removeItem(`custom-${gameId}`);
+        } catch {}
+      };
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target.closest('[data-cx-cancel]')) return close();
+        if (e.target.closest('[data-cx-save]')) { store(read()); return close(); }
+        if (e.target.closest('[data-cx-clear]')) {
+          if (!confirm(`Forget all your ${gameName} edits?`)) return;
+          store({});
+          return close();
+        }
+        const reset = e.target.closest('[data-cx-reset]');
+        if (reset) {
+          const f = fields.find((x) => x.id === reset.dataset.cxReset);
+          overlay.querySelector(`[data-cx="${f.id}"]`).value = f.defaults.join('\n');
+        }
+      });
+      document.body.appendChild(overlay);
+    },
+
     // Recent things that happened (drinks handed out etc.).
     feed(limit = 4) {
       const items = PB.state.feed.slice(-limit).reverse();

@@ -379,6 +379,11 @@ function renderLobby() {
             </button>`).join('')}</div>`
         : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
       ${renderOptions()}
+      ${host && s.custom.length ? `
+        <div class="custom-row">
+          <small>${PB.hasCustom(game.id) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
+          <button class="secondary" id="customize">✏️ Customize</button>
+        </div>` : ''}
     </div>
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
@@ -400,11 +405,12 @@ function renderLobby() {
   $app.querySelectorAll('[data-option]').forEach((b) => {
     b.onclick = () => socket.emit('setOption', { id: b.dataset.option, value: JSON.parse(b.dataset.value) });
   });
+  document.getElementById('customize')?.addEventListener('click', () => PB.editCustom(game.id, game.name, s.custom, render));
   const $start = document.getElementById('start');
   if ($start) {
     $start.onclick = () => {
       fullscreen.enter();
-      socket.emit('start', {}, (res) => res.error && toast(res.error));
+      socket.emit('start', { custom: PB.customFor(game.id) }, (res) => res.error && toast(res.error));
     };
   }
 }

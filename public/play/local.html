@@ -122,6 +122,11 @@
         <div class="card">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
+          ${game.custom?.length ? `
+            <div class="custom-row">
+              <small>${PB.hasCustom(gameId) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
+              <button class="secondary" id="customize">✏️ Customize</button>
+            </div>` : ''}
           ${options.map((o) => `
             <div class="option">
               <span class="muted">${esc(o.label)}</span>
@@ -142,6 +147,10 @@
         <button id="start">Start ${esc(game.name)}</button>`;
 
       const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
+      document.getElementById('customize')?.addEventListener('click', () => {
+        names = readNames();
+        PB.editCustom(gameId, game.name, game.custom, () => renderSetup());
+      });
       document.getElementById('add').onclick = () => { names = [...readNames(), `Player ${names.length + 1}`]; renderSetup(); };
       $app.querySelectorAll('[data-remove]').forEach((b) => {
         b.onclick = () => { const n = readNames(); n.splice(Number(b.dataset.remove), 1); names = n; renderSetup(); };
@@ -178,7 +187,8 @@
         broadcast: () => render(),
       });
       holder = null;
-      game.start(room, ctx, { ...opts, ...local.locked });
+      const custom = __req('custom').clean(game.custom, PB.customFor(gameId));
+      game.start(room, ctx, { ...opts, ...local.locked, custom });
       render();
     }
 

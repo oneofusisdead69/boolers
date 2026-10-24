@@ -68,9 +68,14 @@ const QUESTIONS = [
   'still be single at 50',
 ];
 
+// A question the host typed, tidied to fit "Who's most likely to…": no lead-in, no question mark.
+function tidy(q) {
+  return q.replace(/^\s*who('s| is)?\s+(the\s+)?most\s+likely\s+to\s+/i, '').replace(/[\s?]+$/, '').trim();
+}
+
 function nextQuestion(room, ctx) {
   const g = room.game;
-  if (g.deck.length === 0) g.deck = shuffle(QUESTIONS);
+  if (g.deck.length === 0) g.deck = shuffle(g.pool);
   g.question = g.deck.pop();
   g.round += 1;
   g.phase = 'question';
@@ -108,9 +113,32 @@ module.exports = {
   description: 'Vote on who fits the prompt best. Most votes drinks.',
   minPlayers: 3,
   order: 1,
+  options: [
+    {
+      id: 'questions',
+      label: 'Questions',
+      default: 'both',
+      choices: [{ value: 'both', label: 'Built-in + yours' }, { value: 'mine', label: 'Only yours' }, { value: 'builtIn', label: 'Built-in only' }],
+    },
+  ],
+  custom: [
+    {
+      id: 'questions',
+      kind: 'list',
+      label: 'Your questions',
+      hint: 'One per line, finishing "Who\'s most likely to…", e.g. "steal the aux cord"',
+      maxItems: 200,
+      maxLen: 120,
+    },
+  ],
 
-  start(room, ctx) {
-    Object.assign(room.game, { deck: shuffle(QUESTIONS), round: 0 });
+  start(room, ctx, options = {}) {
+    const mine = (options.custom?.questions || []).map(tidy).filter(Boolean);
+    // "Only yours" with none written falls back to the built-in questions.
+    const pool = options.questions === 'builtIn' || !mine.length ? QUESTIONS
+      : options.questions === 'mine' ? mine
+        : [...QUESTIONS, ...mine];
+    Object.assign(room.game, { pool, deck: shuffle(pool), round: 0 });
     nextQuestion(room, ctx);
   },
 

@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
+const custom = require('./lib/custom');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -81,6 +82,7 @@ function viewFor(room, player) {
     selectedGame: room.selectedGame,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers }) => ({ id, name, description, minPlayers })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
+    custom: room.hostId === player.id ? selected.custom || [] : [],
     players: room.players.map(({ id, name, connected, drinks, avatar, color }) => ({ id, name, connected, drinks, avatar, color })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
@@ -200,7 +202,8 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
-  socket.on('start', (_ = {}, ack = () => {}) => {
+  // The host's phone sends its custom content (questions, rules…) along with the start.
+  socket.on('start', ({ custom: mine } = {}, ack = () => {}) => {
     if (!hostOnly() || room.game) return ack({ error: 'Only the host can start' });
     const game = GAMES[room.selectedGame];
     if (ctx.connectedPlayers(room).length < game.minPlayers) {
@@ -211,7 +214,7 @@ io.on('connection', (socket) => {
     for (const p of room.players) p.drinks = 0;
     room.feed = [];
     room.game = { type: game.id };
-    game.start(room, ctx, { ...room.options[game.id] });
+    game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
     ack({ ok: true });
     broadcast(room);
   });
