@@ -259,13 +259,41 @@ function playSounds(prev, s) {
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
   if (!PB.state?.tv) Prefs.play('drink'); // with a TV, the TV buzzes
-  const el = document.getElementById('drink-alert');
   const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
-  el.innerHTML = `<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
+  showAlert(`<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
+});
+
+// A message for the whole room. The water reminder between games is a banner across the top.
+socket.on('notice', ({ kind, title, text }) => {
+  if (kind === 'water') return showBanner(`💧 ${text}`);
+  navigator.vibrate?.([100, 60, 100]);
+  showAlert(`<div class="big">${PB.esc(title)}</div><div>${PB.esc(text)}</div>`, 'water', 8000);
+});
+
+function showBanner(text) {
+  let el = document.getElementById('banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'banner';
+    el.className = 'water-banner';
+    el.onclick = () => el.classList.remove('show');
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('show');
+  navigator.vibrate?.(60);
+  clearTimeout(el.t);
+  el.t = setTimeout(() => el.classList.remove('show'), 7000);
+}
+
+function showAlert(html, kind, ms) {
+  const el = document.getElementById('drink-alert');
+  el.className = `drink-alert ${kind}`;
+  el.innerHTML = `${html}<small>tap to dismiss</small>`;
   el.hidden = false;
   clearTimeout(el.t);
-  el.t = setTimeout(() => (el.hidden = true), 4000);
-});
+  el.t = setTimeout(() => (el.hidden = true), ms);
+}
 document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden = true);
 
 // ---------- Screens ----------
@@ -359,21 +387,45 @@ function renderOptions() {
     </div>`).join('');
 }
 
+// Around the World, between games: the vote for the next stop.
+function renderTrip() {
+  $app.innerHTML = `${Trip.html(PB.state)}<div class="spacer"></div><div class="game-foot">${PB.tabButton()}${Prefs.button()}</div>`;
+  Trip.bind($app, (event, data) => socket.emit(event, data), render);
+}
+
+// The end-of-night recap, while the host has it open.
+function renderRecap() {
+  $app.innerHTML = Recap.html(PB.state);
+  PB.layout($app, '.recap-head, .recap-awards');
+  document.getElementById('recap-share').onclick = async (e) => {
+    e.currentTarget.disabled = true;
+    await Recap.share(PB.state);
+    e.currentTarget.disabled = false;
+  };
+}
+
 // The host picks how the room looks; everyone's phone (and the TV) follows.
 function roomStyleCard(s) {
   const { STYLES } = ROOM_STYLES;
   const style = STYLES[s.style] || STYLES.classic;
-  if (!s.isHost) return style.welcome ? `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(style.label)}</b><br><span class="muted">${PB.esc(style.welcome)}</span></p>` : '';
+  if (!s.isHost) {
+    if (!style.welcome && !s.venue) return '';
+    return `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(s.venue || style.label)}</b>${style.welcome ? `<br><span class="muted">${PB.esc(style.welcome)}</span>` : ''}</p>`;
+  }
   return `<div class="card room-style-card">
-      <h2>Room style</h2>
-      <div class="room-styles">${Object.entries(STYLES).map(([id, st]) => `
-        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>
+      <h2>Venue &amp; style</h2>
+      <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
+      ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([, st]) => !!st.seasonal === seasonal).map(([id, st]) => `
+        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('')}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;
 }
 
 function renderLobby() {
   const s = PB.state;
+  // Someone joining redraws the lobby: keep the venue name the host is typing.
+  const typing = document.activeElement?.id === 'venue' ? document.activeElement : null;
+  const draft = typing && { value: typing.value, from: typing.selectionStart, to: typing.selectionEnd };
   const host = s.isHost;
   const game = s.games.find((g) => g.id === s.selectedGame);
   const online = s.players.filter((p) => p.connected).length;
@@ -398,6 +450,7 @@ function renderLobby() {
               ${PB.esc(g.name)}<small>${PB.esc(g.description)}</small>
             </button>`).join('')}</div>`
         : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
+      ${game.rules?.length ? `<details class="how-to"><summary>📖 How to play ${PB.esc(game.name)}</summary><ul>${game.rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : ''}
       ${renderOptions()}
       ${host && s.custom.length ? `
         <div class="custom-row">
@@ -405,6 +458,7 @@ function renderLobby() {
           <button class="secondary" id="customize">✏️ Customize</button>
         </div>` : ''}
     </div>
+    ${Trip.setup(s)}
     ${roomStyleCard(s)}
     <div class="card tv-card">
       ${s.tv
@@ -412,6 +466,8 @@ function renderLobby() {
         : `<p>📺 <b>Got a TV?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter <b>${PB.esc(s.code)}</b>.</p>`}
     </div>
     ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
+    ${host && s.players.some((p) => p.total || p.finished)
+      ? '<button class="secondary" data-cmd="recap" data-open="true">🏁 Wrap up the night</button>' : ''}
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
@@ -420,6 +476,19 @@ function renderLobby() {
   `;
   PB.layout($app, '.ls-l');
   bindFullscreenButtons();
+  Trip.bind($app, (event, data) => socket.emit(event, data), render);
+  // The venue's name is saved when you finish typing it.
+  const venue = document.getElementById('venue');
+  if (venue && draft) {
+    venue.value = draft.value;
+    venue.focus();
+    venue.setSelectionRange(draft.from, draft.to);
+  }
+  if (venue) {
+    const save = () => venue.value.trim() !== (PB.state.venue || '') && socket.emit('setVenue', { venue: venue.value });
+    venue.addEventListener('change', save);
+    venue.addEventListener('keydown', (e) => e.key === 'Enter' && venue.blur());
+  }
 
   document.getElementById('share').onclick = async () => {
     const url = joinUrl();
@@ -467,6 +536,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
+    ${Trip.chip(s)}
     <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   if (!screens.fullscreen) PB.layout($app, screens.stage);
@@ -476,6 +546,8 @@ function renderGame() {
 function render() {
   ROOM_STYLES.apply(PB.state?.style);
   if (!PB.state) return renderHome();
+  if (PB.state.phase === 'lobby' && PB.state.trip) return renderTrip();
+  if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();
   if (PB.state.phase === 'lobby') return renderLobby();
   renderGame();
   updateTimer();

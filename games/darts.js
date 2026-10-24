@@ -154,6 +154,9 @@ function endTurn(room, ctx, note = '') {
     ctx.log(room, `💯 ${ctx.name(room, me)} scored ${g.turnScore}!`);
   }
   if (g.mode === 'drinking') g.roundScores[me] = g.turnScore;
+  if ((g.mode === 'drinking' || g.mode === 'x01') && note !== 'bust' && g.turnScore >= 60) {
+    ctx.highlight(room, 'dartsBest', me, g.turnScore, `🎯 ${ctx.name(room, me)} threw ${g.turnScore} in one turn of darts`);
+  }
   g.lastTurn = { id: me, darts: g.darts, total: g.turnScore, note };
   if (g.phase === 'over') return;
   g.phase = 'turnEnd';

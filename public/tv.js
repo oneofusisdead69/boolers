@@ -62,10 +62,14 @@ socket.on('drink', (d) => {
   el.innerHTML = `${PB.avatar(d.playerId)}<div><b>${esc(d.who)}</b>${d.title ? `: ${esc(d.title)}` : ` drinks ${PB.plural(d.sips, 'sip')}`}
     ${d.from ? `<small>from ${esc(d.from)}</small>` : ''}${d.reason ? `<small>${esc(d.reason)}</small>` : ''}</div>`;
   $drinks.prepend(el);
+  // Only the latest few stay up.
+  [...$drinks.children].slice(4).forEach((old) => old.remove());
   setTimeout(() => el.classList.add('out'), 4200);
   setTimeout(() => el.remove(), 4800);
   Prefs.play('drink');
 });
+
+
 
 // ---------- Sound ----------
 
@@ -73,7 +77,32 @@ document.addEventListener('pointerdown', () => {
   if (soundOn) return;
   soundOn = true;
   document.getElementById('tv-sound')?.remove();
+  music();
 }, { capture: true });
+
+// Background sound to match the room style (public/ambience.js): off, low or high, remembered.
+const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
+let musicLevel = 1;
+try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length; } catch {}
+function music() {
+  if (soundOn) Ambience.set(PB.state?.style, MUSIC[musicLevel][1]);
+  let btn = document.getElementById('tv-music');
+  // It appears once sound is on (the "click for sound" button sits in the same corner till then).
+  const show = soundOn && PB.state && PB.state.style && PB.state.style !== 'classic';
+  if (!show) return btn?.remove();
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'tv-music';
+    btn.className = 'tv-music';
+    btn.onclick = () => {
+      musicLevel = (musicLevel + 1) % MUSIC.length;
+      try { localStorage.setItem('tv-music', musicLevel); } catch {}
+      music();
+    };
+    document.body.appendChild(btn);
+  }
+  btn.textContent = `🎵 Room sound: ${MUSIC[musicLevel][0]}`;
+}
 
 function playSounds(prev, s) {
   if (!prev || !s.game || prev.gameType !== s.gameType) return;
@@ -115,7 +144,7 @@ function lobbyScreen(s) {
   $tv.innerHTML = `
     <div class="tv-lobby">
       <div class="tv-lobby-join">
-        <h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
+        ${s.venue ? `<div class="tv-venue">Welcome to</div><h1 class="tv-venue-name">${esc(s.venue)}</h1>` : '<h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>'}
         <p class="tagline">Join on your phone: scan the code, or go to <b>${esc(location.host)}</b></p>
         <div class="tv-room">
           <img class="qr" src="/qr/${esc(s.code)}" alt="QR code to join">
@@ -130,7 +159,7 @@ function lobbyScreen(s) {
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
         <p class="muted">${esc(PB.name(s.hostId))} starts the game from their phone</p>
-        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
+        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(s.venue || ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
       </div>
     </div>
     ${soundButton()}`;
@@ -264,10 +293,10 @@ function gameScreen(s) {
     $tv.dataset.game = s.gameType;
     $tv.innerHTML = `
       <div class="tv-game">
-        <header class="tv-head"><b class="tv-title">${esc(game.name)}</b><div id="tv-turn" class="tv-turn"></div><span class="tv-code">Join: <b>${esc(s.code)}</b></span></header>
+        <header class="tv-head"><b class="tv-title">${esc(game.name)}</b><div id="tv-turn" class="tv-turn"></div><span class="tv-code">${s.venue ? `${esc(s.venue)} · ` : ''}Join: <b>${esc(s.code)}</b></span></header>
         ${screens.tvTable === false
           ? '<div class="tv-wide"><div class="tv-left-box"><div id="tv-left"></div></div><div class="tv-center-box"><div id="tv-center"></div></div></div><div id="tv-banner" class="tv-banner"></div>'
-          : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'}
+          : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div><div id="tv-banner" class="tv-banner"></div>'}
         <aside class="tv-side" id="tv-side"></aside>
       </div>
       ${soundButton()}`;
@@ -277,7 +306,7 @@ function gameScreen(s) {
     $seats.innerHTML = seats(s);
     placeSeats();
   }
-  document.getElementById('tv-side').innerHTML = sidebar(s);
+  document.getElementById('tv-side').innerHTML = `${Trip.chip(s)}${sidebar(s)}`;
   if (fillCenter(s, screens)) fit();
   updateTimer();
 }
@@ -285,7 +314,18 @@ function gameScreen(s) {
 function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.style);
+  music();
   if (!s) return joinScreen();
+  if (s.trip && s.phase === 'lobby') {
+    delete $tv.dataset.game;
+    $tv.innerHTML = `<div class="tv-trip">${Trip.html(s, { tv: true })}</div>`;
+    return;
+  }
+  if (s.recap && s.phase === 'lobby') {
+    delete $tv.dataset.game;
+    $tv.innerHTML = `<div class="tv-recap">${Recap.html(s, { tv: true })}</div>`;
+    return;
+  }
   if (s.phase === 'lobby' || !s.gameType) {
     delete $tv.dataset.game;
     return lobbyScreen(s);

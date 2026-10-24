@@ -55,8 +55,17 @@ Where the browser allows it (Android), the app goes full screen when you create,
 ## Sideways
 Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
 
+## Water breaks
+Whenever the room switches to a different game, or after three games in a row, a banner slides down on every phone (not the TV) with a nudge to drink some water: a different line each time, often in the room style's voice ("Arr, even pirates need fresh water, matey."). Lines live in `lib/water.js`. Pass and play does the same every third game.
+
+## Around the World
+The host can start **🌍 Around the World** from the lobby: pick 3, 5 or 8 stops, and whether everyone votes on the next game or it's a surprise. Before each stop every phone (and the TV) shows three games to vote on, new ones first; the vote closes when everyone's voted or after 25 seconds. Each game moves on by itself when it's done (games that never end, like Horse Race or Shot Poker, count as done after a few races or hands), and after the last stop the end-of-night recap comes up. The host can skip ahead (**Next stop ➜**) or end the trip any time. Rules in `lib/trip.js`, screens in `public/trip.js`.
+
+## End-of-night recap
+When the night winds down, the host taps **🏁 Wrap up the night** in the lobby. Every phone and the TV show the recap: awards (🍺 Thirstiest, 🎁 Most generous, 🥃 Bottoms up, 🏆 Champion), the games played and who won, the best moments (the best darts turn, the biggest Liar's Dice lie, the biggest Shot Poker pot, the biggest race win) and the whole tab. **📸 Share the night** makes an image in the room's style to post or send. The host can go back to the lobby, or **start a new night** with everyone's tab back at zero. Games report moments with `ctx.highlight(room, key, playerId, value, text)` (see `lib/night.js`).
+
 ## Room styles
-The host can dress the room up from the lobby: **Classic, Dive bar, Tavern, Club, Castle, Jazz club or Diner**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.
+The host can name the venue ("Noah's Basement") and dress the room up from the lobby. The name shows in the lobby, big on the TV ("Welcome to Noah's Basement"), in the TV's header and on the recap ("Tonight at Noah's Basement"). Styles: **Classic, Dive bar, Tavern, Club, Castle, Jazz club, Diner, Tiki bar, Speakeasy, Casino, Saloon, Pirate tavern, Beer hall and Space lounge**, plus seasonal **Christmas, Halloween and St Patrick's**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. On the TV each style also has its own background sound, made live in the browser (`public/ambience.js`): murmur and clinking glasses, a crackling fire and a lute, a club beat, wind and torches, a jazz trio, diner chatter and a sizzling grill. A 🎵 button on the TV sets it to Off, Low or High. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.
 
 ## TV mode
 Got a TV or laptop handy? Create a room on a phone as usual, then open **bool.games/tv** on the big screen and type the room code (or open `bool.games/tv?room=CODE`). The host still runs everything from their phone; the TV just watches.
@@ -74,7 +83,21 @@ npm test           # game logic tests
 - **Simulator:** http://localhost:3000/dev.html shows several phones side by side (`?n=4` for 4).
 - **Real phones on your Wi-Fi:** open `http://<your-computer's-ip>:3000` on each phone.
 
-## Deploy (free) on Render
+## Deploy on Google Cloud Run (bool.games)
+One-time setup, so rooms survive restarts and redeploys (Firestore's free tier is plenty):
+```bash
+gcloud services enable firestore.googleapis.com
+gcloud firestore databases create --location=nam5
+```
+Then deploy (from Cloud Shell, in `~/boolers`):
+```bash
+git pull && gcloud run deploy boolers --source . --region us-central1 --allow-unauthenticated \
+  --max-instances 1 --min-instances 1 --session-affinity --timeout 3600 \
+  --set-env-vars ROOM_STORE=firestore
+```
+- `--min-instances 1` keeps the server awake, so nobody waits for a cold start and an idle night doesn't shut it down (costs a few dollars a month).
+- `ROOM_STORE=firestore` saves each room (code, players, tonight's sips, game choice, style) a moment after it changes and loads them back on start. A game that was being played goes back to the lobby after a restart; phones reconnect by themselves. Locally, `ROOM_STORE=file npm start` does the same with a `.rooms.json` file.
+
 1. Push this folder to a GitHub repo.
 2. In Render, go to **New > Blueprint** and pick the repo. `render.yaml` configures everything.
 3. Share the `https://<name>.onrender.com` URL. On the free plan the server sleeps after about 15 minutes idle, so the first load can take around 30 seconds.
@@ -91,6 +114,7 @@ public/pb.js           shared screen helpers (PB.*), custom content editor
 public/prefs.js        per-phone settings: sounds, themes, dice and card styles
 lib/looks.js           avatar and colour lists (server and phones)
 lib/roomStyles.js      room styles: dive bar, tavern… (server, phones and TV)
+lib/roomStore.js       saves rooms across restarts (Firestore or a file)
 lib/custom.js          checks custom game content from the host
 tests/                 node:test tests + helpers for simulating games
 ```

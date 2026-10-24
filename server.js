@@ -7,8 +7,12 @@ const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
+const night = require('./lib/night');
+const { createTrips } = require('./lib/trip');
+const { waterLine } = require('./lib/water');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
+const { createRoomStore } = require('./lib/roomStore');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -68,6 +72,8 @@ app.get('/qr/:code', async (req, res) => {
 // ---------- Rooms ----------
 
 const rooms = new Map();
+// Rooms survive a restart when ROOM_STORE is set (see lib/roomStore.js).
+const roomStore = createRoomStore();
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O to avoid confusion with 1/0
 
 function makeCode() {
@@ -103,6 +109,10 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    venue: room.venue || '',
+    trip: trips.view(room, player.id),
+    // The end-of-night recap, while the host has it open.
+    recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
@@ -124,7 +134,9 @@ const TV = { id: '__tv', name: 'TV' };
 const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
+  trips.check(room);
   room.updatedAt = Date.now();
+  roomStore.save(room);
   for (const p of room.players) {
     if (p.connected && p.socketId) io.to(p.socketId).emit('state', viewFor(room, p));
   }
@@ -143,10 +155,50 @@ function emit(room, playerId, event, data) {
   }
 }
 
+// A message for every phone in the room (not the TV), e.g. the water reminder.
+function notifyPhones(room, event, data) {
+  for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
+}
+
 const ctx = createContext({ emit, broadcast });
+
+// Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
+// host's custom content (questions, rules…), if they wrote any.
+function startGame(room, gameId, mine = {}) {
+  const game = GAMES[gameId];
+  room.selectedGame = gameId;
+  // Disconnected players don't carry into a new game.
+  room.players = room.players.filter((p) => p.connected);
+  for (const p of room.players) p.drinks = 0;
+  room.feed = [];
+  room.recap = false;
+  room.game = { type: game.id };
+  game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
+  room.gameStartedAt = Date.now();
+  analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
+  broadcast(room);
+  // A different game (or the third in a row): a nudge to drink some water, on the phones.
+  if (night.waterDue(room, game.id)) notifyPhones(room, 'notice', { kind: 'water', text: waterLine(room.style) });
+}
+
+function stopGame(room, how) {
+  gameEnded(room, how);
+  ctx.endGame(room);
+}
+
+// Around the World (lib/trip.js): games back to back, voted on, until the recap.
+const trips = createTrips({
+  games: GAMES,
+  ctx,
+  startGame: (room, id) => startGame(room, id),
+  stopGame: (room) => stopGame(room, 'trip'),
+  broadcast,
+  finish: (room) => { room.recap = true; },
+});
 
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
+  if (room.game && how !== 'abandoned') night.gamePlayed(room, room.game.type, GAMES[room.game.type].name);
   if (!room.game || !room.gameStartedAt) return;
   analytics.track('game_ended', {
     game: room.game.type,
@@ -241,6 +293,31 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  // The host wraps up the night: everyone's phone (and the TV) shows the recap.
+  socket.on('recap', ({ open } = {}) => {
+    if (!hostOnly() || room.game) return;
+    room.recap = open === true || open === 'true';
+    broadcast(room);
+  });
+
+  // A new night: everyone's tab starts again from zero.
+  socket.on('newNight', () => {
+    if (!hostOnly() || room.game) return;
+    for (const p of room.players) Object.assign(p, { drinks: 0, total: 0, finished: 0 });
+    room.night = null;
+    room.recap = false;
+    room.feed = [];
+    ctx.log(room, '🌙 A new night begins');
+    broadcast(room);
+  });
+
+  // The host names the venue ("Noah's Basement"), shown in the lobby, on the TV and in the recap.
+  socket.on('setVenue', ({ venue } = {}) => {
+    if (!hostOnly()) return;
+    room.venue = String(venue || '').replace(/\s+/g, ' ').trim().slice(0, 32);
+    broadcast(room);
+  });
+
   // The host dresses the room up (any time, even mid-game).
   socket.on('setStyle', ({ style } = {}) => {
     if (!hostOnly() || !ROOM_STYLES.IDS.includes(style)) return;
@@ -269,15 +346,33 @@ io.on('connection', (socket) => {
     if (ctx.connectedPlayers(room).length < game.minPlayers) {
       return ack({ error: `${game.name} needs at least ${game.minPlayers} players` });
     }
-    // Disconnected players don't carry into a new game.
-    room.players = room.players.filter((p) => p.connected);
-    for (const p of room.players) p.drinks = 0;
-    room.feed = [];
-    room.game = { type: game.id };
-    game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
-    room.gameStartedAt = Date.now();
-    analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
+    trips.end(room);
     ack({ ok: true });
+    startGame(room, game.id, mine);
+  });
+
+  // Around the World: the host sets the number of stops and how the next game is picked.
+  socket.on('startTrip', ({ stops, mode } = {}) => {
+    if (!hostOnly() || room.game) return;
+    stops = [3, 5, 8].includes(Number(stops)) ? Number(stops) : 5;
+    trips.start(room, { stops, mode: mode === 'random' ? 'random' : 'vote' });
+    broadcast(room);
+  });
+  socket.on('tripVote', ({ gameId } = {}) => {
+    if (!room || !player) return;
+    trips.vote(room, player.id, gameId);
+    broadcast(room);
+  });
+  // The host moves on now (skips the rest of this game, or closes the vote), or ends the trip.
+  socket.on('nextStop', () => {
+    if (!hostOnly()) return;
+    trips.skip(room);
+    broadcast(room);
+  });
+  socket.on('endTrip', () => {
+    if (!hostOnly() || !room.trip) return;
+    trips.end(room);
+    if (room.game) stopGame(room, 'host');
     broadcast(room);
   });
 
@@ -291,10 +386,11 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  // Ending a game on the trip just moves on to the next stop.
   socket.on('endGame', () => {
     if (!hostOnly() || !room.game) return;
-    gameEnded(room, 'host');
-    ctx.endGame(room);
+    if (room.trip) trips.skip(room);
+    else stopGame(room, 'host');
     broadcast(room);
   });
 
@@ -357,13 +453,28 @@ setInterval(() => {
     if (ctx.connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
       gameEnded(r, 'abandoned');
       ctx.clearTimer(r);
+      trips.end(r);
       rooms.delete(code);
+      roomStore.remove(code);
     }
   }
 }, 60 * 1000).unref();
 
-server.listen(PORT, () => {
+// Cloud Run says it's about to stop the server with SIGTERM: save every room first.
+process.on('SIGTERM', async () => {
+  await roomStore.flush();
+  process.exit(0);
+});
+
+roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
+  // Everyone gets the usual idle window to reconnect, counted from now.
+  for (const r of saved) if (!rooms.has(r.code)) rooms.set(r.code, { ...r, updatedAt: Date.now() });
+  if (roomStore.enabled) console.log(`Room store on (${process.env.ROOM_STORE}): ${saved.length} room(s) restored`);
+  server.listen(PORT, listening);
+});
+
+function listening() {
   console.log(`Bool Games running on http://localhost:${PORT}`);
   console.log(`Games: ${Object.values(GAMES).map((g) => g.name).join(', ')}`);
   console.log(`Test with several phones at once: http://localhost:${PORT}/dev.html`);
-});
+}

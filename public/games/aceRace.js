@@ -12,7 +12,9 @@
   const backers = (s, suit) => Object.entries(s.game.bets).filter(([, b]) => b.pick === suit).map(([id]) => id);
 
   // The track, finish line at the top. Each row has its track card on the left and the four lanes.
+  // With a TV in the room the track is on the TV, and phones are just for betting and paying out.
   function track(s) {
+    if (s.tv && !PB.isTV) return '<p class="center muted ar-on-tv">📺 The race is on the TV</p>';
     const g = s.game;
     const rows = [];
     for (let r = g.length + 1; r >= 0; r--) {
