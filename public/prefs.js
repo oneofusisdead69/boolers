@@ -4,6 +4,7 @@
 //
 //   Prefs.play('dice')      play a sound: dice, card, turn, drink, win
 //   Prefs.button()          HTML for a ⚙️ button; tapping any [data-prefs] opens the panel
+//   Prefs.feedbackButton()  HTML for a 💬 button; tapping any [data-feedback] opens the form
 //
 // Settings are remembered on this phone only.
 (() => {
@@ -66,6 +67,13 @@
   const panelCss = `
     .prefs-btn { width: auto; padding: 8px 14px; font-size: 0.95rem; background: var(--card-2); color: var(--text); border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
     .prefs-btn.mini { padding: 6px 10px; flex: none; }
+    .prefs-feedback { background: var(--card) !important; color: var(--text); padding: 12px; font-weight: 600; }
+    .fb-panel textarea, .fb-panel input { width: 100%; box-sizing: border-box; font: inherit; font-size: 1rem; padding: 12px; border-radius: 12px; border: 2px solid var(--card-2); background: var(--card); color: var(--text); resize: vertical; }
+    .fb-panel textarea:focus, .fb-panel input:focus { outline: none; border-color: var(--accent); }
+    .fb-hint { margin: 0; color: var(--muted); }
+    .fb-status { margin: 0; min-height: 1.2em; color: var(--muted); font-size: 0.9rem; }
+    .fb-send { background: var(--accent) !important; color: var(--accent-text); padding: 14px; font-weight: 700; font-size: 1.05rem; }
+    .fb-send:disabled { opacity: 0.6; }
     .prefs-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; justify-content: center; }
     .prefs-panel { width: 100%; max-width: 480px; max-height: 88dvh; overflow-y: auto; background: var(--bg); color: var(--text); border-radius: 20px 20px 0 0; padding: 18px 16px max(18px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     .prefs-panel header { display: flex; align-items: center; justify-content: space-between; }
@@ -248,6 +256,7 @@
           <div class="prefs-row">${Object.entries(BACKS).map(([id, c]) => choice('back', id, c.label,
             `<span class="prefs-back" style="background:repeating-linear-gradient(45deg, ${c.a} 0 5px, ${c.b} 5px 10px)"></span>`)).join('')}</div>
         </section>
+        ${canSendFeedback() ? '<button class="prefs-feedback" data-feedback>💬 Send feedback</button>' : ''}
       </div>`;
   }
 
@@ -286,6 +295,74 @@
     else if (key === 'back') play('card');
   }
 
+  // ---------- Feedback ----------
+  // A short form whose message the server logs (see lib/analytics.js). Only on pages served by the
+  // app: the stand-alone demos have no server to send to.
+
+  const canSendFeedback = () => !!window.Analytics;
+
+  // Which game the person is looking at, if any, so feedback says what it's about.
+  function currentGame() {
+    const fromState = window.PB?.state?.gameType || window.PB?.state?.selectedGame;
+    if (fromState) return fromState;
+    const q = new URLSearchParams(location.search).get('game');
+    if (q) return q;
+    if (location.pathname.includes('slevens')) return 'slevens';
+    if (location.pathname.includes('madmax')) return 'madMax';
+    return undefined;
+  }
+
+  function openFeedback() {
+    close();
+    const box = document.createElement('div');
+    box.className = 'prefs-overlay';
+    box.innerHTML = `
+      <div class="prefs-panel fb-panel" role="dialog" aria-modal="true" aria-label="Send feedback">
+        <header><h2>💬 Feedback</h2><button class="prefs-close" data-fb-close aria-label="Close">✕</button></header>
+        <p class="fb-hint">Something broken, confusing, or a game you want? Tell us.</p>
+        <textarea data-fb-message rows="5" maxlength="1000" placeholder="What's on your mind?"></textarea>
+        <input data-fb-contact maxlength="100" autocomplete="email" placeholder="Email or name, if you'd like a reply (optional)">
+        <p class="fb-status" data-fb-status role="status"></p>
+        <button class="fb-send" data-fb-send>Send</button>
+      </div>`;
+    const status = box.querySelector('[data-fb-status]');
+    box.addEventListener('input', () => { if (!sendBtn.disabled) status.textContent = ''; });
+    const sendBtn = box.querySelector('[data-fb-send]');
+    box.addEventListener('click', async (e) => {
+      if (e.target === box || e.target.closest('[data-fb-close]')) return box.remove();
+      if (!e.target.closest('[data-fb-send]')) return;
+      const message = box.querySelector('[data-fb-message]').value.trim();
+      if (!message) { status.textContent = 'Write something first'; return; }
+      sendBtn.disabled = true;
+      status.textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, contact: box.querySelector('[data-fb-contact]').value.trim(), game: currentGame() }),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(out.error || 'Couldn\'t send it');
+        box.querySelector('.fb-panel').innerHTML = `
+          <header><h2>💬 Thanks!</h2><button class="prefs-close" data-fb-close aria-label="Close">✕</button></header>
+          <p class="fb-hint">Got it. Thanks for helping make Bool Games better.</p>
+          <button class="fb-send" data-fb-close>Done</button>`;
+      } catch (err) {
+        status.textContent = `${err.message || 'Couldn\'t send it'}. Check your connection and try again.`;
+        sendBtn.disabled = false;
+      }
+    });
+    document.body.appendChild(box);
+    box.querySelector('[data-fb-message]').focus();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-feedback]')) {
+      e.stopPropagation();
+      openFeedback();
+    }
+  }, true);
+
   // Any [data-prefs] button on any page opens the panel.
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-prefs]')) {
@@ -302,5 +379,7 @@
     get: () => ({ ...prefs }),
     // A compact ⚙️ with { mini: true }, for tight headers.
     button: ({ mini = false } = {}) => `<button class="prefs-btn ${mini ? 'mini' : ''}" data-prefs aria-label="Settings">${mini ? '⚙️' : '⚙️ Settings'}</button>`,
+    feedbackButton: () => (canSendFeedback() ? '<button class="prefs-btn" data-feedback>💬 Feedback</button>' : ''),
+    openFeedback,
   };
 })();

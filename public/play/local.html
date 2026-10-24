@@ -21,6 +21,7 @@
 <body>
   <main id="app"></main>
   <div id="drink-alert" class="drink-alert" hidden></div>
+  <script src="/analytics.js"></script>
   <script src="/prefs.js"></script>
   <script src="/looks.js"></script>
   <script src="/pb.js"></script>
@@ -134,6 +135,7 @@
         <p class="tagline">${esc(game.name)} · pass and play</p>
         <a class="home-link" href="/">← Back to Bool Games</a>
         ${Prefs.button()}
+        ${Prefs.feedbackButton()}
         <div class="card">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
@@ -206,6 +208,7 @@
       holder = null;
       const custom = __req('custom').clean(game.custom, PB.customFor(gameId));
       game.start(room, ctx, { ...opts, ...local.locked, custom });
+      window.Analytics?.event('local_game_started', { game: gameId, players: names.length });
       render();
     }
 

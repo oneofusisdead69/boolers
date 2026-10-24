@@ -20,6 +20,26 @@ Every game can also be played on one phone passed around: **Pass and play** on t
 - **Avatars:** tap the avatar next to your name to pick an emoji and a colour. Everyone sees it beside your name.
 - **Custom content:** the host taps **✏️ Customize** in the lobby to write their own Kings Cup rules, categories and rhymes. Saved on the host's phone and used whenever they start that game (pass and play too).
 
+## Usage analytics and feedback
+- **Visitors:** Cloudflare Web Analytics. Put the site token in `public/analytics.js` (`TOKEN`); see the numbers in Cloudflare under **Analytics & Logs → Web Analytics**. No cookies.
+- **Games and feedback:** the server writes one JSON line per room created, game started / ended (game, players, minutes, online or pass and play) and feedback message. Nothing personal: no names, room codes or IP addresses. On Cloud Run these land in Cloud Logging (kept 30 days). From Cloud Shell:
+
+```bash
+# Games started in the last 7 days, by game
+gcloud logging read 'resource.labels.service_name="boolers" AND jsonPayload.event=("game_started" OR "local_game_started")' --freshness=7d --format='value(jsonPayload.game)' --limit=10000 | sort | uniq -c | sort -rn
+
+# Online vs pass and play
+gcloud logging read 'resource.labels.service_name="boolers" AND jsonPayload.event=("game_started" OR "local_game_started")' --freshness=7d --format='value(jsonPayload.mode)' --limit=10000 | sort | uniq -c
+
+# Rooms created
+gcloud logging read 'resource.labels.service_name="boolers" AND jsonPayload.event="room_created"' --freshness=7d --format='value(timestamp)' --limit=10000 | wc -l
+
+# Feedback (newest first)
+gcloud logging read 'resource.labels.service_name="boolers" AND jsonPayload.event="feedback"' --freshness=30d --format='table(timestamp, jsonPayload.game, jsonPayload.contact, jsonPayload.message)'
+```
+
+Local copies (localhost or your Wi-Fi) don't send visitor or pass-and-play stats, so testing doesn't count.
+
 ## Full screen
 Where the browser allows it (Android), the app goes full screen when you create, join or start a game, with a ⛶ button to get back to it. iPhone Safari doesn't let websites go full screen.
 
