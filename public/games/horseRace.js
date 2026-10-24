@@ -4,22 +4,50 @@
 // standings.
 (() => {
   const { esc, name } = PB;
-  // Each racer is an animal (or, with the Horses option, a horse) with its number in its colour.
-  // These animals face left in both the iPhone and Android emoji sets, so flipping them to run
-  // right works everywhere (the pig, leopard and kangaroo don't).
-  const HORSES = [
-    { id: '1', name: 'Thunder', color: '#e53950', animal: '🐎' },
-    { id: '2', name: 'Lucky Lager', color: '#3d7cff', animal: '🐕' },
-    { id: '3', name: 'Tipsy Tina', color: '#f5c518', animal: '🐫' },
-    { id: '4', name: 'Last Call', color: '#2fbf71', animal: '🐢' },
-    { id: '5', name: 'Hangover Hank', color: '#9b5cff', animal: '🐘' },
-    { id: '6', name: 'Jägerbomb', color: '#ff8a1f', animal: '🦏' },
-  ];
+  // The racers come from the server (backers can rename and recolour them): drawn racehorses, or
+  // with the Animals option, animals. These animals face left in both the iPhone and Android
+  // emoji sets, so flipping them to run right works everywhere.
+  const ANIMALS = { 1: '🐎', 2: '🐕', 3: '🐫', 4: '🐢', 5: '🐘', 6: '🦏' };
+  let HORSES = [];
+  let racers = 'horses';
   const horse = (id) => HORSES.find((h) => h.id === id);
-  let racers = 'animals'; // the room's choice, set on each render
-  const emoji = (h) => (racers === 'horses' ? '🐎' : h.animal);
+  const emoji = (h) => ANIMALS[h.id];
+
+  // A racehorse and jockey, side on and facing right, drawn round (0, 0) in about 40 × 30 units.
+  // The legs swing from the hip (a CSS gallop while racing); silks are the racer's colour.
+  const COATS = {
+    bay: ['#7b4422', '#1c1410'], chestnut: ['#a3562c', '#6e3214'], black: ['#2a2626', '#0e0c0c'],
+    grey: ['#a3a3a3', '#5f5f5f'], palomino: ['#d9a64a', '#f4e7c2'], white: ['#ececec', '#b9b9b9'],
+  };
+  const LEGS = [[-8, 'b far'], [7, 'f far'], [-10, 'b'], [5, 'f']];
+  function horseSvg(h) {
+    const [coat, mane] = COATS[h.coat] || COATS.bay;
+    const leg = ([x, cls]) => `<g transform="translate(${x} 2)"><g class="hz-leg ${cls}">
+      <path d="M -2 0 L 2 0 L 1.3 5.5 L 1 11 L -0.9 11 L -1.2 5.5 Z" fill="${cls.includes('far') ? mane : coat}"/><rect x="-1.3" y="10.3" width="2.8" height="1.8" rx="0.6" fill="#1a1a1a"/></g></g>`;
+    return `<g class="hz-rh">
+      ${LEGS.slice(0, 2).map(leg).join('')}
+      <path d="M -11.5 -2 Q -18 -1 -19 7 Q -15.5 3 -12 1 Z" fill="${mane}"/>
+      <ellipse cx="0" cy="0" rx="12" ry="5.8" fill="${coat}"/>
+      <path d="M 6 -3.8 Q 8.5 -10 12.6 -13.4 L 16.8 -11.6 Q 13.2 -6.4 11.4 1.6 Z" fill="${coat}"/>
+      <path d="M 12.2 -13.6 Q 15.5 -14.2 20.4 -9.4 Q 21.4 -8.2 20.2 -7.4 Q 18.6 -6.8 16.2 -8.4 L 13.8 -9.8 Z" fill="${coat}"/>
+      <path d="M 13 -13.2 L 13.6 -16.4 L 15 -13.4 Z" fill="${coat}"/>
+      <path d="M 6.4 -4.6 Q 8.8 -10.4 12.6 -13.6 L 11.2 -13.6 Q 7.6 -10.6 5 -5.6 Z" fill="${mane}"/>
+      <circle cx="16.4" cy="-11.4" r="0.65" fill="#111"/>
+      ${LEGS.slice(2).map(leg).join('')}
+      <rect x="-6.4" y="-5.6" width="7.6" height="6" rx="1.2" fill="${h.color}" stroke="rgba(255,255,255,0.7)" stroke-width="0.5"/>
+      <path d="M -1.6 -6.4 L 4 -10.4" stroke="${h.color}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 4.2 -9.8 L 9.2 -8.2" stroke="${h.color}" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M -2 -5.2 L 3.2 -4.2 L 1.2 -1.2" fill="none" stroke="#f4f4f4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 1.4 -1.6 L 0.6 -0.2" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="6.4" cy="-11.6" r="2.1" fill="${h.color}"/>
+      <path d="M 7.2 -10.4 Q 8.4 -10.6 8.6 -11.6" fill="none" stroke="#f1c6a0" stroke-width="1.1" stroke-linecap="round"/>
+    </g>`;
+  }
   let draft = null;
   let draftFor = null;
+  // Styling the horse you backed: open or not, and the name being typed.
+  const styling = { open: false, name: null, horse: null };
+  const COAT_LABELS = { bay: 'Bay', chestnut: 'Chestnut', black: 'Black', grey: 'Grey', palomino: 'Palomino', white: 'White' };
 
   // ---------- Jockey dial ----------
   // A needle sweeps across a half circle: red at the edges, yellow, green in the middle. Tap to
@@ -112,12 +140,14 @@
     const [x, y] = point(g.progress[id], radius(i));
     return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
   };
-  // The animals face left; flip them when they're running right.
+  // Racehorses are drawn facing right and the animals face left: flip whichever way they run.
   const facing = (g, i, id) => {
     const r = radius(i);
     const [x0] = point(g.progress[id], r);
     const [x1] = point(g.progress[id] + 0.004, r);
-    return `scaleX(${x1 > x0 ? -1 : 1})`;
+    const right = x1 > x0;
+    const scale = racers === 'horses' ? (right ? 0.7 : -0.7) : (right ? -1 : 1);
+    return racers === 'horses' ? `scale(${scale}, 0.7)` : `scaleX(${scale})`;
   };
 
   function track(s) {
@@ -134,7 +164,9 @@
     const tokens = HORSES.map((h, i) => `
       <g class="hz-horse ${g.winner === h.id ? 'won' : ''}" data-horse="${h.id}" style="transform:${place(g, i, h.id)};transition-duration:${g.tickMs}ms">
         <ellipse class="hz-shadow" cx="0" cy="10" rx="9" ry="2.6" style="animation-delay:-${(i * 0.06).toFixed(2)}s"/>
-        <g class="hz-face" style="transform:${facing(g, i, h.id)}"><text class="hz-emoji" style="--hc:${h.color};animation-delay:-${(i * 0.06).toFixed(2)}s">${emoji(h)}</text></g>
+        <g class="hz-face" style="transform:${facing(g, i, h.id)};animation-delay:-${(i * 0.06).toFixed(2)}s">${racers === 'horses'
+          ? `<g class="hz-bob" style="animation-delay:-${(i * 0.06).toFixed(2)}s">${horseSvg(h)}</g>`
+          : `<text class="hz-emoji" style="--hc:${h.color};animation-delay:-${(i * 0.06).toFixed(2)}s">${emoji(h)}</text>`}</g>
         <text class="hz-num" y="-15" style="fill:${h.color}">${h.id}</text>
       </g>`).join('');
     return `
@@ -156,7 +188,9 @@
 
   const backers = (s, id) => Object.entries(s.game.bets).filter(([, b]) => b.pick === id).map(([pid]) => pid);
   // The racer in lists: the animal and its number in its colour.
-  const chip = (h) => `<span class="hz-chip"><span class="hz-chip-a" style="--hc:${h.color}">${emoji(h)}</span><b style="color:${h.color}">${h.id}</b></span>`;
+  const chip = (h) => `<span class="hz-chip">${racers === 'horses'
+    ? `<svg class="hz-chip-h" viewBox="-20 -17 42 30">${horseSvg(h)}</svg>`
+    : `<span class="hz-chip-a" style="--hc:${h.color}">${emoji(h)}</span>`}<b style="color:${h.color}">${h.id}</b></span>`;
 
   // Horses in race order, with who backed each.
   function standings(s) {
@@ -203,10 +237,36 @@
         </button>
         <p class="center muted">Lose: drink your bet. Win: hand out ${g.multiplier === 2 ? 'double it' : 'your bet'}.</p>
       </div>
+      ${g.myBet ? stylePanel(s) : ''}
       ${missing.length ? `<p class="center muted">Still betting: ${missing.map((p) => esc(name(p.id))).join(', ')}</p>` : ''}
       ${s.isHost
         ? `<button data-act="startRace" ${anyBets ? '' : 'disabled'} ${missing.length ? `data-confirm="${missing.length} still betting. Start anyway?"` : ''}>${anyBets ? '🔔 Start the race' : 'Waiting for bets'}</button>`
         : `<p class="center muted">${esc(name(s.hostId))} starts the race once everyone has bet</p>`}`;
+  }
+
+  // Rename and recolour the horse you've backed.
+  function stylePanel(s) {
+    const g = s.game;
+    const h = horse(g.myBet.pick);
+    if (styling.horse !== h.id) { styling.horse = h.id; styling.name = null; }
+    if (!styling.open) {
+      return `<button class="secondary hz-style-open" data-hz="style-open">${chip(h)} ✏️ Name and colours for ${esc(h.name)}</button>`;
+    }
+    const taken = (c) => HORSES.some((x) => x.id !== h.id && x.silk === c);
+    return `
+      <div class="card hz-style">
+        <div class="hz-style-head">${chip(h)}<h2>Your horse</h2><button class="link" data-hz="style-close">Done</button></div>
+        <div class="hz-style-name">
+          <input id="hz-name" maxlength="16" value="${esc(styling.name ?? h.name)}" placeholder="Name" autocomplete="off">
+          <button data-hz="style-name">Rename</button>
+        </div>
+        <h3>Jockey silks</h3>
+        <div class="hz-swatches">${g.silks.map((c) => `
+          <button class="hz-swatch ${h.silk === c ? 'on' : ''}" style="background:${c}" data-hz="style-silk" data-silk="${c}" ${taken(c) ? 'disabled' : ''} aria-label="Silks colour"></button>`).join('')}</div>
+        <h3>Coat</h3>
+        <div class="hz-coats">${g.coats.map((c) => `
+          <button class="${h.coat === c ? 'on' : ''}" data-hz="style-coat" data-coat="${c}"><span style="background:${COATS[c][0]}"></span>${COAT_LABELS[c]}</button>`).join('')}</div>
+      </div>`;
   }
 
   function raceScreen(s) {
@@ -266,6 +326,9 @@
     },
     render(s) {
       racers = s.game.racers;
+      HORSES = s.game.horses.map((h) => ({ ...h, color: h.silk }));
+      // Don't redraw under someone naming their horse.
+      if (document.activeElement?.id === 'hz-name' && s.phase === 'betting') return null;
       if (s.phase === 'race' && document.getElementById('hz-standings') && moveHorses(s)) return null;
       if (s.phase === 'betting') return bettingScreen(s);
       if (s.phase === 'race') return raceScreen(s);
@@ -278,10 +341,22 @@
         dialBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tapDial(dialBtn); });
         runDial();
       }
+      document.getElementById('hz-name')?.addEventListener('input', (e) => { styling.name = e.target.value; });
+      document.getElementById('hz-name')?.addEventListener('keydown', (e) => e.key === 'Enter' && document.querySelector('[data-hz="style-name"]').click());
       document.querySelectorAll('[data-hz]').forEach((b) => {
         b.onclick = () => {
-          if (b.dataset.hz === 'horse') draft.horse = b.dataset.horse;
-          else draft.sips = Math.min(s.game.maxBet, Math.max(1, draft.sips + Number(b.dataset.step)));
+          const what = b.dataset.hz;
+          if (what === 'horse') draft.horse = b.dataset.horse;
+          else if (what === 'sips') draft.sips = Math.min(s.game.maxBet, Math.max(1, draft.sips + Number(b.dataset.step)));
+          else if (what === 'style-open') styling.open = true;
+          else if (what === 'style-close') styling.open = false;
+          else if (what === 'style-name') {
+            const name = document.getElementById('hz-name').value.trim();
+            if (name) PB.act('style', { name });
+            styling.name = null;
+            return;
+          } else if (what === 'style-silk') return PB.act('style', { silk: b.dataset.silk });
+          else if (what === 'style-coat') return PB.act('style', { coat: b.dataset.coat });
           PB.rerender();
         };
       });

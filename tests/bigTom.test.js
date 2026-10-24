@@ -136,7 +136,7 @@ test('three rounds, then a final round answered by drawing', () => {
   assert.strictEqual(g.round, game.ROUNDS);
   t.act(0, 'nextRound');
   assert.strictEqual(g.phase, 'draw');
-  assert.ok(t.view(1).finalQuestion);
+  assert.ok(require('../lib/bigTomQuestions').DRAW_NORMAL.includes(t.view(1).finalQuestion), 'the final asks for a drawing');
   t.cleanup();
 });
 

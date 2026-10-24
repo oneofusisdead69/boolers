@@ -12,7 +12,7 @@
 // Big Tom champion.
 
 const { shuffle } = require('../lib/cards');
-const { NORMAL, NSFW } = require('../lib/bigTomQuestions');
+const { NORMAL, NSFW, DRAW_NORMAL, DRAW_NSFW } = require('../lib/bigTomQuestions');
 
 const VOTE_MS = 30 * 1000;
 const FINAL_VOTE_MS = 45 * 1000;
@@ -113,7 +113,7 @@ function startFinal(room, ctx) {
   const g = room.game;
   g.round = ROUNDS + 1;
   g.phase = 'draw';
-  g.finalQuestion = generate(g);
+  g.finalQuestion = shuffle(g.nsfw ? DRAW_NSFW : DRAW_NORMAL)[0];
   g.drawings = {};
   g.finalOrder = [];
   g.finalVotes = {};

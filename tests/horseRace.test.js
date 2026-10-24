@@ -115,3 +115,24 @@ test('without jockey mode, several people can back the same horse and nobody rid
   assert.strictEqual(g.mult['4'], 1);
   t.cleanup();
 });
+
+test('backers can rename and recolour their horse; colours stay unique', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  t.act(0, 'style', { name: 'Nope' }); // hasn't bet
+  assert.strictEqual(g.horses[0].name, 'Thunder');
+  t.act(0, 'bet', { horse: '1', sips: 1 }).act(1, 'bet', { horse: '2', sips: 1 });
+  t.act(0, 'style', { name: '  Seabiscuit  ', silk: '#ff5cc8', coat: 'white' });
+  assert.deepStrictEqual(g.horses[0], { id: '1', name: 'Seabiscuit', silk: '#ff5cc8', coat: 'white' });
+  t.act(1, 'style', { name: 'seabiscuit', silk: '#ff5cc8', coat: 'plaid' }); // taken name, taken silks, no such coat
+  assert.deepStrictEqual(g.horses[1], { id: '2', name: 'Lucky Lager', silk: '#3d7cff', coat: 'black' });
+  t.act(1, 'style', { silk: 'red' });
+  assert.strictEqual(g.horses[1].silk, '#3d7cff');
+  // The new name is used when the horse wins.
+  t.act(0, 'startRace');
+  g.progress['1'] = g.laps;
+  game.tick(t.room, t.ctx, () => 0.9);
+  assert.strictEqual(g.winner, '1');
+  assert.ok(t.room.feed.some((f) => f.text.includes('Seabiscuit wins')));
+  t.cleanup();
+});
