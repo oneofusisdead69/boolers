@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const custom = require('./lib/custom');
+const analytics = require('./lib/analytics');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -31,6 +32,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
 // Avatar and colour lists, shared with the phones.
 app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
+
+// Pass-and-play pages report their games here (multiplayer games are counted below), and the
+// feedback form posts here. Both just write a log line.
+const allowEvent = analytics.rateLimiter(30);
+const allowFeedback = analytics.rateLimiter(5);
+app.post('/api/event', express.json({ limit: '2kb' }), (req, res) => {
+  const event = allowEvent(req.ip) && analytics.cleanEvent(req.body, Object.keys(GAMES));
+  if (event) analytics.track(event.event, event);
+  res.status(204).end();
+});
+app.post('/api/feedback', express.json({ limit: '8kb' }), (req, res) => {
+  if (!allowFeedback(req.ip)) return res.status(429).json({ error: 'Too much feedback at once. Try again in a minute.' });
+  const feedback = analytics.cleanFeedback(req.body, Object.keys(GAMES));
+  if (!feedback) return res.status(400).json({ error: 'Write something first' });
+  analytics.track('feedback', feedback);
+  res.json({ ok: true });
+});
 
 // The game rules, packed for pass-and-play games that run entirely on one phone.
 const sharedBundle = require('./lib/bundle').buildBundle(__dirname);
@@ -107,6 +125,19 @@ function emit(room, playerId, event, data) {
 
 const ctx = createContext({ emit, broadcast });
 
+// Logs how a game went when it stops: the host ended it (or started another), or everyone left.
+function gameEnded(room, how) {
+  if (!room.game || !room.gameStartedAt) return;
+  analytics.track('game_ended', {
+    game: room.game.type,
+    players: room.players.length,
+    minutes: Math.round((Date.now() - room.gameStartedAt) / 6000) / 10,
+    finished: room.game.phase === 'over',
+    how,
+  });
+  room.gameStartedAt = null;
+}
+
 function removePlayer(room, playerId) {
   room.players = room.players.filter((p) => p.id !== playerId);
   ensureHost(room);
@@ -146,6 +177,7 @@ io.on('connection', (socket) => {
       updatedAt: Date.now(),
     };
     rooms.set(code, r);
+    analytics.track('room_created');
     const p = { id: playerId, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }) };
     r.players.push(p);
     attach(r, p);
@@ -215,6 +247,8 @@ io.on('connection', (socket) => {
     room.feed = [];
     room.game = { type: game.id };
     game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
+    room.gameStartedAt = Date.now();
+    analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
     ack({ ok: true });
     broadcast(room);
   });
@@ -231,6 +265,7 @@ io.on('connection', (socket) => {
 
   socket.on('endGame', () => {
     if (!hostOnly() || !room.game) return;
+    gameEnded(room, 'host');
     ctx.endGame(room);
     broadcast(room);
   });
@@ -276,6 +311,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [code, r] of rooms) {
     if (ctx.connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
+      gameEnded(r, 'abandoned');
       ctx.clearTimer(r);
       rooms.delete(code);
     }

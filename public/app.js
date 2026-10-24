@@ -112,7 +112,7 @@ function fullscreenButtons() {
   if (seat) return Prefs.button();
   const fs = !fullscreen.active() && fullscreen.canRequest() ? '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>' : '';
   const stay = stayOn.supported ? `<button class="stay-btn secondary ${stayOn.wanted ? 'on' : ''}" id="stay">${stayOn.label()}</button>` : '';
-  return fs + stay + Prefs.button();
+  return fs + stay + Prefs.button() + Prefs.feedbackButton();
 }
 
 function bindFullscreenButtons() {

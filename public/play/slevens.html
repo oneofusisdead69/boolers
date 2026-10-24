@@ -139,6 +139,7 @@
 <body>
 <div id="app"></div>
 
+<script src="/analytics.js"></script>
 <script src="/prefs.js"></script>
 <script src="/shared/bundle.js"></script>
 <script>
@@ -201,6 +202,7 @@ function renderSetup(error = '') {
       <p class="sub">Slevens · pass and play</p>
       <a class="home-link" href="/">← Back to Bool Games</a>
       ${Prefs.button()}
+      ${Prefs.feedbackButton()}
       <div class="card">
         <h2>How it works</h2>
         <ol class="rules">
@@ -260,6 +262,7 @@ function startGame() {
   };
   ctx = createContext({ emit: () => {}, broadcast: () => render() });
   game.start(room, ctx, opts);
+  window.Analytics?.event('local_game_started', { game: 'slevens', players: names.length });
   render();
 }
 

@@ -33,6 +33,7 @@ function write(name, { title, style, body }) {
 for (const name of ['slevens', 'madmax']) {
   const parts = pageParts(read(`public/play/${name}.html`));
   parts.body = parts.body
+    .replace('<script src="/analytics.js"></script>\n', '')
     .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
     .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>`)
     .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`);
@@ -44,6 +45,7 @@ const TITLES = { rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "
 for (const id of Object.keys(TITLES)) {
   const parts = pageParts(read('public/play/local.html'));
   let body = parts.body
+    .replace('<script src="/analytics.js"></script>\n', '')
     .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
     .replace('<script src="/looks.js"></script>', `<script>\n${read('lib/looks.js')}</script>`)
     .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
