@@ -1,6 +1,8 @@
-// Horse Race: six horses on an oval track, like the electric race games where the horses lurch
-// forward at random. Everyone bets sips on a horse, then the race runs on its own: every tick each
-// horse has a chance of being pushed forward a random amount. First past the post after the set
+// Horse Race: six horses on an oval track. Everyone bets sips on a horse, then the race runs on its
+// own. Each horse has a running speed that changes the way a real race does: they break from the
+// gate, settle into a pace (each horse's form is a little different every race), and at random
+// moments one kicks on for a couple of seconds or fades. Speeds change gradually, so a horse
+// moves smoothly, but who's in front keeps changing. First past the post after the set
 // number of laps wins; everyone who backed another horse drinks their bet, and the winners hand
 // out their winnings (their bet, or double) to whoever they like.
 //
@@ -24,14 +26,16 @@ const SILKS = ['#e53950', '#3d7cff', '#f5c518', '#2fbf71', '#9b5cff', '#ff8a1f',
 const COATS = ['bay', 'chestnut', 'black', 'grey', 'palomino', 'white'];
 const horseName = (g, id) => g.horses.find((h) => h.id === id)?.name ?? '?';
 
-// One tick of the motor. Every horse creeps forward a little (STEADY of a lap), and with
-// probability PUSH_CHANCE gets a push of PUSH_MIN to PUSH_MAX on top: about 25 seconds a lap at
-// normal speed.
-const TICK_MS = { normal: 400, fast: 250 };
-const STEADY = 0.006;
-const PUSH_CHANCE = 0.4;
-const PUSH_MIN = 0.012;
-const PUSH_MAX = 0.038;
+// The race runs in ticks. Speeds are in laps a second: about 25 seconds a lap at normal pace.
+const TICK_MS = 300;
+const PACE = { normal: 1 / 25, fast: 1 / 15 };
+const FORM = 0.06; // each horse runs up to 6% faster or slower than the pace this race
+const KICK_CHANCE = 0.05; // per tick, a horse starts a kick (or a fade)
+const KICK = [1.18, 1.4]; // a kick: this much faster for a couple of seconds
+const FADE = [0.78, 0.9]; // a fade: this much slower
+const SURGE_TICKS = [4, 12]; // how long a kick or fade lasts
+const RESPONSE = 0.3; // how quickly a horse's speed moves toward what it's aiming for each tick
+const WOBBLE = 0.05; // random wobble in speed each tick, as a share of the pace
 
 // Jockey mode: each horse's speed multiplier, and how a tap on the dial changes it.
 const SPEED_MIN = 0.4;
@@ -44,6 +48,9 @@ function newRace(room, ctx) {
   ctx.clearTimer(room);
   g.race += 1;
   g.progress = Object.fromEntries(IDS.map((id) => [id, 0])); // in laps
+  g.vel = Object.fromEntries(IDS.map((id) => [id, 0])); // laps a second: everyone starts from the gate
+  g.form = Object.fromEntries(IDS.map((id) => [id, 1 + (Math.random() * 2 - 1) * FORM]));
+  g.surge = Object.fromEntries(IDS.map((id) => [id, { factor: 1, left: 0 }]));
   g.mult = Object.fromEntries(IDS.map((id) => [id, 1]));
   g.lastTap = {};
   g.ticks = 0;
@@ -55,10 +62,20 @@ function tick(room, ctx, rand = Math.random) {
   const g = room.game;
   if (g.phase !== 'race') return;
   g.ticks += 1;
+  const pace = PACE[g.speed];
+  const between = ([lo, hi]) => lo + rand() * (hi - lo);
   for (const id of IDS) {
-    let step = STEADY;
-    if (rand() < PUSH_CHANCE) step += PUSH_MIN + rand() * (PUSH_MAX - PUSH_MIN);
-    g.progress[id] += step * g.mult[id];
+    // Now and then a horse kicks on (more often) or fades for a couple of seconds.
+    const s = g.surge[id];
+    if (!s.left && rand() < KICK_CHANCE) {
+      s.factor = rand() < 0.65 ? between(KICK) : between(FADE);
+      s.left = Math.round(between(SURGE_TICKS));
+    }
+    const aim = pace * g.form[id] * (s.left ? s.factor : 1) * g.mult[id];
+    if (s.left) s.left -= 1;
+    const wobble = (rand() * 2 - 1) * WOBBLE * pace;
+    g.vel[id] = Math.max(pace * 0.25, g.vel[id] + (aim - g.vel[id]) * RESPONSE + wobble);
+    g.progress[id] += g.vel[id] * (TICK_MS / 1000);
   }
   const done = IDS.filter((id) => g.progress[id] >= g.laps);
   if (done.length) {
@@ -69,7 +86,7 @@ function tick(room, ctx, rand = Math.random) {
     betting.settle(room, ctx, winner, (id) => horseName(g, id));
     return;
   }
-  ctx.setTimer(room, TICK_MS[g.speed], () => tick(room, ctx));
+  ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
 }
 
 module.exports = {
@@ -125,7 +142,7 @@ module.exports = {
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
       g.phase = 'race';
       ctx.log(room, `🔔 Race ${g.race} is off: ${g.laps} lap${g.laps === 1 ? '' : 's'}!`);
-      ctx.setTimer(room, TICK_MS[g.speed], () => tick(room, ctx));
+      ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
     } else if (action.type === 'style' && g.phase === 'betting' && g.bets[me]) {
       // Rename or recolour the horse you've backed. Silks must differ from the other horses'.
       const h = g.horses.find((x) => x.id === g.bets[me].pick);
@@ -156,7 +173,8 @@ module.exports = {
       race: g.race,
       laps: g.laps,
       speed: g.speed,
-      tickMs: TICK_MS[g.speed],
+      tickMs: TICK_MS,
+      vel: g.vel,
       jockey: g.jockey,
       racers: g.racers,
       horses: g.horses,

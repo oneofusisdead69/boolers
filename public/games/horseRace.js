@@ -150,21 +150,22 @@
   };
 
   // ---------- Smooth running ----------
-  // The server moves the horses a few times a second, in pushes. On screen each horse follows its
-  // latest position like a spring with no bounce: it speeds up after a push and eases off, always
-  // along the track, at the phone's full frame rate.
-  const STIFF = 7;
-  const DAMP = 2 * Math.sqrt(STIFF); // critically damped: no overshoot, never runs backwards
-  const run = { race: null, at: {}, speed: {}, target: {}, going: false };
+  // The server sends each horse's position and speed a few times a second. Between updates the
+  // phone keeps every horse running at its last known speed, and blends each new position in
+  // gently, so the motion is continuous at the phone's full frame rate. Horses never run backwards.
+  const BLEND = 8; // how quickly the drawn position catches up with the predicted one (per second)
+  const run = { race: null, at: {}, from: {}, vel: {}, t0: 0, tickMs: 300, going: false };
   const shown = (g, id) => (run.race === g.race && id in run.at ? run.at[id] : g.progress[id]);
 
   function follow(g) {
     if (run.race !== g.race) {
       run.race = g.race;
       run.at = { ...g.progress };
-      run.speed = Object.fromEntries(Object.keys(g.progress).map((id) => [id, 0]));
     }
-    run.target = { ...g.progress };
+    run.from = { ...g.progress };
+    run.vel = { ...g.vel };
+    run.t0 = performance.now();
+    run.tickMs = g.tickMs;
     if (run.going) return;
     run.going = true;
     let last = performance.now();
@@ -173,10 +174,12 @@
       if (!svg || !svg.classList.contains('running') || svg.dataset.race !== String(run.race)) { run.going = false; return; }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      // Predict no further than two updates ahead, in case updates stall.
+      const ahead = Math.min(now - run.t0, run.tickMs * 2) / 1000;
+      const ease = 1 - Math.exp(-BLEND * dt);
       HORSES.forEach((h, i) => {
-        const gap = run.target[h.id] - run.at[h.id];
-        run.speed[h.id] += (STIFF * gap - DAMP * run.speed[h.id]) * dt;
-        run.at[h.id] += Math.max(0, run.speed[h.id]) * dt;
+        const predicted = run.from[h.id] + (run.vel[h.id] || 0) * ahead;
+        run.at[h.id] = Math.max(run.at[h.id], run.at[h.id] + (predicted - run.at[h.id]) * ease);
         const el = svg.querySelector(`[data-horse="${h.id}"]`);
         if (!el) return;
         el.style.transform = place(run.at[h.id], i);

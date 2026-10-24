@@ -20,16 +20,38 @@ test('six horses; bets on a horse, checked against the max', () => {
   t.cleanup();
 });
 
-test('each tick moves every horse a little and pushes some further', () => {
+test('horses break from the gate and their speeds change gradually, never stopping', () => {
   const t = setup(game, 2);
   const g = t.room.game;
   t.act(0, 'bet', { horse: '1', sips: 1 }).act(0, 'startRace');
-  // Rolls: horse 1 pushed (0.1 < 0.4) by min + 0.5 of the range; the rest only creep (0.9).
-  const rolls = [0.1, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9];
-  game.tick(t.room, t.ctx, () => rolls.shift());
-  assert.ok(Math.abs(g.progress['1'] - (0.006 + 0.012 + 0.5 * 0.026)) < 1e-9);
-  assert.ok(Math.abs(g.progress['2'] - 0.006) < 1e-9, 'nobody stands still');
-  assert.strictEqual(g.ticks, 1);
+  assert.deepStrictEqual(Object.values(g.vel), [0, 0, 0, 0, 0, 0], 'everyone starts from the gate');
+  const pace = 1 / 25;
+  let prev = { ...g.vel };
+  let prevAt = { ...g.progress };
+  for (let i = 0; i < 60; i++) {
+    game.tick(t.room, t.ctx);
+    for (const id of Object.keys(g.vel)) {
+      assert.ok(g.progress[id] > prevAt[id], 'every horse moves forward every tick');
+      // From the gate, speeds can only climb by the response each tick; after that they drift.
+      assert.ok(Math.abs(g.vel[id] - prev[id]) < pace * 0.5, 'no sudden jumps in speed');
+    }
+    prev = { ...g.vel };
+    prevAt = { ...g.progress };
+  }
+  const speeds = Object.values(g.vel);
+  assert.ok(Math.min(...speeds) > pace * 0.4 && Math.max(...speeds) < pace * 1.8, `speeds ${speeds}`);
+  t.cleanup();
+});
+
+test('a kick speeds a horse up for a while; a fade slows it', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  t.act(0, 'bet', { horse: '1', sips: 1 }).act(0, 'startRace');
+  for (const id of Object.keys(g.vel)) { g.vel[id] = 1 / 25; g.form[id] = 1; }
+  // Every roll 0: horse after horse starts a surge (0 < 5%), all kicks (0 < 65%) at the low end.
+  game.tick(t.room, t.ctx, () => 0);
+  assert.ok(Object.values(g.surge).every((s) => s.factor === 1.18 && s.left === 3));
+  assert.ok(g.vel['1'] > 1 / 25, 'kicking on');
   t.cleanup();
 });
 
@@ -38,9 +60,11 @@ test('first past the post after the laps wins; losers drink, winners hand out', 
   const g = t.room.game;
   t.act(0, 'bet', { horse: '3', sips: 2 }).act(1, 'bet', { horse: '5', sips: 3 }).act(2, 'bet', { horse: '3', sips: 1 });
   t.act(0, 'startRace');
-  g.progress = { 1: 1.5, 2: 1.9, 3: 1.99, 4: 1.2, 5: 1.98, 6: 0.5 };
-  // Horses 3 and 5 both cross: the one that got furthest wins.
-  game.tick(t.room, t.ctx, (() => { const r = [0.1, 0.0, 0.1, 0.0, 0.1, 1.0, 0.9, 0.1, 0.9, 0.9]; return () => r.shift(); })());
+  g.progress = { 1: 1.5, 2: 1.9, 3: 1.995, 4: 1.2, 5: 1.99, 6: 0.5 };
+  for (const id of Object.keys(g.vel)) { g.vel[id] = 1 / 25; g.form[id] = 1; }
+  // Horses 3 and 5 both cross on this tick: the one that got furthest wins. (Rolls of 0.5: no
+  // surges, no wobble.)
+  game.tick(t.room, t.ctx, () => 0.5);
   assert.strictEqual(g.winner, '3');
   assert.strictEqual(g.phase, 'payout');
   assert.deepStrictEqual(t.drinks(), [0, 3, 0]);
@@ -61,8 +85,8 @@ test('a whole race runs on its timer and always finishes', () => {
   let ticks = 0;
   while (g.phase === 'race' && ticks++ < 1000) t.fireTimer();
   assert.ok(g.winner);
-  // About 25 seconds a lap at 400ms a tick: roughly 60 ticks; allow a wide margin.
-  assert.ok(g.ticks > 25 && g.ticks < 200, `race took ${g.ticks} ticks`);
+  // About 25 seconds a lap at 300ms a tick: roughly 85 ticks; allow a wide margin.
+  assert.ok(g.ticks > 50 && g.ticks < 160, `race took ${g.ticks} ticks`);
   t.cleanup();
 });
 
@@ -99,10 +123,9 @@ test("jockey mode: one rider per horse, and the dial changes your horse's speed"
   } finally {
     Date.now = realNow;
   }
-  // A faster horse gets bigger pushes.
-  const before = g.progress['1'];
-  game.tick(t.room, t.ctx, (() => { const r = [0.1, 0.5]; return () => (r.length ? r.shift() : 0.9); })());
-  assert.ok(Math.abs(g.progress['1'] - before - (0.006 + 0.012 + 0.5 * 0.026) * 2.2) < 1e-9);
+  // A horse ridden at ×2.2 aims for 2.2 times the pace and pulls away.
+  for (let i = 0; i < 40; i++) game.tick(t.room, t.ctx);
+  assert.ok(g.vel['1'] > Math.max(...['2', '3', '4', '5', '6'].map((id) => g.vel[id])) * 1.3);
   t.cleanup();
 });
 
