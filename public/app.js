@@ -249,7 +249,7 @@ function playSounds(prev, s) {
   if (turn(s) === s.me && turn(prev) !== s.me) sounds.add('turn');
   if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
   // One at a time, the most important first.
-  const pick = ['win', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
+  const pick = ['win', 'bell', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
   if (pick) Prefs.play(pick);
   if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
 }
@@ -296,6 +296,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
         <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
         <a class="btn-link" href="/play/local.html?game=horseRace">🏇 Horse Race</a>
+        <a class="btn-link" href="/play/local.html?game=aceRace">♠️ Ace Race</a>
       </div>
     </div>
     <div class="spacer"></div>

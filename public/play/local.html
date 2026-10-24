@@ -67,9 +67,20 @@
         locked: { reactions: false },
         actor: (room) => room.game.turnId,
       },
-      horseRace: {
+      aceRace: {
         locked: {},
         // Betting: tap whose bet it is. Payout: each winner in turn hands out their sips.
+        actor(room, holder) {
+          const g = room.game;
+          if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
+          return (g.phase === 'betting' && holder) || g.order[0];
+        },
+        switchable: (room) => room.game.phase === 'betting',
+        holderLabel: 'Whose bet?',
+        hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
+      },
+      horseRace: {
+        locked: {},
         actor(room, holder) {
           const g = room.game;
           if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];

@@ -221,6 +221,41 @@
       document.body.appendChild(overlay);
     },
 
+    // ---------- Race betting (lib/betting.js) ----------
+
+    // A winner's panel for handing out their sips, + and − per player. `key` resets it each race.
+    handOut(s, key) {
+      const g = s.game;
+      const mine = g.payout[s.me];
+      if (!mine || mine.done) {
+        const waiting = Object.entries(g.payout).filter(([, p]) => !p.done).map(([id]) => PB.esc(PB.name(id)));
+        return waiting.length ? `<p class="center muted">Waiting for ${waiting.join(', ')} to hand out sips…</p>` : '';
+      }
+      if (PB.handOut.key !== key) { PB.handOut.alloc = {}; PB.handOut.key = key; }
+      const alloc = PB.handOut.alloc;
+      const left = mine.total - Object.values(alloc).reduce((a, b) => a + b, 0);
+      return `
+        <div class="card ar-give">
+          <h2>Hand out ${PB.plural(mine.total, 'sip')}</h2>
+          <p class="muted">${left ? `${PB.plural(left, 'sip')} left to give` : 'All given out. Send them!'}</p>
+          ${s.players.filter((p) => p.id !== s.me).map((p) => `
+            <div class="ar-give-row">${PB.avatar(p.id)}<span>${PB.esc(p.name)}</span>
+              <button class="secondary" data-handout="${PB.esc(p.id)}" data-step="-1" ${alloc[p.id] ? '' : 'disabled'}>−</button>
+              <b>${alloc[p.id] || 0}</b>
+              <button class="secondary" data-handout="${PB.esc(p.id)}" data-step="1" ${left ? '' : 'disabled'}>+</button>
+            </div>`).join('')}
+          <button data-act="give" data-alloc='${PB.esc(JSON.stringify(alloc))}' ${left ? 'disabled' : ''}>🍺 Send the sips</button>
+        </div>`;
+    },
+
+    // Who drank what in the race just finished.
+    raceDrinks(s) {
+      const rows = Object.entries(s.game.drank).sort((a, b) => b[1] - a[1]);
+      if (!rows.length) return '';
+      return `<div class="card ar-bets"><h2>This race</h2>${rows.map(([id, n]) =>
+        `<div class="ar-bet-row">${PB.avatar(id, 'sm')}<span>${PB.esc(PB.name(id))}</span><b>${PB.plural(n, 'sip')}</b></div>`).join('')}</div>`;
+    },
+
     // Recent things that happened (drinks handed out etc.).
     feed(limit = 4) {
       const items = PB.state.feed.slice(-limit).reverse();
@@ -276,8 +311,16 @@
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
     },
   };
-  // Any 🍺 Tab button opens the tab; Hide / Show folds it away.
+  // Any 🍺 Tab button opens the tab; Hide / Show folds it away; + / − hand out race winnings.
   document.addEventListener('click', (e) => {
+    const h = e.target.closest('[data-handout]');
+    if (h && !h.disabled) {
+      const alloc = PB.handOut.alloc || {};
+      const id = h.dataset.handout;
+      alloc[id] = Math.max(0, (alloc[id] || 0) + Number(h.dataset.step));
+      if (!alloc[id]) delete alloc[id];
+      PB.rerender();
+    }
     if (e.target.closest('[data-tab]') && PB.state) PB.showTab();
     if (e.target.closest('[data-tab-toggle]')) {
       try { localStorage.setItem('tab-hidden', PB.tabHidden() ? '0' : '1'); } catch {}
