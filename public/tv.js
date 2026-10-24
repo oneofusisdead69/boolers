@@ -130,6 +130,7 @@ function lobbyScreen(s) {
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
         <p class="muted">${esc(PB.name(s.hostId))} starts the game from their phone</p>
+        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
       </div>
     </div>
     ${soundButton()}`;
@@ -244,6 +245,7 @@ function gameScreen(s) {
 
 function render() {
   const s = PB.state;
+  ROOM_STYLES.apply(s?.style);
   if (!s) return joinScreen();
   if (s.phase === 'lobby' || !s.gameType) {
     delete $tv.dataset.game;

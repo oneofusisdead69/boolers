@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
+const ROOM_STYLES = require('./lib/roomStyles');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
 
@@ -33,6 +34,8 @@ app.get('/healthz', (req, res) => res.send('ok'));
 app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public/tv.html')));
 // Avatar and colour lists, shared with the phones.
 app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
+// Room styles (dive bar, tavern…), shared with the phones and the TV.
+app.get('/room-styles.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/roomStyles.js')));
 
 // Pass-and-play pages report their games here (multiplayer games are counted below), and the
 // feedback form posts here. Both just write a log line.
@@ -99,6 +102,7 @@ function viewFor(room, player) {
     hostId: room.hostId,
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
+    style: room.style || 'classic',
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
@@ -234,6 +238,13 @@ io.on('connection', (socket) => {
     if (!room || !player) return;
     if (LOOKS.AVATARS.includes(avatar)) player.avatar = avatar;
     if (LOOKS.COLORS.includes(color)) player.color = color;
+    broadcast(room);
+  });
+
+  // The host dresses the room up (any time, even mid-game).
+  socket.on('setStyle', ({ style } = {}) => {
+    if (!hostOnly() || !ROOM_STYLES.IDS.includes(style)) return;
+    room.style = style;
     broadcast(room);
   });
 

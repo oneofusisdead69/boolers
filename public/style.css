@@ -956,3 +956,10 @@ main.ls .ar-track { padding: 6px; gap: 2px; }
 .dt-round p { font-size: 1.05rem; }
 .dt-wait { padding: 4px 0; }
 main.ls .dt-board { max-width: min(100%, 86vh); }
+
+/* ---------- Room styles (lib/roomStyles.js) ---------- */
+.room-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.room-styles button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; font-size: 0.9rem; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
+.room-styles button span { font-size: 1.6rem; }
+.room-styles button.selected { border-color: var(--accent); }
+.room-welcome b { font-size: 1.2rem; }
