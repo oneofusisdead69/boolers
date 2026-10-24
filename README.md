@@ -55,6 +55,9 @@ Where the browser allows it (Android), the app goes full screen when you create,
 ## Sideways
 Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
 
+## Room styles
+The host can dress the room up from the lobby: **Classic, Dive bar, Tavern, Club, Castle, Jazz club or Diner**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.
+
 ## TV mode
 Got a TV or laptop handy? Create a room on a phone as usual, then open **bool.games/tv** on the big screen and type the room code (or open `bool.games/tv?room=CODE`). The host still runs everything from their phone; the TV just watches.
 - **Lobby:** the join QR code, the room code, who's in and the rules of the game that's up next.
@@ -87,6 +90,7 @@ public/tv.js           TV mode (public/tv.html, tv.css)
 public/pb.js           shared screen helpers (PB.*), custom content editor
 public/prefs.js        per-phone settings: sounds, themes, dice and card styles
 lib/looks.js           avatar and colour lists (server and phones)
+lib/roomStyles.js      room styles: dive bar, tavern… (server, phones and TV)
 lib/custom.js          checks custom game content from the host
 tests/                 node:test tests + helpers for simulating games
 ```

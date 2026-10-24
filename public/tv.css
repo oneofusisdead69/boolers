@@ -54,31 +54,37 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 
 .tv-table { grid-area: table; position: relative; min-height: 0; }
 .tv-felt {
-  position: absolute; inset: 7% 8%;
+  position: absolute; inset: 16% 13%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%);
-  box-shadow: 0 0 0 1.2rem #5b3a1e, 0 0 0 1.5rem #3d2612, 0 2rem 4rem rgba(0, 0, 0, 0.6), inset 0 0 4rem rgba(0, 0, 0, 0.45);
+  background: var(--felt, radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%));
+  box-shadow: 0 0 0 1.2rem var(--rim, #5b3a1e), 0 0 0 1.5rem rgba(0, 0, 0, 0.35), 0 2rem 4rem rgba(0, 0, 0, 0.6), inset 0 0 4rem rgba(0, 0, 0, 0.45);
 }
 .tv-seat {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-  min-width: 6rem; padding: 0.5rem 0.8rem; border-radius: 1rem;
-  background: rgba(20, 17, 31, 0.85); font-size: 1.05rem; z-index: 2;
+  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 0.6rem; align-items: center;
+  padding: 0.45rem 0.9rem 0.45rem 0.5rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 90%, transparent); font-size: 1.05rem; z-index: 2; white-space: nowrap;
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.35);
   transition: box-shadow 0.3s, transform 0.3s;
 }
+.tv-seat .av { grid-row: span 2; }
+.tv-front { position: absolute; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; }
+.tv-front:empty { display: none; }
+.tv-seat b { align-self: end; }
+.tv-seat small { align-self: start; }
 .tv-seat small { color: var(--muted); }
 .tv-seat.turn { box-shadow: 0 0 0 0.25rem var(--accent), 0 0 2rem var(--accent); transform: translate(-50%, -50%) scale(1.12); }
 .tv-seat.offline { opacity: 0.4; }
 
 /* The game itself, in the middle of the felt, scaled to fit (see fit() in tv.js). */
 .tv-center-box {
-  position: absolute; inset: 19% 20%;
+  position: absolute; inset: 25% 23%;
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
 }
 #tv-center { width: 30rem; max-width: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; }
 #tv-center button, #tv-center .btn-row, #tv-center [data-act], #tv-left button { display: none; }
-#tv-center .card { background: rgba(20, 17, 31, 0.78); }
+#tv-center .card { background: color-mix(in srgb, var(--card) 85%, transparent); }
 
 .tv-side { grid-area: side; display: flex; flex-direction: column; gap: 1.2vh; min-height: 0; overflow: hidden; font-size: 1rem; }
 .tv-side .card { padding: 1rem; gap: 0.6rem; }
@@ -105,7 +111,7 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 @keyframes tv-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* Games that fill a phone screen get a fixed-size box on the TV. */
-#tv-center .pad { flex: none; height: 26rem; background: rgba(20, 17, 31, 0.6); }
+#tv-center .pad { flex: none; height: 26rem; background: color-mix(in srgb, var(--card) 65%, transparent); }
 
 /* Games without a table: a column on the left and a big centrepiece. */
 .tv-wide { grid-area: table; display: grid; grid-template-columns: 15rem 1fr; gap: 2vw; min-height: 0; }
@@ -132,3 +138,7 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-banner .hz-horse, .tv-banner svg { height: 1em; width: auto; }
 body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-items: center; }
 #tv-center .dt-board { max-width: none; }
+/* Dice in front of the players, sized for across the room. */
+.tv-front .ld-front { max-width: 9rem; gap: 0.3rem; }
+.tv-front .ld-die.mini .die, .tv-front .ld-hidden { width: 2rem; height: 2rem; }
+.tv-front .ld-die.mini.dim { opacity: 0.45; }

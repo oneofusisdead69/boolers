@@ -130,6 +130,7 @@ function lobbyScreen(s) {
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
         <p class="muted">${esc(PB.name(s.hostId))} starts the game from their phone</p>
+        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
       </div>
     </div>
     ${soundButton()}`;
@@ -139,14 +140,47 @@ function lobbyScreen(s) {
 function seats(s) {
   const g = s.game || {};
   const turn = g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
-  const n = s.players.length;
-  return s.players.map((p, i) => {
-    const a = Math.PI / 2 + (i * 2 * Math.PI) / n; // first seat at the bottom, going round
-    const x = 50 + 45 * Math.cos(a);
-    const y = 50 + 41 * Math.sin(a);
-    return `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}" style="left:${x}%;top:${y}%">
-      ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>`;
-  }).join('');
+  // A game can put things on the table in front of each player (their dice, their cards).
+  const front = PB.screens[s.gameType]?.tvFront;
+  return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
+      ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>
+    <div class="tv-front">${front?.(s, p.id) || ''}</div>`).join('');
+}
+
+// Everyone sits just outside the table's edge (never on it), whatever the screen's shape: each
+// seat is pushed out from the rim along the edge's normal by half its own size.
+function placeSeats() {
+  const table = document.querySelector('.tv-table');
+  const felt = document.querySelector('.tv-felt');
+  const els = [...document.querySelectorAll('#tv-seats .tv-seat')];
+  const fronts = [...document.querySelectorAll('#tv-seats .tv-front')];
+  if (!table || !felt || !els.length) return;
+  const W = table.clientWidth;
+  const H = table.clientHeight;
+  const rx = felt.offsetWidth / 2;
+  const ry = felt.offsetHeight / 2;
+  const rim = 1.7 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  els.forEach((el, i) => {
+    const a = Math.PI / 2 + (i * 2 * Math.PI) / els.length; // first seat at the bottom, going round
+    let nx = Math.cos(a) / rx;
+    let ny = Math.sin(a) / ry;
+    const len = Math.hypot(nx, ny);
+    nx /= len;
+    ny /= len;
+    const half = Math.abs(nx) * (el.offsetWidth / 2) + Math.abs(ny) * (el.offsetHeight / 2);
+    const x = W / 2 + rx * Math.cos(a) + nx * (rim + half);
+    const y = H / 2 + ry * Math.sin(a) + ny * (rim + half);
+    // Keep the whole seat on screen.
+    el.style.left = `${Math.min(W - el.offsetWidth / 2, Math.max(el.offsetWidth / 2, x)).toFixed(0)}px`;
+    el.style.top = `${Math.min(H - el.offsetHeight / 2, Math.max(el.offsetHeight / 2, y)).toFixed(0)}px`;
+    // What's in front of them sits on the felt, just inside the rim.
+    const f = fronts[i];
+    if (f?.firstElementChild) {
+      const inner = Math.abs(nx) * (f.offsetWidth / 2) + Math.abs(ny) * (f.offsetHeight / 2) + rim * 0.6;
+      f.style.left = `${(W / 2 + rx * Math.cos(a) - nx * inner).toFixed(0)}px`;
+      f.style.top = `${(H / 2 + ry * Math.sin(a) - ny * inner).toFixed(0)}px`;
+    }
+  });
 }
 
 function sidebar(s) {
@@ -206,7 +240,10 @@ function fit() {
     $inner.style.zoom = Math.max(0.5, z).toFixed(3);
   }
 }
-window.addEventListener('resize', fit);
+window.addEventListener('resize', () => {
+  fit();
+  placeSeats();
+});
 
 function gameScreen(s) {
   const screens = PB.screens[s.gameType];
@@ -236,7 +273,10 @@ function gameScreen(s) {
       ${soundButton()}`;
   }
   const $seats = document.getElementById('tv-seats');
-  if ($seats) $seats.innerHTML = seats(s);
+  if ($seats) {
+    $seats.innerHTML = seats(s);
+    placeSeats();
+  }
   document.getElementById('tv-side').innerHTML = sidebar(s);
   if (fillCenter(s, screens)) fit();
   updateTimer();
@@ -244,6 +284,7 @@ function gameScreen(s) {
 
 function render() {
   const s = PB.state;
+  ROOM_STYLES.apply(s?.style);
   if (!s) return joinScreen();
   if (s.phase === 'lobby' || !s.gameType) {
     delete $tv.dataset.game;

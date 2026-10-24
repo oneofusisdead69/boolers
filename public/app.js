@@ -359,6 +359,19 @@ function renderOptions() {
     </div>`).join('');
 }
 
+// The host picks how the room looks; everyone's phone (and the TV) follows.
+function roomStyleCard(s) {
+  const { STYLES } = ROOM_STYLES;
+  const style = STYLES[s.style] || STYLES.classic;
+  if (!s.isHost) return style.welcome ? `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(style.label)}</b><br><span class="muted">${PB.esc(style.welcome)}</span></p>` : '';
+  return `<div class="card room-style-card">
+      <h2>Room style</h2>
+      <div class="room-styles">${Object.entries(STYLES).map(([id, st]) => `
+        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>
+      ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
+    </div>`;
+}
+
 function renderLobby() {
   const s = PB.state;
   const host = s.isHost;
@@ -392,6 +405,7 @@ function renderLobby() {
           <button class="secondary" id="customize">✏️ Customize</button>
         </div>` : ''}
     </div>
+    ${roomStyleCard(s)}
     <div class="card tv-card">
       ${s.tv
         ? '<p>📺 <b>TV connected.</b> The table, scores and sounds are on the big screen.</p>'
@@ -460,6 +474,7 @@ function renderGame() {
 }
 
 function render() {
+  ROOM_STYLES.apply(PB.state?.style);
   if (!PB.state) return renderHome();
   if (PB.state.phase === 'lobby') return renderLobby();
   renderGame();

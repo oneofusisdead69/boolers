@@ -79,6 +79,7 @@ Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
     tvLeft: '.my-scores',     // optional, with tvTable: false: parts to put in a column on the left
     tvBanner: '.my-winner',   // optional: parts to put in a banner right across the TV
     tvRules(s, rules) {},     // optional: which rules the TV shows (e.g. only this mode's)
+    tvFront(s, playerId) {},  // optional: HTML put on the TV's table in front of that player (their dice…)
   });
 })();
 ```
