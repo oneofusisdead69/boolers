@@ -371,6 +371,17 @@ function renderOptions() {
     </div>`).join('');
 }
 
+// The end-of-night recap, while the host has it open.
+function renderRecap() {
+  $app.innerHTML = Recap.html(PB.state);
+  PB.layout($app, '.recap-head, .recap-awards');
+  document.getElementById('recap-share').onclick = async (e) => {
+    e.currentTarget.disabled = true;
+    await Recap.share(PB.state);
+    e.currentTarget.disabled = false;
+  };
+}
+
 // Switch yourself to water (and back) any time.
 function waterButton() {
   const me = PB.state.players.find((p) => p.id === PB.state.me);
@@ -447,6 +458,8 @@ function renderLobby() {
         : `<p>📺 <b>Got a TV?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter <b>${PB.esc(s.code)}</b>.</p>`}
     </div>
     ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
+    ${host && s.players.some((p) => p.total || p.water || p.finished)
+      ? '<button class="secondary" data-cmd="recap" data-open="true">🏁 Wrap up the night</button>' : ''}
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
@@ -511,6 +524,7 @@ function renderGame() {
 function render() {
   ROOM_STYLES.apply(PB.state?.style);
   if (!PB.state) return renderHome();
+  if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();
   if (PB.state.phase === 'lobby') return renderLobby();
   renderGame();
   updateTimer();

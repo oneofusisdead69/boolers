@@ -977,3 +977,18 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .prefs-btn.on { background: #228ce6; color: #fff; }
 .drink.water { background: #228ce6; color: #fff; }
 .pacing-card .segmented button { min-width: 0; }
+
+/* ---------- End-of-night recap (public/recap.js) ---------- */
+.recap { display: flex; flex-direction: column; gap: 14px; }
+.recap-head { text-align: center; }
+.recap-head h1 { white-space: normal; font-size: clamp(1.7rem, 8vw, 2.3rem); color: var(--accent-ink, var(--accent)); }
+.recap-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.recap-award { align-items: center; text-align: center; gap: 4px; padding: 14px 10px; }
+.recap-emoji { font-size: 2rem; }
+.recap-award small { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem; }
+.recap-award span.muted { font-size: 0.85rem; }
+.recap-cols { display: flex; flex-direction: column; gap: 12px; }
+.recap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.recap-list li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.recap-n { margin-left: auto; font-weight: 700; }
+.recap-host { display: flex; flex-direction: column; gap: 8px; }

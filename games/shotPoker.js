@@ -220,6 +220,8 @@ function showdown(room, ctx) {
   const names = winners.map((id) => ctx.name(room, id)).join(' & ');
   ctx.log(room, `🏆 ${names} win${winners.length === 1 ? 's' : ''} with ${hands[winners[0]].name}`);
   for (const id of Object.keys(hands)) if (!winners.includes(id)) owe(room, ctx, id, `lost to ${hands[winners[0]].name}`);
+  const pot = Object.values(g.committed).reduce((a, b) => a + b, 0);
+  if (winners.length === 1) ctx.highlight(room, 'bigPot', winners[0], pot, `☠️ ${names} took a ${pot}-sip pot with ${hands[winners[0]].name}`);
 }
 
 // Debts still blocking the next hand (players who've left don't hold it up).

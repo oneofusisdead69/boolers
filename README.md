@@ -60,6 +60,9 @@ Turn a phone (or open the app on a tablet) sideways and every screen splits in t
 - **Hourly limit (host):** No limit / 10 / 15 / 20 / 30 sips per person per hour. Past it, that person's sips turn into water until the hour rolls on.
 - **Water breaks (host, on by default):** every so often (about 12 sips per person in the room) everyone gets a "💧 Water break" alert, and the TV shows it across the screen.
 
+## End-of-night recap
+When the night winds down, the host taps **🏁 Wrap up the night** in the lobby. Every phone and the TV show the recap: awards (🍺 Thirstiest, 🎁 Most generous, 🥃 Bottoms up, 💧 Hydration hero, 🏆 Champion), the games played and who won, the best moments (the best darts turn, the biggest Liar's Dice lie, the biggest Shot Poker pot, the biggest race win) and the whole tab. **📸 Share the night** makes an image in the room's style to post or send. The host can go back to the lobby, or **start a new night** with everyone's tab back at zero. Games report moments with `ctx.highlight(room, key, playerId, value, text)` (see `lib/night.js`).
+
 ## Room styles
 The host can dress the room up from the lobby: **Classic, Dive bar, Tavern, Club, Castle, Jazz club or Diner**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.
 

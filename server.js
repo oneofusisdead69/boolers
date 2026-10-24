@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
+const night = require('./lib/night');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
 const { createRoomStore } = require('./lib/roomStore');
@@ -107,6 +108,8 @@ function viewFor(room, player) {
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
     settings: { cap: 0, breaks: true, ...room.settings },
+    // The end-of-night recap, while the host has it open.
+    recap: room.recap ? night.summary(room, ROOM_STYLES.STYLES[room.style]?.label) : null,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
@@ -159,6 +162,7 @@ const ctx = createContext({ emit, broadcast, notifyAll });
 
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
+  if (room.game && how !== 'abandoned') night.gamePlayed(room, room.game.type, GAMES[room.game.type].name);
   if (!room.game || !room.gameStartedAt) return;
   analytics.track('game_ended', {
     game: room.game.type,
@@ -260,6 +264,24 @@ io.on('connection', (socket) => {
     const v = SETTINGS[id].find((x) => String(x) === String(value));
     if (v === undefined) return;
     room.settings = { cap: 0, breaks: true, ...room.settings, [id]: v };
+    broadcast(room);
+  });
+
+  // The host wraps up the night: everyone's phone (and the TV) shows the recap.
+  socket.on('recap', ({ open } = {}) => {
+    if (!hostOnly() || room.game) return;
+    room.recap = open === true || open === 'true';
+    broadcast(room);
+  });
+
+  // A new night: everyone's tab starts again from zero.
+  socket.on('newNight', () => {
+    if (!hostOnly() || room.game) return;
+    for (const p of room.players) Object.assign(p, { drinks: 0, total: 0, finished: 0, water: 0, log: [] });
+    room.night = null;
+    room.recap = false;
+    room.feed = [];
+    ctx.log(room, '🌙 A new night begins');
     broadcast(room);
   });
 

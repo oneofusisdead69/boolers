@@ -155,3 +155,13 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .sp-front.acting small { background: var(--accent); color: var(--accent-text); }
 /* With things in front of the players, the middle of the table leaves them room. */
 .tv-table:has(.tv-front > *) .tv-center-box { inset: 27% 27%; }
+/* The recap on the TV: awards across the top, games, moments and the tab below. */
+.tv-recap { height: 100vh; padding: 4vh 4vw; overflow: hidden; }
+.tv-recap .recap { gap: 2.5vh; }
+.tv-recap .recap-head h1 { font-size: 3.4rem; }
+.tv-recap .recap-head p { font-size: 1.3rem; }
+.tv-recap .recap-awards { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.2rem; }
+.tv-recap .recap-award { font-size: 1.2rem; }
+.tv-recap .recap-emoji { font-size: 3rem; }
+.tv-recap .recap-cols { flex-direction: row; align-items: flex-start; }
+.tv-recap .recap-cols > .card { flex: 1; font-size: 1.1rem; }

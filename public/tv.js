@@ -303,6 +303,11 @@ function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.style);
   if (!s) return joinScreen();
+  if (s.recap && s.phase === 'lobby') {
+    delete $tv.dataset.game;
+    $tv.innerHTML = `<div class="tv-recap">${Recap.html(s, { tv: true })}</div>`;
+    return;
+  }
   if (s.phase === 'lobby' || !s.gameType) {
     delete $tv.dataset.game;
     return lobbyScreen(s);

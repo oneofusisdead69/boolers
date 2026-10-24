@@ -77,6 +77,7 @@ function settle(room, ctx, callerId, call) {
     const lie = count < bid.qty;
     const loser = lie ? bid.by : callerId;
     g.reveal.losers = [loser];
+    if (lie) ctx.highlight(room, 'bigLie', bid.by, bid.qty - count, `🤥 ${ctx.name(room, bid.by)} bid ${what} when there were only ${count}`);
     ctx.log(room, lie
       ? `🤥 ${caller} called liar on ${what}: only ${count}. ${ctx.name(room, bid.by)} was lying`
       : `😬 ${caller} called liar on ${what}, but there were ${count}`);
