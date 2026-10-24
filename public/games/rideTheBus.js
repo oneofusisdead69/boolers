@@ -175,6 +175,11 @@
   }
 
   PB.register('rideTheBus', {
+    // A card turned over: a guess, a pyramid flip or a bus card.
+    sounds(prev, s) {
+      const flips = (x) => [x.game.last, x.game.pyramid?.flipped, x.game.bus?.last, x.game.bus?.attempts];
+      return JSON.stringify(flips(prev)) !== JSON.stringify(flips(s)) ? ['card'] : [];
+    },
     render(s) {
       switch (s.phase) {
         case 'guess': return guessScreen(s);

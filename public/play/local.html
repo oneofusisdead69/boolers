@@ -21,6 +21,7 @@
 <body>
   <main id="app"></main>
   <div id="drink-alert" class="drink-alert" hidden></div>
+  <script src="/prefs.js"></script>
   <script src="/pb.js"></script>
   <script src="/shared/bundle.js"></script>
   <script>
@@ -103,6 +104,7 @@
       $alert.innerHTML = `<div class="who">${esc(a.who)}</div><div class="big">🍺 ${esc(a.title)}</div><div>${esc(a.reason)}</div><small>tap to dismiss</small>`;
       $alert.hidden = false;
       navigator.vibrate?.([200, 100, 200]);
+      Prefs.play('drink');
     }
     $alert.onclick = () => { $alert.hidden = true; showAlert(); };
 
@@ -115,6 +117,7 @@
         <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
         <p class="tagline">${esc(game.name)} · pass and play</p>
         <a class="home-link" href="/">← Back to Boolers</a>
+        ${Prefs.button()}
         <div class="card">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
@@ -191,6 +194,7 @@
       if (!room) return;
       const me = actorId();
       const player = room.players.find((p) => p.id === me);
+      const prev = PB.state;
       PB.state = {
         code: room.code,
         me,
@@ -206,13 +210,20 @@
       };
       const screens = PB.screens[gameId];
       if (!screens) return;
+      // Sound effects for what just happened (no "your turn" chime: the phone is being passed).
+      if (prev?.gameType === gameId && prev.game) {
+        const s = PB.state;
+        const sounds = screens.sounds?.(prev, s) || [];
+        if (s.phase === 'over' && prev.phase !== 'over') Prefs.play('win');
+        else if (sounds.length) Prefs.play(sounds[0]);
+      }
       const html = screens.render(PB.state);
       if (html === null) return;
       $app.innerHTML = `
         ${holderBar()}
         ${html}
         <div class="spacer"></div>
-        <button class="link" data-cmd="setup">Back to setup</button>`;
+        <div class="game-foot">${Prefs.button()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
       screens.afterRender?.(PB.state);
       updateTimer();
     }

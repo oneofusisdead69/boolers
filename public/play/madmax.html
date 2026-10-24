@@ -51,7 +51,7 @@
 
   /* Setup */
   h1 { font-size: 2.4rem; margin: 12px 0 0; text-align: center; letter-spacing: -0.02em; }
-  h1 span { color: var(--accent); }
+  h1 span { color: var(--accent-ink, var(--accent)); }
   h1 .logo-emoji { color: inherit; font-size: 0.8em; display: inline-block; }
   h1 .logo-emoji:first-child { transform: rotate(-12deg); }
   h1 .logo-emoji:last-child { transform: rotate(12deg); }
@@ -122,7 +122,7 @@
   .war-row { display: flex; gap: 10px; align-items: center; background: var(--card); border-radius: 12px; padding: 10px; }
   .war-name { display: flex; flex-direction: column; width: 76px; flex: none; }
   .war-name small { color: var(--muted); }
-  .wins { color: var(--accent); letter-spacing: 2px; }
+  .wins { color: var(--accent-ink, var(--accent)); letter-spacing: 2px; }
   .war-cards { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
   .war-card { border-radius: 8px; }
   .war-card.won { box-shadow: 0 0 0 3px var(--accent); }
@@ -132,7 +132,7 @@
   .outright { color: var(--danger); font-weight: 700; text-align: center; }
   .scores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   .scores li { display: flex; justify-content: space-between; background: var(--card-2); padding: 10px 14px; border-radius: 10px; }
-  .scores b { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .scores b { color: var(--accent-ink, var(--accent)); font-variant-numeric: tabular-nums; }
 
   /* Drink alert for whoever has to drink (one phone, so it says who) */
   .alert { position: fixed; inset: 0; z-index: 10; background: var(--danger); color: var(--on-danger); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px; font-size: 1.2rem; }
@@ -145,6 +145,7 @@
 <div id="app"></div>
 <div id="alert" class="alert" hidden></div>
 
+<script src="/prefs.js"></script>
 <script src="/shared/bundle.js"></script>
 
 <script>
@@ -200,6 +201,7 @@ function showAlert() {
   $alert.innerHTML = `<div class="who">${esc(a.who)}</div><div class="big">🍺 ${esc(a.title)}</div><div>${esc(a.reason)}</div><small>tap to dismiss</small>`;
   $alert.hidden = false;
   navigator.vibrate?.([200, 100, 200]);
+  Prefs.play('drink');
 }
 $alert.onclick = () => { $alert.hidden = true; showAlert(); };
 
@@ -213,6 +215,7 @@ function renderSetup(error = '') {
     <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
     <p class="center muted">Mad Max · pass and play</p>
     <a class="home-link" href="/">← Back to Boolers</a>
+    ${Prefs.button()}
     <div class="card">
       <h2>How it works</h2>
       <ol class="rules">
@@ -312,7 +315,7 @@ function feed() {
 }
 
 function header(title, sub, war = false) {
-  return `<div class="top"><div class="turn ${war ? 'war' : ''}">${esc(title)}<span>${esc(sub)}</span></div><button class="mini" id="setup">Setup</button></div>`;
+  return `<div class="top"><div class="turn ${war ? 'war' : ''}">${esc(title)}<span>${esc(sub)}</span></div><button class="mini" data-prefs aria-label="Settings">⚙️</button><button class="mini" id="setup">Setup</button></div>`;
 }
 
 function warTable() {
@@ -442,8 +445,19 @@ function screen() {
   return '';
 }
 
+// Sound for what just changed: a card turned over, or the game won.
+let lastSound = null;
+function sounds() {
+  const G = g();
+  const key = JSON.stringify([G.pile?.length, G.lastFlip, G.war?.rounds?.length]);
+  if (lastSound && G.phase === 'over' && lastSound.phase !== 'over') Prefs.play('win');
+  else if (lastSound && key !== lastSound.key) Prefs.play('card');
+  lastSound = { key, phase: G.phase };
+}
+
 function render() {
   if (!room) return renderSetup();
+  sounds();
   $app.innerHTML = screen();
   const G = g();
   document.getElementById('setup')?.addEventListener('click', () => renderSetup());

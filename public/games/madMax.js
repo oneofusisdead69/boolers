@@ -206,5 +206,11 @@
       ${PB.feed(3)}`;
   }
 
-  PB.register('madMax', { render });
+  // A card turned over: the pile, or a war round.
+  function sounds(prev, s) {
+    const flips = (x) => [x.game.top, x.game.pileSize, x.game.war?.rounds?.length];
+    return JSON.stringify(flips(prev)) !== JSON.stringify(flips(s)) ? ['card'] : [];
+  }
+
+  PB.register('madMax', { render, sounds });
 })();

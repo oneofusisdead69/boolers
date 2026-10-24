@@ -169,6 +169,7 @@
 
   PB.register('kingsCup', {
     render,
+    sounds: (prev, s) => (s.game.card && JSON.stringify(s.game.card) !== JSON.stringify(prev.game.card) ? ['card'] : []),
     afterRender(s) {
       const ringEl = document.querySelector('#kc-ring.active');
       if (ringEl) {

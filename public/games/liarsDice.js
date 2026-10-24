@@ -174,6 +174,8 @@
   }
 
   PB.register('liarsDice', {
+    // Dice rattle for a new roll, and again when they're all shown.
+    sounds: (prev, s) => (s.game.round !== prev.game.round || (s.game.reveal && !prev.game.reveal) ? ['dice'] : []),
     render(s) {
       switch (s.phase) {
         case 'bidding': return biddingScreen(s);

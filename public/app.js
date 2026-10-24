@@ -96,10 +96,10 @@ document.addEventListener('click', () => stayOn.acquire());
 stayOn.acquire();
 
 function fullscreenButtons() {
-  if (seat) return '';
+  if (seat) return Prefs.button();
   const fs = !fullscreen.active() && fullscreen.canRequest() ? '<button class="fs-btn secondary" id="fs">⛶ Full screen</button>' : '';
   const stay = stayOn.supported ? `<button class="stay-btn secondary ${stayOn.wanted ? 'on' : ''}" id="stay">${stayOn.label()}</button>` : '';
-  return fs + stay;
+  return fs + stay + Prefs.button();
 }
 
 function bindFullscreenButtons() {
@@ -163,6 +163,7 @@ socket.on('connect', () => {
 
 socket.on('state', (s) => {
   PB.clockOffset = s.serverNow - Date.now();
+  playSounds(PB.state, s);
   PB.state = s;
   store.set('room', s.code);
   if (!s.players.some((p) => p.id === playerId)) return leaveRoom();
@@ -176,9 +177,27 @@ socket.on('kicked', () => {
   render();
 });
 
+// ---------- Sound effects ----------
+// Compares each new state with the last: a game's screens say which of its moments make a sound
+// (dice rolled, card flipped), and the app adds "your turn" and the game ending.
+
+function playSounds(prev, s) {
+  if (!prev || !s.game || prev.gameType !== s.gameType || prev.code !== s.code) return;
+  const screens = PB.screens[s.gameType];
+  const sounds = new Set(screens?.sounds?.(prev, s) || []);
+  const turn = (x) => x.game?.turnId ?? x.game?.rollerId ?? null;
+  if (turn(s) === s.me && turn(prev) !== s.me) sounds.add('turn');
+  if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
+  // One at a time, the most important first.
+  const pick = ['win', 'dice', 'card', 'turn'].find((x) => sounds.has(x));
+  if (pick) Prefs.play(pick);
+  if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
+}
+
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
+  Prefs.play('drink');
   const el = document.getElementById('drink-alert');
   const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
   el.innerHTML = `<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
@@ -352,7 +371,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
-    ${PB.endButton()}
+    <div class="game-foot">${Prefs.button()}${PB.endButton()}</div>
   `;
   screens.afterRender?.(s);
 }
