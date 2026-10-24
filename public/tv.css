@@ -54,25 +54,29 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 
 .tv-table { grid-area: table; position: relative; min-height: 0; }
 .tv-felt {
-  position: absolute; inset: 7% 8%;
+  position: absolute; inset: 16% 13%;
   border-radius: 50%;
   background: var(--felt, radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%));
   box-shadow: 0 0 0 1.2rem var(--rim, #5b3a1e), 0 0 0 1.5rem rgba(0, 0, 0, 0.35), 0 2rem 4rem rgba(0, 0, 0, 0.6), inset 0 0 4rem rgba(0, 0, 0, 0.45);
 }
 .tv-seat {
   position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-  min-width: 6rem; padding: 0.5rem 0.8rem; border-radius: 1rem;
-  background: color-mix(in srgb, var(--card) 90%, transparent); font-size: 1.05rem; z-index: 2;
+  display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 0.6rem; align-items: center;
+  padding: 0.45rem 0.9rem 0.45rem 0.5rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 90%, transparent); font-size: 1.05rem; z-index: 2; white-space: nowrap;
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.35);
   transition: box-shadow 0.3s, transform 0.3s;
 }
+.tv-seat .av { grid-row: span 2; }
+.tv-seat b { align-self: end; }
+.tv-seat small { align-self: start; }
 .tv-seat small { color: var(--muted); }
 .tv-seat.turn { box-shadow: 0 0 0 0.25rem var(--accent), 0 0 2rem var(--accent); transform: translate(-50%, -50%) scale(1.12); }
 .tv-seat.offline { opacity: 0.4; }
 
 /* The game itself, in the middle of the felt, scaled to fit (see fit() in tv.js). */
 .tv-center-box {
-  position: absolute; inset: 19% 20%;
+  position: absolute; inset: 25% 23%;
   display: flex; align-items: center; justify-content: center;
   pointer-events: none;
 }
