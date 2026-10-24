@@ -385,9 +385,13 @@ function renderRecap() {
 function roomStyleCard(s) {
   const { STYLES } = ROOM_STYLES;
   const style = STYLES[s.style] || STYLES.classic;
-  if (!s.isHost) return style.welcome ? `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(style.label)}</b><br><span class="muted">${PB.esc(style.welcome)}</span></p>` : '';
+  if (!s.isHost) {
+    if (!style.welcome && !s.venue) return '';
+    return `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(s.venue || style.label)}</b>${style.welcome ? `<br><span class="muted">${PB.esc(style.welcome)}</span>` : ''}</p>`;
+  }
   return `<div class="card room-style-card">
-      <h2>Room style</h2>
+      <h2>Your venue</h2>
+      <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
       <div class="room-styles">${Object.entries(STYLES).map(([id, st]) => `
         <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
@@ -396,6 +400,9 @@ function roomStyleCard(s) {
 
 function renderLobby() {
   const s = PB.state;
+  // Someone joining redraws the lobby: keep the venue name the host is typing.
+  const typing = document.activeElement?.id === 'venue' ? document.activeElement : null;
+  const draft = typing && { value: typing.value, from: typing.selectionStart, to: typing.selectionEnd };
   const host = s.isHost;
   const game = s.games.find((g) => g.id === s.selectedGame);
   const online = s.players.filter((p) => p.connected).length;
@@ -445,6 +452,18 @@ function renderLobby() {
   `;
   PB.layout($app, '.ls-l');
   bindFullscreenButtons();
+  // The venue's name is saved when you finish typing it.
+  const venue = document.getElementById('venue');
+  if (venue && draft) {
+    venue.value = draft.value;
+    venue.focus();
+    venue.setSelectionRange(draft.from, draft.to);
+  }
+  if (venue) {
+    const save = () => venue.value.trim() !== (PB.state.venue || '') && socket.emit('setVenue', { venue: venue.value });
+    venue.addEventListener('change', save);
+    venue.addEventListener('keydown', (e) => e.key === 'Enter' && venue.blur());
+  }
 
   document.getElementById('share').onclick = async () => {
     const url = joinUrl();

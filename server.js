@@ -107,8 +107,9 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    venue: room.venue || '',
     // The end-of-night recap, while the host has it open.
-    recap: room.recap ? night.summary(room, ROOM_STYLES.STYLES[room.style]?.label) : null,
+    recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
@@ -270,6 +271,13 @@ io.on('connection', (socket) => {
     room.recap = false;
     room.feed = [];
     ctx.log(room, '🌙 A new night begins');
+    broadcast(room);
+  });
+
+  // The host names the venue ("Noah's Basement"), shown in the lobby, on the TV and in the recap.
+  socket.on('setVenue', ({ venue } = {}) => {
+    if (!hostOnly()) return;
+    room.venue = String(venue || '').replace(/\s+/g, ' ').trim().slice(0, 32);
     broadcast(room);
   });
 

@@ -7,7 +7,7 @@
 (() => {
   const { esc } = PB;
   const name = (s, id) => s.players.find((p) => p.id === id)?.name ?? '???';
-  const place = (r) => (r.roomName && r.roomName !== 'Classic' ? `the ${r.roomName.toLowerCase()}` : 'Bool Games');
+  const place = (r) => (r.named ? r.roomName : r.roomName && r.roomName !== 'Classic' ? `the ${r.roomName.toLowerCase()}` : 'Bool Games');
   const date = (r) => new Date(r.startedAt || Date.now()).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
   function html(s, { tv = false } = {}) {

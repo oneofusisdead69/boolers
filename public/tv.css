@@ -175,3 +175,5 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-banner .sp-flash-list { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0.6rem 2.4rem; }
 .tv-banner .sp-flash-list li em { margin-left: 0.6rem; }
 .tv-banner:has(.sp-flash) { top: auto; bottom: 0; transform: none; }
+.tv-venue { font-size: 1.6rem; color: var(--muted); }
+body.tv h1.tv-venue-name { font-size: 4.4rem; color: var(--accent); white-space: normal; text-align: center; line-height: 1.05; }
