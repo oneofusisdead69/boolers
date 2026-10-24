@@ -33,6 +33,12 @@
       : '<p class="center muted">Touch the ring to pick a card. Slide to change it.</p>';
   }
 
+  function brokeLine(s) {
+    const g = s.game;
+    if (!g.broke) return '';
+    return `<p class="center kc-broke">💥 ${esc(name(g.turnId))} broke the circle! Finish your drink.</p>`;
+  }
+
   // The free spot nearest to where the finger is, by angle around the ring.
   function slotAt(e, ringEl, g) {
     const r = ringEl.getBoundingClientRect();
@@ -145,6 +151,7 @@
         ${html}
         ${mine ? `<div id="kc-draw-area">${drawArea()}</div>` : ''}
         <p class="center muted">${4 - g.kings} king${4 - g.kings === 1 ? '' : 's'} to go · ${g.deckLeft} cards left</p>
+        ${g.circle && g.taken.length ? '<p class="center muted">💥 A card next to a gap breaks the circle</p>' : ''}
         ${effects(g)}
         ${PB.feed(3)}`;
     }
@@ -152,6 +159,7 @@
     // phase 'card'
     return `
       ${PB.turn(g.turnId, mine ? (g.resolved ? 'Done? Pass it on' : 'Follow the card') : `Drew ${g.rule.title}`)}
+      ${brokeLine(s)}
       ${cardPanel(g)}
       ${mine ? drawerAction(s) : g.resolved && g.race?.losers ? lastLine(g.race.losers, s) : ''}
       ${cup(g)}

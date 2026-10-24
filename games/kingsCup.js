@@ -6,6 +6,9 @@
 // master and any rules people make, and they run the reaction cards (4 Floor, 7 Heaven) as a
 // tap race where the last to tap drinks. Without reactions (pass and play), the drawer says who
 // was last.
+//
+// Break the circle (optional): pick a card next to a spot that's already empty and you've broken
+// the circle, so you finish your drink.
 
 const { newDeck, rankName } = require('../lib/cards');
 
@@ -50,6 +53,7 @@ function nextTurn(room, ctx) {
   g.card = null;
   g.resolved = false;
   g.race = null;
+  g.broke = false;
 }
 
 function endRace(room, ctx) {
@@ -79,6 +83,12 @@ module.exports = {
       default: true,
       choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }],
     },
+    {
+      id: 'circle',
+      label: 'Break the circle: pick a card next to a gap, finish your drink',
+      default: true,
+      choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }],
+    },
   ],
   CARDS,
 
@@ -89,6 +99,8 @@ module.exports = {
       deck: newDeck(), // the ring: deck[slot] is the card lying in that spot
       taken: [], // slots already drawn
       reactions: options.reactions !== false,
+      circle: options.circle !== false,
+      broke: false, // the card just drawn broke the circle
       turnId: order[0],
       phase: 'draw',
       card: null,
@@ -118,6 +130,8 @@ module.exports = {
         slot = g.deck.findIndex((_, i) => !g.taken.includes(i));
       }
       const card = g.deck[slot];
+      const n = g.deck.length;
+      g.broke = g.circle && [(slot + 1) % n, (slot + n - 1) % n].some((s) => g.taken.includes(s));
       g.taken.push(slot);
       g.card = card;
       g.history.push({ by: me, card, slot });
@@ -126,6 +140,10 @@ module.exports = {
       g.resolved = ['info', 'prompt', 'self', 'qm', 'king'].includes(r.kind);
       g.phase = 'card';
       ctx.log(room, `🃏 ${player.name} drew ${rankName(card.rank)}: ${r.title}`);
+      if (g.broke) {
+        ctx.log(room, `💥 ${player.name} broke the circle`);
+        ctx.finishDrink(room, me, 'broke the circle');
+      }
       if (r.kind === 'self') drinkWithMates(room, ctx, me, r.sips, 'Me');
       else if (r.kind === 'qm') g.qm = me;
       else if (r.kind === 'king') {
@@ -194,6 +212,8 @@ module.exports = {
       rules: g.rules,
       race: g.race && { ...g.race, endsAt: g.raceEndsAt, ms: RACE_MS, iTapped: g.race.tapped.includes(player.id) },
       reactions: g.reactions,
+      circle: g.circle,
+      broke: g.broke,
       ringSize: g.deck.length,
       taken: g.taken,
       deckLeft: g.deck.length - g.taken.length,

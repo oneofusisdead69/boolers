@@ -21,6 +21,7 @@ test('the deck is laid in a ring of 52; you draw the card you pick, once', () =>
   const t = setup(game, 2);
   const g = t.room.game;
   assert.strictEqual(t.view(0).ringSize, 52);
+  g.deck[17] = c(5); // Guys: nothing to resolve before moving on
   const chosen = g.deck[17];
   t.act(0, 'draw', { slot: 17 });
   assert.deepStrictEqual(g.card, chosen);
@@ -192,4 +193,35 @@ test('a full random game always ends on the fourth king', () => {
     assert.strictEqual(g.kings, 4);
     t.cleanup();
   }
+});
+
+test('break the circle: a card next to a gap means finish your drink', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  const finished = (id) => t.events.filter((e) => e.playerId === id && e.data.title === 'FINISH YOUR DRINK').length;
+  for (const slot of [10, 30, 11]) g.deck[slot] = c(5); // Guys: no choices to make
+  t.act(0, 'draw', { slot: 10 }); // the first card can't break anything
+  assert.strictEqual(t.view(0).broke, false);
+  t.act(0, 'next');
+  t.act(1, 'draw', { slot: 30 }); // nowhere near the gap
+  assert.strictEqual(finished('p1'), 0);
+  t.act(1, 'next');
+  t.act(0, 'draw', { slot: 11 }); // right next to slot 10's gap
+  assert.strictEqual(t.view(1).broke, true);
+  assert.strictEqual(finished('p0'), 1);
+  t.cleanup();
+});
+
+test('break the circle can be switched off; spots wrap round the ring', () => {
+  const t = setup(game, 2, { circle: false });
+  t.act(0, 'draw', { slot: 0 }).act(0, 'next');
+  assert.strictEqual(t.room.game.broke, false);
+  t.cleanup();
+  const u = setup(game, 2);
+  u.room.game.deck[0] = c(5);
+  u.room.game.deck[51] = c(5);
+  u.act(0, 'draw', { slot: 0 }).act(0, 'next');
+  u.act(1, 'draw', { slot: 51 }); // 51 sits next to 0 in the ring
+  assert.strictEqual(u.room.game.broke, true);
+  u.cleanup();
 });

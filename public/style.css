@@ -554,6 +554,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 }
 .kc-slot .pcard { box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 /* Your ring: touching it never scrolls the page, selects text or opens the long-press menu. */
+.kc-broke { color: var(--danger); font-weight: 800; font-size: 1.1rem; margin: 4px 0; }
 .kc-ring.active { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
 /* A picked card slides out of the ring toward the cup. */
 .kc-slot.picked { z-index: 2; transform: rotate(var(--a)) translateY(calc(-1 * var(--r) + 30px)) scale(1.15); }
