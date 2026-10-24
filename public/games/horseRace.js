@@ -358,10 +358,15 @@
     // Sideways: these go on the left.
     stage: '.hz-wrap',
     // On the TV: the track and the standings; while betting, who's backing which horse.
-    tvStage: '.hz-wrap, .hz-standings, .drink, .ar-bets, .center.muted',
+    tvStage: '.hz-wrap, .hz-standings, .drink, .ar-bets, .ar-give, .center.muted',
+    // No table on the TV: just a big track, with the horses' names down the left.
+    tvTable: false,
+    tvLeft: '.hz-winner, .hz-standings, .ar-bets, .ar-give, .center.muted',
     tv(s) {
       if (s.phase !== 'betting') return undefined;
       const g = s.game;
+      racers = g.racers;
+      HORSES = g.horses.map((h) => ({ ...h, color: h.silk }));
       return `
         ${track(s)}
         <div class="card hz-standings">${HORSES.map((h) => {

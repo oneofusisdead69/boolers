@@ -166,7 +166,9 @@ function fillCenter(s, screens) {
   if (html === null) return false;
   $hidden.innerHTML = html;
   const center = document.getElementById('tv-center');
+  const left = document.getElementById('tv-left');
   center.innerHTML = '';
+  if (left) left.innerHTML = '';
   const turn = $hidden.querySelector('.turn');
   document.getElementById('tv-turn').innerHTML = turn ? turn.innerHTML : '';
   if (own != null) {
@@ -178,18 +180,22 @@ function fillCenter(s, screens) {
     if (found.length) center.append(...found);
     else center.innerHTML = '<p class="center muted tv-wait">Over to the phones…</p>';
   }
+  // Games without a table (the horse race) put part of the screen in a column on the left.
+  if (left && screens.tvLeft) left.append(...center.querySelectorAll(screens.tvLeft));
   screens.afterRender?.(s);
   return true;
 }
 
-// Scales the middle of the table to fill its space.
+// Scales the middle of the table (and the left column, if there is one) to fill its space.
 function fit() {
-  const box = document.querySelector('.tv-center-box');
-  const inner = document.getElementById('tv-center');
-  if (!box || !inner) return;
-  inner.style.zoom = 1;
-  const z = Math.min(box.clientWidth / inner.scrollWidth, box.clientHeight / inner.scrollHeight, 2.6);
-  inner.style.zoom = Math.max(0.5, z).toFixed(3);
+  for (const [box, inner, most] of [['.tv-center-box', '#tv-center', 2.6], ['.tv-left-box', '#tv-left', 2]]) {
+    const $box = document.querySelector(box);
+    const $inner = document.querySelector(inner);
+    if (!$box || !$inner) continue;
+    $inner.style.zoom = 1;
+    const z = Math.min($box.clientWidth / $inner.scrollWidth, $box.clientHeight / $inner.scrollHeight, most);
+    $inner.style.zoom = Math.max(0.5, z).toFixed(3);
+  }
 }
 window.addEventListener('resize', fit);
 
@@ -213,12 +219,15 @@ function gameScreen(s) {
     $tv.innerHTML = `
       <div class="tv-game">
         <header class="tv-head"><b class="tv-title">${esc(game.name)}</b><div id="tv-turn" class="tv-turn"></div><span class="tv-code">Join: <b>${esc(s.code)}</b></span></header>
-        <div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div>
+        ${screens.tvTable === false
+          ? '<div class="tv-wide"><div class="tv-left-box"><div id="tv-left"></div></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'
+          : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'}
         <aside class="tv-side" id="tv-side"></aside>
       </div>
       ${soundButton()}`;
   }
-  document.getElementById('tv-seats').innerHTML = seats(s);
+  const $seats = document.getElementById('tv-seats');
+  if ($seats) $seats.innerHTML = seats(s);
   document.getElementById('tv-side').innerHTML = sidebar(s);
   if (fillCenter(s, screens)) fit();
   updateTimer();

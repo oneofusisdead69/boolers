@@ -77,7 +77,7 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
   pointer-events: none;
 }
 #tv-center { width: 30rem; max-width: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; }
-#tv-center button, #tv-center .btn-row, #tv-center [data-act] { display: none; }
+#tv-center button, #tv-center .btn-row, #tv-center [data-act], #tv-left button { display: none; }
 #tv-center .card { background: rgba(20, 17, 31, 0.78); }
 
 .tv-side { grid-area: side; display: flex; flex-direction: column; gap: 1.2vh; min-height: 0; overflow: hidden; font-size: 1rem; }
@@ -106,3 +106,14 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 
 /* Games that fill a phone screen get a fixed-size box on the TV. */
 #tv-center .pad { flex: none; height: 26rem; background: rgba(20, 17, 31, 0.6); }
+
+/* Games without a table: a column on the left and a big centrepiece. */
+.tv-wide { grid-area: table; display: grid; grid-template-columns: 19rem 1fr; gap: 2vw; min-height: 0; }
+.tv-wide .tv-left-box { display: flex; align-items: center; min-height: 0; }
+.tv-wide .tv-center-box { position: static; inset: auto; min-height: 0; }
+#tv-left { width: 300px; display: flex; flex-direction: column; gap: 12px; font-size: 16px; }
+#tv-left:empty { display: none; }
+.tv-game:has(.tv-wide) { grid-template-columns: 1fr 18rem; }
+#tv-left .hz-winner .big { font-size: 1.7rem; }
+#tv-left .hz-winner .sips { font-size: 1rem; }
+body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-items: center; }
