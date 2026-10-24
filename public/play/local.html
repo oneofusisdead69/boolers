@@ -24,6 +24,7 @@
   <script src="/analytics.js"></script>
   <script src="/prefs.js"></script>
   <script src="/looks.js"></script>
+  <script src="/room-styles.js"></script>
   <script src="/pb.js"></script>
   <script src="/shared/bundle.js"></script>
   <script>
@@ -102,6 +103,12 @@
         hint: (room, id) => room.game.debts[id] && !room.game.debts[id].paid,
       },
     };
+    // The room style (dive bar, tavern…) is remembered on this phone.
+    let roomStyle = 'classic';
+    try { roomStyle = localStorage.getItem('local-room-style') || 'classic'; } catch {}
+    const howToPlay = (rules = []) => (rules.length
+      ? `<details class="how-to"><summary>📖 How to play</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : '');
+
     const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.hostId };
     const options = (game.options || []).filter((o) => !(o.id in local.locked));
 
@@ -162,6 +169,7 @@
         <div class="card ls-l">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
+          ${howToPlay(game.rules)}
           ${game.custom?.length ? `
             <div class="custom-row">
               <small>${PB.hasCustom(gameId) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
@@ -183,8 +191,14 @@
             </div>`).join('')}
           <button class="secondary" id="add" ${names.length >= 12 ? 'disabled' : ''}>Add player</button>
         </div>
+        <div class="card room-style-card">
+          <h2>Room style</h2>
+          <div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).map(([id, st]) => `
+            <button class="${id === roomStyle ? 'selected' : ''}" data-room-style="${id}"><span>${esc(st.emoji)}</span>${esc(st.label)}</button>`).join('')}</div>
+        </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
+      ROOM_STYLES.apply(roomStyle);
       PB.layout($app, '.ls-l');
 
       const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
@@ -195,6 +209,14 @@
       document.getElementById('add').onclick = () => { names = [...readNames(), `Player ${names.length + 1}`]; renderSetup(); };
       $app.querySelectorAll('[data-remove]').forEach((b) => {
         b.onclick = () => { const n = readNames(); n.splice(Number(b.dataset.remove), 1); names = n; renderSetup(); };
+      });
+      $app.querySelectorAll('[data-room-style]').forEach((b) => {
+        b.onclick = () => {
+          names = readNames();
+          roomStyle = b.dataset.roomStyle;
+          try { localStorage.setItem('local-room-style', roomStyle); } catch {}
+          renderSetup();
+        };
       });
       $app.querySelectorAll('[data-opt]').forEach((b) => {
         b.onclick = () => { names = readNames(); opts[b.dataset.opt] = JSON.parse(b.dataset.val); renderSetup(); };

@@ -992,3 +992,7 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .recap-list li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .recap-n { margin-left: auto; font-weight: 700; }
 .recap-host { display: flex; flex-direction: column; gap: 8px; }
+
+/* How to play: the game's rules, tucked away until you open them. */
+.how-to summary { cursor: pointer; font-weight: 700; color: var(--accent-ink, var(--accent)); }
+.how-to ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--text); }

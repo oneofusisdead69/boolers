@@ -443,6 +443,7 @@ function renderLobby() {
               ${PB.esc(g.name)}<small>${PB.esc(g.description)}</small>
             </button>`).join('')}</div>`
         : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
+      ${game.rules?.length ? `<details class="how-to"><summary>📖 How to play ${PB.esc(game.name)}</summary><ul>${game.rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : ''}
       ${renderOptions()}
       ${host && s.custom.length ? `
         <div class="custom-row">
