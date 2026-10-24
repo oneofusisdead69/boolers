@@ -136,19 +136,56 @@
   }
 
   const stadium = (r) => `M ${CX - HALF} ${CY + r} H ${CX + HALF} A ${r} ${r} 0 0 0 ${CX + HALF} ${CY - r} H ${CX - HALF} A ${r} ${r} 0 0 0 ${CX - HALF} ${CY + r} Z`;
-  const place = (g, i, id) => {
-    const [x, y] = point(g.progress[id], radius(i));
-    return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+  // Where a racer is drawn: `at` laps round, in lane i.
+  const place = (at, i) => {
+    const [x, y] = point(at, radius(i));
+    return `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
   };
   // Racehorses are drawn facing right and the animals face left: flip whichever way they run.
-  const facing = (g, i, id) => {
+  const facing = (at, i) => {
     const r = radius(i);
-    const [x0] = point(g.progress[id], r);
-    const [x1] = point(g.progress[id] + 0.004, r);
-    const right = x1 > x0;
+    const right = point(at + 0.004, r)[0] > point(at, r)[0];
     const scale = racers === 'horses' ? (right ? 0.7 : -0.7) : (right ? -1 : 1);
     return racers === 'horses' ? `scale(${scale}, 0.7)` : `scaleX(${scale})`;
   };
+
+  // ---------- Smooth running ----------
+  // The server moves the horses a few times a second, in pushes. On screen each horse follows its
+  // latest position like a spring with no bounce: it speeds up after a push and eases off, always
+  // along the track, at the phone's full frame rate.
+  const STIFF = 7;
+  const DAMP = 2 * Math.sqrt(STIFF); // critically damped: no overshoot, never runs backwards
+  const run = { race: null, at: {}, speed: {}, target: {}, going: false };
+  const shown = (g, id) => (run.race === g.race && id in run.at ? run.at[id] : g.progress[id]);
+
+  function follow(g) {
+    if (run.race !== g.race) {
+      run.race = g.race;
+      run.at = { ...g.progress };
+      run.speed = Object.fromEntries(Object.keys(g.progress).map((id) => [id, 0]));
+    }
+    run.target = { ...g.progress };
+    if (run.going) return;
+    run.going = true;
+    let last = performance.now();
+    const frame = (now) => {
+      const svg = document.getElementById('hz-track');
+      if (!svg || !svg.classList.contains('running') || svg.dataset.race !== String(run.race)) { run.going = false; return; }
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      HORSES.forEach((h, i) => {
+        const gap = run.target[h.id] - run.at[h.id];
+        run.speed[h.id] += (STIFF * gap - DAMP * run.speed[h.id]) * dt;
+        run.at[h.id] += Math.max(0, run.speed[h.id]) * dt;
+        const el = svg.querySelector(`[data-horse="${h.id}"]`);
+        if (!el) return;
+        el.style.transform = place(run.at[h.id], i);
+        el.querySelector('.hz-face').style.transform = facing(run.at[h.id], i);
+      });
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
 
   function track(s) {
     const g = s.game;
@@ -162,9 +199,9 @@
       for (let col = 0; col < 2; col++) checks.push(`<rect x="${CX - 5 + col * 5}" y="${y}" width="5" height="5" fill="${(row + col) % 2 ? '#111' : '#fff'}"/>`);
     }
     const tokens = HORSES.map((h, i) => `
-      <g class="hz-horse ${g.winner === h.id ? 'won' : ''}" data-horse="${h.id}" style="transform:${place(g, i, h.id)};transition-duration:${g.tickMs}ms">
+      <g class="hz-horse ${g.winner === h.id ? 'won' : ''}" data-horse="${h.id}" style="transform:${place(shown(g, h.id), i)}">
         <ellipse class="hz-shadow" cx="0" cy="10" rx="9" ry="2.6" style="animation-delay:-${(i * 0.06).toFixed(2)}s"/>
-        <g class="hz-face" style="transform:${facing(g, i, h.id)};animation-delay:-${(i * 0.06).toFixed(2)}s">${racers === 'horses'
+        <g class="hz-face" style="transform:${facing(shown(g, h.id), i)};animation-delay:-${(i * 0.06).toFixed(2)}s">${racers === 'horses'
           ? `<g class="hz-bob" style="animation-delay:-${(i * 0.06).toFixed(2)}s">${horseSvg(h)}</g>`
           : `<text class="hz-emoji" style="--hc:${h.color};animation-delay:-${(i * 0.06).toFixed(2)}s">${emoji(h)}</text>`}</g>
         <text class="hz-num" y="-15" style="fill:${h.color}">${h.id}</text>
@@ -301,12 +338,7 @@
     const g = s.game;
     const svg = document.getElementById('hz-track');
     if (!svg || svg.dataset.race !== String(g.race)) return false;
-    HORSES.forEach((h, i) => {
-      const el = svg.querySelector(`[data-horse="${h.id}"]`);
-      if (!el) return;
-      el.style.transform = place(g, i, h.id);
-      el.querySelector('.hz-face').style.transform = facing(g, i, h.id);
-    });
+    follow(g);
     document.getElementById('hz-laps').textContent = lapText(g);
     const st = document.getElementById('hz-standings');
     if (st) st.innerHTML = standings(s);
@@ -337,6 +369,7 @@
     },
     afterRender(s) {
       const dialBtn = document.getElementById('hz-dial');
+      if (s.phase === 'race') follow(s.game);
       if (dialBtn) {
         dialBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tapDial(dialBtn); });
         runDial();

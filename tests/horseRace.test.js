@@ -20,15 +20,15 @@ test('six horses; bets on a horse, checked against the max', () => {
   t.cleanup();
 });
 
-test('each tick pushes some horses forward by a random amount', () => {
+test('each tick moves every horse a little and pushes some further', () => {
   const t = setup(game, 2);
   const g = t.room.game;
   t.act(0, 'bet', { horse: '1', sips: 1 }).act(0, 'startRace');
-  // Rolls: horse 1 pushed (0.1 < 0.4) by min + 0.5 of the range; horse 2 not (0.9); rest not.
+  // Rolls: horse 1 pushed (0.1 < 0.4) by min + 0.5 of the range; the rest only creep (0.9).
   const rolls = [0.1, 0.5, 0.9, 0.9, 0.9, 0.9, 0.9];
   game.tick(t.room, t.ctx, () => rolls.shift());
-  assert.ok(Math.abs(g.progress['1'] - 0.04) < 1e-9);
-  assert.strictEqual(g.progress['2'], 0);
+  assert.ok(Math.abs(g.progress['1'] - (0.006 + 0.012 + 0.5 * 0.026)) < 1e-9);
+  assert.ok(Math.abs(g.progress['2'] - 0.006) < 1e-9, 'nobody stands still');
   assert.strictEqual(g.ticks, 1);
   t.cleanup();
 });
@@ -102,7 +102,7 @@ test("jockey mode: one rider per horse, and the dial changes your horse's speed"
   // A faster horse gets bigger pushes.
   const before = g.progress['1'];
   game.tick(t.room, t.ctx, (() => { const r = [0.1, 0.5]; return () => (r.length ? r.shift() : 0.9); })());
-  assert.ok(Math.abs(g.progress['1'] - before - 0.04 * 2.2) < 1e-9);
+  assert.ok(Math.abs(g.progress['1'] - before - (0.006 + 0.012 + 0.5 * 0.026) * 2.2) < 1e-9);
   t.cleanup();
 });
 

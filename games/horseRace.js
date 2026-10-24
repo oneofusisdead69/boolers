@@ -24,12 +24,14 @@ const SILKS = ['#e53950', '#3d7cff', '#f5c518', '#2fbf71', '#9b5cff', '#ff8a1f',
 const COATS = ['bay', 'chestnut', 'black', 'grey', 'palomino', 'white'];
 const horseName = (g, id) => g.horses.find((h) => h.id === id)?.name ?? '?';
 
-// One tick of the motor. Each horse gets a push with probability PUSH_CHANCE, of PUSH_MIN to
-// PUSH_MAX of a lap: about 25 seconds a lap at normal speed.
+// One tick of the motor. Every horse creeps forward a little (STEADY of a lap), and with
+// probability PUSH_CHANCE gets a push of PUSH_MIN to PUSH_MAX on top: about 25 seconds a lap at
+// normal speed.
 const TICK_MS = { normal: 400, fast: 250 };
+const STEADY = 0.006;
 const PUSH_CHANCE = 0.4;
-const PUSH_MIN = 0.015;
-const PUSH_MAX = 0.065;
+const PUSH_MIN = 0.012;
+const PUSH_MAX = 0.038;
 
 // Jockey mode: each horse's speed multiplier, and how a tap on the dial changes it.
 const SPEED_MIN = 0.4;
@@ -54,7 +56,9 @@ function tick(room, ctx, rand = Math.random) {
   if (g.phase !== 'race') return;
   g.ticks += 1;
   for (const id of IDS) {
-    if (rand() < PUSH_CHANCE) g.progress[id] += (PUSH_MIN + rand() * (PUSH_MAX - PUSH_MIN)) * g.mult[id];
+    let step = STEADY;
+    if (rand() < PUSH_CHANCE) step += PUSH_MIN + rand() * (PUSH_MAX - PUSH_MIN);
+    g.progress[id] += step * g.mult[id];
   }
   const done = IDS.filter((id) => g.progress[id] >= g.laps);
   if (done.length) {
