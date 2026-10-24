@@ -8,6 +8,8 @@ const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
 const night = require('./lib/night');
+const { createTrips } = require('./lib/trip');
+const { waterLine } = require('./lib/water');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
 const { createRoomStore } = require('./lib/roomStore');
@@ -108,6 +110,7 @@ function viewFor(room, player) {
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
     venue: room.venue || '',
+    trip: trips.view(room, player.id),
     // The end-of-night recap, while the host has it open.
     recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
@@ -131,6 +134,7 @@ const TV = { id: '__tv', name: 'TV' };
 const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
+  trips.check(room);
   room.updatedAt = Date.now();
   roomStore.save(room);
   for (const p of room.players) {
@@ -151,13 +155,46 @@ function emit(room, playerId, event, data) {
   }
 }
 
-// A message for every phone in the room and the TV (e.g. the water reminder).
-function notifyAll(room, event, data) {
+// A message for every phone in the room (not the TV), e.g. the water reminder.
+function notifyPhones(room, event, data) {
   for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
-  for (const id of room.tvs || []) io.to(id).emit(event, data);
 }
 
 const ctx = createContext({ emit, broadcast });
+
+// Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
+// host's custom content (questions, rules…), if they wrote any.
+function startGame(room, gameId, mine = {}) {
+  const game = GAMES[gameId];
+  room.selectedGame = gameId;
+  // Disconnected players don't carry into a new game.
+  room.players = room.players.filter((p) => p.connected);
+  for (const p of room.players) p.drinks = 0;
+  room.feed = [];
+  room.recap = false;
+  room.game = { type: game.id };
+  game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
+  room.gameStartedAt = Date.now();
+  analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
+  broadcast(room);
+  // A different game (or the third in a row): a nudge to drink some water, on the phones.
+  if (night.waterDue(room, game.id)) notifyPhones(room, 'notice', { kind: 'water', text: waterLine(room.style) });
+}
+
+function stopGame(room, how) {
+  gameEnded(room, how);
+  ctx.endGame(room);
+}
+
+// Around the World (lib/trip.js): games back to back, voted on, until the recap.
+const trips = createTrips({
+  games: GAMES,
+  ctx,
+  startGame: (room, id) => startGame(room, id),
+  stopGame: (room) => stopGame(room, 'trip'),
+  broadcast,
+  finish: (room) => { room.recap = true; },
+});
 
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
@@ -309,21 +346,34 @@ io.on('connection', (socket) => {
     if (ctx.connectedPlayers(room).length < game.minPlayers) {
       return ack({ error: `${game.name} needs at least ${game.minPlayers} players` });
     }
-    // Disconnected players don't carry into a new game.
-    room.players = room.players.filter((p) => p.connected);
-    for (const p of room.players) p.drinks = 0;
-    room.feed = [];
-    room.game = { type: game.id };
-    game.start(room, ctx, { ...room.options[game.id], custom: custom.clean(game.custom, mine) });
-    room.gameStartedAt = Date.now();
-    analytics.track('game_started', { game: game.id, players: room.players.length, mode: 'online', customized: Object.keys(custom.clean(game.custom, mine)).length > 0 });
+    trips.end(room);
     ack({ ok: true });
+    startGame(room, game.id, mine);
+  });
+
+  // Around the World: the host sets the number of stops and how the next game is picked.
+  socket.on('startTrip', ({ stops, mode } = {}) => {
+    if (!hostOnly() || room.game) return;
+    stops = [3, 5, 8].includes(Number(stops)) ? Number(stops) : 5;
+    trips.start(room, { stops, mode: mode === 'random' ? 'random' : 'vote' });
     broadcast(room);
-    // A new game (or the third in a row): everyone has some water.
-    if (night.waterDue(room, game.id)) {
-      ctx.log(room, '💧 Water break: everyone have some water');
-      notifyAll(room, 'notice', { title: '💧 WATER BREAK', text: 'New game, new glass of water. Everyone have a drink of water before you start.' });
-    }
+  });
+  socket.on('tripVote', ({ gameId } = {}) => {
+    if (!room || !player) return;
+    trips.vote(room, player.id, gameId);
+    broadcast(room);
+  });
+  // The host moves on now (skips the rest of this game, or closes the vote), or ends the trip.
+  socket.on('nextStop', () => {
+    if (!hostOnly()) return;
+    trips.skip(room);
+    broadcast(room);
+  });
+  socket.on('endTrip', () => {
+    if (!hostOnly() || !room.trip) return;
+    trips.end(room);
+    if (room.game) stopGame(room, 'host');
+    broadcast(room);
   });
 
   socket.on('action', (action = {}) => {
@@ -336,10 +386,11 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  // Ending a game on the trip just moves on to the next stop.
   socket.on('endGame', () => {
     if (!hostOnly() || !room.game) return;
-    gameEnded(room, 'host');
-    ctx.endGame(room);
+    if (room.trip) trips.skip(room);
+    else stopGame(room, 'host');
     broadcast(room);
   });
 
@@ -402,6 +453,7 @@ setInterval(() => {
     if (ctx.connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
       gameEnded(r, 'abandoned');
       ctx.clearTimer(r);
+      trips.end(r);
       rooms.delete(code);
       roomStore.remove(code);
     }

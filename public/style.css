@@ -1020,3 +1020,37 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .sp-flash-list li em { margin-left: auto; font-style: normal; font-weight: 700; color: var(--danger); }
 .sp-flash-list li.paid em { color: var(--ok); }
 .sp-settle { background: var(--ok); color: #04210f; font-size: 1.2rem; font-weight: 900; animation: pulse 0.9s ease-in-out infinite; }
+
+/* The water reminder: a banner that slides down from the top for a few seconds. */
+.water-banner {
+  position: fixed; left: 12px; right: 12px; top: 12px; z-index: 11; padding: 14px 16px; border-radius: 14px;
+  background: #228ce6; color: #fff; font-weight: 700; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  transform: translateY(-140%); transition: transform 0.35s ease;
+}
+.water-banner.show { transform: none; }
+
+/* ---------- Around the World (public/trip.js) ---------- */
+.trip { display: flex; flex-direction: column; gap: 14px; }
+.trip-head { display: flex; align-items: center; gap: 12px; }
+.trip-globe { font-size: 2.4rem; animation: spin 8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.trip-head small { display: block; color: var(--muted); }
+.trip-head b { font-size: 1.3rem; }
+.trip-clock { margin-left: auto; font-weight: 800; color: var(--accent-ink, var(--accent)); font-variant-numeric: tabular-nums; }
+.trip-route { display: flex; gap: 4px; }
+.trip-route span { flex: 1; min-width: 0; padding: 6px 4px; border-radius: 8px; background: var(--card); color: var(--muted); font-size: 0.7rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trip-route span.done { background: var(--card-2); color: var(--text); }
+.trip-route span.here { background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.trip-options { display: flex; flex-direction: column; gap: 10px; }
+.trip-option { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; background: var(--card); color: var(--text); border: 2px solid transparent; padding: 14px 16px; }
+.trip-option b { font-size: 1.2rem; }
+.trip-option small { color: var(--muted); font-weight: 400; }
+.trip-option.mine { border-color: var(--accent); }
+.trip-voters { display: flex; gap: 4px; min-height: 22px; }
+.trip-next { text-align: center; align-items: center; padding: 28px 16px; animation: pop-in 0.4s ease-out; }
+.trip-next small { color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.trip-next-name { font-size: 2.4rem; font-weight: 900; color: var(--accent-ink, var(--accent)); }
+@keyframes pop-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.trip-host { display: flex; flex-direction: column; gap: 8px; }
+.trip-chip { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; }
+.trip-chip .link { width: auto; padding: 4px 8px; }

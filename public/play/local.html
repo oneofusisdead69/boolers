@@ -258,8 +258,13 @@
       game.start(room, ctx, { ...opts, ...local.locked, custom });
       // Every third game on this phone: water for everyone.
       if (__req('night').waterDue(localNight, gameId)) {
-        alerts.push({ who: 'Everyone', title: '💧 WATER BREAK', reason: 'Another game, another glass of water. Everyone have some water first.' });
-        showAlert();
+        const banner = document.createElement('div');
+        banner.className = 'water-banner';
+        banner.textContent = `💧 ${__req('water').waterLine(roomStyle)}`;
+        banner.onclick = () => banner.remove();
+        document.body.appendChild(banner);
+        requestAnimationFrame(() => banner.classList.add('show'));
+        setTimeout(() => banner.remove(), 7000);
       }
       window.Analytics?.event('local_game_started', { game: gameId, players: names.length });
       render();

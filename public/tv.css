@@ -164,8 +164,8 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-recap .recap-emoji { font-size: 3rem; }
 .tv-recap .recap-cols { flex-direction: row; align-items: flex-start; }
 .tv-recap .recap-cols > .card { flex: 1; font-size: 1.1rem; }
-/* Room sound, top left under the title. */
-.tv-music { position: fixed; left: 2vw; top: 9vh; width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; opacity: 0.6; z-index: 5; background: var(--card-2); color: var(--text); }
+/* Room sound, bottom right once sound is on. */
+.tv-music { position: fixed; right: 2vw; bottom: 2vh; width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; opacity: 0.6; z-index: 5; background: var(--card-2); color: var(--text); }
 .tv-music:hover { opacity: 1; }
 /* Shot Poker's debts across the TV. */
 .tv-banner .sp-takeover { position: fixed; inset: 0; }
@@ -177,3 +177,18 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-banner:has(.sp-flash) { top: auto; bottom: 0; transform: none; }
 .tv-venue { font-size: 1.6rem; color: var(--muted); }
 body.tv h1.tv-venue-name { font-size: 4.4rem; color: var(--accent); white-space: normal; text-align: center; line-height: 1.05; }
+/* Around the World on the TV. */
+.tv-trip { max-width: 70rem; margin: 0 auto; padding: 5vh 3vw; }
+.tv-trip .trip { gap: 2.4vh; font-size: 1.2rem; }
+.tv-trip .trip-head b { font-size: 2.2rem; }
+.tv-trip .trip-globe { font-size: 4rem; }
+.tv-trip .trip-clock { font-size: 2.4rem; }
+.tv-trip .trip-route span { font-size: 1rem; padding: 0.6rem; }
+.tv-trip .trip-options { flex-direction: row; }
+.tv-trip .trip-option { flex: 1; padding: 1.6rem; opacity: 1; }
+.tv-trip .trip-option b { font-size: 2rem; }
+.tv-trip .trip-option small { font-size: 1.05rem; }
+.tv-trip .trip-voters .av.sm { width: 2.2rem; height: 2.2rem; font-size: 1.3rem; }
+.tv-trip h2 { font-size: 1.6rem; }
+.tv-trip .trip-next-name { font-size: 5rem; }
+.tv-side .trip-chip { font-size: 1rem; justify-content: flex-start; }

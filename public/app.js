@@ -263,11 +263,28 @@ socket.on('drink', ({ sips, reason, from, title }) => {
   showAlert(`<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
 });
 
-// A message for the whole room, like the water reminder between games.
-socket.on('notice', ({ title, text }) => {
+// A message for the whole room. The water reminder between games is a banner across the top.
+socket.on('notice', ({ kind, title, text }) => {
+  if (kind === 'water') return showBanner(`💧 ${text}`);
   navigator.vibrate?.([100, 60, 100]);
   showAlert(`<div class="big">${PB.esc(title)}</div><div>${PB.esc(text)}</div>`, 'water', 8000);
 });
+
+function showBanner(text) {
+  let el = document.getElementById('banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'banner';
+    el.className = 'water-banner';
+    el.onclick = () => el.classList.remove('show');
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('show');
+  navigator.vibrate?.(60);
+  clearTimeout(el.t);
+  el.t = setTimeout(() => el.classList.remove('show'), 7000);
+}
 
 function showAlert(html, kind, ms) {
   const el = document.getElementById('drink-alert');
@@ -370,6 +387,12 @@ function renderOptions() {
     </div>`).join('');
 }
 
+// Around the World, between games: the vote for the next stop.
+function renderTrip() {
+  $app.innerHTML = `${Trip.html(PB.state)}<div class="spacer"></div><div class="game-foot">${PB.tabButton()}${Prefs.button()}</div>`;
+  Trip.bind($app, (event, data) => socket.emit(event, data), render);
+}
+
 // The end-of-night recap, while the host has it open.
 function renderRecap() {
   $app.innerHTML = Recap.html(PB.state);
@@ -435,6 +458,7 @@ function renderLobby() {
           <button class="secondary" id="customize">✏️ Customize</button>
         </div>` : ''}
     </div>
+    ${Trip.setup(s)}
     ${roomStyleCard(s)}
     <div class="card tv-card">
       ${s.tv
@@ -452,6 +476,7 @@ function renderLobby() {
   `;
   PB.layout($app, '.ls-l');
   bindFullscreenButtons();
+  Trip.bind($app, (event, data) => socket.emit(event, data), render);
   // The venue's name is saved when you finish typing it.
   const venue = document.getElementById('venue');
   if (venue && draft) {
@@ -511,6 +536,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
+    ${Trip.chip(s)}
     <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   if (!screens.fullscreen) PB.layout($app, screens.stage);
@@ -520,6 +546,7 @@ function renderGame() {
 function render() {
   ROOM_STYLES.apply(PB.state?.style);
   if (!PB.state) return renderHome();
+  if (PB.state.phase === 'lobby' && PB.state.trip) return renderTrip();
   if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();
   if (PB.state.phase === 'lobby') return renderLobby();
   renderGame();

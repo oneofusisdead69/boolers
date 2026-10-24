@@ -69,20 +69,7 @@ socket.on('drink', (d) => {
   Prefs.play('drink');
 });
 
-// The water reminder: a big banner for the whole room.
-socket.on('notice', ({ title, text }) => {
-  let el = document.getElementById('tv-notice');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'tv-notice';
-    el.className = 'tv-banner tv-notice';
-    document.body.appendChild(el);
-  }
-  el.innerHTML = `<div class="drink water"><div class="big">${esc(title)}</div><div class="sips">${esc(text)}</div></div>`;
-  clearTimeout(el.t);
-  el.t = setTimeout(() => (el.innerHTML = ''), 9000);
-  Prefs.play('bell');
-});
+
 
 // ---------- Sound ----------
 
@@ -100,7 +87,8 @@ try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length;
 function music() {
   if (soundOn) Ambience.set(PB.state?.style, MUSIC[musicLevel][1]);
   let btn = document.getElementById('tv-music');
-  const show = PB.state && PB.state.style && PB.state.style !== 'classic';
+  // It appears once sound is on (the "click for sound" button sits in the same corner till then).
+  const show = soundOn && PB.state && PB.state.style && PB.state.style !== 'classic';
   if (!show) return btn?.remove();
   if (!btn) {
     btn = document.createElement('button');
@@ -318,7 +306,7 @@ function gameScreen(s) {
     $seats.innerHTML = seats(s);
     placeSeats();
   }
-  document.getElementById('tv-side').innerHTML = sidebar(s);
+  document.getElementById('tv-side').innerHTML = `${Trip.chip(s)}${sidebar(s)}`;
   if (fillCenter(s, screens)) fit();
   updateTimer();
 }
@@ -328,6 +316,11 @@ function render() {
   ROOM_STYLES.apply(s?.style);
   music();
   if (!s) return joinScreen();
+  if (s.trip && s.phase === 'lobby') {
+    delete $tv.dataset.game;
+    $tv.innerHTML = `<div class="tv-trip">${Trip.html(s, { tv: true })}</div>`;
+    return;
+  }
   if (s.recap && s.phase === 'lobby') {
     delete $tv.dataset.game;
     $tv.innerHTML = `<div class="tv-recap">${Recap.html(s, { tv: true })}</div>`;

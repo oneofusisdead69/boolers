@@ -56,7 +56,10 @@ Where the browser allows it (Android), the app goes full screen when you create,
 Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
 
 ## Water breaks
-Whenever the room switches to a different game, or after three games in a row, every phone and the TV get a "💧 Water break" reminder to have some water before the next game. Pass and play does the same every third game.
+Whenever the room switches to a different game, or after three games in a row, a banner slides down on every phone (not the TV) with a nudge to drink some water: a different line each time, often in the room style's voice ("Arr, even pirates need fresh water, matey."). Lines live in `lib/water.js`. Pass and play does the same every third game.
+
+## Around the World
+The host can start **🌍 Around the World** from the lobby: pick 3, 5 or 8 stops, and whether everyone votes on the next game or it's a surprise. Before each stop every phone (and the TV) shows three games to vote on, new ones first; the vote closes when everyone's voted or after 25 seconds. Each game moves on by itself when it's done (games that never end, like Horse Race or Shot Poker, count as done after a few races or hands), and after the last stop the end-of-night recap comes up. The host can skip ahead (**Next stop ➜**) or end the trip any time. Rules in `lib/trip.js`, screens in `public/trip.js`.
 
 ## End-of-night recap
 When the night winds down, the host taps **🏁 Wrap up the night** in the lobby. Every phone and the TV show the recap: awards (🍺 Thirstiest, 🎁 Most generous, 🥃 Bottoms up, 🏆 Champion), the games played and who won, the best moments (the best darts turn, the biggest Liar's Dice lie, the biggest Shot Poker pot, the biggest race win) and the whole tab. **📸 Share the night** makes an image in the room's style to post or send. The host can go back to the lobby, or **start a new night** with everyone's tab back at zero. Games report moments with `ctx.highlight(room, key, playerId, value, text)` (see `lib/night.js`).
