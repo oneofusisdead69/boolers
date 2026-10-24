@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#14111f">
   <link rel="icon" type="image/png" href="/icons/favicon.png">
-  <title>Pass and play · Boolers</title>
+  <title>Pass and play · Bool Games</title>
   <link rel="stylesheet" href="/style.css">
   <style>
     /* Pass-and-play extras on top of the app's own styles. */
@@ -107,7 +107,7 @@
       render();
     };
     PB.redraw = () => render();
-    document.title = `${game.name} · Boolers`;
+    document.title = `${game.name} · Bool Games`;
 
     // ---------- Drink alerts (one at a time, naming who drinks) ----------
 
@@ -130,9 +130,9 @@
       }
       room = null;
       $app.innerHTML = `
-        <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
+        <h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
         <p class="tagline">${esc(game.name)} · pass and play</p>
-        <a class="home-link" href="/">← Back to Boolers</a>
+        <a class="home-link" href="/">← Back to Bool Games</a>
         ${Prefs.button()}
         <div class="card">
           <h2>${esc(game.name)}</h2>

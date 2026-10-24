@@ -283,7 +283,7 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 server.listen(PORT, () => {
-  console.log(`Boolers running on http://localhost:${PORT}`);
+  console.log(`Bool Games running on http://localhost:${PORT}`);
   console.log(`Games: ${Object.values(GAMES).map((g) => g.name).join(', ')}`);
   console.log(`Test with several phones at once: http://localhost:${PORT}/dev.html`);
 });

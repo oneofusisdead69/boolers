@@ -1,11 +1,10 @@
-# Boolers
+# Bool Games
 
 Phone-only party drinking games. One person creates a room on their phone, and everyone else joins by scanning the QR code, tapping the shared link or typing the 4-letter room code. No app, no TV.
 
 ## Games
 | Game | Status |
 |---|---|
-| Most Likely To | ✅ Playable |
 | Slevens (7-Eleven Doubles) | ✅ Playable |
 | Mad Max | ✅ Playable |
 | Ride the Bus | ✅ Playable |
@@ -14,12 +13,12 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Shot Poker | ✅ Playable |
 
 ## Pass and play
-Every game except Most Likely To can also be played on one phone passed around: **Pass and play** on the home screen. Slevens and Mad Max have their own pages (`/play/slevens.html`, `/play/madmax.html`); other games run in `/play/local.html?game=<id>`, which shows each game's normal screens for whoever has to act next. These pages run the same rules code as multiplayer, served as one browser script from `/shared/bundle.js` (built by `lib/bundle.js`), so the games never drift apart. `node tools/build-demos.js <dir>` turns them into stand-alone demo pages.
+Every game can also be played on one phone passed around: **Pass and play** on the home screen. Slevens and Mad Max have their own pages (`/play/slevens.html`, `/play/madmax.html`); other games run in `/play/local.html?game=<id>`, which shows each game's normal screens for whoever has to act next. These pages run the same rules code as multiplayer, served as one browser script from `/shared/bundle.js` (built by `lib/bundle.js`), so the games never drift apart. `node tools/build-demos.js <dir>` turns them into stand-alone demo pages.
 
 ## Make it yours
 - **⚙️ Settings** (on every screen, remembered per phone): sound effects on/off and volume, a colour theme (Night, Neon, Sunset, Light), dice colours and card backs. Sounds are made in the browser, so there are no audio files.
 - **Avatars:** tap the avatar next to your name to pick an emoji and a colour. Everyone sees it beside your name.
-- **Custom content:** the host taps **✏️ Customize** in the lobby to write their own Most Likely To questions, or Kings Cup rules, categories and rhymes. Saved on the host's phone and used whenever they start that game (pass and play too).
+- **Custom content:** the host taps **✏️ Customize** in the lobby to write their own Kings Cup rules, categories and rhymes. Saved on the host's phone and used whenever they start that game (pass and play too).
 
 ## Full screen
 Where the browser allows it (Android), the app goes full screen when you create, join or start a game, with a ⛶ button to get back to it. iPhone Safari doesn't let websites go full screen.

@@ -54,7 +54,7 @@ for (const id of Object.keys(TITLES)) {
   if (start < 0 || end < start) throw new Error('screen loader not found in local.html');
   body = `${body.slice(0, start)}    renderSetup();${body.slice(end)}`;
   write(`${id}-demo.html`, {
-    title: `<title>${TITLES[id]} · Boolers</title>`,
+    title: `<title>${TITLES[id]} · Bool Games</title>`,
     style: `${read('public/style.css')}\n${parts.style}`,
     body,
   });
