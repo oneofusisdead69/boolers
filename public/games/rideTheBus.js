@@ -43,7 +43,7 @@
     const g = s.game;
     return `<div class="mm-seats">${s.players.map((p) => `
       <div class="mm-seat ${p.id === g.turnId ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
-        <span>${esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span><b>🂠 ${g.counts[p.id] ?? 0}</b>
+        ${PB.avatar(p.id)}<span>${esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span><b>🂠 ${g.counts[p.id] ?? 0}</b>
       </div>`).join('')}</div>`;
   }
 

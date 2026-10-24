@@ -22,6 +22,19 @@ if (!playerId) {
   store.set('id', playerId);
 }
 
+// Your avatar and colour, remembered on this phone. Until you pick one yourself, the room hands
+// you one nobody else has (and the phone remembers that).
+function myLook() {
+  let look = { avatar: store.get('avatar'), color: store.get('color') };
+  if (!LOOKS.AVATARS.includes(look.avatar) || !LOOKS.COLORS.includes(look.color)) {
+    look = LOOKS.choose(look, [], true);
+    store.set('avatar', look.avatar);
+    store.set('color', look.color);
+  }
+  return look;
+}
+const lookToSend = () => (store.get('lookPicked') ? myLook() : {});
+
 let homeError = '';
 const loading = {};
 
@@ -151,7 +164,7 @@ socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
   if (room) {
-    socket.emit('join', { code: room, playerId, name: store.get('name') }, (res) => {
+    socket.emit('join', { code: room, playerId, name: store.get('name'), ...lookToSend() }, (res) => {
       if (res.error) {
         store.del('room');
         PB.state = null;
@@ -167,6 +180,12 @@ socket.on('state', (s) => {
   PB.state = s;
   store.set('room', s.code);
   if (!s.players.some((p) => p.id === playerId)) return leaveRoom();
+  // Keep the look the room gave you, if you haven't picked your own.
+  const meNow = s.players.find((p) => p.id === playerId);
+  if (!store.get('lookPicked') && meNow.avatar) {
+    store.set('avatar', meNow.avatar);
+    store.set('color', meNow.color);
+  }
   render();
 });
 
@@ -175,6 +194,47 @@ socket.on('kicked', () => {
   PB.state = null;
   homeError = 'You were removed from the room';
   render();
+});
+
+// ---------- Avatar picker ----------
+// Opened from your avatar on the home screen or in the lobby. In a room, changes go straight to
+// everyone else.
+
+let lookPicker = null;
+function openLookPicker() {
+  const look = myLook();
+  if (!lookPicker) {
+    lookPicker = document.createElement('div');
+    lookPicker.className = 'prefs-overlay';
+    lookPicker.addEventListener('click', (e) => {
+      if (e.target === lookPicker || e.target.closest('[data-look-done]')) {
+        lookPicker.remove();
+        const typed = document.getElementById('name')?.value.trim();
+        if (typed) store.set('name', typed); // the home screen redraws; keep what was typed
+        return render();
+      }
+      const b = e.target.closest('[data-av], [data-color]');
+      if (!b) return;
+      store.set('lookPicked', '1');
+      if (b.dataset.av) store.set('avatar', b.dataset.av);
+      if (b.dataset.color) store.set('color', b.dataset.color);
+      if (PB.state) socket.emit('setLook', myLook());
+      openLookPicker();
+    });
+  }
+  lookPicker.innerHTML = `
+    <div class="prefs-panel look-panel" role="dialog" aria-modal="true" aria-label="Your avatar">
+      <header><h2>Your avatar</h2>${PB.avatarOf(look, 'lg')}</header>
+      <div class="look-colors">${LOOKS.COLORS.map((c) => `
+        <button class="${c === look.color ? 'on' : ''}" data-color="${c}" style="--pc:${c}" aria-label="Colour ${c}"></button>`).join('')}</div>
+      <div class="look-avatars">${LOOKS.AVATARS.map((a) => `
+        <button class="${a === look.avatar ? 'on' : ''}" data-av="${a}" style="--pc:${look.color}">${a}</button>`).join('')}</div>
+      <button data-look-done>Done</button>
+    </div>`;
+  if (!lookPicker.isConnected) document.body.appendChild(lookPicker);
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-look]')) openLookPicker();
 });
 
 // ---------- Sound effects ----------
@@ -214,7 +274,8 @@ function renderHome() {
   $app.innerHTML = `
     <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
     <p class="tagline">Drinking games for your phones</p>
-    <div class="card">
+    <div class="card name-card">
+      <button class="av-btn" data-look aria-label="Pick your avatar">${PB.avatarOf(myLook(), 'lg')}</button>
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
     <div class="card">
@@ -248,7 +309,7 @@ function renderHome() {
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
     store.set('name', name);
     fullscreen.enter();
-    socket.emit(event, { ...payload, name, playerId }, (res) => {
+    socket.emit(event, { ...payload, name, playerId, ...lookToSend() }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
       store.set('room', res.code);
@@ -270,7 +331,8 @@ function playerList({ showKick }) {
   const s = PB.state;
   return `<ul class="players">${s.players.map((p) => `
     <li class="${p.connected ? '' : 'offline'}">
-      <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span>
+      ${p.id === s.me ? `<button class="av-btn" data-look aria-label="Change your avatar">${PB.avatar(p.id)}</button>` : PB.avatar(p.id)}
+      <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you) <small class="muted">tap your avatar to change it</small>' : ''}</span>
       ${p.id === s.hostId ? '<span class="tag">👑 host</span>' : ''}
       ${!p.connected ? '<span class="tag">offline</span>' : ''}
       ${showKick && p.id !== s.me ? `<button class="kick" data-cmd="kick" data-player-id="${PB.esc(p.id)}" data-confirm="Remove ${PB.esc(p.name)}?">✕</button>` : ''}

@@ -28,6 +28,25 @@
       return PB.state.players.find((p) => p.id === id)?.name ?? '???';
     },
 
+    // A player's avatar and colour. Pass and play (where nobody picks one) uses a fixed look per
+    // seat.
+    look(id) {
+      const players = PB.state?.players || [];
+      const i = players.findIndex((p) => p.id === id);
+      const p = players[i];
+      if (p?.avatar && p?.color) return { avatar: p.avatar, color: p.color };
+      return window.LOOKS ? LOOKS.forSeat(Math.max(0, i)) : { avatar: '🙂', color: '#9aa0a6' };
+    },
+
+    // The avatar in a circle of the player's colour. size: '' | 'sm' | 'lg'.
+    avatar(id, size = '') {
+      return PB.avatarOf(PB.look(id), size);
+    },
+
+    avatarOf({ avatar, color }, size = '') {
+      return `<span class="av ${size}" style="--pc:${PB.esc(color)}" aria-hidden="true">${PB.esc(avatar)}</span>`;
+    },
+
     // Sends a game action, e.g. PB.act('roll') or PB.act('guess', { pick: 'red' }).
     // In HTML, <button data-act="guess" data-pick="red"> does the same thing on tap.
     act(type, data = {}) {
@@ -57,7 +76,7 @@
     turn(playerId, text = '') {
       const mine = playerId === PB.state.me;
       const who = mine && !PB.passAndPlay ? 'Your turn' : `${PB.esc(PB.name(playerId))}'s turn`;
-      return `<div class="turn ${mine ? 'mine' : ''}">${who}${text ? ` <span>${PB.esc(text)}</span>` : ''}</div>`;
+      return `<div class="turn ${mine ? 'mine' : ''}"><b class="turn-who">${PB.avatar(playerId, 'sm')}${who}</b>${text ? ` <span>${PB.esc(text)}</span>` : ''}</div>`;
     },
 
     // Grid of player buttons. Tapping one sends `action` with { targetId }.
@@ -65,7 +84,7 @@
       const data = Object.entries(extra).map(([k, v]) => `data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${PB.esc(v)}"`).join(' ');
       return `<div class="vote-grid">${PB.state.players
         .filter((p) => !exclude.includes(p.id))
-        .map((p) => `<button data-act="${PB.esc(action)}" data-target-id="${PB.esc(p.id)}" ${data} class="${selected === p.id ? 'selected' : ''} ${p.connected ? '' : 'offline'}">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</button>`)
+        .map((p) => `<button data-act="${PB.esc(action)}" data-target-id="${PB.esc(p.id)}" ${data} class="${selected === p.id ? 'selected' : ''} ${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span>${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span></button>`)
         .join('')}</div>`;
     },
 
@@ -98,7 +117,7 @@
     scoreboard() {
       const rows = PB.state.players.slice().sort((a, b) => b.drinks - a.drinks);
       return `<div class="card"><h2>Total sips</h2><ul class="players">${rows.map((p) => `
-        <li class="${p.connected ? '' : 'offline'}"><span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
+        <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
     },
   };
   window.PB = PB;

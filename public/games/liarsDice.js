@@ -46,7 +46,7 @@
     const g = s.game;
     return `<div class="mm-seats">${s.players.map((p) => `
       <div class="mm-seat ${p.id === g.turnId ? 'turn' : ''} ${g.counts[p.id] ? '' : 'out'} ${p.connected ? '' : 'offline'}">
-        <span>${esc(p.name)}${p.id === s.me && !PB.passAndPlay ? ' (you)' : ''}</span><b>🎲 ${g.counts[p.id] ?? 0}</b>
+        ${PB.avatar(p.id)}<span>${esc(p.name)}${p.id === s.me && !PB.passAndPlay ? ' (you)' : ''}</span><b>🎲 ${g.counts[p.id] ?? 0}</b>
       </div>`).join('')}</div>`;
   }
 
@@ -142,7 +142,7 @@
     const match = (v) => v === r.bid.face || (g.wild && v === 1);
     return `<div class="ld-reveal">${s.players.filter((p) => r.hands[p.id]).map((p) => `
       <div class="ld-hand ${r.losers.includes(p.id) ? 'loser' : ''}">
-        <span>${esc(p.name)}${r.out.includes(p.id) ? ' · out!' : ''}</span>
+        <span>${PB.avatar(p.id, 'sm')} ${esc(p.name)}${r.out.includes(p.id) ? ' · out!' : ''}</span>
         ${dieRow(r.hands[p.id], match)}
       </div>`).join('')}</div>`;
   }
