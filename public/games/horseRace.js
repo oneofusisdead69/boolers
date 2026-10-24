@@ -355,6 +355,28 @@
   }
 
   PB.register('horseRace', {
+    // Sideways: these go on the left.
+    stage: '.hz-wrap',
+    // On the TV: the track and the standings; while betting, who's backing which horse.
+    tvStage: '.hz-wrap, .hz-standings, .drink, .ar-bets, .ar-give, .center.muted',
+    // No table on the TV: just a big track, with the horses' names down the left.
+    tvTable: false,
+    tvLeft: '.hz-standings, .ar-bets, .ar-give, .center.muted',
+    tvBanner: '.hz-winner',
+    tv(s) {
+      if (s.phase !== 'betting') return undefined;
+      const g = s.game;
+      racers = g.racers;
+      HORSES = g.horses.map((h) => ({ ...h, color: h.silk }));
+      return `
+        ${track(s)}
+        <div class="card hz-standings">${HORSES.map((h) => {
+          const ids = backers(s, h.id);
+          return `<div class="hz-stand">${chip(h)}<span class="hz-name">${esc(h.name)}</span>
+            <span class="hz-backers">${ids.map((id) => `${PB.avatar(id, 'sm')} <b>${g.bets[id].sips}</b>`).join(' ')}</span></div>`;
+        }).join('')}</div>
+        <p class="center muted">Place your bets on your phones · ${g.laps} lap${g.laps === 1 ? '' : 's'}</p>`;
+    },
     sounds(prev, s) {
       if (s.game.winner && !prev.game.winner) return ['win'];
       return s.phase === 'race' && prev.phase !== 'race' ? ['bell'] : [];

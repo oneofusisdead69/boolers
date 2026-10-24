@@ -154,12 +154,12 @@
       }
       room = null;
       $app.innerHTML = `
-        <h1><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
-        <p class="tagline">${esc(game.name)} · pass and play</p>
+        <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
+        <p class="tagline ls-l">${esc(game.name)} · pass and play</p>
         <a class="home-link" href="/">← Back to Bool Games</a>
         ${Prefs.button()}
         ${Prefs.feedbackButton()}
-        <div class="card">
+        <div class="card ls-l">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
           ${game.custom?.length ? `
@@ -185,6 +185,7 @@
         </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
+      PB.layout($app, '.ls-l');
 
       const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
       document.getElementById('customize')?.addEventListener('click', () => {
@@ -278,6 +279,7 @@
         ${html}
         <div class="spacer"></div>
         <div class="game-foot">${PB.tabButton()}${Prefs.button()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
+      PB.layout($app, screens.stage);
       screens.afterRender?.(PB.state);
       updateTimer();
     }

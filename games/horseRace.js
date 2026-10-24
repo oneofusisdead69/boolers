@@ -93,6 +93,13 @@ module.exports = {
   id: 'horseRace',
   name: 'Horse Race',
   description: 'Bet sips on one of six horses lurching round an oval track. Losers drink their bet; winners hand out theirs.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Bet sips on a horse.",
+    "The race runs itself: horses kick on and fade at random.",
+    "Losers drink their bet; winners hand out theirs (or double).",
+    "Jockey mode: tap green on the dial to speed up, red slows you down.",
+  ],
   minPlayers: 2,
   order: 8,
   HORSES,

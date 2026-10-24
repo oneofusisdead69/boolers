@@ -133,6 +133,13 @@ module.exports = {
   id: 'rideTheBus',
   name: 'Ride the Bus',
   description: 'Guess your cards, dump them on the pyramid, and whoever holds the most rides the bus.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Round 1: guess red/black, higher/lower, inside/outside, then the suit.",
+    "Wrong: drink the round number. Right: give it out.",
+    "The pyramid: match a flipped card to give sips (more up the pyramid).",
+    "Most cards left rides the bus. Fall off: drink, start again.",
+  ],
   minPlayers: 2,
   order: 4,
   options: [

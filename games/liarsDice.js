@@ -113,6 +113,14 @@ module.exports = {
   id: 'liarsDice',
   name: "Liar's Dice",
   description: 'Roll in secret, bid on what the whole table rolled, and call out the liars.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Everyone rolls in secret.",
+    "Bid on how many of a face are on the whole table. Each bid goes higher.",
+    "Call LIAR on the last bid: if it's short, the bidder drinks; if not, you do.",
+    "Spot on: exactly right and everyone else drinks.",
+    "Lose a call, lose a die. Out of dice? Finish your drink.",
+  ],
   minPlayers: 2,
   order: 6,
   options: [

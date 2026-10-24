@@ -168,6 +168,13 @@ module.exports = {
   id: 'bigTom',
   name: 'Big Tom',
   description: 'Quiplash but worse',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Write a question; two other players answer it.",
+    "Vote for the better answer. Loser drinks; winner hands out.",
+    "Three rounds, then the final: answer by drawing.",
+    "Fewest votes in the final drinks double. Most points is Big Tom champion.",
+  ],
   minPlayers: 3,
   order: 1,
   options: [

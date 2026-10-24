@@ -732,7 +732,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .ar-suits svg.pip { width: 1.8rem; height: 1.8rem; display: block; margin: 0 auto; fill: currentColor; }
 .ar-bets { gap: 8px; }
 .ar-bet-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
-.ar-bet-row > span:not(.av) { flex: 1; }
+.ar-bet-row > span:not(.av):not(.ar-horse) { flex: 1; }
 .ar-bet-row .ar-horse { width: 30px; height: 30px; flex: none; }
 .ar-bet-row .ar-horse svg.pip { width: 16px; height: 16px; }
 .ar-give { gap: 8px; }
@@ -863,3 +863,52 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .hz-coats button.on { border-color: var(--accent); }
 .hz-coats span { width: 16px; height: 16px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3); }
 @media (prefers-reduced-motion: reduce) { .hz-track.running .hz-leg, .hz-track.running .hz-bob { animation: none; } }
+
+/* ---------- Sideways ----------
+   Phone turned sideways: the screen splits into the stage (left, pinned while the right side
+   scrolls) and the panel. Big things shrink to fit the short height. */
+main.ls {
+  max-width: 1040px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.ls-stage, .ls-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ls-stage { position: sticky; top: max(10px, env(safe-area-inset-top)); }
+main.ls h1 { margin-top: 6px; }
+main.ls .spacer { display: none; }
+main.ls .ls-stage .qr { width: 140px; height: 140px; }
+main.ls .room-code { font-size: 2.4rem; }
+/* Cards and tables sized to the short side */
+main.ls .ls-stage .pcard.xl { width: 112px; height: 162px; }
+main.ls .ls-stage .pcard.xl .pip { font-size: 3.6rem; }
+main.ls .ls-stage .pcard.xl .corner { font-size: 1.25rem; }
+main.ls .mm-pile { height: 190px; }
+main.ls .mm-fan { margin-left: -56px; }
+main.ls .kc-ring { --size: min(300px, 44vw, calc(100dvh - 40px)); }
+main.ls .rb-pyramid .pcard.md { width: 50px; height: 72px; }
+main.ls .rb-pyramid .pcard.md .pip { font-size: 1.4rem; }
+main.ls .hz-wrap, main.ls .ar-track { max-height: calc(100dvh - 24px); }
+main.ls .hz-track { max-height: calc(100dvh - 40px); }
+main.ls .bt-canvas { width: auto; height: calc(100dvh - 120px); max-width: 100%; align-self: center; }
+main.ls .bt-gallery { grid-template-columns: repeat(3, 1fr); }
+main.ls .bt-prompt { font-size: 1.3rem; }
+main.ls .drink-alert .big { font-size: 2.2rem; }
+main.ls .sp-hole .pcard.lg { width: 74px; height: 106px; }
+main.ls .sp-hole .pcard.lg .pip { font-size: 2.4rem; }
+main.ls .sp-hole .pcard.lg .corner { font-size: 0.9rem; }
+main.ls .sp-board .pcard { width: 46px; height: 66px; }
+main.ls .sp-table { padding: 10px 8px; }
+main.ls .ar-row { min-height: 34px; }
+main.ls .ar-lane { min-height: 30px; }
+main.ls .ar-horse { width: 30px; height: 30px; }
+main.ls .ar-horse svg.pip { width: 17px; height: 17px; }
+main.ls .ar-side .pcard.sm { width: 24px; height: 33px; }
+main.ls .ar-track { padding: 6px; gap: 2px; }
+/* Full-screen games (Slevens) use the whole width sideways. */
+@media (orientation: landscape) and (min-width: 560px) {
+  .fs-screen { max-width: none; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+}
+.tv-card { padding: 12px 16px; font-size: 0.95rem; }

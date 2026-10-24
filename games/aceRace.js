@@ -66,6 +66,13 @@ module.exports = {
   id: 'aceRace',
   name: 'Ace Race',
   description: 'Bet sips on a suit and watch the aces race. Losers drink their bet; winners hand out theirs.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Bet sips on a suit.",
+    "Each flipped card moves its ace up a step.",
+    "When everyone passes a track card, it flips and knocks its suit back.",
+    "First ace over the line wins. Losers drink their bet; winners hand out theirs.",
+  ],
   minPlayers: 2,
   order: 9,
   options: [

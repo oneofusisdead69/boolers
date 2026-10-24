@@ -74,6 +74,14 @@ module.exports = {
   id: 'kingsCup',
   name: 'Kings Cup',
   description: 'Draw a card, follow its rule. Whoever draws the fourth king drinks the cup.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Pick a card from the ring and follow its rule.",
+    "A Waterfall · 2 You · 3 Me · 4 Floor · 5 Guys · 6 Girls · 7 Heaven",
+    "8 Mate · 9 Rhyme · 10 Categories · J Rule · Q Question master",
+    "The first three kings pour into the cup. The fourth king drinks it.",
+    "Pick next to a gap and you break the circle: finish your drink.",
+  ],
   minPlayers: 2,
   order: 5,
   options: [

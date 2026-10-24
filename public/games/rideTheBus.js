@@ -31,7 +31,7 @@
 
   function hand(s, { playable = null } = {}) {
     const cards = s.game.myHand;
-    if (!cards.length) return '<p class="center muted">No cards in your hand</p>';
+    if (!cards.length) return '<p class="center muted rb-hand">No cards in your hand yet</p>';
     return `<div class="cards rb-hand">${cards.map((card, i) => {
       const canPlay = playable && playable(card);
       return canPlay
@@ -176,10 +176,21 @@
   }
 
   PB.register('rideTheBus', {
+    // Sideways: these go on the left.
+    stage: '.rb-pyramid, .rb-bus, .rb-label, .rb-hand',
+    // On the TV: the shared parts of the screen.
+    tvStage: '.rb-pyramid, .rb-bus, .mm-last, .rb-plays, .mm-seats, .drink',
     // A card turned over: a guess, a pyramid flip or a bus card.
     sounds(prev, s) {
       const flips = (x) => [x.game.last, x.game.pyramid?.flipped, x.game.bus?.last, x.game.bus?.attempts];
       return JSON.stringify(flips(prev)) !== JSON.stringify(flips(s)) ? ['card'] : [];
+    },
+    // On the TV in round 1: the card that was just turned over, big.
+    tv(s) {
+      if (s.phase !== 'guess' && s.phase !== 'give') return undefined;
+      const l = s.game.last;
+      return `<div class="cards rb-tv-card">${l ? PB.card(l.card, { size: 'lg' }) : PB.card(null, { size: 'lg' })}</div>
+        ${lastGuess(s) || `<p class="center muted">Round ${s.game.round + 1}: ${{ color: 'red or black?', highlow: 'higher or lower?', inout: 'inside or outside?', suit: 'guess the suit' }[s.game.roundType] || ''}</p>`}${seats(s)}`;
     },
     render(s) {
       switch (s.phase) {

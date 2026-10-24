@@ -109,6 +109,10 @@
   }
 
   PB.register('aceRace', {
+    // Sideways: these go on the left.
+    stage: '.ar-track, .ar-last',
+    // On the TV: the shared parts of the screen.
+    tvStage: '.ar-track, .ar-last, .ar-bets, .drink, .ar-give, .center.muted',
     sounds(prev, s) {
       if (s.game.winner && !prev.game.winner) return ['win'];
       return s.game.flips !== prev.game.flips ? ['card'] : [];
