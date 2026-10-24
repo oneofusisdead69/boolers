@@ -2,7 +2,7 @@
 // page (the app, pass and play, and the stand-alone Slevens and Mad Max pages), so it brings its
 // own styles and needs nothing else.
 //
-//   Prefs.play('dice')      play a sound: dice, card, turn, drink, win
+//   Prefs.play('dice')      play a sound: dice, card, turn, drink, win, bell
 //   Prefs.button()          HTML for a ⚙️ button; tapping any [data-prefs] opens the panel
 //   Prefs.feedbackButton()  HTML for a 💬 button; tapping any [data-feedback] opens the form
 //
@@ -195,6 +195,13 @@
       for (const at of [0, 0.3]) {
         tone(ac, out, { freq: 150, type: 'sawtooth', at, len: 0.2, gain: 0.18 });
         tone(ac, out, { freq: 151.5, type: 'square', at, len: 0.2, gain: 0.1 });
+      }
+    },
+    // Ding-ding-ding: they're off.
+    bell(ac, out) {
+      for (const at of [0, 0.18, 0.36]) {
+        tone(ac, out, { freq: 1568, type: 'sine', at, len: 0.25, gain: 0.25 });
+        tone(ac, out, { freq: 3136, type: 'sine', at, len: 0.12, gain: 0.08 });
       }
     },
     // Rising arpeggio.

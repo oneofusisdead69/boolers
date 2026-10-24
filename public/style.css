@@ -697,3 +697,169 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .sp-tab-head small:last-child { width: 64px; }
 .tab-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tab-head button { width: auto; padding: 6px 12px; font-size: 0.9rem; }
+
+/* Ace Race */
+.ar-track { display: flex; flex-direction: column; gap: 3px; padding: 10px 8px; border-radius: 18px; background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0e4a2e 100%); box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25); }
+.ar-row { display: grid; grid-template-columns: 48px repeat(4, 1fr); align-items: center; gap: 4px; min-height: 46px; }
+.ar-row.finish { border-bottom: 3px dashed rgba(255,255,255,0.7); padding-bottom: 3px; }
+.ar-row.start { border-top: 3px solid rgba(255,255,255,0.35); padding-top: 3px; }
+.ar-lane { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px; min-height: 40px; border-radius: 8px; background: rgba(0,0,0,0.12); }
+.ar-bettors { min-height: 0; }
+.ar-bettors .ar-lane { background: none; min-height: 0; }
+.ar-side { display: flex; justify-content: center; }
+.ar-side .pcard.sm { width: 30px; height: 42px; border-width: 2px; }
+.ar-side .pcard.sm .pip { font-size: 1rem; }
+.ar-side .pcard.sm .corner { font-size: 0.55rem; }
+.ar-side.flash .pcard { box-shadow: 0 0 0 3px var(--danger); }
+.ar-flag { font-size: 1.6rem; text-align: center; }
+.ar-start { font-size: 0.75rem; font-weight: 800; color: #e9fff3; text-align: center; text-transform: uppercase; }
+.ar-horse { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: #fff; color: #111; box-shadow: 0 3px 8px rgba(0,0,0,0.4); }
+.ar-horse.red { color: #d61f3c; }
+.ar-horse svg.pip { width: 22px; height: 22px; fill: currentColor; display: block; }
+.ar-horse.moved { animation: ar-hop 0.45s ease-out; }
+.ar-horse.knocked { animation: ar-knock 0.6s ease-out; box-shadow: 0 0 0 3px var(--danger); }
+.ar-horse.won { box-shadow: 0 0 0 4px var(--accent); animation: pulse 0.9s ease-in-out infinite; }
+@keyframes ar-hop { 0% { transform: translateY(46px); } 70% { transform: translateY(-6px); } 100% { transform: none; } }
+@keyframes ar-knock { 0% { transform: translateY(-46px) rotate(-20deg); } 60% { transform: rotate(10deg); } 100% { transform: none; } }
+.ar-last { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 64px; }
+.ar-last p { font-weight: 700; }
+.ar-knock { color: var(--danger); }
+.ar-place { gap: 12px; }
+.ar-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ar-suits button { padding: 12px 0; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
+.ar-suits button.red { color: var(--danger); }
+.ar-suits button.selected { border-color: var(--accent); }
+.ar-suits svg.pip { width: 1.8rem; height: 1.8rem; display: block; margin: 0 auto; fill: currentColor; }
+.ar-bets { gap: 8px; }
+.ar-bet-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+.ar-bet-row > span:not(.av) { flex: 1; }
+.ar-bet-row .ar-horse { width: 30px; height: 30px; flex: none; }
+.ar-bet-row .ar-horse svg.pip { width: 16px; height: 16px; }
+.ar-give { gap: 8px; }
+.ar-give-row { display: flex; align-items: center; gap: 10px; }
+.ar-give-row > span:not(.av) { flex: 1; font-weight: 600; }
+.ar-give-row button { width: 44px; padding: 6px 0; font-size: 1.3rem; }
+.ar-give-row b { min-width: 24px; text-align: center; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+
+/* Horse Race (oval) */
+.hz-wrap { border-radius: 18px; background: #135c39; padding: 6px; box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25); }
+.hz-track { display: block; width: 100%; height: auto; }
+.hz-dirt { fill: none; stroke: #b98552; }
+.hz-infield { fill: #1f7a4d; }
+.hz-divider { fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 0.8; stroke-dasharray: 4 4; }
+.hz-laps { fill: #e9fff3; font-size: 15px; font-weight: 800; text-anchor: middle; }
+
+
+.hz-emoji { font-size: 25px; text-anchor: middle; dominant-baseline: central; transform-box: fill-box; transform-origin: 50% 90%; }
+.hz-shadow { fill: rgba(0,0,0,0.28); transform-box: fill-box; transform-origin: center; }
+.hz-num { font-size: 10px; font-weight: 900; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: rgba(0,0,0,0.75); stroke-width: 2.5px; }
+.hz-horse.won .hz-emoji { filter: drop-shadow(0 0 3px #ffcc33) drop-shadow(0 0 3px #ffcc33); }
+.hz-horse.won .hz-num { fill: #ffcc33 !important; font-size: 13px; }
+/* Trotting: a two-beat bounce that rocks forward and back while the race is on, with the shadow
+   shrinking as the animal lifts. */
+.hz-track.running .hz-emoji { animation: hz-trot 0.38s linear infinite; }
+.hz-track.running .hz-shadow { animation: hz-step 0.19s ease-in-out infinite alternate; }
+@keyframes hz-trot {
+  0% { transform: translateY(0) rotate(0); }
+  20% { transform: translateY(-4px) rotate(-7deg); }
+  45% { transform: translateY(0) rotate(1deg); }
+  70% { transform: translateY(-3px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+@keyframes hz-step { from { transform: scale(1); opacity: 1; } to { transform: scale(0.7); opacity: 0.6; } }
+.hz-chip { display: inline-flex; align-items: flex-end; flex: none; gap: 1px; }
+.hz-chip-a { font-size: 1.5rem; line-height: 1; }
+.hz-chip b { font-size: 0.75rem; font-weight: 900; line-height: 1; -webkit-text-stroke: 0.4px rgba(0,0,0,0.5); }
+.hz-place { gap: 12px; }
+.hz-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hz-pick button { display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--card-2); color: var(--text); border: 2px solid transparent; text-align: left; font-size: 0.9rem; }
+.hz-pick button > span:not(.hz-chip):not(.av) { flex: 1; font-weight: 700; }
+.hz-pick button small { display: flex; gap: 2px; }
+.hz-pick button.selected { border-color: var(--accent); }
+.hz-standings { gap: 6px; }
+.hz-stand { display: flex; align-items: center; gap: 10px; }
+.hz-stand.won { font-weight: 800; }
+.hz-pos { width: 18px; text-align: center; color: var(--muted); }
+.hz-name { flex: 1; font-weight: 600; }
+.hz-backers { display: flex; gap: 2px; }
+.hz-winner .big { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.hz-winner .hz-chip-a { font-size: 2.6rem; }
+.hz-winner .hz-chip b { font-size: 1rem; }
+.hz-pick button:disabled { opacity: 0.4; }
+.hz-speed { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hz-dial { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px 14px; background: var(--card); color: var(--text); border-radius: 18px; border: 3px solid transparent; touch-action: none; user-select: none; -webkit-user-select: none; transition: border-color 0.1s; }
+.hz-dial svg { width: 100%; max-width: 320px; height: auto; }
+.hz-zones path { fill: none; stroke-width: 26; }
+#hz-needle line { stroke: var(--text); stroke-width: 5; stroke-linecap: round; }
+#hz-needle circle { fill: var(--text); }
+#hz-needle { transform-origin: 100px 100px; }
+.hz-dial-info { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.hz-dial-info small { color: var(--muted); font-size: 0.85rem; }
+.hz-dial[data-hit="green"] { border-color: #3ddc97; background: color-mix(in srgb, #3ddc97 18%, var(--card)); }
+.hz-dial[data-hit="yellow"] { border-color: #ffcc33; }
+.hz-dial[data-hit="red"] { border-color: #ff4d6d; background: color-mix(in srgb, #ff4d6d 18%, var(--card)); }
+
+/* Big Tom */
+.bt-write, .bt-done { gap: 10px; }
+.bt-write textarea { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px; border-radius: 12px; border: 2px solid var(--card-2); background: var(--bg); color: var(--text); resize: vertical; }
+.bt-write textarea:focus { outline: none; border-color: var(--accent); }
+.bt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bt-q { font-weight: 800; font-size: 1.15rem; }
+.bt-a { font-size: 1.05rem; }
+.bt-done small { color: var(--muted); }
+.bt-prompt { font-size: 1.6rem; font-weight: 800; line-height: 1.2; text-align: center; padding: 8px 0; }
+.bt-answers { display: flex; flex-direction: column; gap: 8px; }
+.bt-vs { text-align: center; font-weight: 900; color: var(--muted); letter-spacing: 0.1em; }
+.bt-answer { display: flex; flex-direction: column; gap: 6px; padding: 18px 14px; border-radius: 14px; background: var(--card-2); color: var(--text); border: 3px solid transparent; font-size: 1.2rem; font-weight: 700; text-align: center; }
+.bt-answer.selected { border-color: var(--accent); }
+.bt-answer:disabled { opacity: 1; }
+.bt-answer.won { border-color: var(--ok); }
+.bt-answer.lost { opacity: 0.7; }
+.bt-answer small { font-size: 0.85rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.bt-voters { display: flex; justify-content: center; gap: 3px; }
+.bt-results p { margin: 0; }
+.bt-results small { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .hz-track.running .hz-emoji, .hz-track.running .hz-shadow { animation: none; } }
+.bt-canvas { width: 100%; aspect-ratio: 1; border-radius: 14px; background: #fff; touch-action: none; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+.bt-palette { display: flex; justify-content: center; gap: 8px; }
+.bt-swatch { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 3px solid var(--card-2); flex: none; }
+.bt-swatch.on { border-color: var(--accent); transform: scale(1.12); }
+.bt-tools { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; }
+.bt-tools button { padding: 10px 6px; font-size: 0.9rem; border: 2px solid transparent; }
+.bt-tools button.on { border-color: var(--accent); }
+.bt-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bt-art { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 14px; background: var(--card-2); border: 3px solid transparent; color: var(--text); }
+.bt-art img { width: 100%; aspect-ratio: 1; border-radius: 10px; background: #fff; display: block; }
+.bt-art small { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.bt-art.selected { border-color: var(--accent); }
+.bt-art.won { border-color: var(--ok); }
+.bt-art.lost { opacity: 0.75; }
+.bt-art:disabled { opacity: 0.6; }
+/* Racehorses: legs swing from the hip in a gallop, the body rises and falls. */
+.hz-leg { transform-box: fill-box; transform-origin: 50% 0; }
+.hz-track.running .hz-leg { animation: hz-leg 0.34s ease-in-out infinite alternate; }
+.hz-track.running .hz-leg.b { animation-delay: -0.17s; }
+.hz-track.running .hz-leg.f.far { animation-delay: -0.08s; }
+.hz-track.running .hz-leg.b.far { animation-delay: -0.25s; }
+@keyframes hz-leg { from { transform: rotate(32deg); } to { transform: rotate(-30deg); } }
+.hz-track.running .hz-bob { animation: hz-bob 0.17s ease-in-out infinite alternate; }
+@keyframes hz-bob { from { transform: translateY(0.6px) rotate(1.5deg); } to { transform: translateY(-1.6px) rotate(-1.5deg); } }
+.hz-chip-h { width: 38px; height: 27px; overflow: visible; }
+.hz-style-open { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.hz-style { gap: 10px; }
+.hz-style h3 { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.hz-style-head { display: flex; align-items: center; gap: 10px; }
+.hz-style-head h2 { flex: 1; }
+.hz-style-head .link { width: auto; }
+.hz-style-name { display: flex; gap: 8px; }
+.hz-style-name input { flex: 1; min-width: 0; }
+.hz-style-name button { width: auto; padding: 10px 14px; }
+.hz-swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.hz-swatch { aspect-ratio: 1; padding: 0; border-radius: 50%; border: 3px solid var(--card-2); }
+.hz-swatch.on { border-color: var(--text); }
+.hz-swatch:disabled { opacity: 0.2; }
+.hz-coats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.hz-coats button { display: flex; align-items: center; gap: 6px; padding: 8px; font-size: 0.85rem; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
+.hz-coats button.on { border-color: var(--accent); }
+.hz-coats span { width: 16px; height: 16px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3); }
+@media (prefers-reduced-motion: reduce) { .hz-track.running .hz-leg, .hz-track.running .hz-bob { animation: none; } }

@@ -67,6 +67,29 @@
         locked: { reactions: false },
         actor: (room) => room.game.turnId,
       },
+      aceRace: {
+        locked: {},
+        // Betting: tap whose bet it is. Payout: each winner in turn hands out their sips.
+        actor(room, holder) {
+          const g = room.game;
+          if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
+          return (g.phase === 'betting' && holder) || g.order[0];
+        },
+        switchable: (room) => room.game.phase === 'betting',
+        holderLabel: 'Whose bet?',
+        hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
+      },
+      horseRace: {
+        locked: { jockey: false }, // riders all tap at once: needs a phone each
+        actor(room, holder) {
+          const g = room.game;
+          if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
+          return (g.phase === 'betting' && holder) || g.order[0];
+        },
+        switchable: (room) => room.game.phase === 'betting',
+        holderLabel: 'Whose bet?',
+        hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
+      },
       shotPoker: {
         locked: {},
         // Betting goes to whoever's turn it is; after a hand, pick who's holding the phone to pay.
@@ -217,7 +240,7 @@
     function holderBar() {
       if (!local.switchable?.(room)) return '';
       const current = actorId();
-      return `<div class="holder"><span>Whose cards?</span>${room.players.map((p) => `
+      return `<div class="holder"><span>${esc(local.holderLabel || 'Whose cards?')}</span>${room.players.map((p) => `
         <button class="${p.id === current ? 'selected' : ''} ${local.hint?.(room, p.id) ? 'hint' : ''}" data-holder="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
     }
 

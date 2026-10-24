@@ -67,7 +67,7 @@ Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
     },
     afterRender(s) {},        // optional: attach custom listeners
     sounds(prev, s) {         // optional: sound effects for what changed since the last state
-      return s.game.roll !== prev.game.roll ? ['dice'] : [];   // dice | card | turn | drink | win
+      return s.game.roll !== prev.game.roll ? ['dice'] : [];   // dice | card | turn | drink | win | bell
     },
   });
 })();
