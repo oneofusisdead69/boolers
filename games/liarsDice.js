@@ -100,7 +100,8 @@ function settle(room, ctx, callerId, call) {
     }
   }
 
-  const left = inGame(g);
+  // Players who've left don't count: the last one here with dice wins.
+  const left = inGame(g).filter((id) => ctx.turns.isActive(room, id));
   if (left.length <= 1) {
     g.winnerId = left[0] || null;
     g.phase = 'over';
@@ -182,6 +183,14 @@ module.exports = {
   // If the bidder drops out, the next player with dice takes the turn.
   check(room, ctx) {
     const g = room.game;
+    // Everyone else with dice has gone: the one still here wins.
+    const here = inGame(g).filter((id) => ctx.turns.isActive(room, id));
+    if (g.phase !== 'over' && here.length === 1 && inGame(g).length > 1) {
+      g.winnerId = here[0];
+      g.phase = 'over';
+      ctx.log(room, `🏆 ${ctx.name(room, here[0])} wins Liar's Dice (everyone else left)`);
+      return;
+    }
     if (g.phase === 'bidding' && !ctx.turns.isActive(room, g.turnId)) {
       const next = nextBidder(room, ctx, g.turnId);
       if (next) g.turnId = next;

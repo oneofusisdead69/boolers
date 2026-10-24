@@ -47,6 +47,7 @@
   let draftFor = null;
   // Styling the horse you backed: open or not, and the name being typed.
   const styling = { open: false, name: null, horse: null };
+  let lastLand = null; // the phone's orientation at the last full draw
   const COAT_LABELS = { bay: 'Bay', chestnut: 'Chestnut', black: 'Black', grey: 'Grey', palomino: 'Palomino', white: 'White' };
 
   // ---------- Jockey dial ----------
@@ -216,7 +217,7 @@
           <path d="${stadium(inner - 3)}" class="hz-infield"/>
           ${dividers}
           ${checks.join('')}
-          <text x="${CX}" y="${CY + 4}" class="hz-laps" id="hz-laps">${lapText(g)}</text>
+          <text x="${CX}" y="${CY + 4}" class="hz-laps" id="hz-laps">${esc(lapText(g))}</text>
           ${tokens}
         </svg>
       </div>`;
@@ -355,6 +356,13 @@
   }
 
   PB.register('horseRace', {
+    // A new game: forget the last one's race, bet and styling.
+    reset() {
+      Object.assign(run, { race: null, at: {}, from: {}, vel: {}, going: false });
+      draft = null;
+      draftFor = null;
+      Object.assign(styling, { open: false, name: null, horse: null });
+    },
     // Sideways: these go on the left.
     stage: '.hz-wrap',
     // On the TV: the track and the standings; while betting, who's backing which horse.
@@ -386,7 +394,11 @@
       HORSES = s.game.horses.map((h) => ({ ...h, color: h.silk }));
       // Don't redraw under someone naming their horse.
       if (document.activeElement?.id === 'hz-name' && s.phase === 'betting') return null;
-      if (s.phase === 'race' && document.getElementById('hz-standings') && moveHorses(s)) return null;
+      // Mid-race updates just move the horses, unless the phone has been turned (new layout).
+      const land = PB.landscape();
+      const turned = land !== lastLand;
+      lastLand = land;
+      if (!turned && s.phase === 'race' && document.getElementById('hz-standings') && moveHorses(s)) return null;
       if (s.phase === 'betting') return bettingScreen(s);
       if (s.phase === 'race') return raceScreen(s);
       if (s.phase === 'payout' || s.phase === 'results') return finishScreen(s);

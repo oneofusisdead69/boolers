@@ -111,6 +111,10 @@
   }
 
   PB.register('aceRace', {
+    reset() {
+      draft = null;
+      draftFor = null;
+    },
     // Sideways: these go on the left.
     stage: '.ar-track, .ar-last',
     // On the TV: the shared parts of the screen.

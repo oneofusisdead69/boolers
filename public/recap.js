@@ -6,7 +6,8 @@
 //   Recap.share(s)          draws it as an image and opens the phone's share sheet (or downloads it)
 (() => {
   const { esc } = PB;
-  const name = (s, id) => s.players.find((p) => p.id === id)?.name ?? '???';
+  // Players who've gone home are only in the recap's own list.
+  const name = (s, id) => s.players.find((p) => p.id === id)?.name ?? s.recap?.players.find((p) => p.id === id)?.name ?? '???';
   const place = (r) => (r.named ? r.roomName : r.roomName && r.roomName !== 'Classic' ? `the ${r.roomName.toLowerCase()}` : 'Bool Games');
   const date = (r) => new Date(r.startedAt || Date.now()).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 

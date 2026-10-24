@@ -107,7 +107,7 @@ function startBus(room, ctx) {
   // Most cards rides. Ties go to the highest total; still tied, earliest seat.
   const score = (id) => g.hands[id].length * 1000 + g.hands[id].reduce((s, c) => s + c.rank, 0);
   const riderId = g.order
-    .filter((id) => room.players.some((p) => p.id === id))
+    .filter((id) => ctx.turns.isActive(room, id))
     .reduce((best, id) => (best === null || score(id) > score(best) ? id : best), null);
   g.bus = { riderId, length: g.busLength, attempts: 0 };
   newBusRow(g);
@@ -269,6 +269,15 @@ module.exports = {
     else if (g.phase === 'give' && !ctx.turns.isActive(room, g.give.from)) {
       g.give = null;
       nextGuesser(room, ctx);
+    } else if (g.phase === 'bus' && !ctx.turns.isActive(room, g.bus.riderId)) {
+      // The rider's gone: whoever's here with the most cards gets on instead.
+      const here = g.order.filter((id) => ctx.turns.isActive(room, id));
+      const next = here.reduce((best, id) => (!best || g.hands[id].length > g.hands[best].length ? id : best), null);
+      if (next) {
+        g.bus.riderId = next;
+        g.bus.attempts = 0;
+        ctx.log(room, `🚌 ${ctx.name(room, next)} takes over the bus`);
+      }
     }
   },
 

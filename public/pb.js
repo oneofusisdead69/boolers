@@ -24,6 +24,16 @@
     send() {},
     redraw() {},
 
+    // Called with every state: when a new game starts, screens forget what they remembered from
+    // the last one (a half-built bet, where the horses were, a hand-out in progress).
+    track(s) {
+      const id = s.gameType ? `${s.code}:${s.gameType}:${s.gameNo}` : null;
+      if (!id || id === PB.lastGame) return;
+      PB.lastGame = id;
+      PB.handOut.key = null;
+      PB.screens[s.gameType]?.reset?.();
+    },
+
     register(gameId, screens) {
       PB.screens[gameId] = screens;
     },

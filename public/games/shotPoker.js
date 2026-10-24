@@ -189,6 +189,12 @@
   }
 
   PB.register('shotPoker', {
+    reset() {
+      flash = { hand: null, at: 0 };
+      raiseTo = null;
+      raiseFor = null;
+      shownFor = null;
+    },
     // Sideways: these go on the left.
     stage: '.sp-banner, .sp-table, .ld-mine-head, .sp-hole',
     // On the TV: the shared parts of the screen.

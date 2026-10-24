@@ -47,13 +47,22 @@ function watch(c) {
 
 socket.on('connect', () => (code ? watch(code) : render()));
 
+// The list of games comes once, when we connect (see server.js); every state gets it added.
+let gameList = [];
+socket.on('games', (list) => { gameList = list; });
+
 socket.on('state', (s) => {
+  s.games = gameList;
+  PB.track(s);
   const prev = PB.state;
   PB.clockOffset = s.serverNow - Date.now();
   PB.state = s;
   playSounds(prev, s);
   render();
 });
+
+// Quick updates a game sends without the whole state (where a dart is aimed).
+socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
 
 // Every drink pops up on the TV, with a buzz.
 socket.on('drink', (d) => {

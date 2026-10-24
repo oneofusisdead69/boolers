@@ -21,6 +21,12 @@ if (!playerId) {
   playerId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   store.set('id', playerId);
 }
+// A secret only this phone knows, so nobody else can take over your seat with your (public) id.
+let playerKey = store.get('key');
+if (!playerKey) {
+  playerKey = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+  store.set('key', playerKey);
+}
 
 // Your avatar and colour, remembered on this phone. Until you pick one yourself, the room hands
 // you one nobody else has (and the phone remembers that).
@@ -164,7 +170,7 @@ socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
   if (room) {
-    socket.emit('join', { code: room, playerId, name: store.get('name'), ...lookToSend() }, (res) => {
+    socket.emit('join', { code: room, playerId, key: playerKey, name: store.get('name'), ...lookToSend() }, (res) => {
       if (res.error) {
         store.del('room');
         PB.state = null;
@@ -174,7 +180,13 @@ socket.on('connect', () => {
   }
 });
 
+// The list of games comes once, when we connect (see server.js); every state gets it added.
+let gameList = [];
+socket.on('games', (list) => { gameList = list; });
+
 socket.on('state', (s) => {
+  s.games = gameList;
+  PB.track(s);
   PB.clockOffset = s.serverNow - Date.now();
   playSounds(PB.state, s);
   PB.state = s;
@@ -255,6 +267,9 @@ function playSounds(prev, s) {
   if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
 }
 
+// Quick updates a game sends without the whole state (where a dart is aimed).
+socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
+
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
@@ -299,7 +314,10 @@ document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden 
 // ---------- Screens ----------
 
 function renderHome() {
-  const savedName = store.get('name') || (seat ? `Player ${seat}` : '');
+  // Redrawing (e.g. turning the phone) keeps whatever's been typed.
+  const typedName = document.getElementById('name')?.value;
+  const typedCode = document.getElementById('code')?.value;
+  const savedName = typedName ?? (store.get('name') || (seat ? `Player ${seat}` : ''));
   $app.innerHTML = `
     <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
     <p class="tagline ls-l">Drinking games for your phones</p>
@@ -308,7 +326,7 @@ function renderHome() {
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
     <div class="card ls-l">
-      <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${PB.esc(urlRoom || '')}">
+      <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${PB.esc(typedCode ?? urlRoom ?? '')}">
       <button id="join">Join room</button>
     </div>
     <p class="or ls-l">or</p>
@@ -343,7 +361,7 @@ function renderHome() {
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
     store.set('name', name);
     fullscreen.enter();
-    socket.emit(event, { ...payload, name, playerId, ...lookToSend() }, (res) => {
+    socket.emit(event, { ...payload, name, playerId, key: playerKey, ...lookToSend() }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
       store.set('room', res.code);
