@@ -116,11 +116,8 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .game-option.selected { border-color: var(--accent); }
 .game-option small { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
 
-.topbar { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-weight: 600; }
 .timer { font-variant-numeric: tabular-nums; color: var(--accent-ink, var(--accent)); }
 
-.prompt { font-size: 1.7rem; font-weight: 800; line-height: 1.2; text-align: center; padding: 12px 0; }
-.prompt small { display: block; font-size: 1rem; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
 
 .vote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .vote-grid button { background: var(--card-2); color: var(--text); border: 2px solid transparent; padding: 18px 8px; word-break: break-word; }
@@ -139,8 +136,6 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 
 @keyframes pulse { 50% { transform: scale(1.04); } }
 
-.results li .count { font-weight: 800; color: var(--accent-ink, var(--accent)); }
-.results li .voters { display: block; font-size: 0.8rem; color: var(--muted); font-weight: 400; }
 
 .toast {
   position: fixed;
@@ -158,7 +153,6 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 
 .vote-grid button.offline { opacity: 0.45; }
 .players .count { font-weight: 800; color: var(--accent-ink, var(--accent)); }
-.players .voters { display: block; font-size: 0.8rem; color: var(--muted); font-weight: 400; }
 
 .turn {
   text-align: center;

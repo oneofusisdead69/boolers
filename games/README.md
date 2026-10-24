@@ -7,7 +7,7 @@ A game is two files:
 | `games/<id>.js` | server | Rules and state. The only source of truth. |
 | `public/games/<id>.js` | phones | Draws the screen from the state the server sends. |
 
-The server picks up every file in `games/` automatically. Copy `mostLikely.js` (both files) to start.
+The server picks up every file in `games/` automatically. Copy `kingsCup.js` (both files) to start.
 
 ## Server module
 

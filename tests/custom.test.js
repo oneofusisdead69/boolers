@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { clean } = require('../lib/custom');
 const { setup } = require('./helpers');
-const mostLikely = require('../games/mostLikely');
 const kingsCup = require('../games/kingsCup');
 
 test('clean keeps only the fields a game asks for, trimmed and within limits', () => {
@@ -18,22 +17,6 @@ test('clean keeps only the fields a game asks for, trimmed and within limits', (
   assert.deepStrictEqual(out, { questions: ['a b', 'x'.repeat(10), 'c'], cards: { 2: { title: 'You!' } } });
   assert.deepStrictEqual(clean(schema, 'junk'), {});
   assert.deepStrictEqual(clean(schema, { questions: 'not a list' }), {});
-});
-
-test('Most Likely To: your questions, tidied, mixed in or on their own', () => {
-  const mine = ["Who's most likely to steal the aux cord?", 'eat the last slice', '  '];
-  const only = setup(mostLikely, 3, { questions: 'mine', custom: { questions: mine } });
-  assert.deepStrictEqual(only.room.game.pool, ['steal the aux cord', 'eat the last slice']);
-  assert.ok(only.room.game.pool.includes(only.room.game.question));
-  only.cleanup();
-
-  const both = setup(mostLikely, 3, { custom: { questions: mine } });
-  assert.ok(both.room.game.pool.includes('steal the aux cord') && both.room.game.pool.length > 50);
-  both.cleanup();
-
-  const none = setup(mostLikely, 3, { questions: 'mine' }); // nothing written: built-in
-  assert.ok(none.room.game.pool.length > 50);
-  none.cleanup();
 });
 
 test('Kings Cup: your own wording for a card, categories and rhymes', () => {
