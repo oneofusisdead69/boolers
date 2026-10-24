@@ -7,11 +7,16 @@
   let draftFor = null;
   // Pass and play: dice stay covered until whoever's turn it is taps to see them.
   let shownFor = null;
+  // Your dice can be covered, e.g. to leave the phone on the table. Stays covered until you show
+  // them again, across rounds and reloads.
+  let covered = false;
+  try { covered = localStorage.getItem('liarsDice-covered') === '1'; } catch {}
 
   const diceText = (n) => `${n} ${n === 1 ? 'die' : 'dice'}`;
   const bidText = (b) => `${WORDS[b.qty] || b.qty} ${b.face}${b.qty === 1 ? '' : 's'}`;
   const dieRow = (values, match = () => true) => `<div class="ld-dice">${values.map((v) =>
     `<span class="ld-die ${match(v) ? '' : 'dim'}">${PB.dice([v])}</span>`).join('')}</div>`;
+  const coveredRow = (n) => `<div class="ld-dice">${'<span class="ld-die covered"><span>?</span></span>'.repeat(n)}</div>`;
   const miniDie = (face) => `<span class="ld-die mini">${PB.dice([face])}</span>`;
 
   // Same rule as the server: more dice, or the same number of a higher face.
@@ -102,7 +107,11 @@
       ${PB.turn(g.turnId, `Round ${g.round} · ${diceText(g.totalDice)} on the table`)}
       ${currentBid(g)}
       ${g.myDice.length
-        ? `<h2 class="rb-label">${PB.passAndPlay ? `${esc(name(s.me))}'s dice` : 'Your dice'}</h2>${dieRow(g.myDice)}`
+        ? `<div class="ld-mine-head">
+            <h2 class="rb-label">${PB.passAndPlay ? `${esc(name(s.me))}'s dice` : 'Your dice'}</h2>
+            <button class="secondary" data-ld="cover">${covered && !PB.passAndPlay ? '👁 Show' : '🙈 Hide'}</button>
+          </div>
+          ${covered && !PB.passAndPlay ? coveredRow(g.myDice.length) : dieRow(g.myDice)}`
         : '<p class="center muted">You\'re out of dice. Watch the liars.</p>'}
       ${mine ? bidControls(s) : `<p class="center muted">${esc(name(g.turnId))} is deciding…</p>`}
       ${seats(s)}
@@ -178,7 +187,14 @@
       document.querySelectorAll('[data-ld]').forEach((b) => {
         b.onclick = () => {
           const g = s.game;
-          if (b.dataset.ld === 'show') shownFor = `${g.round}:${g.bids.length}:${g.turnId}`;
+          if (b.dataset.ld === 'cover') {
+            // On a shared phone, hiding goes back to the pass screen.
+            if (PB.passAndPlay) shownFor = null;
+            else {
+              covered = !covered;
+              try { localStorage.setItem('liarsDice-covered', covered ? '1' : '0'); } catch {}
+            }
+          } else if (b.dataset.ld === 'show') shownFor = `${g.round}:${g.bids.length}:${g.turnId}`;
           else if (b.dataset.ld === 'qty') draft.qty = Math.min(g.totalDice, Math.max(1, draft.qty + Number(b.dataset.step)));
           else if (b.dataset.ld === 'face') draft.face = Number(b.dataset.face);
           PB.rerender();

@@ -597,3 +597,6 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .ld-hand { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--card); border: 2px solid transparent; }
 .ld-hand > span { font-size: 0.9rem; color: var(--muted); text-align: center; }
 .ld-hand.loser { border-color: var(--danger); }
+.ld-mine-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ld-mine-head button { width: auto; padding: 6px 12px; font-size: 0.9rem; }
+.ld-die.covered { width: 46px; height: 46px; border-radius: 10px; background: var(--card-2); border: 2px dashed var(--muted); display: flex; align-items: center; justify-content: center; color: var(--muted); font-weight: 800; font-size: 1.2rem; }
