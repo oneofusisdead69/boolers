@@ -140,8 +140,11 @@ function lobbyScreen(s) {
 function seats(s) {
   const g = s.game || {};
   const turn = g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
+  // A game can put things on the table in front of each player (their dice, their cards).
+  const front = PB.screens[s.gameType]?.tvFront;
   return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
-      ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>`).join('');
+      ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>
+    <div class="tv-front">${front?.(s, p.id) || ''}</div>`).join('');
 }
 
 // Everyone sits just outside the table's edge (never on it), whatever the screen's shape: each
@@ -150,6 +153,7 @@ function placeSeats() {
   const table = document.querySelector('.tv-table');
   const felt = document.querySelector('.tv-felt');
   const els = [...document.querySelectorAll('#tv-seats .tv-seat')];
+  const fronts = [...document.querySelectorAll('#tv-seats .tv-front')];
   if (!table || !felt || !els.length) return;
   const W = table.clientWidth;
   const H = table.clientHeight;
@@ -169,6 +173,13 @@ function placeSeats() {
     // Keep the whole seat on screen.
     el.style.left = `${Math.min(W - el.offsetWidth / 2, Math.max(el.offsetWidth / 2, x)).toFixed(0)}px`;
     el.style.top = `${Math.min(H - el.offsetHeight / 2, Math.max(el.offsetHeight / 2, y)).toFixed(0)}px`;
+    // What's in front of them sits on the felt, just inside the rim.
+    const f = fronts[i];
+    if (f?.firstElementChild) {
+      const inner = Math.abs(nx) * (f.offsetWidth / 2) + Math.abs(ny) * (f.offsetHeight / 2) + rim * 0.6;
+      f.style.left = `${(W / 2 + rx * Math.cos(a) - nx * inner).toFixed(0)}px`;
+      f.style.top = `${(H / 2 + ry * Math.sin(a) - ny * inner).toFixed(0)}px`;
+    }
   });
 }
 

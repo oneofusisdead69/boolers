@@ -68,6 +68,8 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
   transition: box-shadow 0.3s, transform 0.3s;
 }
 .tv-seat .av { grid-row: span 2; }
+.tv-front { position: absolute; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; }
+.tv-front:empty { display: none; }
 .tv-seat b { align-self: end; }
 .tv-seat small { align-self: start; }
 .tv-seat small { color: var(--muted); }
@@ -136,3 +138,7 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-banner .hz-horse, .tv-banner svg { height: 1em; width: auto; }
 body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-items: center; }
 #tv-center .dt-board { max-width: none; }
+/* Dice in front of the players, sized for across the room. */
+.tv-front .ld-front { max-width: 9rem; gap: 0.3rem; }
+.tv-front .ld-die.mini .die, .tv-front .ld-hidden { width: 2rem; height: 2rem; }
+.tv-front .ld-die.mini.dim { opacity: 0.45; }

@@ -177,7 +177,21 @@
     // Sideways: these go on the left.
     stage: '.ld-bid, .ld-mine-head, .ld-dice, .ld-reveal',
     // On the TV: the shared parts of the screen.
-    tvStage: '.ld-bid, .ld-reveal, .mm-last, .mm-seats, .drink',
+    tvStage: '.ld-bid, .mm-last, .drink',
+    // On the TV, everyone's dice sit on the table in front of them: face down while bidding,
+    // face up after a call (the ones that count lit up).
+    tvFront(s, id) {
+      const g = s.game;
+      const r = g.reveal;
+      const hand = r?.hands[id];
+      if (hand) {
+        const match = (v) => v === r.bid.face || (g.wild && v === 1);
+        return `<div class="ld-front ${r.losers.includes(id) ? 'loser' : ''}">${hand.map((v) =>
+          `<span class="ld-die mini ${match(v) ? 'match' : 'dim'}">${PB.dice([v])}</span>`).join('')}</div>`;
+      }
+      const n = g.counts[id] || 0;
+      return n ? `<div class="ld-front">${'<span class="ld-hidden"></span>'.repeat(n)}</div>` : '';
+    },
     // Dice rattle for a new roll, and again when they're all shown.
     sounds: (prev, s) => (s.game.round !== prev.game.round || (s.game.reveal && !prev.game.reveal) ? ['dice'] : []),
     render(s) {
