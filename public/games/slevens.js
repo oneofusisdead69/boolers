@@ -190,6 +190,8 @@
 
   PB.register('slevens', {
     fullscreen: true,
+    // On the TV: the dice pad, big.
+    tvStage: '.pad',
     render,
     sounds: (prev, s) => (s.phase === 'spinning' && prev.phase !== 'spinning' ? ['dice'] : []),
     afterRender(s) {

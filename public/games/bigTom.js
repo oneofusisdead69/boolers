@@ -233,16 +233,52 @@
         </div>`;
       }).join('')}</div>
       ${give}
-      <div class="card"><h2>Final scores</h2><ul class="players">${champs.map((p) => `
+      <div class="card bt-scores"><h2>Final scores</h2><ul class="players">${champs.map((p) => `
         <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.points[p.id] || 0}</span></li>`).join('')}</ul>
         <p class="muted">A point per matchup won, and per vote in the final.</p></div>
       ${s.isHost ? '<button data-act="playAgain">Play again</button>' : ''}
       ${PB.feed(3)}`;
   }
 
+  // ---------- TV ----------
+
+  function tvProgress(s, done, verb) {
+    return `<div class="mm-seats bt-tv-progress">${s.players.filter((p) => p.connected).map((p) => `
+      <div class="mm-seat ${done.includes(p.id) ? 'turn' : ''}">${PB.avatar(p.id)}<span>${esc(p.name)}</span><b>${done.includes(p.id) ? '✓' : verb}</b></div>`).join('')}</div>`;
+  }
+
+  function tvScreen(s) {
+    const g = s.game;
+    switch (s.phase) {
+      case 'write':
+        return `<div class="prompt bt-prompt">✍️ Write a question on your phone</div>
+          <p class="center muted">Round ${g.round} of ${g.rounds} · two other players will answer it</p>
+          ${tvProgress(s, g.written, '✍️')}`;
+      case 'answer':
+        return `<div class="prompt bt-prompt">🤫 Answer your questions</div>
+          <p class="center muted">Round ${g.round} of ${g.rounds} · ${PB.timer()}</p>
+          ${tvProgress(s, g.answered, '✍️')}`;
+      case 'summary': {
+        const board = s.players.slice().sort((a, b) => (g.points[b.id] || 0) - (g.points[a.id] || 0));
+        return `<div class="prompt bt-prompt">Round ${g.round} of ${g.rounds} done${g.round >= g.rounds ? ' · next: the final 🎨' : ''}</div>
+          <div class="card"><h2>Points</h2><ul class="players">${board.map((p) => `
+            <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.points[p.id] || 0}</span></li>`).join('')}</ul></div>`;
+      }
+      case 'draw':
+        return `<div class="prompt bt-prompt">🎨 ${esc(g.finalQuestion)}</div>
+          <p class="center muted">The final: draw your answer on your phone · ${PB.timer()}</p>
+          ${tvProgress(s, g.drew, '🎨')}`;
+      default:
+        return undefined;
+    }
+  }
+
   PB.register('bigTom', {
     // Sideways: these go on the left.
     stage: '.bt-prompt, .bt-answers, .bt-canvas, .bt-gallery',
+    // On the TV: the matchups and the gallery big; while people write, answer or draw, who's done.
+    tvStage: '.bt-prompt, .bt-answers, .bt-gallery, .drink, .bt-scores, .center.muted',
+    tv: tvScreen,
     sounds(prev, s) {
       if (s.phase !== prev.phase && (s.phase === 'answer' || s.phase === 'vote')) return ['turn'];
       if (s.phase === 'reveal' && prev.phase !== 'reveal') return ['card'];

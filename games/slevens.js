@@ -95,6 +95,14 @@ module.exports = {
   id: 'slevens',
   name: 'Slevens',
   description: 'Roll 7, 11 or doubles and keep your hands off. Each hit adds a dot to trace.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Roll 7, 11 or doubles: that's a hit.",
+    "After a hit, hands off the dice for a few seconds, or it's a REVERSE.",
+    "Every hit means the next roll takes one more dot to trace.",
+    "Snake eyes first? Only another snake eyes hits until it comes up.",
+    "The arrow passes the dice on.",
+  ],
   minPlayers: 2,
   order: 2,
   options: [

@@ -342,6 +342,14 @@ module.exports = {
   id: 'madMax',
   name: 'Mad Max',
   description: 'Call your next card. Wrong calls drink. Same numbers mean war. Last one holding cards wins.',
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Call your next card against the pile: colour, higher/lower, or the suit.",
+    "Wrong: drink (2 for a wrong suit) and go again.",
+    "Same number: WAR. One off or a sandwich: anyone can call war.",
+    "Win no rounds in a war? Finish your drink.",
+    "Last one holding cards wins.",
+  ],
   minPlayers: 2,
   order: 3,
   options: [

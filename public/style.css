@@ -732,7 +732,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .ar-suits svg.pip { width: 1.8rem; height: 1.8rem; display: block; margin: 0 auto; fill: currentColor; }
 .ar-bets { gap: 8px; }
 .ar-bet-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
-.ar-bet-row > span:not(.av) { flex: 1; }
+.ar-bet-row > span:not(.av):not(.ar-horse) { flex: 1; }
 .ar-bet-row .ar-horse { width: 30px; height: 30px; flex: none; }
 .ar-bet-row .ar-horse svg.pip { width: 16px; height: 16px; }
 .ar-give { gap: 8px; }
@@ -911,3 +911,4 @@ main.ls .ar-track { padding: 6px; gap: 2px; }
 @media (orientation: landscape) and (min-width: 560px) {
   .fs-screen { max-width: none; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
 }
+.tv-card { padding: 12px 16px; font-size: 0.95rem; }

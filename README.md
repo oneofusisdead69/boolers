@@ -48,6 +48,16 @@ Where the browser allows it (Android), the app goes full screen when you create,
 
 **Keep screen on:** a ☀️ toggle on the home and lobby screens stops the phone sleeping mid-game (iPhone iOS 16.4+, Android). It's remembered per phone and re-applied when you come back to the app.
 
+## Sideways
+Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
+
+## TV mode
+Got a TV or laptop handy? Create a room on a phone as usual, then open **bool.games/tv** on the big screen and type the room code (or open `bool.games/tv?room=CODE`). The host still runs everything from their phone; the TV just watches.
+- **Lobby:** the join QR code, the room code, who's in and the rules of the game that's up next.
+- **In a game:** everyone sits round a felt table (glowing on their turn), with the game in the middle: the horse race, the Kings Cup ring, the pyramid, the poker table, Big Tom's answers and drawings… The sidebar has the leaderboard (this game and tonight), a rules reminder and what just happened. Drinks pop up in the corner.
+- **Sound:** the TV plays the sound effects and phones go quiet while it's connected (they still buzz). Click the TV page once to allow sound.
+- Secret things (your dice, your hole cards, your hand) never go to the TV.
+
 ## Run locally
 ```bash
 npm install
@@ -69,6 +79,7 @@ lib/                   shared tools: cards, dice, turn order, drink tracking
 games/<id>.js          each game's rules (server)
 public/games/<id>.js   each game's screens (phones)
 public/app.js          home screen, lobby, avatar picker
+public/tv.js           TV mode (public/tv.html, tv.css)
 public/pb.js           shared screen helpers (PB.*), custom content editor
 public/prefs.js        per-phone settings: sounds, themes, dice and card styles
 lib/looks.js           avatar and colour lists (server and phones)

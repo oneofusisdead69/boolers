@@ -30,6 +30,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
+app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public/tv.html')));
 // Avatar and colour lists, shared with the phones.
 app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
 
@@ -98,7 +99,7 @@ function viewFor(room, player) {
     hostId: room.hostId,
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
-    games: Object.values(GAMES).map(({ id, name, description, minPlayers }) => ({ id, name, description, minPlayers })),
+    games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
     players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
@@ -108,19 +109,34 @@ function viewFor(room, player) {
     feed: room.feed.slice(-8),
     deadline: room.deadline,
     serverNow: Date.now(),
+    tv: (room.tvs?.size || 0) > 0, // phones go quiet while a TV plays the sounds
   };
 }
+
+// ---------- TVs ----------
+// A TV watches a room: it isn't a player, and sees what everyone at the table can see (each game's
+// view for someone who isn't playing never includes anyone's hidden cards or dice).
+const TV = { id: '__tv', name: 'TV' };
+const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
   room.updatedAt = Date.now();
   for (const p of room.players) {
     if (p.connected && p.socketId) io.to(p.socketId).emit('state', viewFor(room, p));
   }
+  if (room.tvs?.size) {
+    const view = tvView(room);
+    for (const id of room.tvs) io.to(id).emit('state', view);
+  }
 }
 
 function emit(room, playerId, event, data) {
   const p = room.players.find((x) => x.id === playerId);
   if (p?.socketId) io.to(p.socketId).emit(event, data);
+  // The TV shows (and sounds) every drink, with who it's for.
+  if (event === 'drink' && room.tvs?.size && p) {
+    for (const id of room.tvs) io.to(id).emit('drink', { ...data, who: p.name, playerId: p.id });
+  }
 }
 
 const ctx = createContext({ emit, broadcast });
@@ -149,6 +165,7 @@ function removePlayer(room, playerId) {
 io.on('connection', (socket) => {
   let room = null;
   let player = null;
+  let watching = null; // the room this socket shows, if it's a TV
 
   function attach(r, p) {
     room = r;
@@ -287,7 +304,23 @@ io.on('connection', (socket) => {
     broadcast(r);
   });
 
+  // A TV joins a room to show it on a big screen.
+  socket.on('watch', ({ code } = {}, ack = () => {}) => {
+    const r = rooms.get(String(code || '').toUpperCase().trim());
+    if (!r) return ack({ error: `No room called ${code || '????'}` });
+    for (const other of rooms.values()) other.tvs?.delete(socket.id);
+    (r.tvs ||= new Set()).add(socket.id);
+    watching = r;
+    ack({ ok: true, code: r.code });
+    broadcast(r);
+  });
+
   socket.on('disconnect', () => {
+    if (watching) {
+      watching.tvs?.delete(socket.id);
+      broadcast(watching);
+      watching = null;
+    }
     if (!room || !player || player.socketId !== socket.id) return;
     const r = room;
     const p = player;

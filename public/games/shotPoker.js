@@ -172,6 +172,8 @@
   PB.register('shotPoker', {
     // Sideways: these go on the left.
     stage: '.sp-banner, .sp-table, .ld-mine-head, .sp-hole',
+    // On the TV: the shared parts of the screen.
+    tvStage: '.sp-banner, .sp-table, .sp-seats, .sp-debts',
     // A card for each new deal: your hand, then the flop, turn and river.
     sounds: (prev, s) => (s.game.hand !== prev.game.hand || s.game.community.length !== prev.game.community.length ? ['card'] : []),
     render(s) {

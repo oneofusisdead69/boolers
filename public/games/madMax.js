@@ -213,5 +213,11 @@
   }
 
   // Sideways: the pile (or the war table) goes on the left.
-  PB.register('madMax', { render, sounds, stage: '.mm-pile, .mm-pile-label, .mm-war' });
+  PB.register('madMax', {
+    render,
+    sounds,
+    stage: '.mm-pile, .mm-pile-label, .mm-war',
+    // On the TV: the shared parts of the screen.
+    tvStage: '.mm-pile, .mm-pile-label, .mm-last, .mm-war, .mm-round, .mm-seats, .drink, .mm-outright',
+  });
 })();

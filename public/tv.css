@@ -1,0 +1,108 @@
+/* TV mode: a 16:9 screen across the room. Everything scales with the screen's height. */
+
+html:has(body.tv) { font-size: clamp(14px, 2vh, 34px); }
+body.tv { min-height: 100vh; overflow: hidden; }
+body.tv h1 { font-size: 3.4rem; margin: 0; }
+body.tv .tagline { font-size: 1.3rem; }
+
+#tv { height: 100vh; }
+.tv-wait { padding: 30vh 0; font-size: 1.6rem; }
+
+/* Click for sound (browsers block sound until the page is clicked once). */
+.tv-sound {
+  position: fixed; right: 2vw; bottom: 2vh;
+  width: auto; padding: 0.6rem 1.4rem; font-size: 1rem; opacity: 0.85; z-index: 5;
+}
+
+/* ---------- Join ---------- */
+.tv-join { max-width: 40rem; margin: 0 auto; padding: 14vh 1rem; display: flex; flex-direction: column; gap: 1.6rem; }
+.tv-join .card { padding: 1.6rem; }
+.tv-join .code { font-size: 3rem; text-align: center; letter-spacing: 0.3em; text-transform: uppercase; }
+.tv-join .error { color: var(--danger); min-height: 1.2em; }
+
+/* ---------- Lobby ---------- */
+.tv-lobby { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3vw; align-items: center; height: 100vh; padding: 4vh 4vw; }
+.tv-lobby-join { display: flex; flex-direction: column; gap: 2.4vh; align-items: center; }
+.tv-room { display: flex; gap: 2.4rem; align-items: center; }
+.tv-room .qr { width: 15rem; height: 15rem; margin: 0; }
+.tv-room small { color: var(--muted); font-size: 1.2rem; }
+.tv-room .room-code { font-size: 6rem; }
+.tv-lobby-players { display: flex; flex-wrap: wrap; gap: 1.4rem; justify-content: center; }
+.tv-player { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; font-size: 1.2rem; animation: tv-pop 0.4s ease-out; }
+.tv-player.offline { opacity: 0.4; }
+.tv-lobby-game { padding: 2rem; gap: 1rem; font-size: 1.1rem; }
+.tv-game-name { font-size: 2.6rem; font-weight: 800; color: var(--accent); }
+.tv-rules { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 0.5em; }
+
+body.tv .av.lg { width: 3.6rem; height: 3.6rem; font-size: 2.1rem; }
+body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
+
+/* ---------- Game ---------- */
+.tv-game {
+  display: grid; height: 100vh; padding: 2vh 2vw; gap: 1.5vh 2vw;
+  grid-template-columns: 1fr 22rem; grid-template-rows: auto 1fr;
+  grid-template-areas: "head head" "table side";
+}
+.tv-head { grid-area: head; display: flex; align-items: center; gap: 2rem; font-size: 1.4rem; }
+.tv-title { font-size: 2rem; color: var(--accent); white-space: nowrap; }
+.tv-turn { flex: 1; text-align: center; font-weight: 700; }
+.tv-turn:empty { visibility: hidden; }
+.tv-turn > * { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 0.4rem; vertical-align: middle; }
+.tv-turn > span { color: var(--muted); font-weight: 500; }
+.tv-code { color: var(--muted); white-space: nowrap; }
+.tv-code b { color: var(--text); letter-spacing: 0.1em; }
+
+.tv-table { grid-area: table; position: relative; min-height: 0; }
+.tv-felt {
+  position: absolute; inset: 7% 8%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%);
+  box-shadow: 0 0 0 1.2rem #5b3a1e, 0 0 0 1.5rem #3d2612, 0 2rem 4rem rgba(0, 0, 0, 0.6), inset 0 0 4rem rgba(0, 0, 0, 0.45);
+}
+.tv-seat {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+  min-width: 6rem; padding: 0.5rem 0.8rem; border-radius: 1rem;
+  background: rgba(20, 17, 31, 0.85); font-size: 1.05rem; z-index: 2;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.tv-seat small { color: var(--muted); }
+.tv-seat.turn { box-shadow: 0 0 0 0.25rem var(--accent), 0 0 2rem var(--accent); transform: translate(-50%, -50%) scale(1.12); }
+.tv-seat.offline { opacity: 0.4; }
+
+/* The game itself, in the middle of the felt, scaled to fit (see fit() in tv.js). */
+.tv-center-box {
+  position: absolute; inset: 19% 20%;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#tv-center { width: 30rem; max-width: none; display: flex; flex-direction: column; gap: 12px; font-size: 16px; }
+#tv-center button, #tv-center .btn-row, #tv-center [data-act] { display: none; }
+#tv-center .card { background: rgba(20, 17, 31, 0.78); }
+
+.tv-side { grid-area: side; display: flex; flex-direction: column; gap: 1.2vh; min-height: 0; overflow: hidden; font-size: 1rem; }
+.tv-side .card { padding: 1rem; gap: 0.6rem; }
+.tv-side h2 { font-size: 1.1rem; }
+.tv-board ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.tv-board li { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 0.6rem; align-items: center; }
+.tv-board li .av { grid-row: span 2; }
+.tv-board li b { font-size: 1.4rem; color: var(--accent); grid-row: span 2; }
+.tv-board li small { color: var(--muted); font-size: 0.8rem; }
+.tv-side .tv-rules { font-size: 0.95rem; color: var(--muted); }
+.tv-side .feed { font-size: 0.95rem; }
+
+/* Drinks pop up in the corner. */
+.tv-drinks { position: fixed; left: 2vw; bottom: 3vh; display: flex; flex-direction: column-reverse; gap: 0.6rem; z-index: 10; pointer-events: none; }
+.tv-drink {
+  display: flex; align-items: center; gap: 0.8rem;
+  background: var(--danger); color: #fff; border-radius: 1rem; padding: 0.7rem 1.2rem;
+  font-size: 1.4rem; box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.5);
+  animation: tv-pop 0.35s ease-out; transition: opacity 0.5s, transform 0.5s;
+}
+.tv-drink small { display: block; font-size: 0.9rem; opacity: 0.9; }
+.tv-drink.out { opacity: 0; transform: translateX(-2rem); }
+
+@keyframes tv-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Games that fill a phone screen get a fixed-size box on the TV. */
+#tv-center .pad { flex: none; height: 26rem; background: rgba(20, 17, 31, 0.6); }

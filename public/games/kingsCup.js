@@ -170,6 +170,20 @@
   PB.register('kingsCup', {
     // Sideways: these go on the left.
     stage: '.kc-ring, .kc-card, .kc-cup',
+    // On the TV, the tap race is a big call to action.
+    tv(s) {
+      if (s.phase !== 'race') return undefined;
+      const g = s.game;
+      const floor = g.card.rank === 4;
+      return `
+        <div class="kc-card">${PB.card(g.card, { size: 'xl' })}</div>
+        <div class="drink me"><div class="big">${floor ? '👇 TOUCH THE FLOOR' : '🙌 HANDS UP'}</div>
+          <div class="sips">then tap your phone · last one drinks ${g.rule.sips} ${PB.timer()}</div></div>
+        <div class="mm-seats">${s.players.filter((p) => p.connected).map((p) => `
+          <div class="mm-seat ${g.race.tapped.includes(p.id) ? 'turn' : ''}">${PB.avatar(p.id)}<span>${esc(p.name)}</span><b>${g.race.tapped.includes(p.id) ? '✓' : '…'}</b></div>`).join('')}</div>`;
+    },
+    // On the TV: the shared parts of the screen.
+    tvStage: '.kc-ring, .kc-card, .kc-cup, .kc-effects, .kc-broke, .mm-outright, .kc-tapped, .drink',
     render,
     sounds: (prev, s) => (s.game.card && JSON.stringify(s.game.card) !== JSON.stringify(prev.game.card) ? ['card'] : []),
     afterRender(s) {

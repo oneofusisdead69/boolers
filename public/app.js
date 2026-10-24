@@ -242,6 +242,7 @@ document.addEventListener('click', (e) => {
 // (dice rolled, card flipped), and the app adds "your turn" and the game ending.
 
 function playSounds(prev, s) {
+  if (s.tv) return; // the TV plays the sounds
   if (!prev || !s.game || prev.gameType !== s.gameType || prev.code !== s.code) return;
   const screens = PB.screens[s.gameType];
   const sounds = new Set(screens?.sounds?.(prev, s) || []);
@@ -257,7 +258,7 @@ function playSounds(prev, s) {
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
-  Prefs.play('drink');
+  if (!PB.state?.tv) Prefs.play('drink'); // with a TV, the TV buzzes
   const el = document.getElementById('drink-alert');
   const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
   el.innerHTML = `<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div><small>tap to dismiss</small>`;
@@ -388,6 +389,11 @@ function renderLobby() {
           <small>${PB.hasCustom(game.id) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
           <button class="secondary" id="customize">✏️ Customize</button>
         </div>` : ''}
+    </div>
+    <div class="card tv-card">
+      ${s.tv
+        ? '<p>📺 <b>TV connected.</b> The table, scores and sounds are on the big screen.</p>'
+        : `<p>📺 <b>Got a TV?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter <b>${PB.esc(s.code)}</b>.</p>`}
     </div>
     ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
     ${host

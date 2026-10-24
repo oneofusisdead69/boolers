@@ -233,6 +233,14 @@ module.exports = {
   id: 'shotPoker',
   name: 'Shot Poker',
   description: "Texas Hold'em for sips. Fold and drink what you put in; the winner drinks nothing.",
+  // A reminder of the rules, shown on the TV.
+  rules: [
+    "Texas Hold'em, betting sips.",
+    "Fold and you drink what you've put in.",
+    "Best hand at the showdown drinks nothing; everyone else drinks their bets.",
+    "A shot is a set number of sips, and there's a max per hand.",
+    "All debts must be paid before the next round.",
+  ],
   minPlayers: 2,
   order: 7,
   options: [

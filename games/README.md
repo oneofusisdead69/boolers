@@ -16,6 +16,7 @@ module.exports = {
   id: 'myGame',              // must match the file names
   name: 'My Game',
   description: 'One line shown in the lobby.',
+  rules: ['Short reminders,', 'shown on the TV.'],
   minPlayers: 2,
   order: 5,                  // position in the lobby list
 
@@ -69,6 +70,9 @@ Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
     sounds(prev, s) {         // optional: sound effects for what changed since the last state
       return s.game.roll !== prev.game.roll ? ['dice'] : [];   // dice | card | turn | drink | win | bell
     },
+    stage: '.my-board',       // optional: what goes on the left when the phone is sideways
+    tvStage: '.my-board, .drink', // optional: the shared parts the TV shows in the middle of the table
+    tv(s) {},                 // optional: the TV's own screen (HTML), or undefined to use tvStage
   });
 })();
 ```
