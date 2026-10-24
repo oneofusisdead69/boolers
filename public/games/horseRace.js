@@ -4,14 +4,16 @@
 // standings.
 (() => {
   const { esc, name } = PB;
-  // Each racer is an animal (or, with the Horses option, a horse) on a disc of its colour.
+  // Each racer is an animal (or, with the Horses option, a horse) with its number in its colour.
+  // These animals face left in both the iPhone and Android emoji sets, so flipping them to run
+  // right works everywhere (the pig, leopard and kangaroo don't).
   const HORSES = [
     { id: '1', name: 'Thunder', color: '#e53950', animal: '🐎' },
     { id: '2', name: 'Lucky Lager', color: '#3d7cff', animal: '🐕' },
-    { id: '3', name: 'Tipsy Tina', color: '#f5c518', animal: '🦘' },
+    { id: '3', name: 'Tipsy Tina', color: '#f5c518', animal: '🐫' },
     { id: '4', name: 'Last Call', color: '#2fbf71', animal: '🐢' },
-    { id: '5', name: 'Hangover Hank', color: '#9b5cff', animal: '🐖' },
-    { id: '6', name: 'Jägerbomb', color: '#ff8a1f', animal: '🐆' },
+    { id: '5', name: 'Hangover Hank', color: '#9b5cff', animal: '🐘' },
+    { id: '6', name: 'Jägerbomb', color: '#ff8a1f', animal: '🦏' },
   ];
   const horse = (id) => HORSES.find((h) => h.id === id);
   let racers = 'animals'; // the room's choice, set on each render
@@ -83,7 +85,7 @@
   // from the two curve centres. Distance is measured from the finish line (middle of the bottom
   // straight), anticlockwise on screen.
   const W = 414;
-  const H = 274;
+  const H = 292;
   const CX = W / 2;
   const CY = H / 2;
   const HALF = 68; // half the length of a straight
@@ -110,7 +112,7 @@
     const [x, y] = point(g.progress[id], radius(i));
     return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
   };
-  // Animal emoji face left; flip them when they're running right.
+  // The animals face left; flip them when they're running right.
   const facing = (g, i, id) => {
     const r = radius(i);
     const [x0] = point(g.progress[id], r);
@@ -131,13 +133,13 @@
     }
     const tokens = HORSES.map((h, i) => `
       <g class="hz-horse ${g.winner === h.id ? 'won' : ''}" data-horse="${h.id}" style="transform:${place(g, i, h.id)};transition-duration:${g.tickMs}ms">
-        <circle r="13" fill="${h.color}"/>
-        <g class="hz-face" style="transform:${facing(g, i, h.id)}"><text class="hz-emoji" style="animation-delay:-${(i * 0.07).toFixed(2)}s">${emoji(h)}</text></g>
-        <g class="hz-num"><circle cx="10" cy="-10" r="6" fill="${h.color}"/><text x="10" y="-9.5">${h.id}</text></g>
+        <ellipse class="hz-shadow" cx="0" cy="10" rx="9" ry="2.6" style="animation-delay:-${(i * 0.06).toFixed(2)}s"/>
+        <g class="hz-face" style="transform:${facing(g, i, h.id)}"><text class="hz-emoji" style="--hc:${h.color};animation-delay:-${(i * 0.06).toFixed(2)}s">${emoji(h)}</text></g>
+        <text class="hz-num" y="-15" style="fill:${h.color}">${h.id}</text>
       </g>`).join('');
     return `
       <div class="hz-wrap">
-        <svg class="hz-track ${s.phase === 'race' ? 'running' : ''}" id="hz-track" data-race="${g.race}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Race track">
+        <svg class="hz-track ${s.phase === 'race' ? 'running' : ''} ${racers}" id="hz-track" data-race="${g.race}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Race track">
           <path d="${stadium(mid)}" class="hz-dirt" style="stroke-width:${outer - inner}"/>
           <path d="${stadium(inner - 3)}" class="hz-infield"/>
           ${dividers}
@@ -153,7 +155,8 @@
   const lapText = (g) => (g.winner ? `🏆 ${horse(g.winner).name}` : g.ticks ? `Lap ${lapOf(g, leader(g))} of ${g.laps}` : `${g.laps} lap${g.laps === 1 ? '' : 's'}`);
 
   const backers = (s, id) => Object.entries(s.game.bets).filter(([, b]) => b.pick === id).map(([pid]) => pid);
-  const chip = (h) => `<span class="hz-chip" style="background:${h.color}" title="${h.id}">${emoji(h)}</span>`;
+  // The racer in lists: the animal and its number in its colour.
+  const chip = (h) => `<span class="hz-chip"><span class="hz-chip-a" style="--hc:${h.color}">${emoji(h)}</span><b style="color:${h.color}">${h.id}</b></span>`;
 
   // Horses in race order, with who backed each.
   function standings(s) {
