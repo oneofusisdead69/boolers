@@ -9,6 +9,7 @@ const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
+const { createRoomStore } = require('./lib/roomStore');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -68,6 +69,8 @@ app.get('/qr/:code', async (req, res) => {
 // ---------- Rooms ----------
 
 const rooms = new Map();
+// Rooms survive a restart when ROOM_STORE is set (see lib/roomStore.js).
+const roomStore = createRoomStore();
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O to avoid confusion with 1/0
 
 function makeCode() {
@@ -125,6 +128,7 @@ const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
   room.updatedAt = Date.now();
+  roomStore.save(room);
   for (const p of room.players) {
     if (p.connected && p.socketId) io.to(p.socketId).emit('state', viewFor(room, p));
   }
@@ -358,12 +362,26 @@ setInterval(() => {
       gameEnded(r, 'abandoned');
       ctx.clearTimer(r);
       rooms.delete(code);
+      roomStore.remove(code);
     }
   }
 }, 60 * 1000).unref();
 
-server.listen(PORT, () => {
+// Cloud Run says it's about to stop the server with SIGTERM: save every room first.
+process.on('SIGTERM', async () => {
+  await roomStore.flush();
+  process.exit(0);
+});
+
+roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
+  // Everyone gets the usual idle window to reconnect, counted from now.
+  for (const r of saved) if (!rooms.has(r.code)) rooms.set(r.code, { ...r, updatedAt: Date.now() });
+  if (roomStore.enabled) console.log(`Room store on (${process.env.ROOM_STORE}): ${saved.length} room(s) restored`);
+  server.listen(PORT, listening);
+});
+
+function listening() {
   console.log(`Bool Games running on http://localhost:${PORT}`);
   console.log(`Games: ${Object.values(GAMES).map((g) => g.name).join(', ')}`);
   console.log(`Test with several phones at once: http://localhost:${PORT}/dev.html`);
-});
+}

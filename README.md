@@ -74,7 +74,21 @@ npm test           # game logic tests
 - **Simulator:** http://localhost:3000/dev.html shows several phones side by side (`?n=4` for 4).
 - **Real phones on your Wi-Fi:** open `http://<your-computer's-ip>:3000` on each phone.
 
-## Deploy (free) on Render
+## Deploy on Google Cloud Run (bool.games)
+One-time setup, so rooms survive restarts and redeploys (Firestore's free tier is plenty):
+```bash
+gcloud services enable firestore.googleapis.com
+gcloud firestore databases create --location=nam5
+```
+Then deploy (from Cloud Shell, in `~/boolers`):
+```bash
+git pull && gcloud run deploy boolers --source . --region us-central1 --allow-unauthenticated \
+  --max-instances 1 --min-instances 1 --session-affinity --timeout 3600 \
+  --set-env-vars ROOM_STORE=firestore
+```
+- `--min-instances 1` keeps the server awake, so nobody waits for a cold start and an idle night doesn't shut it down (costs a few dollars a month).
+- `ROOM_STORE=firestore` saves each room (code, players, tonight's sips, game choice, style) a moment after it changes and loads them back on start. A game that was being played goes back to the lobby after a restart; phones reconnect by themselves. Locally, `ROOM_STORE=file npm start` does the same with a `.rooms.json` file.
+
 1. Push this folder to a GitHub repo.
 2. In Render, go to **New > Blueprint** and pick the repo. `render.yaml` configures everything.
 3. Share the `https://<name>.onrender.com` URL. On the free plan the server sleeps after about 15 minutes idle, so the first load can take around 30 seconds.
@@ -91,6 +105,7 @@ public/pb.js           shared screen helpers (PB.*), custom content editor
 public/prefs.js        per-phone settings: sounds, themes, dice and card styles
 lib/looks.js           avatar and colour lists (server and phones)
 lib/roomStyles.js      room styles: dive bar, tavern… (server, phones and TV)
+lib/roomStore.js       saves rooms across restarts (Firestore or a file)
 lib/custom.js          checks custom game content from the host
 tests/                 node:test tests + helpers for simulating games
 ```
