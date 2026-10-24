@@ -179,7 +179,12 @@
     // Sideways: these go on the left.
     stage: '.rb-pyramid, .rb-bus, .rb-label, .rb-hand',
     // On the TV: the shared parts of the screen.
-    tvStage: '.rb-pyramid, .rb-bus, .mm-last, .rb-plays, .mm-seats, .drink',
+    tvStage: '.rb-pyramid, .rb-bus, .mm-last, .rb-plays, .drink',
+    // On the TV, everyone's cards sit face down in front of them.
+    tvFront(s, id) {
+      const n = s.game.counts[id] || 0;
+      return n ? `<div class="rb-front"><div class="cards">${PB.card(null, { size: 'sm' }).repeat(Math.min(n, 8))}</div>${n > 8 ? `<small>${n}</small>` : ''}</div>` : '';
+    },
     // A card turned over: a guess, a pyramid flip or a bus card.
     sounds(prev, s) {
       const flips = (x) => [x.game.last, x.game.pyramid?.flipped, x.game.bus?.last, x.game.bus?.attempts];
@@ -190,7 +195,7 @@
       if (s.phase !== 'guess' && s.phase !== 'give') return undefined;
       const l = s.game.last;
       return `<div class="cards rb-tv-card">${l ? PB.card(l.card, { size: 'lg' }) : PB.card(null, { size: 'lg' })}</div>
-        ${lastGuess(s) || `<p class="center muted">Round ${s.game.round + 1}: ${{ color: 'red or black?', highlow: 'higher or lower?', inout: 'inside or outside?', suit: 'guess the suit' }[s.game.roundType] || ''}</p>`}${seats(s)}`;
+        ${lastGuess(s) || `<p class="center muted">Round ${s.game.round + 1}: ${{ color: 'red or black?', highlow: 'higher or lower?', inout: 'inside or outside?', suit: 'guess the suit' }[s.game.roundType] || ''}</p>`}`;
     },
     render(s) {
       switch (s.phase) {

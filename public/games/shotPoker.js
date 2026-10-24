@@ -173,7 +173,21 @@
     // Sideways: these go on the left.
     stage: '.sp-banner, .sp-table, .ld-mine-head, .sp-hole',
     // On the TV: the shared parts of the screen.
-    tvStage: '.sp-banner, .sp-table, .sp-seats, .sp-debts',
+    tvStage: '.sp-banner, .sp-table',
+    // On the TV, everyone's two cards sit in front of them: face down, face up at the showdown,
+    // pushed away when they fold. With what they've put in and what they last did.
+    tvFront(s, id) {
+      const g = s.game;
+      const x = g.seats.find((seat) => seat.id === id);
+      if (!x) return '';
+      const h = g.result?.hands[id];
+      const won = g.result?.winners.includes(id);
+      const cards = h ? h.cards.map((c) => PB.card(c, { size: 'sm' })).join('') : PB.card(null, { size: 'sm' }) + PB.card(null, { size: 'sm' });
+      return `<div class="sp-front ${x.folded ? 'folded' : ''} ${won ? 'won' : ''} ${x.id === g.turnId ? 'acting' : ''}">
+        <div class="cards">${cards}</div>
+        <small>${x.id === g.dealerId ? '<span class="sp-dealer">D</span> ' : ''}${[h ? esc(h.name) : x.folded ? 'Folded' : x.allIn ? 'All in' : esc(x.last || ''), `🍺 ${x.committed}`, g.waitingOn.includes(id) && '⏳ drink up'].filter(Boolean).join(' · ')}</small>
+      </div>`;
+    },
     // A card for each new deal: your hand, then the flop, turn and river.
     sounds: (prev, s) => (s.game.hand !== prev.game.hand || s.game.community.length !== prev.game.community.length ? ['card'] : []),
     render(s) {

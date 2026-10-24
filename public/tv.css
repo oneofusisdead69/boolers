@@ -143,3 +143,15 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-front .ld-die.mini .die, .tv-front .ld-hidden { width: 2rem; height: 2rem; }
 .tv-front .ld-die.mini.dim { opacity: 0.45; }
 .tv-drink.water { background: #228ce6; }
+/* Cards in front of the players (Shot Poker, Ride the Bus): a small overlapping fan. */
+.tv-front .cards { display: flex; justify-content: center; }
+.tv-front .cards .pcard + .pcard { margin-left: -1.4rem; }
+.tv-front .rb-front .cards .pcard + .pcard { margin-left: -2rem; }
+.tv-front .pcard.sm { width: 2.8rem; height: 4rem; }
+.sp-front, .rb-front { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.sp-front small, .rb-front small { background: rgba(0, 0, 0, 0.55); color: #fff; padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.85rem; white-space: nowrap; }
+.sp-front.folded .cards { opacity: 0.35; transform: rotate(-12deg) translateY(0.4rem); }
+.sp-front.won .cards { filter: drop-shadow(0 0 0.6rem var(--accent)); }
+.sp-front.acting small { background: var(--accent); color: var(--accent-text); }
+/* With things in front of the players, the middle of the table leaves them room. */
+.tv-table:has(.tv-front > *) .tv-center-box { inset: 27% 27%; }

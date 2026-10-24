@@ -62,6 +62,8 @@ socket.on('drink', (d) => {
   el.innerHTML = `${PB.avatar(d.playerId)}<div><b>${esc(d.who)}</b>${d.title ? `: ${esc(d.title)}` : ` drinks ${PB.plural(d.sips, 'sip')}`}
     ${d.from ? `<small>from ${esc(d.from)}</small>` : ''}${d.reason ? `<small>${esc(d.reason)}</small>` : ''}</div>`;
   $drinks.prepend(el);
+  // Only the latest few stay up.
+  [...$drinks.children].slice(4).forEach((old) => old.remove());
   setTimeout(() => el.classList.add('out'), 4200);
   setTimeout(() => el.remove(), 4800);
   Prefs.play('drink');
