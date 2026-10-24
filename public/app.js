@@ -294,6 +294,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
         <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
         <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
+        <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
       </div>
     </div>
     <div class="spacer"></div>
@@ -385,6 +386,7 @@ function renderLobby() {
           <button class="secondary" id="customize">✏️ Customize</button>
         </div>` : ''}
     </div>
+    ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
     ${host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
@@ -439,7 +441,7 @@ function renderGame() {
   $app.innerHTML = screens.fullscreen ? html : `
     ${html}
     <div class="spacer"></div>
-    <div class="game-foot">${Prefs.button()}${PB.endButton()}</div>
+    <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   screens.afterRender?.(s);
 }

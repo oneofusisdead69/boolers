@@ -659,3 +659,45 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .custom-row small { color: var(--muted); }
 /* Middle suit as a shape: square, filled in the card's ink colour */
 .pcard svg.pip { width: 0.8em; height: 0.8em; fill: currentColor; display: block; }
+
+/* Shot Poker */
+.sp-banner { position: sticky; top: 0; z-index: 5; margin: -4px -4px 0; padding: 10px 12px; border-radius: 12px; background: #0b0a10; color: #fff; border: 2px solid var(--danger); text-align: center; font-weight: 800; letter-spacing: 0.01em; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+.sp-table { display: flex; flex-direction: column; gap: 8px; padding: 14px 8px; border-radius: 18px; background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0e4a2e 100%); box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25); }
+.sp-board { gap: 6px; flex-wrap: nowrap; }
+.sp-board .pcard { width: 56px; height: 80px; }
+.sp-pot { text-align: center; color: #e9fff3; font-weight: 600; font-size: 0.95rem; }
+.sp-hole { gap: 12px; }
+.sp-actions { gap: 10px; }
+.sp-actions > button[data-act="raise"] { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sp-actions > button small { font-weight: 500; opacity: 0.8; font-size: 0.85rem; }
+.sp-quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sp-quick button { padding: 10px 6px; font-size: 0.95rem; }
+.sp-seats { display: flex; flex-direction: column; gap: 6px; }
+.sp-seat { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--card); border: 2px solid transparent; }
+.sp-seat.acting { border-color: var(--accent); }
+.sp-seat.won { border-color: var(--ok); }
+.sp-seat.folded { opacity: 0.45; }
+.sp-seat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.sp-seat-main small { color: var(--muted); }
+.sp-seat-cards { gap: 4px; flex-wrap: nowrap; }
+.sp-seat-cards .pcard.sm { width: 34px; height: 48px; }
+.sp-in { min-width: 34px; text-align: center; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: var(--card-2); font-variant-numeric: tabular-nums; }
+.sp-in::before { content: '🍺 '; font-size: 0.8em; }
+.sp-dealer { display: inline-flex; align-items: center; justify-content: center; width: 1.4em; height: 1.4em; border-radius: 50%; background: #fff; color: #111; font-size: 0.7rem; font-weight: 900; vertical-align: middle; }
+.sp-tab ul, .sp-debts { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.sp-tab li, .sp-debts li { display: flex; align-items: center; gap: 10px; }
+.sp-tab li > span:not(.av), .sp-debts li > span:not(.av) { flex: 1; }
+.sp-tab li b { font-variant-numeric: tabular-nums; }
+.sp-tab li.offline { opacity: 0.45; }
+.sp-debts li > span:not(.av) small { display: block; color: var(--muted); }
+.sp-debts .ok { color: var(--ok); font-weight: 700; }
+.sp-debts .owed { color: var(--danger); font-weight: 700; }
+.sp-pay { width: auto; padding: 10px 16px; font-size: 1.6rem; background: var(--danger); color: #fff; animation: pulse 0.9s ease-in-out infinite; }
+/* Tonight's tab */
+.tab-n { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.tab-n small { display: block; font-weight: 500; font-size: 0.78rem; color: var(--muted); }
+.sp-tab li b, .sp-tab li em { width: 96px; text-align: right; font-style: normal; font-size: 0.9rem; }
+.sp-tab li em { color: var(--muted); width: 64px; }
+.sp-tab-head { color: var(--muted); }
+.sp-tab-head small { text-align: right; width: 96px; }
+.sp-tab-head small:last-child { width: 64px; }

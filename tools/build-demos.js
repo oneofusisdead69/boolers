@@ -40,7 +40,7 @@ for (const name of ['slevens', 'madmax']) {
 }
 
 // Games played through the general pass-and-play page, with their screens baked in.
-const TITLES = { rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice" };
+const TITLES = { rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice", shotPoker: 'Shot Poker' };
 for (const id of Object.keys(TITLES)) {
   const parts = pageParts(read('public/play/local.html'));
   let body = parts.body

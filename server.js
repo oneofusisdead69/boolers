@@ -83,7 +83,7 @@ function viewFor(room, player) {
     games: Object.values(GAMES).map(({ id, name, description, minPlayers }) => ({ id, name, description, minPlayers })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, avatar, color }) => ({ id, name, connected, drinks, avatar, color })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     game: game ? game.view(room, player, ctx) : null,

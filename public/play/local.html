@@ -66,6 +66,17 @@
         locked: { reactions: false },
         actor: (room) => room.game.turnId,
       },
+      shotPoker: {
+        locked: {},
+        // Betting goes to whoever's turn it is; after a hand, pick who's holding the phone to pay.
+        actor(room, holder) {
+          const g = room.game;
+          if (g.phase === 'betting') return g.turnId;
+          return holder || Object.keys(g.debts).find((id) => !g.debts[id].paid) || g.order[0];
+        },
+        switchable: (room) => room.game.phase === 'showdown',
+        hint: (room, id) => room.game.debts[id] && !room.game.debts[id].paid,
+      },
     };
     const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.hostId };
     const options = (game.options || []).filter((o) => !(o.id in local.locked));
@@ -80,6 +91,7 @@
     } catch {}
 
     let room = null;
+    let lastPlayers = []; // the last game's players, for tonight's tab
     let ctx = null;
     let holder = null; // whose cards are showing, where anyone may act
     const alerts = [];
@@ -112,7 +124,10 @@
     // ---------- Setup ----------
 
     function renderSetup(error = '') {
-      if (room) ctx.clearTimer(room);
+      if (room) {
+        ctx.clearTimer(room);
+        lastPlayers = room.players;
+      }
       room = null;
       $app.innerHTML = `
         <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
@@ -169,10 +184,12 @@
     }
 
     function startGame() {
+      // Tonight's tab carries on from game to game on this page, by name.
+      const before = Object.fromEntries((room?.players || lastPlayers).map((p) => [p.name, p]));
       room = {
         code: 'LOCAL',
         hostId: 'p0',
-        players: names.map((name, i) => ({ id: `p${i}`, name, drinks: 0, connected: true })),
+        players: names.map((name, i) => ({ id: `p${i}`, name, drinks: 0, connected: true, total: before[name]?.total || 0, finished: before[name]?.finished || 0 })),
         feed: [],
         game: { type: gameId },
         timer: null,
@@ -211,7 +228,7 @@
         me,
         hostId: me, // whoever holds the phone can do the host's jobs (flipping, moving on)
         isHost: true,
-        players: room.players.map(({ id, name, connected, drinks }) => ({ id, name, connected, drinks })),
+        players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0 }) => ({ id, name, connected, drinks, total, finished })),
         phase: room.game.phase,
         gameType: gameId,
         game: game.view(room, player, ctx),
@@ -234,7 +251,7 @@
         ${holderBar()}
         ${html}
         <div class="spacer"></div>
-        <div class="game-foot">${Prefs.button()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
+        <div class="game-foot">${PB.tabButton()}${Prefs.button()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
       screens.afterRender?.(PB.state);
       updateTimer();
     }

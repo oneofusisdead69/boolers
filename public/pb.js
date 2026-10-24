@@ -228,11 +228,40 @@
       return `<ul class="feed">${items.map((f) => `<li>${PB.esc(f.text)}</li>`).join('')}</ul>`;
     },
 
+    // The whole night's tab in this room: every sip and finished drink, across all games.
+    tab() {
+      const rows = PB.state.players.slice().sort((a, b) => (b.total || 0) - (a.total || 0) || (b.finished || 0) - (a.finished || 0));
+      return `<div class="card tab"><h2>🍺 Tonight's tab</h2><ul class="players">${rows.map((p) => `
+        <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span>
+          <span class="tab-n">${PB.plural(p.total || 0, 'sip')}${p.finished ? `<small>🥃 finished ×${p.finished}</small>` : ''}</span></li>`).join('')}</ul></div>`;
+    },
+
+    // Opens the tab over whatever is on screen.
+    showTab() {
+      const overlay = document.createElement('div');
+      overlay.className = 'prefs-overlay';
+      overlay.innerHTML = `<div class="prefs-panel" role="dialog" aria-modal="true" aria-label="Tonight's tab">
+        <header><h2>🍺 Tonight's tab</h2><button class="prefs-close" aria-label="Close">✕</button></header>
+        ${PB.tab().replace('<h2>🍺 Tonight\'s tab</h2>', '')}</div>`;
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target.closest('.prefs-close')) overlay.remove();
+      });
+      document.body.appendChild(overlay);
+    },
+
+    tabButton() {
+      return '<button class="prefs-btn" data-tab>🍺 Tab</button>';
+    },
+
     scoreboard() {
       const rows = PB.state.players.slice().sort((a, b) => b.drinks - a.drinks);
       return `<div class="card"><h2>Total sips</h2><ul class="players">${rows.map((p) => `
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
     },
   };
+  // Any 🍺 Tab button opens the tab.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-tab]') && PB.state) PB.showTab();
+  });
   window.PB = PB;
 })();
