@@ -260,6 +260,13 @@ module.exports = {
       default: 'normal',
       choices: [{ value: 'steady', label: 'Steady' }, { value: 'normal', label: 'Normal' }, { value: 'wobbly', label: 'Wobbly' }],
     },
+    // Hard mode: the throwing pad doesn't say what you're aiming at.
+    {
+      id: 'hard',
+      label: 'Hard mode',
+      default: false,
+      choices: [{ value: false, label: 'Off' }, { value: true, label: 'No aim readout' }],
+    },
   ],
 
   start(room, ctx, options = {}) {
@@ -273,6 +280,7 @@ module.exports = {
       rounds: [3, 5, 10].includes(options.rounds) ? options.rounds : 5,
       sips: [1, 2, 3].includes(options.sips) ? options.sips : 2,
       wobble: WOBBLE[options.wobble] ? options.wobble : 'normal',
+      hard: options.hard === true,
       order,
       turnIdx: Math.max(0, order.indexOf(ctx.turns.first(room, order))),
       round: 1,
@@ -350,6 +358,7 @@ module.exports = {
       round: g.round,
       sips: g.sips,
       wobble: g.wobble,
+      hard: g.hard,
       throwerId: id,
       turnId: g.phase === 'throwing' ? id : g.phase === 'give' ? g.give.from : null,
       darts: g.darts,

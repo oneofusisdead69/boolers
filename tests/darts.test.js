@@ -166,3 +166,8 @@ test('only the thrower can aim or throw, and a thrower who leaves is skipped', (
   assert.strictEqual(t.view(1).turnId, 'p1');
   t.cleanup();
 });
+
+test('hard mode is passed to the phones', () => {
+  assert.strictEqual(setup(darts, 2, {}).view(0).hard, false);
+  assert.strictEqual(setup(darts, 2, { hard: true }).view(0).hard, true);
+});

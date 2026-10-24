@@ -136,6 +136,9 @@
 
   // ---------- Throwing ----------
 
+  // Hard mode keeps quiet about what you're aiming at.
+  const aimText = (g, aim) => (g.hard ? 'Hard mode: no aim readout' : `Aiming at ${label(aim.x, aim.y)}`);
+
   // The thrower's crosshair lives on their phone; the server just hears about it.
   let aimState = { key: '', x: 0, y: 0 };
   function localAim(s) {
@@ -148,7 +151,7 @@
   function pad(s, big) {
     return `<div class="dt-pad ${big ? 'big' : ''}" id="dt-pad">
       <p class="dt-hint">Drag to aim · flick up to throw</p>
-      <p class="dt-readout" id="dt-readout">${esc(feedback || `Aiming at ${label(localAim(s).x, localAim(s).y)}`)}</p>
+      <p class="dt-readout" id="dt-readout">${esc(feedback || aimText(s.game, localAim(s)))}</p>
       <svg class="dt-held" id="dt-held" viewBox="0 0 40 140" aria-hidden="true">
         <path d="M20 0 L23 28 L17 28Z" fill="#ddd"/>
         <rect x="15" y="28" width="10" height="44" rx="4" fill="#9aa0a6"/>
@@ -173,7 +176,7 @@
       mark.setAttribute('transform', `translate(${aimState.x} ${aimState.y})`);
     }
     const readout = document.getElementById('dt-readout');
-    if (readout) readout.textContent = `Aiming at ${label(aimState.x, aimState.y)}`;
+    if (readout) readout.textContent = aimText(PB.state.game, aimState);
   }
 
   function setupPad() {
