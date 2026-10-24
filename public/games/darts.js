@@ -88,7 +88,7 @@
     return `<svg class="dt-board" id="dt-board" viewBox="-1.32 -1.32 2.64 2.64" aria-label="Dartboard">
       ${face()}
       ${g.darts.map((d, i) => dart(d, color, i >= seen)).join('')}
-      ${aimMark(s.phase === 'throwing' ? aim : null)}
+      ${aimMark(s.phase === 'throwing' && !g.hard ? aim : null)}
     </svg>`;
   }
 
@@ -137,7 +137,7 @@
   // ---------- Throwing ----------
 
   // Hard mode keeps quiet about what you're aiming at.
-  const aimText = (g, aim) => (g.hard ? 'Hard mode: no aim readout' : `Aiming at ${label(aim.x, aim.y)}`);
+  const aimText = (g, aim) => (g.hard ? 'Hard mode: aim by feel' : `Aiming at ${label(aim.x, aim.y)}`);
 
   // The thrower's crosshair lives on their phone; the server just hears about it.
   let aimState = { key: '', x: 0, y: 0 };
@@ -171,7 +171,7 @@
 
   function showAim() {
     const mark = document.getElementById('dt-aim');
-    if (mark) {
+    if (mark && !PB.state.game.hard) {
       mark.style.display = '';
       mark.setAttribute('transform', `translate(${aimState.x} ${aimState.y})`);
     }
@@ -202,7 +202,7 @@
       if (held) held.style.transform = `translate(${e.clientX - start.x}px, ${Math.min(0, e.clientY - start.y) * 0.3}px)`;
       feedback = '';
       showAim();
-      sendAim(false);
+      if (!PB.state.game.hard) sendAim(false); // hard mode: nobody sees the crosshair
     });
     const release = (e) => {
       if (!start) return;
@@ -232,7 +232,7 @@
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
       } else {
         if (held) held.style.transform = '';
-        sendAim(true);
+        if (!PB.state.game.hard) sendAim(true);
       }
     };
     el.addEventListener('pointerup', release);
@@ -332,7 +332,7 @@
       if (key === lastKey && document.getElementById('dt-board') && s.game.throwerId !== s.me) {
         const mark = document.getElementById('dt-aim');
         const aim = s.game.aim;
-        if (mark && aim && s.phase === 'throwing') {
+        if (mark && aim && s.phase === 'throwing' && !s.game.hard) {
           mark.style.display = '';
           mark.setAttribute('transform', `translate(${aim.x} ${aim.y})`);
         }

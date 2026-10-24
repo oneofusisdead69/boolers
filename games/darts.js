@@ -260,12 +260,12 @@ module.exports = {
       default: 'normal',
       choices: [{ value: 'steady', label: 'Steady' }, { value: 'normal', label: 'Normal' }, { value: 'wobbly', label: 'Wobbly' }],
     },
-    // Hard mode: the throwing pad doesn't say what you're aiming at.
+    // Hard mode: no crosshair and no "Aiming at" readout; you aim by feel.
     {
       id: 'hard',
       label: 'Hard mode',
       default: false,
-      choices: [{ value: false, label: 'Off' }, { value: true, label: 'No aim readout' }],
+      choices: [{ value: false, label: 'Off' }, { value: true, label: 'On: no crosshair' }],
     },
   ],
 
