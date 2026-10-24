@@ -361,7 +361,8 @@
     tvStage: '.hz-wrap, .hz-standings, .drink, .ar-bets, .ar-give, .center.muted',
     // No table on the TV: just a big track, with the horses' names down the left.
     tvTable: false,
-    tvLeft: '.hz-winner, .hz-standings, .ar-bets, .ar-give, .center.muted',
+    tvLeft: '.hz-standings, .ar-bets, .ar-give, .center.muted',
+    tvBanner: '.hz-winner',
     tv(s) {
       if (s.phase !== 'betting') return undefined;
       const g = s.game;

@@ -182,6 +182,12 @@ function fillCenter(s, screens) {
   }
   // Games without a table (the horse race) put part of the screen in a column on the left.
   if (left && screens.tvLeft) left.append(...center.querySelectorAll(screens.tvLeft));
+  // ...and can put a banner (the winner) right across the middle of the screen.
+  const banner = document.getElementById('tv-banner');
+  if (banner) {
+    banner.innerHTML = '';
+    if (screens.tvBanner) banner.append(...center.querySelectorAll(screens.tvBanner));
+  }
   screens.afterRender?.(s);
   return true;
 }
@@ -220,7 +226,7 @@ function gameScreen(s) {
       <div class="tv-game">
         <header class="tv-head"><b class="tv-title">${esc(game.name)}</b><div id="tv-turn" class="tv-turn"></div><span class="tv-code">Join: <b>${esc(s.code)}</b></span></header>
         ${screens.tvTable === false
-          ? '<div class="tv-wide"><div class="tv-left-box"><div id="tv-left"></div></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'
+          ? '<div class="tv-wide"><div class="tv-left-box"><div id="tv-left"></div></div><div class="tv-center-box"><div id="tv-center"></div></div></div><div id="tv-banner" class="tv-banner"></div>'
           : '<div class="tv-table"><div class="tv-felt"></div><div id="tv-seats"></div><div class="tv-center-box"><div id="tv-center"></div></div></div>'}
         <aside class="tv-side" id="tv-side"></aside>
       </div>
