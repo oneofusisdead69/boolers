@@ -317,7 +317,7 @@
       const rows = PB.state.players.slice().sort((a, b) => (b.total || 0) - (a.total || 0) || (b.finished || 0) - (a.finished || 0));
       return `<div class="card tab">${head}<ul class="players">${rows.map((p) => `
         <li class="${p.connected ? '' : 'offline'}">${PB.avatar(p.id)}<span class="name">${PB.esc(p.name)}${p.id === PB.state.me && !PB.passAndPlay ? ' (you)' : ''}</span>
-          <span class="tab-n">${PB.plural(p.total || 0, 'sip')}${p.finished ? `<small>🥃 finished ×${p.finished}</small>` : ''}</span></li>`).join('')}</ul></div>`;
+          <span class="tab-n">${PB.plural(p.total || 0, 'sip')}${p.finished ? `<small>🥃 finished ×${p.finished}</small>` : ''}${p.water ? `<small>💧 ${p.water} water</small>` : ''}${p.waterMode ? '<small>💧 on water</small>' : ''}</span></li>`).join('')}</ul></div>`;
     },
 
     // Opens the tab over whatever is on screen.

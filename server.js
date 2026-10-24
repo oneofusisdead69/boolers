@@ -106,10 +106,12 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    settings: { cap: 0, breaks: true, ...room.settings },
     games: Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules })),
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, water = 0, waterMode = false, avatar, color }) =>
+      ({ id, name, connected, drinks, total, finished, water, waterMode, avatar, color })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     game: game ? game.view(room, player, ctx) : null,
@@ -147,7 +149,13 @@ function emit(room, playerId, event, data) {
   }
 }
 
-const ctx = createContext({ emit, broadcast });
+// A message for every phone in the room and the TV (e.g. a water break).
+function notifyAll(room, event, data) {
+  for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
+  for (const id of room.tvs || []) io.to(id).emit(event, data);
+}
+
+const ctx = createContext({ emit, broadcast, notifyAll });
 
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
@@ -242,6 +250,24 @@ io.on('connection', (socket) => {
     if (!room || !player) return;
     if (LOOKS.AVATARS.includes(avatar)) player.avatar = avatar;
     if (LOOKS.COLORS.includes(color)) player.color = color;
+    broadcast(room);
+  });
+
+  // Pacing, set by the host: an hourly sip limit and water breaks (see lib/context.js).
+  const SETTINGS = { cap: [0, 10, 15, 20, 30], breaks: [true, false] };
+  socket.on('setSetting', ({ id, value } = {}) => {
+    if (!hostOnly() || !SETTINGS[id]) return;
+    const v = SETTINGS[id].find((x) => String(x) === String(value));
+    if (v === undefined) return;
+    room.settings = { cap: 0, breaks: true, ...room.settings, [id]: v };
+    broadcast(room);
+  });
+
+  // Anyone can switch themselves to water (and back), any time.
+  socket.on('setWater', ({ on } = {}) => {
+    if (!room || !player) return;
+    player.waterMode = on === true || on === 'true';
+    ctx.log(room, player.waterMode ? `💧 ${player.name} is on water for now` : `🍺 ${player.name} is back on the drinks`);
     broadcast(room);
   });
 

@@ -142,3 +142,4 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-front .ld-front { max-width: 9rem; gap: 0.3rem; }
 .tv-front .ld-die.mini .die, .tv-front .ld-hidden { width: 2rem; height: 2rem; }
 .tv-front .ld-die.mini.dim { opacity: 0.45; }
+.tv-drink.water { background: #228ce6; }

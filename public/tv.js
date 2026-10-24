@@ -58,13 +58,28 @@ socket.on('state', (s) => {
 // Every drink pops up on the TV, with a buzz.
 socket.on('drink', (d) => {
   const el = document.createElement('div');
-  el.className = 'tv-drink';
+  el.className = `tv-drink ${d.water ? 'water' : ''}`;
   el.innerHTML = `${PB.avatar(d.playerId)}<div><b>${esc(d.who)}</b>${d.title ? `: ${esc(d.title)}` : ` drinks ${PB.plural(d.sips, 'sip')}`}
     ${d.from ? `<small>from ${esc(d.from)}</small>` : ''}${d.reason ? `<small>${esc(d.reason)}</small>` : ''}</div>`;
   $drinks.prepend(el);
   setTimeout(() => el.classList.add('out'), 4200);
   setTimeout(() => el.remove(), 4800);
   Prefs.play('drink');
+});
+
+// A water break: a big banner for the whole room.
+socket.on('notice', ({ title, text }) => {
+  let el = document.getElementById('tv-notice');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tv-notice';
+    el.className = 'tv-banner tv-notice';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div class="drink water"><div class="big">${esc(title)}</div><div class="sips">${esc(text)}</div></div>`;
+  clearTimeout(el.t);
+  el.t = setTimeout(() => (el.innerHTML = ''), 9000);
+  Prefs.play('bell');
 });
 
 // ---------- Sound ----------

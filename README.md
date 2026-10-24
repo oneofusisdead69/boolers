@@ -55,6 +55,11 @@ Where the browser allows it (Android), the app goes full screen when you create,
 ## Sideways
 Turn a phone (or open the app on a tablet) sideways and every screen splits in two: the table, track or cards on the left, your buttons and the scores on the right. Nothing to switch on.
 
+## Pacing
+- **Water mode:** anyone can tap **💧 Water** (in the lobby, or at the bottom of any game) to stay in the game with water instead: their sips come up as blue "sips of water" alerts and don't count towards the tab. Tap again to switch back.
+- **Hourly limit (host):** No limit / 10 / 15 / 20 / 30 sips per person per hour. Past it, that person's sips turn into water until the hour rolls on.
+- **Water breaks (host, on by default):** every so often (about 12 sips per person in the room) everyone gets a "💧 Water break" alert, and the TV shows it across the screen.
+
 ## Room styles
 The host can dress the room up from the lobby: **Classic, Dive bar, Tavern, Club, Castle, Jazz club or Diner**. Everyone's phone and the TV take on the style's colours, background, heading font and (on the TV) table: a pool-table green under a brick wall, an oak tavern table, a neon-rimmed club table, a royal round table, burgundy velvet, or a teal diner table on a checkerboard floor. The host can switch it any time, even mid-game. While a room style is on it replaces each phone's own colour theme; the phone's theme comes back outside the room. Styles live in `lib/roomStyles.js`.
 

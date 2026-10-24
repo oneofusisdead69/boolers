@@ -228,6 +228,11 @@
           showAlert();
         },
         broadcast: () => render(),
+        // A water break is for everyone at once.
+        notifyAll: (r, event, data) => {
+          alerts.push({ who: 'Everyone', title: data.title, reason: data.text });
+          showAlert();
+        },
       });
       holder = null;
       const custom = __req('custom').clean(game.custom, PB.customFor(gameId));
