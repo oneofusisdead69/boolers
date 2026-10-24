@@ -22,107 +22,13 @@ if (!playerId) {
   store.set('id', playerId);
 }
 
-let clockOffset = 0; // serverNow - localNow
 let homeError = '';
-const gameScreens = {}; // gameId -> { render(state) }
 const loading = {};
 
-// ---------- Shared helpers for game screens ----------
-
-const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣', X: '★' };
-const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 0: '🃏' };
-const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-
-const PB = {
-  state: null,
-  socket,
-
-  register(gameId, screens) {
-    gameScreens[gameId] = screens;
-  },
-
-  esc(s) {
-    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  },
-
-  name(id) {
-    if (id === PB.state.me) return 'You';
-    return PB.state.players.find((p) => p.id === id)?.name ?? '???';
-  },
-
-  // Sends a game action to the server, e.g. PB.act('roll') or PB.act('guess', { pick: 'red' }).
-  // In HTML, <button data-act="guess" data-pick="red"> does the same thing on tap.
-  act(type, data = {}) {
-    socket.emit('action', { type, ...data });
-  },
-
-  plural(n, word) {
-    return `${n} ${word}${n === 1 ? '' : 's'}`;
-  },
-
-  // A playing card. Pass null or { faceDown: true } for a card back.
-  card(card, { size = '', faceDown = false } = {}) {
-    if (!card || faceDown) return `<div class="pcard back ${size}"></div>`;
-    const suit = SUIT_SYMBOLS[card.suit];
-    const rank = RANK_LABELS[card.rank] ?? card.rank;
-    const color = card.suit === 'H' || card.suit === 'D' ? 'red' : card.suit === 'X' ? 'joker' : 'black';
-    return `<div class="pcard ${color} ${size}"><span class="corner">${rank}<br>${suit}</span><span class="pip">${suit}</span><span class="corner br">${rank}<br>${suit}</span></div>`;
-  },
-
-  dice(values, { rolling = false } = {}) {
-    return `<div class="dice">${values.map((v) => `<div class="die ${rolling ? 'rolling' : ''}">${
-      Array.from({ length: 9 }, (_, i) => `<i class="${PIPS[v]?.includes(i) ? 'on' : ''}"></i>`).join('')
-    }</div>`).join('')}</div>`;
-  },
-
-  // Header showing whose turn it is.
-  turn(playerId, text = '') {
-    const mine = playerId === PB.state.me;
-    return `<div class="turn ${mine ? 'mine' : ''}">${mine ? 'Your turn' : `${PB.esc(PB.name(playerId))}'s turn`}${text ? ` <span>${PB.esc(text)}</span>` : ''}</div>`;
-  },
-
-  // Grid of player buttons. Tapping one sends `action` with { targetId }.
-  playerPicker(action, { exclude = [], selected = null, extra = {} } = {}) {
-    const data = Object.entries(extra).map(([k, v]) => `data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${PB.esc(v)}"`).join(' ');
-    return `<div class="vote-grid">${PB.state.players
-      .filter((p) => !exclude.includes(p.id))
-      .map((p) => `<button data-act="${PB.esc(action)}" data-target-id="${PB.esc(p.id)}" ${data} class="${selected === p.id ? 'selected' : ''} ${p.connected ? '' : 'offline'}">${PB.esc(p.name)}${p.id === PB.state.me ? ' (you)' : ''}</button>`)
-      .join('')}</div>`;
-  },
-
-  timer() {
-    return '<span class="timer" id="timer"></span>';
-  },
-
-  // The host's "End game" button (empty for everyone else).
-  endButton(className = 'link') {
-    return PB.state.isHost ? `<button class="${className}" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>` : '';
-  },
-
-  // Current time on the server's clock, for lining up countdowns across phones.
-  // Redraws the current screen, for local-only changes like selecting a card.
-  rerender() {
-    render();
-  },
-
-  now() {
-    return Date.now() + clockOffset;
-  },
-
-  // Recent things that happened (drinks handed out etc.).
-  feed(limit = 4) {
-    const items = PB.state.feed.slice(-limit).reverse();
-    if (!items.length) return '';
-    return `<ul class="feed">${items.map((f) => `<li>${PB.esc(f.text)}</li>`).join('')}</ul>`;
-  },
-
-  scoreboard() {
-    const rows = PB.state.players.slice().sort((a, b) => b.drinks - a.drinks);
-    return `<div class="card"><h2>Total sips</h2><ul class="players">${rows.map((p) => `
-      <li class="${p.connected ? '' : 'offline'}"><span class="name">${PB.esc(p.name)}${p.id === PB.state.me ? ' (you)' : ''}</span><span class="count">${p.drinks}</span></li>`).join('')}</ul></div>`;
-  },
-};
-window.PB = PB;
+// Shared screen helpers (cards, dice, pickers…) live in /pb.js; this page plugs in the server.
+PB.socket = socket;
+PB.send = (type, data) => socket.emit('action', { type, ...data });
+PB.redraw = () => render();
 
 // ---------- Full screen ----------
 // Browsers that allow it (Android) go full screen when you create, join or start a game, and
@@ -256,7 +162,7 @@ socket.on('connect', () => {
 });
 
 socket.on('state', (s) => {
-  clockOffset = s.serverNow - Date.now();
+  PB.clockOffset = s.serverNow - Date.now();
   PB.state = s;
   store.set('room', s.code);
   if (!s.players.some((p) => p.id === playerId)) return leaveRoom();
@@ -305,6 +211,8 @@ function renderHome() {
       <div class="pass-play">
         <a class="btn-link" href="/play/slevens.html">🎲 Slevens</a>
         <a class="btn-link" href="/play/madmax.html">🃏 Mad Max</a>
+        <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
+        <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
       </div>
     </div>
     <div class="spacer"></div>
@@ -431,7 +339,7 @@ function loadGame(gameId) {
 
 function renderGame() {
   const s = PB.state;
-  const screens = gameScreens[s.gameType];
+  const screens = PB.screens[s.gameType];
   if (!screens) {
     $app.innerHTML = '<p class="center muted">Loading…</p>';
     return loadGame(s.gameType);

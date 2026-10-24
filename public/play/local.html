@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14111f">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <title>Pass and play · Boolers</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Pass-and-play extras on top of the app's own styles. */
+    .home-link { color: var(--muted); text-align: center; font-size: 0.95rem; }
+    .holder { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; }
+    .holder span { color: var(--muted); font-size: 0.85rem; width: 100%; text-align: center; }
+    .holder button { width: auto; padding: 8px 12px; font-size: 0.9rem; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
+    .holder button.selected { border-color: var(--accent); }
+    .holder button.hint { box-shadow: 0 0 0 2px var(--ok); }
+    .drink-alert .who { font-size: 1.6rem; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <main id="app"></main>
+  <div id="drink-alert" class="drink-alert" hidden></div>
+  <script src="/pb.js"></script>
+  <script src="/shared/bundle.js"></script>
+  <script>
+    // Pass and play for any game: runs the real rules (from /shared/bundle.js) and the real game
+    // screens (from /games/<id>.js) on one phone. Each screen is drawn for whoever has to act
+    // next, and taps act as that player.
+    const params = new URLSearchParams(location.search);
+    const gameId = params.get('game');
+    const game = __req(gameId);
+    const { createContext } = __req('context');
+    const $app = document.getElementById('app');
+    const $alert = document.getElementById('drink-alert');
+
+    // What one phone can't do (secret hands, tap races) is switched off, and who acts is
+    // worked out from the game state.
+    const LOCAL = {
+      rideTheBus: {
+        locked: { bluff: false },
+        actor(room, holder) {
+          const g = room.game;
+          if (g.phase === 'guess') return g.order[g.turnIdx];
+          if (g.phase === 'give') return g.give.from;
+          if (g.phase === 'bus' || g.phase === 'over') return g.bus.riderId;
+          return holder || g.order[0];
+        },
+        // In the pyramid anyone may play, so the phone shows one player's cards at a time.
+        switchable: (room) => room.game.phase === 'pyramid',
+        hint(room, id) {
+          const g = room.game;
+          const n = g.pyramid?.flipped;
+          if (!n) return false;
+          let left = n - 1;
+          for (const row of g.pyramid.rows) {
+            if (left < row.length) return g.hands[id].some((c) => c.rank === row[left].rank);
+            left -= row.length;
+          }
+          return false;
+        },
+      },
+      kingsCup: {
+        locked: { reactions: false },
+        actor: (room) => room.game.turnId,
+      },
+    };
+    const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.hostId };
+    const options = (game.options || []).filter((o) => !(o.id in local.locked));
+
+    const storeKey = `local-${gameId}`;
+    let names = ['Alex', 'Bea', 'Cam'];
+    let opts = Object.fromEntries(options.map((o) => [o.id, o.default]));
+    try {
+      const saved = JSON.parse(localStorage.getItem(storeKey));
+      if (Array.isArray(saved?.names) && saved.names.length >= game.minPlayers) names = saved.names;
+      for (const o of options) if (o.choices.some((c) => c.value === saved?.opts?.[o.id])) opts[o.id] = saved.opts[o.id];
+    } catch {}
+
+    let room = null;
+    let ctx = null;
+    let holder = null; // whose cards are showing, where anyone may act
+    const alerts = [];
+    const esc = PB.esc;
+    const nm = (id) => room.players.find((p) => p.id === id)?.name ?? '?';
+    const actorId = () => local.actor(room, holder);
+
+    PB.passAndPlay = true;
+    PB.send = (type, data) => {
+      const p = room.players.find((x) => x.id === actorId());
+      room.hostId = p.id; // whoever holds the phone can do the host's jobs (like flipping)
+      game.handle(room, p, { type, ...data }, ctx);
+      render();
+    };
+    PB.redraw = () => render();
+    document.title = `${game.name} · Boolers`;
+
+    // ---------- Drink alerts (one at a time, naming who drinks) ----------
+
+    function showAlert() {
+      if (!$alert.hidden || !alerts.length) return;
+      const a = alerts.shift();
+      $alert.innerHTML = `<div class="who">${esc(a.who)}</div><div class="big">🍺 ${esc(a.title)}</div><div>${esc(a.reason)}</div><small>tap to dismiss</small>`;
+      $alert.hidden = false;
+      navigator.vibrate?.([200, 100, 200]);
+    }
+    $alert.onclick = () => { $alert.hidden = true; showAlert(); };
+
+    // ---------- Setup ----------
+
+    function renderSetup(error = '') {
+      if (room) ctx.clearTimer(room);
+      room = null;
+      $app.innerHTML = `
+        <h1><span class="logo-emoji">🍻</span> Bool<span>ers</span> <span class="logo-emoji">🎲</span></h1>
+        <p class="tagline">${esc(game.name)} · pass and play</p>
+        <a class="home-link" href="/">← Back to Boolers</a>
+        <div class="card">
+          <h2>${esc(game.name)}</h2>
+          <p class="muted">${esc(game.description)}</p>
+          ${options.map((o) => `
+            <div class="option">
+              <span class="muted">${esc(o.label)}</span>
+              <div class="segmented">${o.choices.map((c) => `
+                <button class="${c.value === opts[o.id] ? 'selected' : ''}" data-opt="${esc(o.id)}" data-val='${esc(JSON.stringify(c.value))}'>${esc(c.label)}</button>`).join('')}</div>
+            </div>`).join('')}
+        </div>
+        <div class="card">
+          <h2>Players, in turn order</h2>
+          ${names.map((n, i) => `
+            <div class="name-row-l">
+              <input id="name-${i}" value="${esc(n)}" maxlength="16" autocomplete="off" aria-label="Player ${i + 1} name">
+              <button class="secondary" data-remove="${i}" aria-label="Remove player" ${names.length <= game.minPlayers ? 'disabled' : ''}>✕</button>
+            </div>`).join('')}
+          <button class="secondary" id="add" ${names.length >= 12 ? 'disabled' : ''}>Add player</button>
+        </div>
+        <p class="error">${esc(error)}</p>
+        <button id="start">Start ${esc(game.name)}</button>`;
+
+      const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
+      document.getElementById('add').onclick = () => { names = [...readNames(), `Player ${names.length + 1}`]; renderSetup(); };
+      $app.querySelectorAll('[data-remove]').forEach((b) => {
+        b.onclick = () => { const n = readNames(); n.splice(Number(b.dataset.remove), 1); names = n; renderSetup(); };
+      });
+      $app.querySelectorAll('[data-opt]').forEach((b) => {
+        b.onclick = () => { names = readNames(); opts[b.dataset.opt] = JSON.parse(b.dataset.val); renderSetup(); };
+      });
+      document.getElementById('start').onclick = () => {
+        const n = readNames();
+        if (n.some((x) => !x)) return renderSetup('Every player needs a name.');
+        if (new Set(n.map((x) => x.toLowerCase())).size !== n.length) return renderSetup('Each name must be different.');
+        names = n;
+        try { localStorage.setItem(storeKey, JSON.stringify({ names, opts })); } catch {}
+        startGame();
+      };
+    }
+
+    function startGame() {
+      room = {
+        code: 'LOCAL',
+        hostId: 'p0',
+        players: names.map((name, i) => ({ id: `p${i}`, name, drinks: 0, connected: true })),
+        feed: [],
+        game: { type: gameId },
+        timer: null,
+        deadline: null,
+      };
+      ctx = createContext({
+        emit: (r, playerId, event, data) => {
+          if (event !== 'drink') return;
+          alerts.push({ who: nm(playerId), title: data.title || `DRINK ${data.sips} SIP${data.sips === 1 ? '' : 'S'}`, reason: data.reason || '' });
+          showAlert();
+        },
+        broadcast: () => render(),
+      });
+      holder = null;
+      game.start(room, ctx, { ...opts, ...local.locked });
+      render();
+    }
+
+    // ---------- Game ----------
+
+    function holderBar() {
+      if (!local.switchable?.(room)) return '';
+      const current = actorId();
+      return `<div class="holder"><span>Whose cards?</span>${room.players.map((p) => `
+        <button class="${p.id === current ? 'selected' : ''} ${local.hint?.(room, p.id) ? 'hint' : ''}" data-holder="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
+    }
+
+    function render() {
+      if (!room) return;
+      const me = actorId();
+      const player = room.players.find((p) => p.id === me);
+      PB.state = {
+        code: room.code,
+        me,
+        hostId: me, // whoever holds the phone can do the host's jobs (flipping, moving on)
+        isHost: true,
+        players: room.players.map(({ id, name, connected, drinks }) => ({ id, name, connected, drinks })),
+        phase: room.game.phase,
+        gameType: gameId,
+        game: game.view(room, player, ctx),
+        feed: room.feed.slice(-8),
+        deadline: room.deadline,
+        serverNow: Date.now(),
+      };
+      const screens = PB.screens[gameId];
+      if (!screens) return;
+      const html = screens.render(PB.state);
+      if (html === null) return;
+      $app.innerHTML = `
+        ${holderBar()}
+        ${html}
+        <div class="spacer"></div>
+        <button class="link" data-cmd="setup">Back to setup</button>`;
+      screens.afterRender?.(PB.state);
+      updateTimer();
+    }
+
+    $app.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-act], [data-cmd], [data-holder]');
+      if (!el || el.disabled) return;
+      if (el.dataset.holder) { holder = el.dataset.holder; return render(); }
+      if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
+      const { act, cmd, confirm: _, ...data } = el.dataset;
+      if (act) PB.act(act, data);
+      else if (cmd === 'setup' || cmd === 'endGame') renderSetup();
+    });
+
+    function updateTimer() {
+      const el = document.getElementById('timer');
+      if (el && room?.deadline) el.textContent = `⏱ ${Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000))}s`;
+    }
+    setInterval(updateTimer, 250);
+
+    // Load the game's screens, then show setup.
+    const script = document.createElement('script');
+    script.src = `/games/${encodeURIComponent(gameId)}.js`;
+    script.onload = () => renderSetup();
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>

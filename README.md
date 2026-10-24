@@ -12,7 +12,7 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Kings Cup | ✅ Playable |
 
 ## Pass and play
-Slevens and Mad Max can also be played on one phone passed around: **Pass and play** on the home screen (`/play/slevens.html`, `/play/madmax.html`). These pages run the same rules code as multiplayer, served as one browser script from `/shared/bundle.js` (built by `lib/bundle.js`), so the games never drift apart. `node tools/build-demos.js <dir>` turns them into stand-alone demo pages.
+Every game except Most Likely To can also be played on one phone passed around: **Pass and play** on the home screen. Slevens and Mad Max have their own pages (`/play/slevens.html`, `/play/madmax.html`); other games run in `/play/local.html?game=<id>`, which shows each game's normal screens for whoever has to act next. These pages run the same rules code as multiplayer, served as one browser script from `/shared/bundle.js` (built by `lib/bundle.js`), so the games never drift apart. `node tools/build-demos.js <dir>` turns them into stand-alone demo pages.
 
 ## Full screen
 Where the browser allows it (Android), the app goes full screen when you create, join or start a game, with a ⛶ button to get back to it. iPhone Safari doesn't let websites go full screen.
