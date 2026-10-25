@@ -137,6 +137,41 @@
     <path d="M104 22 L130 26" stroke="#e8d7a8" stroke-width="1"/><path d="M128 18 L176 18 Q186 18 184 30 L130 32 Q124 26 128 18Z" fill="#c0392b"/><path d="M124 36 L188 36 Q194 34 194 30" stroke="#e8c15a" stroke-width="2.5" fill="none"/>
     <circle cx="152" cy="13" r="6" fill="#f2d2b6"/><path d="M144 10 L152 0 L160 10Z" fill="#c0392b"/><circle cx="160" cy="11" r="1.8" fill="#fff"/><path d="M146 16 Q152 24 158 16Z" fill="#fff"/>
     <rect x="140" y="18" width="24" height="10" rx="4" fill="#c0392b"/><circle cx="102" cy="20" r="2.4" fill="#ff3b3b"/></g></svg>`;
+  // Club: hands in the air. Castle: a banner, a dragon, a knight. Jazz: the mic stand.
+  const HANDS = `<svg viewBox="0 0 400 80" width="1em" height="0.2em"><g fill="#07050d">${[20, 70, 120, 175, 230, 280, 330, 380].map((x, i) => `<g class="sc-hand" style="animation-delay:-${(i * 0.17).toFixed(2)}s"><rect x="${x - 6}" y="${20 + (i % 3) * 8}" width="12" height="70" rx="6"/><ellipse cx="${x}" cy="${18 + (i % 3) * 8}" rx="9" ry="11"/></g>`).join('')}</g></svg>`;
+  const BANNER = (color) => `<svg viewBox="0 0 50 140" width="0.36em" height="1em"><rect x="0" y="0" width="50" height="6" fill="#5a3d1e"/>
+    <path class="sc-cloth" d="M4 6 H46 V120 L25 104 L4 120Z" fill="${color}"/><path d="M14 40 L25 26 L36 40 L25 70Z" fill="#e8c15a"/></svg>`;
+  const DRAGON = `<svg viewBox="0 0 220 90" width="1em" height="0.41em"><g fill="#5f8a3c" stroke="#2f4a1c" stroke-width="1.5">
+    <path d="M10 52 Q40 40 70 48 L140 44 Q170 40 188 30 L200 34 Q196 44 180 50 Q150 62 120 60 L70 62 Q40 66 10 52Z"/>
+    <path class="sc-dwing" d="M80 48 Q90 6 130 2 Q118 20 124 30 Q140 22 150 26 Q134 36 128 48Z"/>
+    <path d="M188 30 L196 20 L198 30Z"/><path d="M14 52 L0 46 L6 56Z"/></g><circle cx="192" cy="33" r="1.8" fill="#ffd23f"/>
+    <path class="sc-fire" d="M202 36 Q214 30 220 36 Q212 40 220 46 Q208 44 202 40Z" fill="#ff8a1a"/></svg>`;
+  const KNIGHT = `<svg viewBox="0 0 50 90" width="0.56em" height="1em"><g fill="#9aa4b0" stroke="#5b6470" stroke-width="1.2">
+    <rect x="14" y="4" width="22" height="22" rx="8"/><rect x="12" y="26" width="26" height="30" rx="5"/>
+    <g class="sc-legs-f"><rect x="14" y="54" width="9" height="34" rx="3"/></g><g class="sc-legs-b"><rect x="27" y="54" width="9" height="34" rx="3"/></g>
+    <path d="M38 30 L48 2" stroke="#c9ccd1" stroke-width="3"/><path d="M6 30 H16 V48 Q11 54 6 48Z" fill="#c0392b"/></g>
+    <rect x="18" y="12" width="14" height="3" fill="#20262d"/><path d="M25 4 Q30 -6 38 0" stroke="#c0392b" stroke-width="3" fill="none"/></svg>`;
+  const MIC = `<svg viewBox="0 0 40 160" width="0.25em" height="1em"><g fill="#15121a"><rect x="18" y="30" width="4" height="120"/><ellipse cx="20" cy="154" rx="16" ry="5"/>
+    <rect x="13" y="6" width="14" height="26" rx="7" fill="#9aa4b0"/><path d="M13 16 H27 M13 21 H27" stroke="#5b6470"/></g></svg>`;
+  // Tiki: a torch, a parrot, a coconut. Speakeasy: the bulb. Saloon: the poster, a hawk, a hat.
+  // Beer hall: a stein.
+  const TORCH = `<svg viewBox="0 0 30 200" width="0.15em" height="1em"><rect x="12" y="40" width="6" height="160" fill="#5a3d1e"/>
+    <path d="M6 30 H24 L20 48 H10Z" fill="#8a6a3a"/><path d="M8 36 H22 M9 42 H21" stroke="#5a3d1e"/></svg>`;
+  const PARROT = `<svg viewBox="0 0 80 50" width="1em" height="0.62em"><path d="M10 30 Q30 18 52 22 L66 18 Q74 20 70 28 L56 32 Q40 40 20 38Z" fill="#e8352f"/>
+    <path class="sc-wing" d="M30 26 Q38 0 56 4 Q46 16 48 26Z" fill="#2f7fe0"/><path d="M10 30 L0 40 L16 36Z" fill="#ffd23f"/>
+    <path d="M70 22 Q80 24 74 30 Z" fill="#ffd23f"/><circle cx="64" cy="22" r="1.8" fill="#111"/></svg>`;
+  const COCONUT = `<svg viewBox="0 0 30 30" width="1em" height="1em"><circle cx="15" cy="15" r="13" fill="#6b4524"/><circle cx="11" cy="11" r="1.8" fill="#3b2512"/><circle cx="17" cy="10" r="1.8" fill="#3b2512"/><circle cx="14" cy="16" r="1.8" fill="#3b2512"/></svg>`;
+  const BULB = `<svg viewBox="0 0 30 90" width="0.33em" height="1em"><path d="M15 0 V52" stroke="#2a2420" stroke-width="1.5"/><rect x="11" y="50" width="8" height="8" fill="#7a6a4a"/>
+    <path d="M15 58 Q2 66 6 78 Q15 92 24 78 Q28 66 15 58Z" fill="rgba(255,206,120,0.92)"/><path d="M12 66 Q15 74 18 66" stroke="#ff9a2a" stroke-width="1.2" fill="none"/></svg>`;
+  const POSTER = `<svg viewBox="0 0 60 80" width="0.75em" height="1em"><rect x="2" y="2" width="56" height="76" fill="#e7d3a6" stroke="#a8875a" stroke-width="2"/>
+    <text x="30" y="18" font-size="11" font-family="serif" font-weight="700" text-anchor="middle" fill="#3b2512">WANTED</text>
+    <circle cx="30" cy="40" r="12" fill="#a8875a"/><path d="M18 34 H42 L38 28 H22Z" fill="#3b2512"/>
+    <text x="30" y="70" font-size="8" font-family="serif" text-anchor="middle" fill="#3b2512">$500</text></svg>`;
+  const HAWK = `<svg viewBox="0 0 80 30" width="1em" height="0.375em"><path class="sc-wing" d="M2 14 Q20 2 40 16 Q60 2 78 14 Q60 10 46 20 L40 26 L34 20 Q20 10 2 14Z" fill="#3b2512"/></svg>`;
+  const HAT = `<svg viewBox="0 0 70 34" width="1em" height="0.49em"><path d="M2 26 Q35 36 68 26 Q60 22 52 24 L48 6 Q35 0 22 6 L18 24 Q10 22 2 26Z" fill="#7a5230"/><rect x="18" y="18" width="32" height="5" fill="#3b2512"/></svg>`;
+  const STEIN = `<svg viewBox="0 0 50 60" width="0.83em" height="1em"><rect x="6" y="14" width="30" height="42" rx="4" fill="rgba(255,206,90,0.9)" stroke="#8a6a3a" stroke-width="2"/>
+    <path d="M36 22 H44 Q48 22 48 28 V40 Q48 46 42 46 H36" fill="none" stroke="#8a6a3a" stroke-width="3"/>
+    <path d="M4 14 Q8 2 20 6 Q28 0 36 8 Q42 10 38 16 H4Z" fill="#fffaf0"/></svg>`;
   const TUMBLEWEED = `<svg viewBox="0 0 40 40" width="1em" height="1em"><g fill="none" stroke="#a07b45" stroke-width="2">
     <circle cx="20" cy="20" r="17"/><path d="M5 15 Q20 30 35 12 M8 28 Q22 8 33 30 M14 5 Q12 22 26 36 M30 6 Q16 18 10 34"/></g></svg>`;
 
@@ -317,8 +352,19 @@
             }, 14000).classList.add('sc-spot');
           }
         },
+        // Lasers sweeping the room from the corners.
+        () => {
+          for (let i = 0; i < 6; i++) {
+            const left = i % 2 === 0;
+            el('', { [left ? 'left' : 'right']: '0', bottom: '0', background: pick(['#ff2bd6', '#29f0ff', '#3dff7a']), animationDelay: `${i * 0.25}s`, '--from': `${left ? 12 : -12}deg`, '--to': `${left ? 68 : -68}deg` }, 6000).classList.add('sc-laser', left ? 'l' : 'r');
+          }
+        },
+        // The strobe: three quick flashes.
+        () => el('', { inset: '0' }, 1500).classList.add('sc-strobe'),
+        // The dance floor: hands going up along the bottom.
+        () => el(HANDS, { left: '0', bottom: '-2vh', fontSize: '100vw' }, 7000).classList.add('sc-hands', 'blk'),
       ],
-      gap: [20, 40],
+      gap: [16, 32],
     },
     // Snow coming down, and Santa's sleigh crossing the sky with his bells.
     christmas: {
@@ -344,7 +390,17 @@
         later(() => window.Ambience?.cue('thunderFar'), rand(1500, 3500));
       }],
     },
-    saloon: { moments: [() => drift(TUMBLEWEED, { from: [-12, rand(70, 85)], to: [112, rand(70, 85)], dur: rand(7, 10), size: rand(50, 80), spin: 720, opacity: 0.85 })] },
+    // A wanted poster on the wall; a tumbleweed, a hawk circling overhead, a hat blowing past.
+    saloon: {
+      decor() {
+        el(POSTER, { left: '2vw', top: '14vh', fontSize: '120px' }).classList.add('sc-poster');
+      },
+      moments: [
+        () => drift(TUMBLEWEED, { from: [-12, rand(70, 85)], to: [112, rand(70, 85)], dur: rand(7, 10), size: rand(50, 80), spin: 720, opacity: 0.85 }),
+        () => { el(HAWK, { left: '14vw', top: '4vh', fontSize: '70px' }, 12000).classList.add('sc-hawk'); later(() => window.Ambience?.cue('hawk'), 1500); },
+        () => drift(HAT, { from: [-10, 88], to: [110, 80], dur: rand(5, 7), size: 60, spin: 540 }),
+      ],
+    },
     // A ringed planet turning slowly in the window; shooting stars, a flying saucer, a lost
     // astronaut tumbling past, a comet.
     space: {
@@ -381,16 +437,81 @@
         },
       ],
     },
+    // Banners in the great hall, torches on the walls; bats, a dragon going by breathing fire, a
+    // knight clanking past.
     castle: {
       decor() {
         for (const left of ['3vw', 'calc(97vw - 26px)']) el('<div class="sc-flame"></div>', { left, top: '18vh' }).classList.add('sc-torch');
+        el(BANNER('#8e1b1b'), { left: '8vw', top: '0', fontSize: '150px' }).classList.add('sc-banner');
+        el(BANNER('#1b3f8e'), { left: '26vw', top: '0', fontSize: '120px', animationDelay: '-2s' }).classList.add('sc-banner');
       },
-      moments: [() => embers(5, () => [pick([5, 95]) + rand(-1, 1), 20]), bats],
+      moments: [
+        () => embers(5, () => [pick([5, 95]) + rand(-1, 1), 20]),
+        bats,
+        () => {
+          const right = Math.random() < 0.5;
+          drift(DRAGON, { from: [right ? -30 : 115, rand(2, 6)], to: [right ? 115 : -30, rand(1, 8)], dur: rand(9, 12), size: rand(240, 300) }).classList.add('sc-dragon', 'blk', right ? 'sc-face-r' : 'sc-face-l');
+          later(() => window.Ambience?.cue('roar'), 2500);
+        },
+        () => {
+          const right = Math.random() < 0.5;
+          drift(KNIGHT, { from: [right ? -8 : 104, 84], to: [right ? 104 : -8, 84], dur: rand(16, 20), size: 110 }).classList.add('sc-knight', right ? 'sc-face-r' : 'sc-face-l');
+          window.Ambience?.cue('clank');
+        },
+      ],
     },
-    jazz: { moments: [() => smoke()] },
-    speakeasy: { moments: [() => smoke(), () => bubbles([])] },
-    beerhall: { moments: [() => bubbles(['beer'])] },
-    casino: { moments: [() => fall(['🪙', '💰', '🎲', '♠️', '♥️'], 7, 0.6)] },
+    // The singer's mic stand on the stage; smoke, a spotlight sweeping round, gold notes rising.
+    jazz: {
+      decor() {
+        el(MIC, { left: '4vw', bottom: '6vh', fontSize: '220px' }).classList.add('sc-mic');
+      },
+      moments: [
+        () => smoke(),
+        () => el('', { left: '20vw', top: '-10vh' }, 8000).classList.add('sc-spotlight'),
+        () => shower(7, 0.7, () => drift(pick(['♪', '♫', '♬']), { from: [rand(2, 12), 80], to: [rand(2, 40), rand(10, 30)], dur: rand(6, 9), size: rand(22, 34), spin: rand(-30, 30), opacity: 0.7, extra: { color: '#e3b23c' } })),
+      ],
+    },
+    // A bare bulb swinging over the room; smoke, bubbles, and the cops' lights going past outside
+    // (everyone goes quiet).
+    speakeasy: {
+      decor() {
+        el(BULB, { left: '10vw', top: '-2vh', fontSize: '150px' }).classList.add('sc-bulb');
+      },
+      moments: [
+        () => smoke(),
+        () => bubbles([]),
+        () => { el('', { inset: '0' }, 6000).classList.add('sc-police'); window.Ambience?.cue('siren'); },
+      ],
+    },
+    // Bunting across the hall; bubbles, and two steins clinking: Prost!
+    beerhall: {
+      decor() {
+        el('', { left: '0', top: '0', width: '100vw', height: '10vh' }).classList.add('sc-bunting');
+      },
+      moments: [
+        () => bubbles(['beer']),
+        () => {
+          el(STEIN, { left: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'l');
+          el(STEIN, { right: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'r');
+          later(() => window.Ambience?.cue('clink'), 1100);
+        },
+      ],
+    },
+    // Marquee lights chasing round the top; coins and cards falling, and a slot machine hitting
+    // 7-7-7.
+    casino: {
+      decor() {
+        el('', { left: '0', top: '0', width: '100vw', height: '5vh' }).classList.add('sc-marquee');
+      },
+      moments: [
+        () => fall(['🪙', '💰', '🎲', '♠️', '♥️'], 7, 0.6),
+        () => {
+          const reels = el('<div class="sc-reel"><b>🍒🔔🍋⭐7️⃣</b></div><div class="sc-reel"><b>🍋⭐🍒🔔7️⃣</b></div><div class="sc-reel"><b>🔔🍒⭐🍋7️⃣</b></div>', { left: '2vw', top: '76vh' }, 7000);
+          reels.classList.add('sc-slots');
+          later(() => { reels.classList.add('win'); window.Ambience?.cue('jackpot'); }, 3200);
+        },
+      ],
+    },
     // On deck at sunset: the Jolly Roger flying, a lantern swinging, and out at sea gulls, ships,
     // dolphins, a whale, spray over the rail, and now and then the kraken.
     pirate: {
@@ -436,8 +557,26 @@
         },
       ],
     },
+    // Tiki torches burning; fireflies, a parrot flying over, a coconut dropping.
     tiki: {
-      moments: [() => {
+      decor() {
+        for (const left of ['2vw', '9vw']) {
+          el(TORCH, { left, bottom: '0', fontSize: '220px' }).classList.add('sc-tikitorch');
+          el('<div class="sc-flame"></div>', { left: `calc(${left} + 6px)`, bottom: 'calc(220px - 18px)' }).classList.add('sc-torch');
+        }
+      },
+      moments: [
+        () => {
+          const right = Math.random() < 0.5;
+          drift(PARROT, { from: [right ? -10 : 110, rand(6, 14)], to: [right ? 110 : -10, rand(4, 18)], dur: rand(7, 9), size: rand(60, 80) }).classList.add(right ? 'sc-face-r' : 'sc-face-l');
+          later(() => window.Ambience?.cue('squawk'), 1200);
+        },
+        () => {
+          const x = rand(3, 14);
+          drift(COCONUT, { from: [x, -6], to: [x, 92], dur: 1.1, size: 36, spin: 180, extra: { animationTimingFunction: 'ease-in' } });
+          later(() => window.Ambience?.cue('thud'), 1100);
+        },
+        () => {
         for (let i = 0; i < 12; i++) {
           el('', { left: `${rand(0, 100)}vw`, top: `${rand(20, 95)}vh`, animation: `sc-fly ${rand(4, 7)}s ease-in-out ${rand(0, 3)}s 2 alternate`, '--sx': `${rand(-12, 12)}vw`, '--sy': `${rand(-10, 10)}vh` }, 18000).classList.add('sc-firefly');
         }
