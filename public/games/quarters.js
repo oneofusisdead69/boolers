@@ -187,6 +187,7 @@
   }
 
   let lastKey = '';
+  let hadPad = false; // the pad was up last time round
   const keyOf = (s) => JSON.stringify([s.phase, s.tv, PB.landscape(), { ...s.game, aim: null }, s.players.map((p) => [p.id, p.connected, p.drinks])]);
 
   PB.register('quarters', {
@@ -215,6 +216,10 @@
     },
     afterRender(s) {
       setupPad();
+      // Your go: back to the top, so the glass and the pad are all on screen.
+      const padNow = !!document.getElementById('qt-pad');
+      if (padNow && !hadPad) window.scrollTo({ top: 0 });
+      hadPad = padNow;
       // Yours went in: a little buzz as it drops.
       const L = s.game.last;
       if (L && L.n !== shown && L.hit && L.by === s.me && !PB.isTV) setTimeout(() => PB.buzz('hit'), 900);
