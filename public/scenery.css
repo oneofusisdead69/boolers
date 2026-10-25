@@ -1,0 +1,409 @@
+/* Moving scenery for room styles (public/scenery.js). Only the TV shows it, so only the TV loads
+   this: on its own it's most of a phone's stylesheet. */
+#scenery { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+#scenery-front { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
+.sc { position: absolute; line-height: 1; will-change: transform; }
+@keyframes sc-drift { to { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); } }
+/* Turned round with `scale` (not `transform`), so a drawing's own wobble or bob doesn't undo it. */
+.sc-face-l svg { scale: -1 1; }
+.sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
+@keyframes sc-flap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
+.sc-fog { background: radial-gradient(ellipse at 50% 60%, rgba(190, 160, 220, 0.22), transparent 70%); filter: blur(8px); }
+@keyframes sc-fog { from { transform: translateX(-6vw); } to { transform: translateX(6vw); } }
+/* The disco ball drops from the ceiling, bounces, and spins. */
+.sc-disco { width: 80px; animation: sc-drop 1.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes sc-drop { from { transform: translateY(-160px); } to { transform: translateY(0); } }
+.sc-ball-string { width: 2px; height: 70px; margin: 0 auto; background: #888; }
+.sc-ball {
+  width: 80px; height: 80px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), transparent 25%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    radial-gradient(circle at 50% 50%, #dfe6f0, #7a8496 70%, #3c4250);
+  background-size: auto, 200% 100%, auto, auto;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.35);
+  animation: sc-ball-spin 3s linear infinite;
+}
+@keyframes sc-ball-spin { to { background-position: 0 0, -80px 0, 0 0, 0 0; } }
+.sc-spot { width: 14px; height: 14px; border-radius: 50%; filter: blur(2px); opacity: 0.55; box-shadow: 0 0 12px currentColor; }
+@keyframes sc-spot { to { transform: translate(var(--sx), var(--sy)); } }
+.sc-star { width: 120px; height: 2px; background: linear-gradient(90deg, transparent, #fff); border-radius: 2px; transform-origin: right center; transform: rotate(-25deg); }
+@keyframes sc-shoot { from { opacity: 0; translate: 0 0; } 15% { opacity: 1; } to { opacity: 0; translate: 220px 100px; } }
+.sc-ember { width: 4px; height: 4px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 6px #ff8a1a; }
+.sc-smoke { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, rgba(220, 210, 200, 0.12), transparent 70%); filter: blur(6px); }
+.sc-bubble { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.45); }
+.sc-bubble.beer { border-color: rgba(255, 210, 90, 0.6); background: rgba(255, 210, 90, 0.15); }
+.sc-firefly { width: 5px; height: 5px; border-radius: 50%; background: #ffe58a; box-shadow: 0 0 10px #ffd23f; animation-name: sc-fly; }
+@keyframes sc-fly { 0% { transform: translate(0, 0); opacity: 0.2; } 50% { opacity: 1; } 100% { transform: translate(var(--sx), var(--sy)); opacity: 0.3; } }
+.sc-torch { width: 26px; height: 40px; }
+.sc-flame { width: 26px; height: 40px; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff3b0, #ffb347 40%, #ff5a1a 70%, transparent 72%); filter: blur(1px); animation: sc-flicker 0.15s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+@keyframes sc-flicker { from { transform: scale(1, 1) skewX(-2deg); opacity: 0.85; } to { transform: scale(0.92, 1.08) skewX(3deg); opacity: 1; } }
+.sc-neon { width: 50vw; height: 40vh; background: radial-gradient(ellipse, rgba(255, 70, 40, 0.35), transparent 65%); animation: sc-neon 7s steps(1) infinite; }
+@keyframes sc-neon { 0%, 70%, 74%, 78%, 100% { opacity: 1; } 72%, 76% { opacity: 0.25; } }
+/* Halloween extras */
+.sc-ghost svg { animation: sc-ghost 10s ease-in-out forwards; }
+@keyframes sc-ghost { 0% { opacity: 0; transform: translateX(0); } 15% { opacity: 0.85; } 30% { transform: translateX(14px); } 50% { transform: translateX(-12px); } 70% { opacity: 0.7; transform: translateX(10px); } 100% { opacity: 0; transform: translateX(0); } }
+.sc-witch { filter: drop-shadow(0 0 6px rgba(255, 220, 150, 0.25)); }
+.sc-witch svg { animation: sc-bob 1.4s ease-in-out infinite alternate; }
+@keyframes sc-bob { from { transform: translateY(-6px) rotate(-3deg); } to { transform: translateY(6px) rotate(3deg); } }
+.sc-face-l.sc-witch svg { scale: -1 1; }
+.sc-spider { display: flex; flex-direction: column; align-items: center; animation: sc-dangle 9s ease-in-out forwards; transform-origin: 50% 0; }
+.sc-thread { width: 1px; height: 45vh; background: linear-gradient(rgba(220, 210, 235, 0.15), rgba(220, 210, 235, 0.6)); }
+@keyframes sc-dangle { 0% { transform: translateY(-100%); } 25% { transform: translateY(0) rotate(0); } 35% { transform: translateY(-2vh) rotate(4deg); } 45% { transform: translateY(0) rotate(-4deg); } 60% { transform: translateY(-1vh) rotate(2deg); } 75% { transform: translateY(0) rotate(0); } 100% { transform: translateY(-100%); } }
+.sc-legs { animation: sc-wiggle 0.4s ease-in-out infinite alternate; transform-origin: 20px 18px; }
+@keyframes sc-wiggle { to { transform: scaleY(0.85); } }
+.sc-eyes { opacity: 0; animation: sc-eyes 4s ease-in-out forwards; filter: drop-shadow(0 0 6px #ffb300); }
+@keyframes sc-eyes { 0% { opacity: 0; } 15%, 85% { opacity: 0.9; } 100% { opacity: 0; } }
+.sc-blink { transform-box: fill-box; transform-origin: center; animation: sc-blink 4s linear forwards; }
+@keyframes sc-blink { 0%, 38%, 46%, 70%, 76%, 100% { transform: scaleY(1); } 42%, 73% { transform: scaleY(0.1); } }
+.sc-lightning { position: absolute; background: rgba(230, 225, 255, 0.55); animation: sc-flash 1.3s ease-out forwards; }
+@keyframes sc-flash { 0% { opacity: 0; } 5% { opacity: 1; } 12% { opacity: 0.1; } 18% { opacity: 0.8; } 100% { opacity: 0; } }
+.sc-pumpkin { filter: drop-shadow(0 0 14px rgba(255, 140, 30, 0.6)); opacity: 0.9; }
+.sc-candle { animation: sc-candle 0.18s ease-in-out infinite alternate; }
+.sc-pumpkin.late .sc-candle { animation-duration: 0.23s; }
+@keyframes sc-candle { from { opacity: 0.75; } to { opacity: 1; } }
+/* Clouds over the moon (Halloween), which part now and then. */
+.sc-clouds { width: 0; height: 0; z-index: 1; }
+.sc-cloud { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #3a3346 0%, #251f30 55%, rgba(26, 20, 34, 0) 72%); transition: transform 3.5s ease-in-out, opacity 3.5s; animation: sc-cloud-drift 14s ease-in-out infinite alternate; }
+.sc-cloud.a { width: 26vw; height: 11vh; left: -22vw; top: -7vh; }
+.sc-cloud.b { width: 24vw; height: 10vh; left: -4vw; top: -2vh; animation-delay: -5s; }
+.sc-cloud.c { width: 18vw; height: 8vh; left: -12vw; top: 2vh; animation-delay: -9s; }
+@keyframes sc-cloud-drift { from { translate: -1.5vw 0; } to { translate: 1.5vw 0; } }
+.sc-clouds.parted .sc-cloud.a { transform: translateX(-16vw); opacity: 0.4; }
+.sc-clouds.parted .sc-cloud.b { transform: translateX(16vw); opacity: 0.4; }
+.sc-clouds.parted .sc-cloud.c { transform: translateY(10vh); opacity: 0.2; }
+/* The headless horseman */
+.sc-horseman { filter: drop-shadow(0 0 10px rgba(255, 138, 26, 0.35)); }
+.sc-face-l.sc-horseman svg { scale: -1 1; }
+.sc-horseman svg { overflow: visible; animation: sc-bob 0.42s ease-in-out infinite alternate; }
+.sc-legs-f, .sc-legs-b { transform-box: fill-box; transform-origin: 50% 0; animation: sc-stride 0.42s ease-in-out infinite alternate; }
+.sc-legs-b { animation-delay: -0.21s; }
+@keyframes sc-stride { from { transform: rotate(18deg); } to { transform: rotate(-18deg); } }
+.sc-flames { transform-box: fill-box; transform-origin: 50% 100%; animation: sc-flicker 0.12s ease-in-out infinite alternate; }
+
+/* Club: the disco ball comes down, spins for a while, and goes back up. */
+.sc-disco { animation: sc-drop 1.6s cubic-bezier(0.3, 1.4, 0.5, 1) both, sc-rise 1.2s ease-in 12.6s forwards; }
+@keyframes sc-rise { to { transform: translateY(-180px); } }
+@keyframes sc-fade-out { to { opacity: 0; } }
+/* Lighthouse: the beam from the lamp behind you, sweeping out over the sea. */
+.sc-beam {
+  width: 120vw; height: 60vh; margin-left: -60vw; transform-origin: 50% 100%;
+  background: radial-gradient(ellipse 30% 100% at 50% 100%, rgba(255, 244, 200, 0.5), rgba(255, 244, 200, 0.12) 60%, transparent 75%);
+  clip-path: polygon(46% 100%, 30% 0, 70% 0, 54% 100%);
+  animation: sc-sweep 7s ease-in-out forwards;
+}
+@keyframes sc-sweep { 0% { transform: rotate(-70deg); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: rotate(70deg); opacity: 0; } }
+/* A wave breaking: spray bursting up and falling away. */
+.sc-crash { width: 0; height: 0; }
+.sc-crash i { position: absolute; width: 14vw; height: 14vw; max-width: 160px; max-height: 160px; margin-left: -7vw; border-radius: 50%;
+  background: radial-gradient(circle, rgba(235, 245, 255, 0.85), rgba(200, 225, 245, 0.35) 45%, transparent 70%); filter: blur(2px);
+  animation: sc-spray 2.8s ease-out forwards; }
+.sc-crash i:nth-child(2) { --x: -6vw; animation-delay: 0.1s; } .sc-crash i:nth-child(3) { --x: 6vw; animation-delay: 0.15s; }
+.sc-crash i:nth-child(4) { --x: -12vw; animation-delay: 0.25s; } .sc-crash i:nth-child(5) { --x: 11vw; animation-delay: 0.3s; }
+@keyframes sc-spray { 0% { transform: translate(var(--x, 0), 0) scale(0.3); opacity: 0; } 20% { opacity: 1; } 45% { transform: translate(var(--x, 0), -22vh) scale(1.1); } 100% { transform: translate(calc(var(--x, 0) * 1.4), -8vh) scale(1.6); opacity: 0; } }
+/* Ships */
+.sc-pitch svg { animation: sc-bob 2.2s ease-in-out infinite alternate; }
+.sc-ghostship { filter: drop-shadow(0 0 10px rgba(120, 255, 200, 0.7)); animation-name: sc-drift, sc-ghostfade; animation-duration: inherit, 20s; }
+.sc-ghostship svg { animation: sc-ghostship 20s ease-in-out forwards; }
+@keyframes sc-ghostship { 0% { opacity: 0; } 15% { opacity: 0.9; } 50% { opacity: 0.5; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
+/* The mermaid: up out of the water, a wave, back down, then her tail flicks up and away. */
+.sc-mermaid { width: 1em; height: 1.2em; overflow: hidden; translate: 0 -1.2em; }
+.sc-mer-in { animation: sc-mer 4.6s ease-in-out forwards; transform: translateY(110%); }
+@keyframes sc-mer { 0% { transform: translateY(110%); } 18% { transform: translateY(8%); } 80% { transform: translateY(8%); } 100% { transform: translateY(110%); } }
+.sc-wave-arm { transform-origin: 40px 46px; animation: sc-wave 0.5s ease-in-out 1s 6 alternate; }
+@keyframes sc-wave { to { transform: rotate(-25deg); } }
+.sc-mer-tail { position: absolute; left: 0; top: 0; transform: translateY(110%); animation: sc-tail 1.6s ease-in-out 4.8s forwards; }
+@keyframes sc-tail { 0% { transform: translateY(110%) rotate(0); } 45% { transform: translateY(20%) rotate(-10deg); } 100% { transform: translateY(110%) rotate(15deg); } }
+/* Rain on the glass (the storm). */
+.sc-rain { background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(200, 220, 240, 0.18) 22px 23px, transparent 23px 47px); background-size: 200px 200px; animation: sc-rain 0.5s linear infinite; }
+@keyframes sc-rain { to { background-position: -40px 200px; } }
+@keyframes sc-fogbank { 0% { transform: translateX(0); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }
+/* St Patrick's in the rain: lightning far off, flickering in the windows. */
+/* The pirate ship: the flag streaming, the lantern swinging, the kraken, a whale. */
+.sc-jolly .sc-flag { transform-origin: 3px 20px; animation: sc-flagwave 1.4s ease-in-out infinite alternate; }
+@keyframes sc-flagwave { from { transform: skewY(-3deg) scaleX(0.96); } to { transform: skewY(3deg) scaleX(1); } }
+.sc-lantern { transform-origin: 50% 0; animation: sc-swing 3.2s ease-in-out infinite alternate; filter: drop-shadow(0 0 14px rgba(255, 190, 90, 0.8)); }
+@keyframes sc-swing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.sc-tentacle { transform-origin: 50% 100%; opacity: 0; animation: sc-tentacle 7.5s ease-in-out forwards; }
+@keyframes sc-tentacle { 0% { opacity: 1; transform: translateY(100%) rotate(0); } 25% { transform: translateY(8%) rotate(-8deg); } 45% { transform: translateY(4%) rotate(9deg); } 65% { transform: translateY(6%) rotate(-5deg); } 100% { opacity: 1; transform: translateY(100%) rotate(4deg); } }
+.sc-spout i { position: absolute; width: 1.8vw; height: 1.8vw; border-radius: 50%; background: rgba(230, 240, 250, 0.8); filter: blur(1px); animation: sc-spout 2.6s ease-out forwards; }
+.sc-spout i:nth-child(2) { --x: -1.2vw; animation-delay: 0.1s; } .sc-spout i:nth-child(3) { --x: 1.2vw; animation-delay: 0.2s; }
+@keyframes sc-spout { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(var(--x, 0), -9vh) scale(1.4); } 100% { transform: translate(calc(var(--x, 0) * 2), -5vh) scale(2); opacity: 0; } }
+.sc-fluke { opacity: 0; transform-origin: 50% 100%; animation: sc-fluke 4s ease-in-out forwards; }
+@keyframes sc-fluke { 0% { opacity: 0; transform: translateY(40%) rotate(-10deg); } 25% { opacity: 1; } 50% { transform: translateY(0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(50%) rotate(12deg); } }
+/* Signs in neon tube: the dive bar's BEER (amber) and the diner's OPEN (red). */
+.sc-sign span { display: block; font: 700 46px/1 "Arial Rounded MT Bold", system-ui, sans-serif; letter-spacing: 0.08em; padding: 6px 14px; border: 3px solid currentColor; border-radius: 14px; }
+.sc-sign.beer { color: #ffb347; text-shadow: 0 0 6px #ff8a1a, 0 0 18px #ff8a1a; filter: drop-shadow(0 0 10px rgba(255, 138, 26, 0.7)); }
+.sc-sign.open { color: #ff4d5e; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); animation: sc-open 6s steps(1) infinite; }
+@keyframes sc-open { 0%, 88%, 92%, 100% { opacity: 1; } 90% { opacity: 0.25; } }
+.sc-board { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.6)); }
+/* A fly buzzing about. */
+.sc-fly { animation: sc-flyabout 9s ease-in-out forwards; }
+@keyframes sc-flyabout { 0% { transform: translate(0, 0); opacity: 0; } 5% { opacity: 1; } 20% { transform: translate(6vw, -3vh); } 35% { transform: translate(2vw, 4vh); } 50% { transform: translate(10vw, 1vh); } 65% { transform: translate(5vw, -4vh); } 80% { transform: translate(14vw, 3vh); } 95% { opacity: 1; } 100% { transform: translate(24vw, -6vh); opacity: 0; } }
+.sc-buzz { animation: sc-flap 0.05s linear infinite alternate; transform-origin: 10px 7px; }
+.sc-mouse svg { animation: sc-bob 0.18s ease-in-out infinite alternate; }
+/* The tavern cat: legs going, tail swishing. */
+.sc-cat .sc-tail { transform-origin: 14px 24px; animation: sc-swish 1.2s ease-in-out infinite alternate; }
+@keyframes sc-swish { from { transform: rotate(-12deg); } to { transform: rotate(10deg); } }
+/* The diner: the fan turning, headlights sweeping past the window. */
+.sc-fan .sc-blades { transform-origin: 0 0; animation: sc-spin 2.4s linear infinite; }
+.sc-fan { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+.sc-headlights { width: 40vw; height: 60vh; background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 245, 210, 0.22), transparent 70%); filter: blur(10px); }
+/* Space: the planet turning slowly, the saucer wobbling with its lights going round, a comet. */
+.sc-planet { animation: sc-planet 30s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px rgba(246, 196, 138, 0.35)); }
+@keyframes sc-planet { from { transform: rotate(-6deg) translateY(0); } to { transform: rotate(4deg) translateY(1.5vh); } }
+.sc-ufo svg { animation: sc-wobble 0.9s ease-in-out infinite alternate; filter: drop-shadow(0 0 12px rgba(160, 230, 255, 0.6)); }
+@keyframes sc-wobble { from { transform: rotate(-5deg) translateY(-3px); } to { transform: rotate(5deg) translateY(3px); } }
+.sc-ufolights circle { animation: sc-blinkon 0.6s steps(1) infinite; } .sc-ufolights circle:nth-child(2n) { animation-delay: 0.3s; }
+@keyframes sc-blinkon { 50% { fill: #ff5cc8; } }
+.sc-comet { width: 26vw; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #fff, rgba(160, 220, 255, 0.6) 15%, transparent); transform-origin: left center; box-shadow: 0 0 10px #bfe4ff; rotate: -10deg; }
+/* Santa's sleigh: the reindeer's legs going. */
+.sc-sleigh { filter: drop-shadow(0 0 8px rgba(255, 240, 200, 0.7)); }
+.sc-sleigh svg { display: block; } /* at the top of its box, not on the text baseline 1em down */
+.sc-sleigh::after { content: ''; position: absolute; right: 100%; top: 40%; width: 30vw; height: 3px; background: linear-gradient(90deg, transparent, rgba(255, 230, 150, 0.7)); border-radius: 3px; filter: blur(1px); }
+/* Wide drawings sit at the top of their box (not on the text baseline, 1em down). */
+.sc.blk svg { display: block; }
+/* Club: lasers fanning out from the corners, the strobe, hands in the air. */
+.sc-laser { width: 3px; height: 130vh; transform-origin: 50% 100%; opacity: 0; box-shadow: 0 0 12px currentColor; animation: sc-laser 5.5s ease-in-out forwards; }
+.sc-laser.l { transform: rotate(var(--from)); } .sc-laser.r { transform: rotate(var(--from)); }
+@keyframes sc-laser { 0% { opacity: 0; transform: rotate(var(--from)); } 10% { opacity: 0.7; } 50% { transform: rotate(var(--to)); } 90% { opacity: 0.7; } 100% { opacity: 0; transform: rotate(var(--from)); } }
+.sc-strobe { background: #fff; opacity: 0; animation: sc-strobe 1.2s steps(1) forwards; }
+@keyframes sc-strobe { 0%, 20%, 40% { opacity: 0.55; } 10%, 30%, 50%, 100% { opacity: 0; } }
+.sc-hands { animation: sc-handsup 6.5s ease-in-out forwards; }
+@keyframes sc-handsup { 0% { transform: translateY(100%); } 15%, 85% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+.sc-hand { animation: sc-bounce 0.5s ease-in-out infinite alternate; }
+@keyframes sc-bounce { to { transform: translateY(-10px); } }
+/* Castle: banners stirring, the dragon's wings and fire, the knight. */
+.sc-banner .sc-cloth { transform-origin: 25px 6px; animation: sc-banner 4s ease-in-out infinite alternate; }
+@keyframes sc-banner { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
+.sc-dragon .sc-dwing { transform-origin: 160px 86px; animation: sc-dflap 0.7s ease-in-out infinite alternate; }
+.sc-dragon .sc-dwing.back { transform-origin: 148px 94px; animation-delay: -0.12s; }
+@keyframes sc-dflap { from { transform: scaleY(1); } to { transform: scaleY(-0.35) skewX(-8deg); } }
+.sc-dragon .sc-fire { transform-origin: 294px 52px; animation: sc-breathe 1.8s ease-in-out infinite; }
+@keyframes sc-breathe { 0%, 60% { transform: scaleX(0); opacity: 0; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1.6); opacity: 0; } }
+.sc-dragon { filter: drop-shadow(0 0 12px rgba(255, 150, 60, 0.6)); }
+.sc-knight svg { animation: sc-bob 0.42s ease-in-out infinite alternate; }
+/* Jazz: the mic stand, the spotlight sweeping. */
+.sc-mic { filter: drop-shadow(0 0 10px rgba(255, 220, 160, 0.25)); }
+.sc-spotlight { width: 30vw; height: 120vh; transform-origin: 50% 0; background: linear-gradient(rgba(255, 236, 190, 0.28), rgba(255, 236, 190, 0.05) 80%, transparent); clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%); filter: blur(6px); animation: sc-spot-sweep 7.5s ease-in-out forwards; }
+@keyframes sc-spot-sweep { 0% { opacity: 0; transform: rotate(30deg); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: rotate(-30deg); } }
+/* Speakeasy: the bulb swinging, the police lights going by outside. */
+.sc-bulb { transform-origin: 50% 0; animation: sc-swing 4s ease-in-out infinite alternate; filter: drop-shadow(0 0 22px rgba(255, 196, 100, 0.85)); }
+/* The speakeasy: lit bottles on the shelf, the gramophone's record turning, and the peephole. */
+.sc-shelf { filter: drop-shadow(0 0 16px rgba(255, 190, 110, 0.35)); }
+.sc-record { transform-origin: 54px 99px; animation: sc-wobble 1.8s linear infinite; }
+.sc-door .sc-slit-cover { transition: transform 0.35s ease; transform-origin: 22px 39px; }
+.sc-door .sc-peep-eyes { opacity: 0; transition: opacity 0.3s 0.3s; }
+.sc-door.peek .sc-slit-cover { transform: translateX(46px) scaleX(0.02); }
+.sc-door.peek .sc-peep-eyes { opacity: 1; }
+.sc-door.peek .sc-pupil { animation: sc-lookabout 4s ease-in-out 0.6s; }
+@keyframes sc-lookabout { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2.5px); } 50% { transform: translateX(2.5px); } 75% { transform: translateX(-1px); } }
+.sc-police { opacity: 0; animation: sc-police 5.5s linear forwards; background: linear-gradient(90deg, rgba(255, 40, 60, 0.45), transparent 35%, transparent 65%, rgba(40, 90, 255, 0.45)); }
+@keyframes sc-police { 0%, 100% { opacity: 0; } 10%, 30%, 50%, 70% { opacity: 1; background-position: 0 0; } 20%, 40%, 60%, 80% { opacity: 0.2; } }
+/* Beer hall: bunting, and two steins meeting in the middle with a clink. */
+.sc-bunting { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 4 Q40 14 80 4' stroke='%23e8e3d6' stroke-width='1.5' fill='none'/%3E%3Cpath d='M6 7 L22 9 L13 30Z' fill='%23ffffff'/%3E%3Cpath d='M30 10 L50 10 L40 34Z' fill='%232f6fd0'/%3E%3Cpath d='M58 9 L74 7 L67 30Z' fill='%23ffffff'/%3E%3C/svg%3E") 0 0 / 80px 40px repeat-x; animation: sc-banner 5s ease-in-out infinite alternate; transform-origin: 50% 0; }
+.sc-stein.l { animation: sc-cheers-l 3s ease-in-out forwards; } .sc-stein.r { animation: sc-cheers-r 3s ease-in-out forwards; }
+.sc-stein.r svg { scale: -1 1; }
+@keyframes sc-cheers-l { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(22vw) rotate(10deg); } 40% { transform: translateX(21vw) rotate(4deg); } 70% { transform: translateX(21vw) rotate(4deg); } 100% { transform: translateX(0) rotate(0); } }
+@keyframes sc-cheers-r { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(-22vw) rotate(-10deg); } 40% { transform: translateX(-21vw) rotate(-4deg); } 70% { transform: translateX(-21vw) rotate(-4deg); } 100% { transform: translateX(0) rotate(0); } }
+/* Casino: the marquee's bulbs chasing round, and the slot machine. */
+.sc-marquee { background: radial-gradient(circle, #ffe27a 0 30%, rgba(255, 200, 80, 0.4) 45%, transparent 60%) 0 50% / 32px 100% repeat-x; animation: sc-chase 0.8s steps(2) infinite; }
+@keyframes sc-chase { to { background-position: 32px 50%; } }
+.sc-slots { display: flex; gap: 6px; padding: 10px; background: #2a0d12; border: 4px solid #e3b23c; border-radius: 14px; box-shadow: 0 0 20px rgba(227, 178, 60, 0.5); }
+.sc-reel { width: 56px; height: 56px; overflow: hidden; background: #fff8e8; border-radius: 6px; }
+.sc-reel b { display: flex; flex-direction: column; font-size: 44px; line-height: 56px; text-align: center; animation: sc-reel 0.25s linear infinite; }
+.sc-reel:nth-child(2) b { animation-duration: 0.3s; } .sc-reel:nth-child(3) b { animation-duration: 0.22s; }
+@keyframes sc-reel { from { transform: translateY(0); } to { transform: translateY(-224px); } }
+.sc-slots.win .sc-reel b { animation: none; transform: translateY(-224px); }
+.sc-slots.win { animation: sc-jackpot 0.25s steps(1) 8; }
+@keyframes sc-jackpot { 50% { box-shadow: 0 0 40px #ffd23f, 0 0 80px #ffd23f; border-color: #fff; } }
+/* Saloon: the poster, a hawk circling. */
+.sc-poster { transform: rotate(-4deg); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
+.sc-hawk { animation: sc-circle 11s linear forwards; }
+@keyframes sc-circle { 0% { transform: translate(-20vw, 0) scale(0.7); opacity: 0; } 10% { opacity: 1; } 30% { transform: translate(10vw, 3vh) scale(1); } 55% { transform: translate(30vw, -1vh) scale(0.8); } 80% { transform: translate(8vw, 2vh) scale(1); } 100% { transform: translate(-25vw, 0) scale(0.7); opacity: 0; } }
+/* Tiki: the torches. */
+.sc-tikitorch { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)); }
+/* The kinds of moment (scenery.js): crossings, pop-ups, slides, bursts, tosses. */
+.sc-walker span { display: inline-block; }
+.sc-walker.flip span { scale: -1 1; }
+.sc-walker.bob > span { animation: sc-bob 0.3s ease-in-out infinite alternate; }
+.sc-pop span { display: inline-block; transform-origin: 50% 100%; animation: sc-wave-hello 0.6s ease-in-out 0.8s 5 alternate; }
+@keyframes sc-popup { 0% { transform: translateY(110%); } 18%, 82% { transform: translateY(0); } 100% { transform: translateY(110%); } }
+@keyframes sc-wave-hello { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes sc-slide { 0% { transform: translateX(0); opacity: 1; } 75% { transform: translateX(var(--dx)); opacity: 1; } 100% { transform: translateX(var(--dx)); opacity: 0; } }
+@keyframes sc-burst { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 40% { transform: translate(var(--bx), var(--by)) rotate(calc(var(--spin) * 0.5)); } 100% { transform: translate(calc(var(--bx) * 1.3), var(--fall)) rotate(var(--spin)); opacity: 0; } }
+@keyframes sc-toss { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(var(--h)) rotate(var(--spin)); } }
+/* Rolling things (balls, dice, pretzels) turn as they go. */
+.sc-walker.roll > span { animation: sc-roll 0.6s linear infinite; }
+@keyframes sc-roll { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* The tavern dog, asleep: z z z. */
+.sc-sleeper b { position: absolute; font: 700 20px/1 system-ui, sans-serif; color: rgba(255, 240, 210, 0.8); opacity: 0; animation: sc-zzz 3s ease-out infinite; }
+.sc-sleeper b:nth-of-type(1) { left: 44px; } .sc-sleeper b:nth-of-type(2) { left: 52px; animation-delay: 1s; } .sc-sleeper b:nth-of-type(3) { left: 60px; animation-delay: 2s; }
+@keyframes sc-zzz { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
+/* Club: glowsticks thrown up. */
+.sc-glowstick { width: 34px; height: 6px; border-radius: 3px; }
+.sc-glowstick.g { background: #3dff7a; box-shadow: 0 0 12px #3dff7a; } .sc-glowstick.p { background: #ff2bd6; box-shadow: 0 0 12px #ff2bd6; } .sc-glowstick.b { background: #29f0ff; box-shadow: 0 0 12px #29f0ff; }
+/* Castle: the herald's horn. */
+@keyframes sc-herald { 0% { transform: translateX(-12vw) rotate(-10deg); } 20%, 80% { transform: translateX(0) rotate(-20deg); } 30%, 50%, 70% { transform: translateX(0) rotate(-26deg) scale(1.08); } 100% { transform: translateX(-12vw) rotate(-10deg); } }
+/* Jazz: the sax swaying. */
+.sc-sway span { display: inline-block; transform-origin: 50% 100%; animation: sc-wave-hello 1.1s ease-in-out infinite alternate; }
+/* Diner: "Order up!" */
+.sc-orderup { display: flex; align-items: center; gap: 8px; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-orderup b { font: 800 22px/1 system-ui, sans-serif; color: #fff; background: #e63946; padding: 6px 10px; border-radius: 10px; }
+@keyframes sc-orderup { 0% { transform: scale(0.4); opacity: 0; } 12% { transform: scale(1.1); opacity: 1; } 20% { transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+/* Tiki: a gecko darting up the wall, the tiki mask's eyes lighting up. */
+@keyframes sc-gecko { 0% { transform: translateY(20vh) rotate(-90deg); opacity: 0; } 10% { opacity: 1; } 30% { transform: translateY(6vh) rotate(-90deg); } 60% { transform: translateY(6vh) rotate(-80deg); } 90% { opacity: 1; } 100% { transform: translateY(-12vh) rotate(-90deg); opacity: 0; } }
+.sc-glowmask { animation: sc-mask 4.4s ease-in-out forwards; }
+@keyframes sc-mask { 0%, 100% { opacity: 0; filter: none; } 20%, 80% { opacity: 1; } 40%, 60% { filter: drop-shadow(0 0 16px #ff8a1a) brightness(1.3); } }
+/* Speakeasy: the cocktail shaker going. */
+.sc-shaker span { display: inline-block; animation: sc-shake 0.12s linear 24 alternate, sc-fade-out 0.4s 3.5s forwards; }
+@keyframes sc-shake { from { transform: translate(-4px, -3px) rotate(-12deg); } to { transform: translate(4px, 3px) rotate(12deg); } }
+/* Casino: the roulette wheel spinning down. */
+.sc-roulette span { display: inline-block; animation: sc-spin 0.5s linear 6, sc-spin 1.2s ease-out 3s 1, sc-fade-out 0.5s 4.4s forwards; }
+/* Space: a rocket going up, flame and all. */
+.sc-rocket { filter: drop-shadow(0 0 12px rgba(255, 160, 60, 0.8)); rotate: 45deg; }
+/* Christmas: a present wobbling before it pops. */
+.sc-present { animation: sc-shake 0.1s linear 12 alternate 1s, sc-fade-out 0.3s 2.2s forwards; }
+/* Lighthouse: the bottle bobbing far out. */
+.sc-walker.bottle { opacity: 0.85; }
+/* St Patrick's: a rainbow over the glen. */
+@keyframes sc-rainbow { 0%, 100% { opacity: 0; transform: scale(0.9); } 20%, 80% { opacity: 0.85; transform: scale(1); } }
+/* The château's balloon, drifting gently. */
+.sc-balloon { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2)); }
+/* A coconut falling from the palm to land where it lands (and bounce once). */
+@keyframes sc-coconut { 0% { transform: translateY(-100vh) rotate(0); } 80% { transform: translateY(0) rotate(var(--spin)); } 90% { transform: translateY(-10px) rotate(var(--spin)); } 100% { transform: translateY(0) rotate(var(--spin)); } }
+/* Casino: two dice rolled in to the bottom middle, and the verdict. */
+@keyframes sc-roll-in { 0% { transform: translate(-40vw, -6vh) rotate(0); } 60% { transform: translate(2vw, 0) rotate(calc(var(--spin) * 0.9)); } 75% { transform: translate(0, -2vh) rotate(var(--spin)); } 100% { transform: translate(0, 0) rotate(var(--spin)); } }
+.sc-die svg { filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.5)); }
+.sc-verdict b { display: block; font: 900 46px/1 system-ui, sans-serif; letter-spacing: 0.02em; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-verdict.win b { color: #ffd23f; text-shadow: 0 0 18px rgba(255, 210, 63, 0.8), 0 3px 0 #7a4a00; }
+.sc-verdict.lose b { color: #e8dcc0; opacity: 0.85; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6); }
+/* The diner's counter bell, slapped; the bell buoy rocking on the swell. */
+.sc-orderup .sc-svcbell { animation: sc-ding 0.5s ease-out 0.3s 2; transform-origin: 50% 100%; }
+@keyframes sc-ding { 0% { transform: scaleY(1); } 30% { transform: scaleY(0.86); } 60% { transform: scaleY(1.04); } 100% { transform: scaleY(1); } }
+.sc-buoy { opacity: 0; animation: sc-fade-in-out 6.8s ease-in-out forwards; }
+@keyframes sc-fade-in-out { 0%, 100% { opacity: 0; } 15%, 85% { opacity: 0.95; } }
+.sc-buoy .sc-buoy-rock { transform-origin: 40px 74px; animation: sc-swing 2.6s ease-in-out infinite alternate; }
+/* Easter eggs: the banner as one begins, the fire's glow, the ghost ship's fog and lightning. */
+.sc-banner { text-align: center; animation: sc-orderup 6.2s ease-out forwards; }
+.sc-banner b { display: block; font: 400 clamp(48px, 7vw, 96px)/1.1 var(--banner-font, Georgia), serif; }
+.sc-banner small { display: block; margin-top: 8px; text-shadow: 0 2px 8px #000, 0 0 3px #000; font: italic 600 clamp(18px, 2.2vw, 30px)/1.2 Georgia, serif; opacity: 0.9; }
+.sc-banner.rev { --banner-font: "Parisienne"; color: #fff; text-shadow: 0 0 24px #ff5a14, 0 4px 0 #0055a4, 0 -4px 0 #ef4135; }
+.sc-banner.ghost { --banner-font: "Pirata One"; color: #c8ffe0; text-shadow: 0 0 24px #7cf0b0, 0 0 60px #2a8a60; }
+.sc-banner.gold { --banner-font: "Abril Fatface"; color: #ffe39a; text-shadow: 0 2px 0 #8a5a14, 0 0 30px rgba(255, 210, 120, 0.7); }
+.sc-quote b { display: block; text-align: center; font: italic 700 36px/1.2 Georgia, serif; color: #ffe8c8; text-shadow: 0 2px 10px #000; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-fireglow { background: radial-gradient(ellipse 70% 50% at 60% 30%, rgba(255, 110, 30, 0.22), transparent 70%); animation: sc-fireflicker 2.6s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes sc-fireflicker { 0% { opacity: 0.5; } 30% { opacity: 1; } 55% { opacity: 0.7; } 80% { opacity: 0.95; } 100% { opacity: 0.6; } }
+.sc-ghostfog { background: linear-gradient(transparent, rgba(124, 240, 176, 0.16) 60%, rgba(124, 240, 176, 0.06)); animation: sc-fogdrift 9s ease-in-out infinite alternate; }
+@keyframes sc-fogdrift { from { transform: translateX(-3vw); opacity: 0.6; } to { transform: translateX(3vw); opacity: 1; } }
+.sc-ghostlight { filter: hue-rotate(100deg) drop-shadow(0 0 16px rgba(124, 240, 176, 0.9)); }
+.sc-ghostgreen { filter: hue-rotate(200deg) saturate(0.6) brightness(0.8); }
+.sc-ghost { display: inline-block; filter: drop-shadow(0 0 12px #7cf0b0) sepia(1) hue-rotate(90deg); animation: sc-bob 1.6s ease-in-out infinite alternate; }
+.sc-greenflash { background: rgba(180, 255, 215, 0.5); animation: sc-gflash 1.3s steps(1) forwards; }
+@keyframes sc-gflash { 0% { opacity: 1; } 8% { opacity: 0; } 16% { opacity: 0.8; } 24%, 100% { opacity: 0; } }
+.sc-rise { opacity: 0; filter: drop-shadow(0 0 14px #7cf0b0); animation: sc-risefall 4.8s ease-in-out forwards; }
+@keyframes sc-risefall { 0% { opacity: 0; transform: translateY(20vh); } 30%, 70% { opacity: 0.85; transform: translateY(0); } 100% { opacity: 0; transform: translateY(20vh); } }
+.sc-roulette { animation: sc-fade-in-out 8.8s ease-in-out forwards; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.6)); }
+.sc-roulette .sc-wheel { transform-origin: 50px 50px; animation: sc-wheelspin 5.2s cubic-bezier(0.15, 0.6, 0.3, 1) forwards; }
+.sc-roulette .sc-ball { transform-origin: 50px 50px; animation: sc-ballspin 5.2s cubic-bezier(0.1, 0.5, 0.25, 1) forwards; }
+@keyframes sc-wheelspin { to { transform: rotate(1440deg); } }
+@keyframes sc-ballspin { 0% { transform: rotate(0) translateY(0); } 70% { transform: rotate(-1700deg) translateY(0); } 100% { transform: rotate(-1980deg) translateY(14px); } }
+/* Saloon: the tumbleweed bounces as it rolls; the shootout. */
+.sc-tumble svg { display: block; animation: sc-hop 0.55s ease-in-out infinite alternate; }
+@keyframes sc-hop { from { translate: 0 0; } to { translate: 0 -18px; } }
+.sc-slinger { animation: sc-fade-in-out 8.8s ease-in-out forwards; transform-origin: 50% 100%; }
+.sc-slinger .sc-gunarm { transform-origin: 46px 40px; transition: transform 0.12s ease-out; }
+.sc-slinger.draw .sc-gunarm { transform: rotate(-62deg); }
+.sc-slinger .sc-muzzle { opacity: 0; }
+.sc-slinger.draw .sc-muzzle { animation: sc-flash 0.25s steps(1) 1; }
+@keyframes sc-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+.sc-slinger.down svg { transform-origin: 50% 100%; animation: sc-keel 0.7s ease-in forwards; }
+@keyframes sc-keel { to { transform: rotate(-82deg) translateY(10px); } }
+.sc-slinger.smoke::after { content: ''; position: absolute; left: 60%; top: 8%; width: 18px; height: 18px; border-radius: 50%; background: rgba(230, 230, 230, 0.6); filter: blur(3px); animation: sc-puff 2s ease-out forwards; }
+.sc-slinger.smoke.sc-face-l::after { left: auto; right: 60%; }
+@keyframes sc-puff { 0% { transform: translate(0, 0) scale(0.5); opacity: 0.8; } 100% { transform: translate(6px, -50px) scale(2.4); opacity: 0; } }
+.sc-bang b { display: block; font: 900 64px/1 Georgia, serif; color: #ffd23f; text-shadow: 0 0 20px #ff8a1a, 0 4px 0 #7a2a00; animation: sc-orderup 1.7s ease-out forwards; }
+.sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
+@keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
+/* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
+.sc-fogcloud { background: radial-gradient(ellipse at 50% 50%, rgba(205, 215, 225, 0.42), rgba(205, 215, 225, 0.16) 45%, transparent 70%); filter: blur(14px); }
+.sc-fogbeam { filter: blur(10px); opacity: 0.8; clip-path: polygon(42% 100%, 18% 0, 82% 0, 58% 100%); }
+.sc-fogged { opacity: 0.4; filter: blur(1.5px); }
+/* Day: dolphins leaping in an arc out of the water and back in. */
+.sc-dolphin { opacity: 0; animation: sc-leap 1.6s ease-in-out forwards; }
+@keyframes sc-leap { 0% { opacity: 0; transform: translate(0, 4vh) rotate(-35deg); } 15% { opacity: 1; } 50% { transform: translate(6vw, -8vh) rotate(0deg); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(12vw, 4vh) rotate(35deg); } }
+
+.sc-banner.regatta { --banner-font: "Cormorant SC"; color: #fff; text-shadow: 0 2px 0 #13304d, 0 0 24px rgba(19, 48, 77, 0.8); }
+.sc-banner.tourney { --banner-font: "Cinzel"; color: #ffe39a; text-shadow: 0 3px 0 #5a1010, 0 0 24px rgba(0, 0, 0, 0.8); }
+.sc-banner.tourney b { font-size: clamp(36px, 4.6vw, 64px); font-weight: 700; }
+.sc-banner.palace { --banner-font: "Special Elite"; color: #ffd23f; text-shadow: 0 0 14px #ff2a8a, 0 0 40px #ff2a8a, 0 3px 0 #000; }
+.sc-banner.palace b { font-size: clamp(34px, 4.4vw, 62px); }
+.sc-stagebeam { width: 22vw; height: 110vh; background: linear-gradient(rgba(255, 255, 255, 0.22), transparent 85%); clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%); transform-origin: 50% 0; animation: sc-spotsweep 7s ease-in-out infinite alternate; mix-blend-mode: screen; }
+@keyframes sc-spotsweep { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+.sc-oneeighty b { display: block; text-align: center; font: 900 clamp(44px, 6.4vw, 92px)/1 "Special Elite", system-ui, sans-serif; color: #ffd23f; text-shadow: 0 0 20px #ff2a8a, 0 0 50px #ff2a8a, 0 4px 0 #000; animation: sc-orderup 4s ease-out forwards; }
+.sc-oneeighty.ton b { font-size: clamp(40px, 5vw, 72px); color: #fff; text-shadow: 0 0 20px #3de0ff, 0 4px 0 #000; animation-duration: 2.8s; }
+.sc-sign-up b { display: block; padding: 8px 14px; background: #fff; color: #1a1530; font: 900 26px/1 system-ui, sans-serif; box-shadow: 0 4px 0 #b0a6d0; animation: sc-signup 4s ease-out forwards; }
+.sc-sign-up.oi b { background: #ffd23f; font-size: 34px; animation-duration: 1.1s; }
+@keyframes sc-signup { 0% { transform: translateY(60px); opacity: 0; } 12% { transform: translateY(-6px); opacity: 1; } 20%, 30%, 40%, 50% { transform: translateY(0); } 25%, 35%, 45% { transform: translateY(-10px); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(30px); } }
+.sc-flash { width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px 6px rgba(255, 255, 255, 0.8); opacity: 0; animation: sc-camflash 0.3s ease-out 3; }
+@keyframes sc-camflash { 0%, 100% { opacity: 0; } 30% { opacity: 1; } }
+.sc-banner.openmic { --banner-font: "Limelight"; color: #fff; text-shadow: 0 0 16px #ff4d6d, 0 3px 0 #000; }
+.sc-banner.okto { --banner-font: "UnifrakturMaguntia"; color: #fff; text-shadow: 0 3px 0 #2a6fdb, 0 0 24px rgba(0, 0, 0, 0.7); }
+.sc-banner.waste { --banner-font: "Rye"; color: #ffb060; text-shadow: 0 3px 0 #3a0e00, 0 0 30px #ff5a14; }
+.sc-banner.waste b { font-size: clamp(36px, 4.6vw, 64px); }
+.sc-sign.mic { color: #ff4d6d; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); }
+.sc-quote.prost b { font-family: "UnifrakturMaguntia", serif; font-size: 72px; font-style: normal; color: #fff; text-shadow: 0 4px 0 #2a6fdb; }
+.sc-dust { background: linear-gradient(transparent 50%, rgba(220, 140, 70, 0.25)); animation: sc-fogdrift 8s ease-in-out infinite alternate; }
+.sc-duststorm { background: linear-gradient(90deg, transparent, rgba(200, 120, 60, 0.55) 40%, rgba(200, 120, 60, 0.55) 60%, transparent); animation: sc-storm 6s ease-in-out forwards; }
+@keyframes sc-storm { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.sc-viewport { overflow: hidden; border-radius: 2vw; }
+.sc-stars { position: absolute; inset: 0; width: 200%; background: radial-gradient(circle, #fff 0 1px, transparent 1.5px) 0 0 / 90px 70px, radial-gradient(circle, #cfe8ff 0 1px, transparent 1.5px) 40px 30px / 130px 90px; animation: sc-starpass 18s linear infinite; }
+.sc-stars.near { background: radial-gradient(circle, #fff 0 1.6px, transparent 2px) 0 0 / 210px 140px; animation-duration: 7s; }
+@keyframes sc-starpass { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.sc-viewport.warp .sc-stars { animation-duration: 0.35s; filter: blur(0.5px); transform-origin: 50% 50%; scale: 4 1; }
+.sc-warpflash { background: radial-gradient(circle, #fff, rgba(160, 220, 255, 0.6) 40%, transparent 75%); animation: sc-fade-out 0.9s ease-out forwards; }
+.sc-redalert { background: rgba(255, 40, 60, 0.22); animation: sc-gflash 1.6s steps(1) 2; }
+.sc-blink { width: 10px; height: 10px; border-radius: 3px; box-shadow: 0 0 10px currentColor; animation: sc-open 1.8s steps(1) infinite; }
+.sc-banner.ship { --banner-font: "Orbitron"; color: #eef6ff; text-shadow: 0 0 14px #7cf0ff, 0 0 40px #2a8ab0; }
+.sc-banner.ship b { font-size: clamp(32px, 4vw, 56px); font-weight: 700; }
+.sc-quote.punchit b { font-family: "Orbitron", system-ui; font-size: 56px; font-style: normal; color: #7cf0ff; text-shadow: 0 0 20px #2a8ab0; }
+.sc-banner.champ { --banner-font: "Bungee"; color: #fff; text-shadow: 0 4px 0 #d62828, 0 0 24px rgba(0, 0, 0, 0.8); }
+.sc-banner.champ b { font-size: clamp(30px, 4vw, 56px); }
+.sc-banner.rink { --banner-font: "Monoton"; color: #fff; text-shadow: 0 0 12px #ff2bd6, 0 0 30px #29f0ff; }
+.sc-banner.rink b { font-size: clamp(30px, 4vw, 56px); }
+.sc-banner.mead { --banner-font: "IM Fell English SC"; color: #ffe3a0; text-shadow: 0 3px 0 #5a1010, 0 0 30px #ff7a1a; }
+.sc-oneeighty.skal b { font-family: "IM Fell English SC", Georgia, serif; color: #ffe3a0; text-shadow: 0 0 20px #ff7a1a, 0 4px 0 #3a0e00; }
+.sc-banner.river { --banner-font: "Rye"; color: #ffe3a0; text-shadow: 0 3px 0 #5a1010, 0 0 24px rgba(0, 0, 0, 0.7); }
+.sc-banner.river b { font-size: clamp(32px, 4.4vw, 60px); }
+.sc-oneeighty.steam b { font-family: "Rye", Georgia, serif; color: #ffe3a0; text-shadow: 0 0 20px #c0392b, 0 4px 0 #3a0e00; }
+.sc-wheel .sc-paddle { transform-origin: 50px 50px; animation: sc-paddle 6s linear infinite; }
+.sc-wheel.fast .sc-paddle { animation-duration: 1.2s; }
+@keyframes sc-paddle { to { transform: rotate(-360deg); } }
+.sc-plume.steam { background: radial-gradient(rgba(250, 250, 250, 0.8), rgba(250, 250, 250, 0) 70%); }
+.sc-flashbulb { background: #fff; animation: sc-fade-out 1.4s ease-out forwards; }
+.sc-redflood { background: radial-gradient(ellipse at 80% 20%, rgba(255, 30, 45, 0.4), rgba(255, 30, 45, 0.12) 60%); animation: sc-fade-in-out 2.5s ease-in-out forwards; }
+.sc-fadein { background: #000; animation: sc-fade-out 2.4s ease-in forwards; }
+.sc-rainglass { background: repeating-linear-gradient(100deg, transparent 0 18px, rgba(220, 220, 230, 0.12) 18px 19px, transparent 19px 46px) 0 0 / 200px 200px; animation: sc-rain 0.5s linear infinite; mix-blend-mode: screen; }
+@keyframes sc-rain { to { background-position: -30px 200px; } }
+.sc-noirflicker { background: radial-gradient(ellipse 9% 30% at 64.5% 31%, rgba(255, 42, 58, 0.28), transparent 70%); animation: sc-open 4s steps(1) infinite; }
+.sc-headlights { background: linear-gradient(100deg, transparent 30%, rgba(255, 250, 230, 0.18) 45%, transparent 60%); animation: sc-sweep 3.8s ease-in-out forwards; }
+@keyframes sc-sweep { from { transform: translateX(-80%); } to { transform: translateX(80%); } }
+.sc-siren { animation: sc-sirenlight 0.6s steps(1) 8; }
+@keyframes sc-sirenlight { 0% { background: rgba(255, 30, 40, 0.14); } 50% { background: rgba(40, 80, 255, 0.14); } }
+.sc-silhouette { filter: brightness(0) blur(1px); opacity: 0.8; animation: sc-fade-in-out 5.8s ease-in-out forwards; }
+.sc-plume.smoke { background: radial-gradient(rgba(200, 200, 200, 0.35), rgba(200, 200, 200, 0) 70%); }
+.sc-banner.noir { --banner-font: "Special Elite"; color: #ecebe6; text-shadow: 0 0 2px #000, 0 4px 0 #000, 0 0 30px rgba(255, 42, 58, 0.5); }
+.sc-banner.noir b { font-size: clamp(34px, 4.6vw, 64px); letter-spacing: 0.04em; }
+.sc-banner.noir b::after { content: ''; display: block; width: 40%; height: 4px; margin: 10px auto 0; background: #ff2a3a; }
+.sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
+
+/* The tiki bar's volcano going off: the crater flares, and smoke billows up. */
+.sc-crater { width: 9vw; height: 6vh; margin: -3vh 0 0 -4.5vw; border-radius: 50%; background: radial-gradient(#ffe27a, rgba(255, 106, 26, 0.7) 40%, transparent 70%); filter: blur(4px); opacity: 0; animation: sc-flare 6.8s ease-out forwards; }
+@keyframes sc-flare { 0% { opacity: 0; } 18% { opacity: 0.6; } 22% { opacity: 1; transform: scale(1.8); } 60% { opacity: 0.8; transform: scale(1.4); } 100% { opacity: 0; transform: scale(1); } }
+.sc-plume { width: 8vw; height: 8vw; border-radius: 50%; background: radial-gradient(rgba(90, 70, 80, 0.7), rgba(90, 70, 80, 0) 70%); filter: blur(6px); }
+
+/* Noir (Slevens in the Speakeasy, see style.css): the scenery goes grey too, all but the red neon
+   and the red flood. */
+html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflood) { filter: grayscale(1); }

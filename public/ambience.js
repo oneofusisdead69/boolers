@@ -21,9 +21,28 @@
       master.gain.value = 0;
       master.connect(ac.destination);
     }
-    if (ac.state === 'suspended') ac.resume();
+    // (Not while the page is hidden: a TV's re-render would wake the sound we put to sleep.)
+    if (ac.state === 'suspended' && !document.hidden) ac.resume()?.catch?.(() => {});
     return ac;
   }
+
+  // In a tab no one's looking at (the phone locked, the TV's browser switched to something else),
+  // the sound sleeps: the audio stops and the tunes' 50 ms clocks stop ticking, instead of
+  // keeping the phone awake all night. It all carries on where it was when the page is back.
+  // (Browsers only let sound start after a tap: until then there's no AudioContext to wake.)
+  const clocks = new Set(); // the running sequencers: { tick, timer }
+  document.addEventListener('visibilitychange', () => {
+    if (!ac) return;
+    if (document.hidden) {
+      clocks.forEach((c) => { clearInterval(c.timer); c.timer = null; });
+      if (ac.state === 'running') ac.suspend()?.catch?.(() => {});
+      return;
+    }
+    clocks.forEach((c) => { if (!c.timer) c.timer = setInterval(c.tick, 50); });
+    if (!current || ac.state === 'running') return;
+    // Some phones won't wake the sound without a tap: then it's the next one.
+    ac.resume()?.catch?.(() => document.addEventListener('pointerdown', audio, { once: true, capture: true }));
+  });
 
   let noiseBuf = null;
   function noise() {
@@ -101,14 +120,23 @@
     const dur = 60 / bpm / div;
     let next = ac.currentTime + 0.1;
     let n = 0;
-    const timer = setInterval(() => {
-      while (next < ac.currentTime + 0.25) {
-        step(next, n, dur);
-        next += dur;
-        n += 1;
-      }
-    }, 50);
-    return () => clearInterval(timer);
+    // (The audio's clock stands still while it's asleep, so on waking nothing's been missed.)
+    const clock = {
+      tick: () => {
+        while (next < ac.currentTime + 0.25) {
+          step(next, n, dur);
+          next += dur;
+          n += 1;
+        }
+      },
+      timer: null,
+    };
+    if (!document.hidden) clock.timer = setInterval(clock.tick, 50);
+    clocks.add(clock);
+    return () => {
+      clearInterval(clock.timer);
+      clocks.delete(clock);
+    };
   }
 
   // Calls fn at random moments, on average every `every` seconds.
@@ -116,7 +144,8 @@
     let stopped = false;
     const go = () => {
       if (stopped) return;
-      fn(ac.currentTime + 0.05);
+      // (Skipped while the sound's asleep, or they'd all go off at once when it wakes.)
+      if (ac.state === 'running') fn(ac.currentTime + 0.05);
       setTimeout(go, (every * (0.4 + Math.random() * 1.2)) * 1000);
     };
     const t = setTimeout(go, every * 500);
@@ -1384,7 +1413,7 @@
   };
 
   function cue(name) {
-    if (!current || !level || !CUES[name] || !ac) return;
+    if (!current || !level || !CUES[name] || !ac || document.hidden) return;
     try {
       const out = ac.createGain();
       out.gain.value = 1;

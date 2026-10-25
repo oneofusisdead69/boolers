@@ -11,6 +11,8 @@
 // slows it down, yellow does nothing. The faster the horse, the faster the needle.
 
 const betting = require('../lib/betting');
+const { pick } = require('../lib/random');
+const { optionValues } = require('../lib/options');
 
 const HORSES = [
   { id: '1', name: 'Thunder', silk: '#e53950', coat: 'bay' },
@@ -91,29 +93,6 @@ function tick(room, ctx, rand = Math.random) {
 
 // ---------- Bots ----------
 
-const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
-
-// A bot's bet: good bots keep it modest (a sip or two), bad ones go big. Nothing on the screen says
-// which horse will win (form is hidden), so everyone picks at random.
-function botSips(maxBet, skill) {
-  const cap = Math.min(maxBet, Math.max(1, Math.round(maxBet * (1.1 - skill))));
-  const floor = Math.max(1, Math.round(cap * (1 - skill)));
-  return floor + Math.floor(Math.random() * (cap - floor + 1));
-}
-
-// A winning bot's sips, each to someone at random: a human here when there is one.
-function botAlloc(room, me, total) {
-  const others = room.players.filter((p) => p.id !== me.id && p.connected);
-  const pool = others.some((p) => !p.bot) ? others.filter((p) => !p.bot) : others;
-  if (!pool.length) return null;
-  const alloc = {};
-  for (let i = 0; i < total; i++) {
-    const to = pickOne(pool).id;
-    alloc[to] = (alloc[to] || 0) + 1;
-  }
-  return JSON.stringify(alloc);
-}
-
 // A jockey bot's tap. The phone judges where the needle was and sends the colour, so a bot
 // "aims" by choosing it: good bots hit green nearly every time, bad ones often miss into red.
 function botHit(skill) {
@@ -152,13 +131,9 @@ module.exports = {
   start(room, ctx, options = {}) {
     Object.assign(room.game, {
       order: room.players.map((p) => p.id),
-      laps: [1, 2, 3, 5].includes(options.laps) ? options.laps : 2,
-      speed: options.speed === 'fast' ? 'fast' : 'normal',
-      jockey: options.jockey === true,
-      racers: options.racers === 'animals' ? 'animals' : 'horses',
+      ...optionValues(module.exports.options, options), // laps, racers, jockey, maxBet, multiplier, speed
       // Names and colours: backers can change them, and they last the whole game.
       horses: HORSES.map((h) => ({ ...h })),
-      ...betting.fromOptions(options),
       race: 0,
     });
     newRace(room, ctx);
@@ -197,6 +172,7 @@ module.exports = {
     }
   },
 
+  // A bot backs a horse at random: nothing on the screen says which will win (form is hidden).
   bot(room, me, ctx, skill) {
     const g = room.game;
     const host = room.hostId === me.id;
@@ -205,7 +181,7 @@ module.exports = {
         // Jockey mode: only a horse nobody else rides.
         const free = IDS.filter((id) => !g.jockey || !Object.values(g.bets).some((b) => b.pick === id));
         if (!free.length) return null;
-        return { type: 'bet', horse: pickOne(free), sips: botSips(g.maxBet, skill) };
+        return { type: 'bet', horse: pick(free), sips: betting.botSips(g.maxBet, skill) };
       }
       // The host's bot starts once everyone who can bet has (in jockey mode, horses run out).
       const full = g.jockey && Object.keys(g.bets).length >= IDS.length;
@@ -218,7 +194,7 @@ module.exports = {
       return { type: 'ride', hit: botHit(skill), delay: TAP_GAP_MS + 100 + Math.random() * 400 + (1 - skill) * 700 };
     }
     if (g.phase === 'payout' && g.payout[me.id] && !g.payout[me.id].done) {
-      const alloc = botAlloc(room, me, g.payout[me.id].total);
+      const alloc = betting.botAlloc(room, me.id, g.payout[me.id].total);
       return alloc && { type: 'give', alloc };
     }
     if (g.phase === 'results' && host) return { type: 'nextRace' };
@@ -226,8 +202,16 @@ module.exports = {
   },
 
   // A winner who leaves doesn't hold up the payout.
-  check(room, ctx) {
-    betting.checkPayout(room, ctx);
+  check(room) {
+    betting.checkPayout(room);
+  },
+
+  // Betting and payout as in lib/betting.js (in jockey mode, once every horse has a rider nobody
+  // else can bet). The race runs itself: jockeys tap when they like.
+  waitingOn(room) {
+    const g = room.game;
+    if (g.phase === 'race') return [];
+    return betting.waitingOn(room, { full: g.jockey && Object.keys(g.bets).length >= IDS.length });
   },
 
   onJoin(room, player) {

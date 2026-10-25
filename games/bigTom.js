@@ -11,7 +11,10 @@
 // drink double and the winner hands out double. Most points (matchups won + final votes) is the
 // Big Tom champion.
 
-const { shuffle } = require('../lib/cards');
+const { shuffle, pick } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
 const { NORMAL, NSFW, DRAW_NORMAL, DRAW_NSFW } = require('../lib/bigTomQuestions');
 
 const VOTE_MS = 30 * 1000;
@@ -166,8 +169,6 @@ function finalReveal(room, ctx) {
 
 // ---------- Bots ----------
 
-const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
-
 // Questions a bot writes when it doesn't tap Generate.
 const BOT_QUESTIONS = [
   'The worst thing to find in your pocket after a night out',
@@ -231,7 +232,7 @@ function botAnswer(question, used, skill) {
   const theme = THEMED.find((t) => t.re.test(question));
   const fresh = (list) => list.filter((a) => !used.includes(a));
   // Themed answers are all as good as each other: any one (so two bots rarely say the same).
-  if (theme && Math.random() < skill && fresh(theme.list).length) return pickOne(fresh(theme.list));
+  if (theme && Math.random() < skill && fresh(theme.list).length) return pick(fresh(theme.list));
   const list = fresh(ANSWERS);
   return list[Math.floor(Math.random() ** (0.5 + skill * 3) * list.length)];
 }
@@ -329,13 +330,6 @@ function botDrawing(skill) {
   return png(pixels);
 }
 
-// Someone for a bot to hand sips to: a human here when there is one.
-function botTarget(room, me) {
-  const others = room.players.filter((p) => p.id !== me.id && p.connected);
-  const humans = others.filter((p) => !p.bot);
-  return others.length ? pickOne(humans.length ? humans : others).id : null;
-}
-
 // ---------- Module ----------
 
 module.exports = {
@@ -368,14 +362,16 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
-    const nsfw = options.questions === 'nsfw';
+    const o = optionValues(module.exports.options, options);
+    const nsfw = o.questions === 'nsfw';
+    // The host's own questions (options.custom, see lib/custom.js) go in with the generated ones.
     const pool = [...(nsfw ? NSFW : NORMAL), ...(options.custom?.questions || [])];
     Object.assign(room.game, {
       nsfw,
       pool,
       deck: shuffle(pool),
-      sips: [2, 3, 5].includes(options.sips) ? options.sips : 3,
-      answerTime: [60, 90, 120, 0].includes(options.answerTime) ? options.answerTime : 90,
+      sips: o.sips,
+      answerTime: o.answerTime,
       round: 0,
       wins: {},
       points: {},
@@ -407,10 +403,7 @@ module.exports = {
       m.votes[me] = action.side;
       if (voters(room, ctx, m).every((id) => m.votes[id])) reveal(room, ctx);
     } else if (action.type === 'give' && (g.phase === 'reveal' || g.phase === 'final') && g.give?.from === me) {
-      const target = ctx.player(room, action.targetId);
-      if (!target || target.id === me) return;
-      ctx.drink(room, target.id, g.give.sips, 'Big Tom winner', me);
-      g.give = null;
+      if (ctx.giveTo(room, me, action.targetId, g.give.sips, 'Big Tom winner')) g.give = null;
     } else if (action.type === 'moveOn' && host) {
       // The host can hurry things along: missing questions come from Big Tom, missing answers lose.
       if (g.phase === 'write' && ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
@@ -448,7 +441,7 @@ module.exports = {
       // Tap Generate and send what it suggests; now and then a bot writes its own instead.
       if (g.suggest[me.id]) return { type: 'question', text: g.suggest[me.id] };
       if (Math.random() < 0.5 + skill / 2) return { type: 'generate' };
-      return { type: 'question', text: pickOne(BOT_QUESTIONS), delay: 3000 + Math.random() * 4000 };
+      return { type: 'question', text: pick(BOT_QUESTIONS), delay: 3000 + Math.random() * 4000 };
     }
     if (g.phase === 'answer') {
       const mine = g.matchups.map((m, i) => ({ m, i })).filter(({ m }) => m.a === me.id || m.b === me.id);
@@ -463,11 +456,11 @@ module.exports = {
       if (m.votes[me.id] || !voters(room, ctx, m).includes(me.id)) return null;
       const [a, b] = [botScore(m.answers[m.a]), botScore(m.answers[m.b])];
       // Good bots usually go with the better-looking answer; bad ones vote at random.
-      const side = Math.random() < skill && a !== b ? (a > b ? 'a' : 'b') : pickOne(['a', 'b']);
+      const side = Math.random() < skill && a !== b ? (a > b ? 'a' : 'b') : pick(['a', 'b']);
       return { type: 'vote', side };
     }
     if ((g.phase === 'reveal' || g.phase === 'final') && g.give?.from === me.id) {
-      const targetId = botTarget(room, me);
+      const targetId = pickHuman(room, me.id);
       return targetId && { type: 'give', targetId };
     }
     // The host moves on once the winner has handed out their sips.
@@ -477,9 +470,27 @@ module.exports = {
     if (g.phase === 'finalVote' && !g.finalVotes[me.id]) {
       // Drawings can't be judged from here: any one that isn't the bot's own.
       const others = g.finalOrder.map((id, i) => ({ id, i })).filter(({ id }) => id !== me.id);
-      return others.length ? { type: 'finalVote', i: pickOne(others).i } : null;
+      return others.length ? { type: 'finalVote', i: pick(others).i } : null;
     }
     return null;
+  },
+
+  // Everyone here still to write, answer, vote or draw; the winner handing out; or the host, to
+  // move on. (Only the players a phase waits for: the host's "move on" can hurry any of them.)
+  waitingOn(room) {
+    const g = room.game;
+    const here = room.players.filter((p) => p.connected).map((p) => p.id);
+    const m = g.matchups[g.current];
+    if (g.give && isActive(room, g.give.from)) return [g.give.from];
+    switch (g.phase) {
+      case 'write': return here.filter((id) => !g.questions[id]);
+      case 'answer': return here.filter((id) => g.matchups.some((x) => (x.a === id || x.b === id) && x.answers[id] === undefined));
+      case 'vote': return here.filter((id) => id !== m.a && id !== m.b && !m.votes[id]);
+      case 'draw': return here.filter((id) => !g.drawings[id]);
+      case 'finalVote': return here.filter((id) => g.finalOrder.some((d) => d !== id) && !g.finalVotes[id]);
+      case 'reveal': case 'summary': case 'final': return [room.hostId];
+      default: return [];
+    }
   },
 
   // Nobody who has left holds up a phase.

@@ -8,7 +8,9 @@
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   let layer = null;
   let current = null;
-  let timers = [];
+  // What's pending, to cancel on stop(). Each one leaves the set when it's done, or a TV left on
+  // all night would keep thousands of spent timers.
+  const timers = new Set();
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -289,8 +291,12 @@
     tick();
   }
   function later(fn, ms) {
-    const t = setTimeout(fn, ms);
-    timers.push({ stop: () => clearTimeout(t) });
+    const entry = { stop: () => clearTimeout(t) };
+    const t = setTimeout(() => {
+      timers.delete(entry);
+      fn();
+    }, ms);
+    timers.add(entry);
   }
 
   const bats = () => {
@@ -1425,8 +1431,9 @@
       d.classList.add('sc-die', 'blk');
       // The faces flicker as it tumbles, then it settles on its number.
       let k = 0;
-      const t = setInterval(() => { if (++k > 9) { clearInterval(t); d.innerHTML = die(n); } else d.innerHTML = die(1 + Math.floor(Math.random() * 6)); }, 140);
-      timers.push({ stop: () => clearInterval(t) });
+      const entry = { stop: () => clearInterval(t) };
+      const t = setInterval(() => { if (++k > 9) { clearInterval(t); timers.delete(entry); d.innerHTML = die(n); } else d.innerHTML = die(1 + Math.floor(Math.random() * 6)); }, 140);
+      timers.add(entry);
     });
     later(() => {
       const say = win ? (total === 7 ? 'Seven!' : total === 11 ? 'Eleven!' : 'Doubles!') : 'Awww…';
@@ -1585,7 +1592,7 @@
 
   function stop() {
     timers.forEach((t) => t.stop());
-    timers = [];
+    timers.clear();
     if (layer) layer.innerHTML = '';
     if (front) front.innerHTML = '';
   }

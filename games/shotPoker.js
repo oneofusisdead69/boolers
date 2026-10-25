@@ -10,6 +10,8 @@
 // pots.
 
 const { newDeck, draw } = require('../lib/cards');
+const { optionValues } = require('../lib/options');
+const { next, isActive } = require('../lib/turns');
 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
 const SINGLE = { 14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack' };
@@ -225,8 +227,8 @@ function showdown(room, ctx) {
 }
 
 // Debts still blocking the next hand (players who've left don't hold it up).
-const unpaid = (room, ctx) => Object.entries(room.game.debts)
-  .filter(([id, d]) => !d.paid && ctx.turns.isActive(room, id))
+const unpaid = (room) => Object.entries(room.game.debts)
+  .filter(([id, d]) => !d.paid && isActive(room, id))
   .map(([id]) => id);
 
 // ---------- Bots ----------
@@ -293,15 +295,12 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
-    const perShot = [3, 4, 5].includes(options.perShot) ? options.perShot : 5;
-    const maxShots = [1, 2, 3, 5].includes(options.maxShots) ? options.maxShots : 2;
+    const o = optionValues(module.exports.options, options);
     const order = room.players.map((p) => p.id);
     Object.assign(room.game, {
       order,
-      perShot,
-      maxShots,
-      cap: perShot * maxShots,
-      ante: [0, 1, 2].includes(options.ante) ? options.ante : 1,
+      ...o, // perShot, maxShots, ante
+      cap: o.perShot * o.maxShots,
       hand: 0,
       // The button moves on before each hand, so the first hand's dealer is the last seat and the
       // first seat acts first.
@@ -345,7 +344,7 @@ module.exports = {
       g.debts[me].paid = true;
       ctx.log(room, `✅ ${player.name} settled their tab (${g.debts[me].text})`);
     } else if (action.type === 'deal' && g.phase === 'showdown' && (me === room.hostId || me === ctx.turns.next(room, g.order, g.dealerId))) {
-      if (unpaid(room, ctx).length) return;
+      if (unpaid(room).length) return;
       if (ctx.connectedPlayers(room).length < 2) return;
       startHand(room, ctx);
     }
@@ -359,6 +358,18 @@ module.exports = {
       fold(room, ctx, id);
       advance(room, ctx, id);
     }
+  },
+
+  // Whoever's turn it is to bet; after the hand, everyone with a tab to settle, then the next
+  // dealer (the host may deal for them).
+  waitingOn(room) {
+    const g = room.game;
+    if (g.phase === 'betting') return g.turnId && isActive(room, g.turnId) ? [g.turnId] : [];
+    if (g.phase !== 'showdown') return [];
+    const debts = unpaid(room);
+    if (debts.length) return debts;
+    const dealer = next(room, g.order, g.dealerId);
+    return dealer && room.players.filter((p) => p.connected).length >= 2 ? [dealer] : [];
   },
 
   // Late joiners sit out until the next hand.
@@ -377,7 +388,7 @@ module.exports = {
     if (g.debts?.[id] && !g.debts[id].paid) return { type: 'paid' };
     if (g.phase === 'showdown') {
       const dealer = id === room.hostId || id === ctx.turns.next(room, g.order, g.dealerId);
-      return dealer && !unpaid(room, ctx).length && ctx.connectedPlayers(room).length >= 2 ? { type: 'deal' } : null;
+      return dealer && !unpaid(room).length && ctx.connectedPlayers(room).length >= 2 ? { type: 'deal' } : null;
     }
     if (g.phase !== 'betting' || id !== g.turnId) return null;
 
@@ -445,7 +456,7 @@ module.exports = {
         hands: Object.fromEntries(Object.entries(r.hands).map(([id, h]) => [id, { cards: h.cards, best: h.best, name: h.name }])),
       },
       debts: g.debts,
-      waitingOn: g.phase === 'showdown' ? unpaid(room, ctx) : [],
+      waitingOn: g.phase === 'showdown' ? unpaid(room) : [],
       nextDealerId: ctx.turns.next(room, g.order, g.dealerId),
     };
   },

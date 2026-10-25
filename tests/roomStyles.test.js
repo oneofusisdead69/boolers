@@ -10,6 +10,14 @@ test('every room style has a full set of colours, a font and a table', () => {
     assert.ok(s.font && s.felt && s.rim && s.bg && s.label && s.emoji, id);
   }
   assert.match(ROOM_STYLES.css(), /html\[data-room="dive"\]/);
+  // A page only takes in the look it's showing (all of them is over half a megabyte).
+  const dive = ROOM_STYLES.css('dive');
+  assert.match(dive, /html\[data-room="dive"\]/);
+  assert.doesNotMatch(dive, /data-room="(?!dive")/);
+  assert.ok(dive.length < ROOM_STYLES.css().length / 10);
+  // The background is a fixed layer, not a fixed background (phones repaint those on every scroll).
+  assert.doesNotMatch(ROOM_STYLES.css(), /background-attachment/);
+  assert.strictEqual(ROOM_STYLES.css('classic'), '');
 });
 
 test('the Lighthouse is one room whose weather changes: night, day, fog and storm', () => {

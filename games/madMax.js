@@ -20,6 +20,9 @@
 // turns calling the rounds.
 
 const { newDeck, shuffle, color } = require('../lib/cards');
+const { pick } = require('../lib/random');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
 
 const WAR_CARDS = 3;
 const FINAL_CARDS = 5;
@@ -345,8 +348,6 @@ function startPile(room, ctx) {
 
 // ---------- Bots ----------
 
-const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
-
 // The call most likely to be right against the top card, from what's face up: the cards played
 // on this pile are gone, the rest (hands and the pile underneath) could be anything. Suits are
 // right a quarter of the time and cost double, so they're never the best call.
@@ -375,7 +376,7 @@ function bot(room, me, ctx, skill) {
   const smart = Math.random() < skill;
 
   if (g.phase === 'call' && id === g.turnId && count(g, id) > 0) {
-    return { type: 'call', call: smart ? bestCall(g) : pickOne(CALLS) };
+    return { type: 'call', call: smart ? bestCall(g) : pick(CALLS) };
   }
   if (g.phase === 'challenge' && id !== g.lastFlip.by && !g.passed.includes(id)) {
     const war = smart ? wantsWar(g, id, g.lastFlip.by) : Math.random() < 0.4;
@@ -386,12 +387,12 @@ function bot(room, me, ctx, skill) {
     if (!targets.length) return null;
     // A good bot takes on the leader: winning hurts the biggest stack most.
     const leader = targets.reduce((a, b) => (count(g, b) > count(g, a) ? b : a));
-    return { type: 'pick', targetId: smart ? leader : pickOne(targets) };
+    return { type: 'pick', targetId: smart ? leader : pick(targets) };
   }
   if (g.phase === 'terms') {
     if (id === w.challengers[0]) {
       // Every round is a blind call either way; high/low is always allowed.
-      const terms = w.challengers.length > 1 || smart ? 'high' : pickOne(['high', 'color']);
+      const terms = w.challengers.length > 1 || smart ? 'high' : pick(['high', 'color']);
       return { type: 'terms', terms };
     }
     if (!w.final && !warPlayers(w).includes(id) && count(g, id) > 0) {
@@ -403,7 +404,7 @@ function bot(room, me, ctx, skill) {
   }
   // The laid-out cards are face down: any call is a guess.
   if (g.phase === 'war' && id === w.callerId) {
-    return { type: 'warCall', call: pickOne(w.terms === 'color' ? ['same', 'different'] : ['high', 'low']) };
+    return { type: 'warCall', call: pick(w.terms === 'color' ? ['same', 'different'] : ['high', 'low']) };
   }
   if (g.phase === 'warResult' && id === w.winnerId) return { type: 'startPile' };
   return null;
@@ -432,9 +433,9 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
-    const decks = [1, 2, 3].includes(options.decks) ? options.decks : 1;
+    const o = optionValues(module.exports.options, options);
     const order = room.players.map((p) => p.id);
-    const deck = newDeck({ decks });
+    const deck = newDeck({ decks: o.decks });
     const first = deck.pop();
     const each = Math.floor(deck.length / order.length);
     const hands = Object.fromEntries(order.map((id) => [id, deck.splice(0, each)]));
@@ -443,10 +444,8 @@ module.exports = {
       hands,
       pile: [...deck, first], // leftovers sit under the starting card
       run: [first], // cards played since this pile started, for comparisons
-      takePile: options.takePile === true,
-      finalBattle: options.finalBattle !== false,
+      ...o, // decks, takePile, finalBattle
       finalDone: false,
-      decks,
       lastFlip: null,
       war: null,
       winnerId: null,
@@ -495,7 +494,6 @@ module.exports = {
     const g = room.game;
     const w = g.war;
     const away = (id) => !ctx.turns.isActive(room, id);
-    const pick = (list) => list[Math.floor(Math.random() * list.length)];
     // Whoever has to decide something in a war has gone: it's decided for them.
     if (g.phase === 'pick' && away(g.lastFlip.by)) {
       const targets = holders(room, g).filter((id) => id !== g.lastFlip.by && !away(id));
@@ -513,6 +511,17 @@ module.exports = {
       const next = nextTurn(room, ctx, g, g.turnId);
       if (next && next !== g.turnId) startTurn(room, ctx, next);
     }
+  },
+
+  // Whoever has to call, pick or decide in a war; after a one-off or a sandwich, everyone else
+  // here who hasn't passed or called war. (Joining a war is up to anyone with cards: it isn't
+  // waited on.)
+  waitingOn(room) {
+    const g = room.game;
+    const w = g.war;
+    if (g.phase === 'challenge') return room.players.filter((p) => p.connected && p.id !== g.lastFlip.by && !g.passed.includes(p.id)).map((p) => p.id);
+    const id = { call: g.turnId, pick: g.lastFlip?.by, terms: w?.challengers[0], war: w?.callerId, warResult: w?.winnerId }[g.phase];
+    return id && isActive(room, id) ? [id] : [];
   },
 
   onJoin(room, player) {
