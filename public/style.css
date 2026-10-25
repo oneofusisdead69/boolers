@@ -1583,3 +1583,15 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-fly3d.handoff.rim { animation: bp-show 0.01s linear 0.9s both, bp-rimout 0.7s ease-out 0.9s forwards; }
 @keyframes bp-show { from { opacity: 0; } to { opacity: 1; } }
 .dt-dart.new.late { animation: bp-show 0.01s linear 0.45s both, dt-hit 0.28s ease-out 0.45s both; }
+
+/* Noir (Slevens in the Speakeasy): everything in shades of grey, red only for emphasis (the neon,
+   whose turn it is, the scores). Players' avatars and colours, the drinks, the emoji in the
+   feed and the scenery go grey. */
+html[data-room="speakeasyNoir"] .av,
+html[data-room="speakeasyNoir"] .tv-glass,
+html[data-room="speakeasyNoir"] .tv-seat small,
+html[data-room="speakeasyNoir"] .tv-side h2,
+html[data-room="speakeasyNoir"] .card > h2,
+html[data-room="speakeasyNoir"] .feed,
+html[data-room="speakeasyNoir"] .tv-feed,
+html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflood) { filter: grayscale(1); }
