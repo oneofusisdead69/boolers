@@ -1425,24 +1425,22 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-banner.okto { --banner-font: "UnifrakturMaguntia"; color: #fff; text-shadow: 0 3px 0 #2a6fdb, 0 0 24px rgba(0, 0, 0, 0.7); }
 .sc-banner.waste { --banner-font: "Rye"; color: #ffb060; text-shadow: 0 3px 0 #3a0e00, 0 0 30px #ff5a14; }
 .sc-banner.waste b { font-size: clamp(36px, 4.6vw, 64px); }
-.sc-banner.party { --banner-font: "Monoton"; color: #fff; text-shadow: 0 0 12px #ff2bd6, 0 0 30px #29f0ff; }
-.sc-banner.party b { font-size: clamp(32px, 4vw, 56px); }
 .sc-sign.mic { color: #ff4d6d; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); }
 .sc-quote.prost b { font-family: "UnifrakturMaguntia", serif; font-size: 72px; font-style: normal; color: #fff; text-shadow: 0 4px 0 #2a6fdb; }
-.sc-quote.busride b { font-family: "Monoton", system-ui; font-size: 56px; font-style: normal; color: #ffd23f; text-shadow: 0 0 20px #ff2bd6; }
 .sc-dust { background: linear-gradient(transparent 50%, rgba(220, 140, 70, 0.25)); animation: sc-fogdrift 8s ease-in-out infinite alternate; }
 .sc-duststorm { background: linear-gradient(90deg, transparent, rgba(200, 120, 60, 0.55) 40%, rgba(200, 120, 60, 0.55) 60%, transparent); animation: sc-storm 6s ease-in-out forwards; }
 @keyframes sc-storm { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-.sc-windows { overflow: hidden; }
-.sc-city { position: absolute; inset: 0; width: 300vw; background:
-  repeating-linear-gradient(90deg, transparent 0 3px, rgba(0, 0, 0, 0) 3px 9px),
-  radial-gradient(circle at 10% 40%, #ffd23f 0 2px, transparent 3px) 0 0 / 60px 40px,
-  linear-gradient(transparent 30%, #1a1430 30% 38%, transparent 38%) 0 0 / 220px 100%,
-  linear-gradient(90deg, #0c0818 0 70px, #140e28 70px 120px, #0a0614 120px 190px, #1a1232 190px 230px, transparent 230px) 0 100% / 240px 70% repeat-x;
-  animation: sc-citypass 6s linear infinite; }
-.sc-city.far { opacity: 0.5; filter: blur(1px); background-size: 40px 30px, 40px 30px, 160px 100%, 180px 55%; animation-duration: 14s; }
-@keyframes sc-citypass { from { transform: translateX(0); } to { transform: translateX(-240px); } }
-.sc-frames { background: repeating-linear-gradient(90deg, #140a24 0 18px, transparent 18px 200px); }
+.sc-viewport { overflow: hidden; border-radius: 2vw; }
+.sc-stars { position: absolute; inset: 0; width: 200%; background: radial-gradient(circle, #fff 0 1px, transparent 1.5px) 0 0 / 90px 70px, radial-gradient(circle, #cfe8ff 0 1px, transparent 1.5px) 40px 30px / 130px 90px; animation: sc-starpass 18s linear infinite; }
+.sc-stars.near { background: radial-gradient(circle, #fff 0 1.6px, transparent 2px) 0 0 / 210px 140px; animation-duration: 7s; }
+@keyframes sc-starpass { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.sc-viewport.warp .sc-stars { animation-duration: 0.35s; filter: blur(0.5px); transform-origin: 50% 50%; scale: 4 1; }
+.sc-warpflash { background: radial-gradient(circle, #fff, rgba(160, 220, 255, 0.6) 40%, transparent 75%); animation: sc-fade-out 0.9s ease-out forwards; }
+.sc-redalert { background: rgba(255, 40, 60, 0.22); animation: sc-gflash 1.6s steps(1) 2; }
+.sc-blink { width: 10px; height: 10px; border-radius: 3px; box-shadow: 0 0 10px currentColor; animation: sc-open 1.8s steps(1) infinite; }
+.sc-banner.ship { --banner-font: "Orbitron"; color: #eef6ff; text-shadow: 0 0 14px #7cf0ff, 0 0 40px #2a8ab0; }
+.sc-banner.ship b { font-size: clamp(32px, 4vw, 56px); font-weight: 700; }
+.sc-quote.punchit b { font-family: "Orbitron", system-ui; font-size: 56px; font-style: normal; color: #7cf0ff; text-shadow: 0 0 20px #2a8ab0; }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
