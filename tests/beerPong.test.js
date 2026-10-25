@@ -57,6 +57,11 @@ test('the rack is tidied at 6 and 3; the last cup wins, and the losers finish th
   throwAt(t, at(g.cups[1][6]));
   assert.deepStrictEqual(g.cups[1].map(({ x, y }) => ({ x, y })), game.rack(6), 're-racked into a triangle of six');
   assert.ok(g.cups[1].every((c) => c.owner === 'p1'), 'and dealt to the team again');
+  g.cups[1] = game.rack(10).slice(0, 3);
+  g.turnTeam = 0; g.turnId = 'p0'; g.balls = 2;
+  throwAt(t, at(g.cups[1][2]));
+  assert.deepStrictEqual(g.cups[1].map(({ x, y }) => ({ x, y })), game.rack(2), 'the gentleman\'s: two in a line');
+  assert.ok(g.cups[1].every((c) => c.x === 0));
   g.cups[1] = [{ x: 0, y: 0.1 }];
   g.turnTeam = 0; g.turnId = 'p0'; g.balls = 2;
   throwAt(t, at(g.cups[1][0]));
