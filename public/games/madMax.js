@@ -32,7 +32,7 @@
     return `<div class="mm-seats">${s.players.map((p) => {
       const n = g.counts[p.id] ?? 0;
       const cls = [p.id === g.turnId && s.phase === 'call' ? 'turn' : '', n === 0 ? 'out' : '', p.connected ? '' : 'offline'].join(' ');
-      return `<div class="mm-seat ${cls}">${PB.avatar(p.id)}<span>${esc(p.name)}${p.id === s.me ? ' (you)' : ''}</span><b>${n === 0 ? 'out' : `🂠 ${n}`}</b></div>`;
+      return `<div class="mm-seat ${cls}">${PB.avatar(p.id)}<span>${esc(p.name)}${p.id === s.me && !PB.passAndPlay ? ' (you)' : ''}</span><b>${n === 0 ? 'out' : `🂠 ${n}`}</b></div>`;
     }).join('')}</div>`;
   }
 

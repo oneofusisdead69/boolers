@@ -363,8 +363,8 @@ function renderHome() {
       <h2>📱 Pass and play</h2>
       <p class="muted">One phone, passed around. No room code needed.</p>
       <div class="pass-play">
-        <a class="btn-link" href="/play/slevens.html">🎲 Slevens</a>
-        <a class="btn-link" href="/play/madmax.html">🃏 Mad Max</a>
+        <a class="btn-link" href="/play/local.html?game=slevens">🎲 Slevens</a>
+        <a class="btn-link" href="/play/local.html?game=madMax">🃏 Mad Max</a>
         <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
         <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
         <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
