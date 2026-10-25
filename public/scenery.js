@@ -221,6 +221,40 @@
   const smoke = (cls = 'sc-smoke') => shower(10, 1.2, () => drift('', { from: [rand(5, 95), 105], to: [rand(5, 95), rand(20, 50)], dur: rand(12, 18), size: 10 }).classList.add(cls));
   const bubbles = (cls) => shower(8, 0.3, () => drift('', { from: [rand(0, 100), 104], to: [rand(0, 100), rand(50, 80)], dur: rand(4, 8), size: rand(4, 10) }).classList.add('sc-bubble', ...cls));
   const fall = (chars, secs, every, opacity = 0.6) => shower(secs, every, () => drift(pick(chars), { from: [rand(0, 100), -6], to: [rand(0, 100), 106], dur: rand(9, 15), size: rand(14, 24), spin: rand(-360, 360), opacity }));
+  // ---------- Kinds of moment, for the rooms below ----------
+  // What can be seen on the TV round the table: the strip along the top (under the heading), the
+  // left edge, and the floor along the bottom (and the bottom right, below the sidebar).
+  const cue = (name, ms = 0) => later(() => window.Ambience?.cue(name), ms);
+  // Something going along the floor (or anywhere), either way. Emoji face left, so they're turned
+  // round to go right (`faces: 'right'` for ones drawn facing right).
+  function crossing(html, { y = 92, dur = 8, size = 50, faces = 'left', bob = true, cls = [] } = {}) {
+    const right = Math.random() < 0.5;
+    const d = drift(`<span>${html}</span>`, { from: [right ? -10 : 108, y], to: [right ? 108 : -10, y + rand(-2, 2)], dur, size });
+    d.classList.add('sc-walker', ...cls);
+    if ((right && faces === 'left') || (!right && faces === 'right')) d.classList.add('flip');
+    if (bob) d.classList.add('bob');
+    return d;
+  }
+  // Something popping up from below, waving or wiggling a moment, and going back down.
+  const popup = (html, { x, bottom = 0, size = 70, life = 5000 }) =>
+    el(`<span>${html}</span>`, { left: `${x}vw`, bottom: `${bottom}vh`, fontSize: `${size}px`, animation: `sc-popup ${life / 1000}s ease-in-out forwards` }, life).classList.add('sc-pop');
+  // Something slid along the bar (or the floor), slowing to a stop, then fading.
+  const slide = (html, { y = 93, size = 44 } = {}) => {
+    const right = Math.random() < 0.5;
+    el(`<span>${html}</span>`, { left: `${right ? -6 : 96}vw`, top: `${y}vh`, fontSize: `${size}px`, '--dx': `${right ? 40 : -40}vw`, animation: 'sc-slide 4.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards' }, 4600).classList.add('sc-slider');
+  };
+  // A burst of little things flying out of one spot and falling.
+  function burst(chars, { x, y, n = 24, spread = 30, size = [14, 24] }) {
+    for (let i = 0; i < n; i++) {
+      el(pick(chars), { left: `${x}vw`, top: `${y}vh`, fontSize: `${rand(...size)}px`, '--bx': `${rand(-spread, spread)}vw`, '--by': `${rand(-30, -8)}vh`, '--fall': `${rand(20, 60)}vh`, '--spin': `${rand(-540, 540)}deg`, animation: `sc-burst ${rand(2.2, 3.2)}s cubic-bezier(0.2, 0.6, 0.4, 1) forwards` }, 3400);
+    }
+  }
+  // Something tossed up and caught (a burger flipped, a juggler's balls).
+  const toss = (html, { x, y, size = 40, height = 14, spins = 2, delay = 0 }) =>
+    el(html, { left: `${x}vw`, top: `${y}vh`, fontSize: `${size}px`, '--h': `-${height}vh`, '--spin': `${spins * 360}deg`, animation: `sc-toss 1.3s ease-in-out ${delay}s 2` }, 3000 + delay * 1000);
+  // Notes floating up from somewhere.
+  const notes = (x, y, color = '#e3b23c', secs = 6) => shower(secs, 0.7, () => drift(pick(['♪', '♫', '♬']), { from: [x + rand(-2, 2), y], to: [x + rand(-6, 14), y - rand(25, 45)], dur: rand(5, 7), size: rand(20, 30), spin: rand(-30, 30), opacity: 0.75, extra: { color } }));
+
   const embers = (secs, from) => shower(secs, 0.4, () => drift('', { from: from(), to: [rand(5, 95), rand(30, 70)], dur: rand(4, 7), size: 6 }).classList.add('sc-ember'));
 
 
@@ -659,6 +693,115 @@
       moments: [...seaMoments(true), lightning, lightning],
     },
   };
+
+  // ---------- More moments, room by room ----------
+  // So no room shows the same three things all night.
+  const MORE = {
+    dive: [
+      () => { slide('🍺', { y: 91, size: 48 }); cue('slide', 200); },
+      () => crossing('🎱', { y: 94, dur: 3.5, size: 34, bob: false, cls: ['roll'] }),
+      () => { popup('🪳', { x: rand(2, 8), bottom: 1, size: 34, life: 3500 }); },
+    ],
+    tavern: [
+      () => notes(4, 80, '#e3b23c'),
+      () => { slide('🍺', { y: 91, size: 50 }); cue('slide', 200); },
+      () => { for (let i = 0; i < 2; i++) crossing('🎲', { y: 94 - i * 2, dur: 2.6 + i * 0.4, size: 32, bob: false, cls: ['roll'] }); cue('dice', 300); },
+      () => { const d = el('<span>🐕</span><b>z</b><b>z</b><b>z</b>', { left: '2vw', bottom: '2vh', fontSize: '56px' }, 9000); d.classList.add('sc-sleeper'); },
+    ],
+    club: [
+      () => { burst(['🎉', '✨', '🟪', '🟦', '🟨', '🟩'], { x: rand(10, 30), y: 12, n: 34, spread: 34 }); cue('pop'); },
+      () => { for (let i = 0; i < 6; i++) later(() => drift('', { from: [rand(2, 30), 98], to: [rand(10, 60), rand(10, 30)], dur: rand(1.6, 2.4), size: 8, spin: rand(-720, 720) }).classList.add('sc-glowstick', pick(['g', 'p', 'b'])), i * 250); },
+    ],
+    castle: [
+      () => { for (let i = 0; i < 3; i++) toss(pick(['🔴', '🟡', '🔵']), { x: 4 + i * 1.6, y: 80, size: 22, height: 16, spins: 1, delay: i * 0.43 }); el('<span>🤹</span>', { left: '3vw', bottom: '2vh', fontSize: '64px' }, 4200); },
+      () => crossing('🐀', { y: 95, dur: 4, size: 38 }),
+      () => { el('📯', { left: '2vw', top: '12vh', fontSize: '70px', animation: 'sc-herald 4s ease-in-out forwards' }, 4200); cue('fanfare', 400); },
+    ],
+    jazz: [
+      () => { el('<span>🎷</span>', { left: '7vw', bottom: '8vh', fontSize: '76px' }, 9000).classList.add('sc-sway'); notes(9, 76, '#e3b23c', 8); },
+      () => { crossing('💃', { y: 90, dur: 14, size: 64 }); later(() => crossing('🕺', { y: 90, dur: 14, size: 64 }), 600); },
+      () => crossing('😎', { y: 94, dur: 9, size: 40, bob: true }),
+    ],
+    diner: [
+      () => crossing('🛼', { y: 94, dur: 3.2, size: 46, bob: false }),
+      () => { toss('🍔', { x: 4, y: 82, size: 46, height: 18, spins: 1 }); cue('sizzle'); },
+      () => { const b = el('<span>🔔</span><b>Order up!</b>', { left: '2vw', top: '30vh', fontSize: '44px' }, 3500); b.classList.add('sc-orderup'); },
+      () => popup('🥤', { x: 3, bottom: 2, size: 60, life: 4500 }),
+    ],
+    tiki: [
+      () => crossing('🦀', { y: 95, dur: 7, size: 40 }),
+      () => el('🦎', { left: '1vw', top: '30vh', fontSize: '46px', animation: 'sc-gecko 6s ease-in-out forwards' }, 6200),
+      () => { el('<span>🗿</span>', { left: '2vw', bottom: '24vh', fontSize: '70px' }, 4500).classList.add('sc-glowmask'); cue('drum'); },
+    ],
+    speakeasy: [
+      () => crossing('💃', { y: 89, dur: 12, size: 66 }),
+      () => { el('<span>🍸</span>', { left: '12vw', top: '22vh', fontSize: '44px' }, 4000).classList.add('sc-shaker'); cue('shaker'); },
+      () => notes(3, 78, '#d9ad52', 5),
+    ],
+    casino: [
+      () => { for (let i = 0; i < 2; i++) crossing('🎲', { y: 93 - i * 2, dur: 2.4 + i * 0.5, size: 40, bob: false, cls: ['roll'] }); cue('dice', 300); },
+      () => { burst(['🃏', '🂡', '🂮', '🃁'], { x: 6, y: 80, n: 14, spread: 18, size: [28, 40] }); },
+      () => { burst(['🍾', '🫧', '✨', '🫧'], { x: 4, y: 78, n: 18, spread: 14 }); cue('pop'); },
+      () => { const w = el('<span>🎡</span>', { left: '2vw', bottom: '4vh', fontSize: '80px' }, 5000); w.classList.add('sc-roulette'); cue('dice', 3800); },
+    ],
+    saloon: [
+      () => { slide('🥃', { y: 91, size: 42 }); cue('slide', 200); },
+      () => { crossing('🐍', { y: 95, dur: 9, size: 44 }); cue('rattle', 500); },
+      () => drift('➰', { from: [-10, rand(10, 16)], to: [110, rand(6, 14)], dur: rand(5, 7), size: 60, spin: 1080, opacity: 0.85 }),
+    ],
+    beerhall: [
+      () => crossing('🥨', { y: 94, dur: 4, size: 44, bob: false, cls: ['roll'] }),
+      () => crossing('🐕', { y: 93, dur: 8, size: 52 }),
+      () => notes(4, 80, '#2f6fd0'),
+      () => { burst(['🫧', '🍺', '🫧'], { x: 4, y: 82, n: 16, spread: 10, size: [16, 26] }); cue('pop'); },
+    ],
+    space: [
+      () => drift('🚀', { from: [-8, 90], to: [60, -10], dur: 4, size: 56, spin: 0 }).classList.add('sc-rocket'),
+      () => crossing('🛰️', { y: rand(6, 12), dur: 16, size: 46, bob: false }),
+    ],
+    christmas: [
+      () => crossing('🦌', { y: 92, dur: 9, size: 60 }),
+      () => popup('⛄', { x: 2, bottom: 2, size: 80, life: 5500 }),
+      () => { const b = el('🎁', { left: '3vw', bottom: '3vh', fontSize: '64px' }, 4500); b.classList.add('sc-present'); later(() => burst(['✨', '⭐', '🎉'], { x: 5, y: 86, n: 18, spread: 10 }), 2200); },
+      () => burst(['✨', '⭐', '✨'], { x: rand(10, 30), y: 6, n: 16, spread: 12 }),
+    ],
+    lighthouse: [
+      () => { for (let i = 0; i < pick([1, 2]); i++) later(() => el('', { left: `${rand(5, 60)}vw`, top: `${rand(4, 14)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 700); },
+      () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => crossing('🍾', { y: 52, dur: 26, size: 26, bob: true, cls: ['bottle'] }),
+    ],
+    lighthouseDay: [
+      () => drift('🎈', { from: [rand(0, 30), 60], to: [rand(10, 50), -15], dur: 18, size: 60, opacity: 0.9 }),
+      () => { const x = rand(2, 9); drift('🐦', { from: [x, 4], to: [x + 2, 50], dur: 1.1, size: 40, spin: 40, extra: { animationTimingFunction: 'ease-in' } }); cue('splash', 1100); },
+      () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
+    ],
+    lighthouseFog: [
+      () => crossing('🏮', { y: 40, dur: 22, size: 30, bob: true, cls: ['sc-fogged'] }),
+      () => { popup('🔔', { x: 3, bottom: 30, size: 40, life: 4000 }); cue('buoy'); },
+    ],
+    storm: [
+      () => { el('', { inset: '0' }, 1400).classList.add('sc-lightning'); cue('thunder', 700); },
+      () => drift('☂️', { from: [-10, rand(8, 20)], to: [110, rand(10, 30)], dur: 4, size: 60, spin: 720 }),
+    ],
+    stpatricks: [
+      () => popup('🍀', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => el('🌈', { left: '4vw', top: '16vh', fontSize: '120px', animation: 'sc-rainbow 9s ease-in-out forwards' }, 9200),
+      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
+    ],
+    stpatricksFog: [
+      () => popup('🍀', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
+    ],
+    stpatricksRain: [
+      () => popup('☂️', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
+    ],
+    pirate: [
+      () => popup('🦜', { x: 2, bottom: 20, size: 60, life: 5000 }),
+      () => { burst(['🪙', '💰', '💎', '🪙'], { x: 5, y: 84, n: 20, spread: 12 }); cue('jackpot'); },
+    ],
+  };
+  for (const [id, list] of Object.entries(MORE)) SCENES[id]?.moments.push(...list);
 
   // Plays a moment, then waits a while before the next.
   function schedule(scene) {
