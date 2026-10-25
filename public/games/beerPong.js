@@ -12,7 +12,10 @@
   // In the table's drawing (100 wide, 240 long) a rack's units are 50 to 1, its front row towards
   // the middle of the table. A rack's x runs left to right as the team throwing at it sees it.
   const S = 50;
-  const toTable = (team, x, y) => (team === 0 ? { x: 50 - x * S, y: 176 + y * S } : { x: 50 + x * S, y: 64 - y * S });
+  // The back row's rims (0.6 + 0.105 back) sit against the end of the table.
+  const toTable = (team, x, y) => (team === 0 ? { x: 50 - x * S, y: 199 + y * S } : { x: 50 + x * S, y: 41 - y * S });
+  // Where the table ends behind a full rack, in the rack's units.
+  const BACK = 0.72;
 
   // A cup's colour is its owner's (each player's chosen colour); the team's if nobody has it.
   const colorOf = (c, g, team) => (c.owner && PB.state?.players.some((p) => p.id === c.owner) ? PB.look(c.owner).color : g.teams[team].color);
@@ -99,13 +102,13 @@
     const corner = (x, y) => { const p = view(x, y); return `${p.x.toFixed(1)} ${(p.y + H * p.f).toFixed(1)}`; };
     // The venue's table top, cut to the table's shape in perspective.
     const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f) / 300) * 100).toFixed(2)}%`; };
-    const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, 1.6)}, ${pct(-0.75, 1.6)})"></div>`;
+    const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, BACK)}, ${pct(-0.75, BACK)})"></div>`;
     const p = view(a.x, a.y);
     const L = g.last && g.last.target === target && !g.last.cup ? view(g.last.x, g.last.y) : null;
     return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 0 360 300" aria-label="Their cups">
       <defs>${shades}</defs>
-      <path d="M${corner(0, -0.25)} L${corner(0, 1.6)}" class="bp-line" stroke-width="2"/>
-      <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, 1.6)} M${corner(0.75, -0.25)} L${corner(0.75, 1.6)}" class="bp-edge"/>
+      <path d="M${corner(0, -0.25)} L${corner(0, BACK)}" class="bp-line" stroke-width="2"/>
+      <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, BACK)} L${corner(0.75, BACK)} L${corner(0.75, -0.25)}" class="bp-edge"/>
       ${cups}
       ${L ? `<circle cx="${L.x}" cy="${L.y + H * L.f}" r="${7 * L.f}" fill="#fffdf4" opacity="0.8"/>` : ''}
       <g id="bp-aim" class="bp-aim big" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})"><circle r="16"/><path d="M-26 0 H26 M0 -26 V26"/></g>
