@@ -111,6 +111,31 @@ function settle(room, ctx, callerId, call) {
   }
 }
 
+// The chance that exactly `k` of `n` dice show a face that each comes up with chance `p`.
+function exactly(n, k, p) {
+  if (k < 0 || k > n) return 0;
+  let ways = 1;
+  for (let i = 0; i < k; i++) ways = (ways * (n - i)) / (i + 1);
+  return ways * p ** k * (1 - p) ** (n - k);
+}
+
+// ...and that at least `k` do.
+function atLeast(n, k, p) {
+  if (k <= 0) return 1;
+  let sum = 0;
+  for (let i = k; i <= n; i++) sum += exactly(n, i, p);
+  return sum;
+}
+
+// How a bot rates a bid from what it can see: its own dice, plus the odds on everyone else's
+// (which it can't). A face shows on a die one time in six, or two (the face or a wild 1).
+function botOdds(g, mine, bid) {
+  const unknown = totalDice(g) - mine.length;
+  const p = (g.wild && bid.face !== 1 ? 2 : 1) / 6;
+  const need = bid.qty - countFace({ mine }, bid.face, g.wild);
+  return { true: atLeast(unknown, need, p), exact: exactly(unknown, need, p) };
+}
+
 module.exports = {
   id: 'liarsDice',
   name: "Liar's Dice",
@@ -202,6 +227,49 @@ module.exports = {
     const g = room.game;
     g.order.push(player.id);
     g.dice[player.id] = 0;
+  },
+
+  // A bot bids what it thinks is likely to be there and calls liar when the last bid is less
+  // likely to be true than its own best raise. Skill is how true its sense of the odds is, and how
+  // bold it bids: a bad bot misjudges, overbids and now and then just calls.
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    if (g.phase === 'reveal') return me.id === g.nextStarter || room.hostId === me.id ? { type: 'next' } : null;
+    if (g.phase !== 'bidding' || me.id !== g.turnId) return null;
+    const mine = g.hands[me.id] || [];
+    const total = totalDice(g);
+    const prev = g.bid;
+    const sloppy = 1 - skill;
+    const misjudge = (p) => Math.min(1, Math.max(0, p + (Math.random() - 0.5) * sloppy * 0.6));
+
+    if (prev && Math.random() < sloppy * 0.2) return { type: g.spotOn && Math.random() < 0.3 ? 'spotOn' : 'liar' };
+
+    // Every raise up to a few dice more, with how likely the bot thinks it is.
+    const low = prev ? prev.qty : 1;
+    const raises = [];
+    for (let qty = low; qty <= Math.min(total, low + 6); qty++) {
+      for (const face of FACES) {
+        const bid = { qty, face };
+        if (validBid(bid, prev, total, g.wild)) raises.push({ ...bid, p: misjudge(botOdds(g, mine, bid).true) });
+      }
+    }
+    // The boldest bid it still believes in (a bad bot believes in more), else its safest one.
+    const aim = 0.2 + 0.45 * skill;
+    const sure = raises.filter((b) => b.p >= aim);
+    const safest = raises.reduce((a, b) => (!a || b.p > a.p ? b : a), null);
+    const bold = sure.reduce((a, b) => (!a || b.qty > a.qty || (b.qty === a.qty && b.p > a.p) ? b : a), null);
+    const raise = bold || safest;
+
+    if (prev) {
+      const odds = botOdds(g, mine, prev);
+      const lie = 1 - misjudge(odds.true);
+      const exact = misjudge(odds.exact);
+      // Calling is worth it when the last bid is likelier a lie than the bot's safest raise is true.
+      const best = safest ? safest.p : 0;
+      if (g.spotOn && exact > 0.35 && exact > lie && exact > best) return { type: 'spotOn' };
+      if (lie > best) return { type: 'liar' };
+    }
+    return raise && { type: 'bid', qty: raise.qty, face: raise.face };
   },
 
   view(room, player) {

@@ -111,7 +111,7 @@ function settle(room, ctx, player, hit) {
       g.phase = 'over';
       g.winner = g.turnTeam;
       ctx.log(room, `🏆 Team ${TEAMS[g.winner].name} wins beer pong!`);
-      for (const id of g.teams[target]) ctx.drink(room, id, g.sips, 'lost beer pong', null, { title: 'Finish your drink!' });
+      for (const id of g.teams[target].filter((x) => ctx.turns.isActive(room, x))) ctx.finishDrink(room, id, 'lost beer pong');
       return;
     }
     if (g.rerack && [6, 2].includes(cups.length)) {
@@ -131,6 +131,24 @@ function settle(room, ctx, player, hit) {
   } else {
     startTurn(room, ctx, target);
   }
+}
+
+// Bots. A bot's flick goes wrong like a person's: it leans off straight and comes out too hard or
+// too soft, by less the better the bot (at 0.9 about 4° and 9%, at 0.25 about 11° and 28%). A
+// full rack is a big target, so even a Booler misses a last cup about half the time.
+function flick(skill) {
+  return {
+    angle: gauss() * (3.5 + 11 * Math.pow(1 - skill, 1.2)),
+    speed: 1 + gauss() * (0.07 + 0.3 * Math.pow(1 - skill, 1.3)),
+  };
+}
+
+// The cup a bot goes for. A good one picks the heart of the rack (most cups round it, so a ball a
+// little off still drops in one), front first; a bad one just picks one.
+function pickCup(cups, skill) {
+  if (skill < 0.5) return cups[Math.floor(Math.random() * cups.length)];
+  const around = (c) => cups.filter((o) => o !== c && Math.hypot(o.x - c.x, o.y - c.y) < GAP * 1.1).length;
+  return cups.slice().sort((a, b) => around(b) - around(a) || a.y - b.y || Math.abs(a.x) - Math.abs(b.x))[0];
 }
 
 module.exports = {
@@ -213,6 +231,18 @@ module.exports = {
     // Everyone watches the ball fly and land before anything happens.
     g.phase = 'landing';
     ctx.setTimer(room, LAND_MS, () => settle(room, ctx, player, hit));
+  },
+
+  // A bot throws its ball when it's up, at a cup in the other team's rack. Picking teams and
+  // starting is the host's.
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    if (g.phase === 'teams') return room.hostId === me.id && g.teams.every((t) => t.length) ? { type: 'go' } : null;
+    if (g.phase !== 'throwing' || g.turnId !== me.id) return null;
+    const cups = g.cups[1 - g.turnTeam];
+    if (!cups.length) return null;
+    const cup = pickCup(cups, skill);
+    return { type: 'throw', x: cup.x, y: cup.y, ...flick(skill) };
   },
 
   // A thrower who leaves: the next one on the team takes the ball.

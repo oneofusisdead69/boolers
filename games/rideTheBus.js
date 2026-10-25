@@ -178,6 +178,14 @@ function honestOdds(g, meId, play) {
   return 1 - none;
 }
 
+// A steady coin for a bot's choice about one flip: the same each time it's asked, so a bot that
+// "didn't notice" its match goes on not noticing (and the host bot then turns the next card).
+function steady(text) {
+  let h = 2166136261;
+  for (const ch of text) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) / 2 ** 32;
+}
+
 function bot(room, me, ctx, skill) {
   const g = room.game;
   const id = me.id;
@@ -205,11 +213,12 @@ function bot(room, me, ctx, skill) {
 
   const spot = currentSpot(g);
   const hand = g.hands[id];
+  // Every card dumped is one fewer for the bus. A bad bot sometimes doesn't notice its match.
+  const noticed = steady(`${id}:${g.pyramid.flipped}`) < 0.5 + skill / 2;
   if (spot) {
     const match = hand.findIndex((c) => c.rank === spot.card.rank);
     const targetId = pickTarget(room, id);
-    // Every card dumped is one fewer for the bus. A bad bot sometimes doesn't notice its match.
-    if (match >= 0 && targetId && Math.random() < 0.5 + skill / 2) return { type: 'play', cardIdx: match, targetId };
+    if (match >= 0 && targetId && noticed) return { type: 'play', cardIdx: match, targetId };
     // Bluffing: once a flip at most, and a good bot keeps it to the cheap rows near the bottom.
     const bluffed = g.pyramid.plays.some((p) => p.by === id && p.flip === g.pyramid.flipped);
     const asked = match < 0 && g.bluff && hand.length && !bluffed && targetId;
@@ -222,7 +231,7 @@ function bot(room, me, ctx, skill) {
   // has nothing more to play).
   if (room.hostId === id) {
     const waiting = g.pyramid.plays.some((p) => p.status === 'pending' && room.players.find((x) => x.id === p.targetId)?.bot);
-    if (!waiting && !(spot && hand.some((c) => c.rank === spot.card.rank))) return { type: 'flip' };
+    if (!waiting && !(spot && noticed && hand.some((c) => c.rank === spot.card.rank))) return { type: 'flip' };
   }
   return null;
 }

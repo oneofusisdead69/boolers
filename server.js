@@ -127,8 +127,7 @@ function forgetAbsent(room) {
     if (rooms.get(room.code) !== room || room.game) return;
     const gone = room.players.filter((p) => !p.connected);
     if (!gone.length) return;
-    room.away ||= {};
-    for (const p of gone) room.away[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
+    for (const p of gone) stashAway(room, p);
     room.players = room.players.filter((p) => p.connected);
     ensureHost(room);
     broadcast(room);
@@ -349,10 +348,7 @@ function startGame(room, gameId, mine = {}) {
   const game = GAMES[gameId];
   room.selectedGame = gameId;
   // Disconnected players don't carry into a new game, but their tab is kept for when they're back.
-  room.away ||= {};
-  for (const p of room.players.filter((x) => !x.connected)) {
-    room.away[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
-  }
+  for (const p of room.players.filter((x) => !x.connected)) stashAway(room, p);
   room.players = room.players.filter((p) => p.connected);
   for (const p of room.players) p.drinks = 0;
   room.feed = [];
@@ -397,6 +393,12 @@ function gameEnded(room, how) {
     how,
   });
   room.gameStartedAt = null;
+}
+
+// Someone off the list keeps tonight's tab, for when they're back.
+function stashAway(room, p) {
+  if (p.bot) return;
+  (room.away ||= {})[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
 }
 
 function removePlayer(room, playerId) {
@@ -644,10 +646,22 @@ io.on('connection', (socket) => {
     if (bots.add(room, String(level), (wanted, taken) => LOOKS.choose(wanted, taken))) broadcast(room);
   });
 
+  // Leaving mid-game is like going quiet: the game passes them by, but their cards and place stay
+  // theirs in case they're back (the code gets them in again). In the lobby they're off the list,
+  // their tab kept.
   on('leave', () => {
     if (!room || !player) return;
     const r = room;
-    removePlayer(r, player.id);
+    const p = player;
+    if (r.game) {
+      // (Gone on purpose: no grace before the host's role passes on.)
+      Object.assign(p, { connected: false, socketId: null, leftAt: Date.now() - HOST_GRACE_MS });
+      ensureHost(r);
+      GAMES[r.game.type].check?.(r, ctx);
+    } else {
+      stashAway(r, p);
+      removePlayer(r, p.id);
+    }
     room = player = null;
     broadcast(r);
   });

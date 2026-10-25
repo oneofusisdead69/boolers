@@ -70,6 +70,34 @@ function endRace(room, ctx) {
   g.resolved = true;
 }
 
+// Rules a bot makes when it draws a Jack: short, and easy to break.
+const BOT_RULES = [
+  'No saying "drink"',
+  'No pointing',
+  'Drink with your left hand',
+  'No first names',
+  'Say "cheers" before every sip',
+  'No swearing',
+  'Thumb on the table when you drink',
+  'Talk like a pirate',
+];
+
+// Someone (not `me`) to hand sips or a mate to: at random, a human when there is one.
+function botTarget(room, ctx, me) {
+  const others = ctx.connectedPlayers(room).filter((p) => p.id !== me.id);
+  const humans = others.filter((p) => !p.bot);
+  return pick(humans.length ? humans : others);
+}
+
+// The spot a bot draws from. A good bot keeps away from the gaps so it doesn't break the circle;
+// a bad one grabs any card.
+function botSlot(g, skill) {
+  const n = g.deck.length;
+  const free = g.deck.map((_, i) => i).filter((i) => !g.taken.includes(i));
+  const safe = free.filter((i) => ![(i + 1) % n, (i + n - 1) % n].some((s) => g.taken.includes(s)));
+  return pick(g.circle && safe.length && Math.random() < skill ? safe : free);
+}
+
 module.exports = {
   id: 'kingsCup',
   name: 'Kings Cup',
@@ -220,6 +248,27 @@ module.exports = {
 
   onJoin(room, player) {
     room.game.order.push(player.id);
+  },
+
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    // Everyone races Floor and Heaven, and the last to tap drinks: a good bot is quick, a bad one
+    // is slow (but still beats the clock).
+    if (g.phase === 'race') {
+      if (g.race.tapped.includes(me.id)) return null;
+      return { type: 'tap', delay: 300 + (1 - skill) * 3500 + Math.random() * 1500 * (1.3 - skill) };
+    }
+    if (me.id !== g.turnId) return null;
+    if (g.phase === 'draw') return { type: 'draw', slot: botSlot(g, skill) };
+    if (g.phase !== 'card') return null;
+    if (g.resolved) return { type: 'next' };
+    const rule = g.cards[g.card.rank];
+    const target = botTarget(room, ctx, me);
+    // 2 (You), or a race card without reactions: the bot names who drinks.
+    if ((rule.kind === 'pick' || rule.kind === 'race') && target) return { type: 'pick', targetId: target.id };
+    if (rule.kind === 'mate' && target) return { type: 'mate', targetId: target.id };
+    if (rule.kind === 'rule') return { type: 'rule', text: pick(BOT_RULES) };
+    return null;
   },
 
   view(room, player) {

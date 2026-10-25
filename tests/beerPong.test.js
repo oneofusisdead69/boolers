@@ -80,3 +80,34 @@ test('too soft falls short, too hard goes long', () => {
   assert.strictEqual(game.land(aim, 0, 1.03, 0).y, 0.3);
   assert.ok(game.land(aim, 20, 1, 0).x > 0.2, 'a flick leaning right goes right');
 });
+
+test('bots: the host bot starts, then each throws only when it\'s up, at the other rack', () => {
+  const t = setup(game, 4);
+  assert.strictEqual(t.bot(1, 0.9), null, 'picking teams is the host\'s');
+  assert.deepStrictEqual(t.bot(0, 0.9), { type: 'go' });
+  t.act(0, 'go');
+  const g = t.room.game;
+  for (let i = 0; i < 4; i++) {
+    const a = t.bot(i, 0.9);
+    if (t.room.players[i].id !== g.turnId) assert.strictEqual(a, null);
+    else assert.ok(a.type === 'throw' && g.cups[1 - g.turnTeam].some((c) => c.x === a.x && c.y === a.y));
+  }
+  t.cleanup();
+});
+
+test('a Booler sinks clearly more than an NPV', () => {
+  const t = ready([['p0'], ['p1']]);
+  const g = t.room.game;
+  const rate = (skill) => {
+    let sunk = 0;
+    for (let i = 0; i < 2000; i++) {
+      const a = t.bot(0, skill);
+      const ball = game.land(a, a.angle, a.speed, game.WOBBLE.normal);
+      if (g.cups[1].some((c) => Math.hypot(c.x - ball.x, c.y - ball.y) < game.CUP_R * 0.95)) sunk++;
+    }
+    return sunk / 2000;
+  };
+  const booler = rate(0.9);
+  const npv = rate(0.25);
+  assert.ok(booler > 0.7 && npv < 0.6 && booler > npv + 0.2, `Booler ${booler}, NPV ${npv}`);
+});
