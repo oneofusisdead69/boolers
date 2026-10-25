@@ -27,7 +27,10 @@
   <script src="/room-styles.js"></script>
   <script src="/pb.js"></script>
   <script src="/ambience.js"></script>
-  <script src="/shared/bundle.js"></script>
+  <script>
+    // The rules for just this game (lib/bundle.js), before the page below runs.
+    document.write(`<script src="/shared/bundle.js?game=${encodeURIComponent(new URLSearchParams(location.search).get('game') || '')}"><\/script>`);
+  </script>
   <script>
     // Pass and play for any game: runs the real rules (from /shared/bundle.js) and the real game
     // screens (from /games/<id>.js) on one phone. Each screen is drawn for whoever has to act
@@ -39,19 +42,14 @@
     const $app = document.getElementById('app');
     const $alert = document.getElementById('drink-alert');
 
-    // What one phone can't do (secret hands, tap races) is switched off, and who acts is
-    // worked out from the game state.
+    // What one phone can't do (secret hands, tap races) is switched off. Who acts is whoever the
+    // game is waiting on (its waitingOn); where anyone may act (betting, the pyramid), a bar at the
+    // top picks whose screen is showing, the ones the game is waiting on lit up.
     const LOCAL = {
       rideTheBus: {
         locked: { bluff: false },
-        actor(room, holder) {
-          const g = room.game;
-          if (g.phase === 'guess') return g.order[g.turnIdx];
-          if (g.phase === 'give') return g.give.from;
-          if (g.phase === 'bus' || g.phase === 'over') return g.bus.riderId;
-          return holder || g.order[0];
-        },
-        // In the pyramid anyone may play, so the phone shows one player's cards at a time.
+        // In the pyramid anyone may play, so the phone shows one player's cards at a time: lit
+        // up, the ones holding a match for the card just flipped.
         switchable: (room) => room.game.phase === 'pyramid',
         hint(room, id) {
           const g = room.game;
@@ -65,51 +63,21 @@
           return false;
         },
       },
-      darts: {
-        locked: {},
-        // The thrower (games/darts.js keeps their place in the order), or whoever's handing out sips.
-        actor(room) {
-          const g = room.game;
-          return g.phase === 'give' && g.give ? g.give.from : g.order[g.turnIdx];
-        },
-      },
-      kingsCup: {
-        locked: { reactions: false },
-        actor: (room) => room.game.turnId,
-      },
-      aceRace: {
-        locked: {},
-        // Betting: tap whose bet it is. Payout: each winner in turn hands out their sips.
-        actor(room, holder) {
-          const g = room.game;
-          if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
-          return (g.phase === 'betting' && holder) || g.order[0];
-        },
-        switchable: (room) => room.game.phase === 'betting',
-        holderLabel: 'Whose bet?',
-        hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
-      },
+      kingsCup: { locked: { reactions: false } },
+      aceRace: { switchable: (room) => room.game.phase === 'betting', holderLabel: () => 'Whose bet?' },
       horseRace: {
         locked: { jockey: false }, // riders all tap at once: needs a phone each
-        actor(room, holder) {
-          const g = room.game;
-          if (g.phase === 'payout') return Object.keys(g.payout).find((id) => !g.payout[id].done) || g.order[0];
-          return (g.phase === 'betting' && holder) || g.order[0];
-        },
         switchable: (room) => room.game.phase === 'betting',
-        holderLabel: 'Whose bet?',
-        hint: (room, id) => room.game.phase === 'betting' && !room.game.bets[id],
+        holderLabel: () => 'Whose bet?',
       },
-      shotPoker: {
-        locked: {},
-        // Betting goes to whoever's turn it is; after a hand, pick who's holding the phone to pay.
-        actor(room, holder) {
-          const g = room.game;
-          if (g.phase === 'betting') return g.turnId;
-          return holder || Object.keys(g.debts).find((id) => !g.debts[id].paid) || g.order[0];
-        },
-        switchable: (room) => room.game.phase === 'showdown',
-        hint: (room, id) => room.game.debts[id] && !room.game.debts[id].paid,
+      // After a hand, pick who's holding the phone to settle up.
+      shotPoker: { switchable: (room) => room.game.phase === 'showdown' },
+      // A war chance is anyone's to call, and anyone with cards may join a war before its terms
+      // are set. Each pick is for one tap: then the phone goes back to whoever's still deciding.
+      madMax: {
+        switchable: (room) => room.game.phase === 'challenge' || (room.game.phase === 'terms' && !room.game.war.final),
+        holderLabel: (room) => (room.game.phase === 'challenge' ? 'Who’s calling war?' : 'Who’s joining?'),
+        oneTap: true,
       },
     };
     // Games played since this page opened, for the water reminder; and a number for each game.
@@ -159,12 +127,8 @@
       try { localStorage.setItem('local-music', musicLevel); } catch {}
       music();
     });
-    const howToPlay = (rules = []) => (rules.length
-      ? `<details class="how-to"><summary>📖 How to play</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : '');
 
-    // Otherwise: whoever's turn the game says it is (games name it turnId, or rollerId for the
-    // dice), or the host.
-    const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.game.rollerId || room.hostId };
+    const local = { locked: {}, ...LOCAL[gameId] };
     const options = (game.options || []).filter((o) => !(o.id in local.locked));
 
     const storeKey = `local-${gameId}`;
@@ -179,17 +143,30 @@
     let room = null;
     let lastPlayers = []; // the last game's players, for tonight's tab
     let ctx = null;
-    let holder = null; // whose cards are showing, where anyone may act
+    let holder = null; // whose cards are showing, where anyone may act (picked in this phase)
+    let holderPhase = null;
     const alerts = [];
     const esc = PB.esc;
     const nm = (id) => room.players.find((p) => p.id === id)?.name ?? '?';
-    const actorId = () => local.actor(room, holder);
+    // Who's holding the phone: whoever the game is waiting on. room.hostId is whoever acted last
+    // (whoever holds the phone can do the host's jobs), so a host's job, or a moment that waits on
+    // nobody (dice spinning, a ball in the air), leaves the phone where it is.
+    function actorId() {
+      if (room.game.phase !== holderPhase) {
+        holder = null;
+        holderPhase = room.game.phase;
+      }
+      if (holder && local.switchable?.(room)) return holder;
+      const waiting = game.waitingOn(room);
+      return waiting.includes(room.hostId) ? room.hostId : waiting[0] ?? room.hostId;
+    }
 
     PB.passAndPlay = true;
     PB.send = (type, data) => {
       const p = room.players.find((x) => x.id === actorId());
-      room.hostId = p.id; // whoever holds the phone can do the host's jobs (like flipping)
+      room.hostId = p.id;
       game.handle(room, p, { type, ...data }, ctx);
+      if (local.oneTap) holder = null;
       render();
     };
     PB.redraw = () => render();
@@ -225,18 +202,13 @@
         <div class="card ls-l">
           <h2>${esc(game.name)}</h2>
           <p class="muted">${esc(game.description)}</p>
-          ${howToPlay(game.rules)}
+          ${PB.howToPlay(game.rules)}
           ${game.custom?.length ? `
             <div class="custom-row">
               <small>${PB.hasCustom(gameId) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
               <button class="secondary" id="customize">✏️ Customize</button>
             </div>` : ''}
-          ${options.filter((o) => PB.optionShown(o, opts)).map((o) => `
-            <div class="option">
-              <span class="muted">${esc(o.label)}</span>
-              <div class="segmented">${o.choices.map((c) => `
-                <button class="${c.value === opts[o.id] ? 'selected' : ''}" data-opt="${esc(o.id)}" data-val='${esc(JSON.stringify(c.value))}'>${esc(c.label)}</button>`).join('')}</div>
-            </div>`).join('')}
+          ${PB.optionsHtml(options, opts)}
         </div>
         <div class="card">
           <h2>Players, in turn order</h2>
@@ -249,8 +221,7 @@
         </div>
         <div class="card room-style-card">
           <h2>Room style</h2>
-          ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).filter(([, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
-            <button class="${id === roomStyle ? 'selected' : ''}" data-room-style="${id}"><span>${esc(st.emoji)}</span>${esc(st.label)}</button>`).join('')}</div>`).join('')}
+          ${PB.roomStylePicker(roomStyle, (id) => `data-room-style="${esc(id)}"`)}
         </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
@@ -275,8 +246,8 @@
           renderSetup();
         };
       });
-      $app.querySelectorAll('[data-opt]').forEach((b) => {
-        b.onclick = () => { names = readNames(); opts[b.dataset.opt] = JSON.parse(b.dataset.val); renderSetup(); };
+      $app.querySelectorAll('[data-option]').forEach((b) => {
+        b.onclick = () => { names = readNames(); opts[b.dataset.option] = JSON.parse(b.dataset.value); renderSetup(); };
       });
       document.getElementById('start').onclick = () => {
         const n = readNames();
@@ -303,7 +274,7 @@
       ctx = createContext({
         emit: (r, playerId, event, data) => {
           if (event !== 'drink') return;
-          alerts.push({ who: nm(playerId), title: data.title || `DRINK ${data.sips} SIP${data.sips === 1 ? '' : 'S'}`, reason: data.reason || '' });
+          alerts.push({ who: nm(playerId), title: PB.drinkTitle(data), reason: data.reason || '' });
           showAlert();
         },
         broadcast: () => render(),
@@ -332,8 +303,10 @@
     function holderBar() {
       if (!local.switchable?.(room)) return '';
       const current = actorId();
-      return `<div class="holder"><span>${esc(local.holderLabel || 'Whose cards?')}</span>${room.players.map((p) => `
-        <button class="${p.id === current ? 'selected' : ''} ${local.hint?.(room, p.id) ? 'hint' : ''}" data-holder="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
+      const waiting = game.waitingOn(room);
+      const hint = local.hint || ((r, id) => waiting.includes(id));
+      return `<div class="holder"><span>${esc(local.holderLabel?.(room) || 'Whose cards?')}</span>${room.players.map((p) => `
+        <button class="${p.id === current ? 'selected' : ''} ${hint(room, p.id) ? 'hint' : ''}" data-holder="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
     }
 
     function render() {
@@ -351,6 +324,7 @@
         gameType: gameId,
         gameNo: localGames,
         game: game.view(room, player, ctx),
+        waiting: game.waitingOn(room),
         feed: room.feed.slice(-8),
         deadline: room.deadline,
         serverNow: Date.now(),
@@ -360,10 +334,8 @@
       if (!screens) return;
       // Sound effects for what just happened (no "your turn" chime: the phone is being passed).
       if (prev?.gameType === gameId && prev.game) {
-        const s = PB.state;
-        const sounds = screens.sounds?.(prev, s) || [];
-        if (s.phase === 'over' && prev.phase !== 'over') Prefs.play('win');
-        else if (sounds.length) Prefs.play(sounds[0]);
+        const pick = PB.loudest(PB.soundsFor(prev, PB.state));
+        if (pick) Prefs.play(pick);
       }
       const html = screens.render(PB.state);
       if (html === null) return;
@@ -376,30 +348,19 @@
       music();
       PB.layout($app, screens.stage);
       screens.afterRender?.(PB.state);
-      updateTimer();
+      PB.tickTimer();
     }
 
+    PB.onTaps($app, (cmd) => (cmd === 'setup' || cmd === 'endGame') && renderSetup());
     $app.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-act], [data-cmd], [data-holder]');
-      if (!el || el.disabled) return;
-      if (el.dataset.holder) { holder = el.dataset.holder; return render(); }
-      if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
-      const { act, cmd, confirm: _, ...data } = el.dataset;
-      if (act) PB.act(act, data);
-      else if (cmd === 'setup' || cmd === 'endGame') renderSetup();
+      const el = e.target.closest('[data-holder]');
+      if (!el) return;
+      holder = el.dataset.holder;
+      render();
     });
 
-    function updateTimer() {
-      const el = document.getElementById('timer');
-      if (el && room?.deadline) el.textContent = `⏱ ${Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000))}s`;
-    }
-    setInterval(updateTimer, 250);
-
     // Load the game's screens, then show setup.
-    const script = document.createElement('script');
-    script.src = `/games/${encodeURIComponent(gameId)}.js`;
-    script.onload = () => renderSetup();
-    document.head.appendChild(script);
+    PB.loadScreens(gameId, () => renderSetup());
   </script>
 </body>
 </html>

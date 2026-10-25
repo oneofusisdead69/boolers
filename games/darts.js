@@ -23,6 +23,8 @@ const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9,
 const RINGS = { bull: 6.35 / 170, outerBull: 15.9 / 170, tripleIn: 99 / 170, tripleOut: 107 / 170, doubleIn: 162 / 170 };
 const CRICKET = [20, 19, 18, 17, 16, 15, 25];
 const WOBBLE = { steady: 0.035, normal: 0.06, wobbly: 0.1 };
+// How far off a perfect flick's speed still counts as perfect (sent to phones, for the readout).
+const PERFECT = 0.08;
 const TURN_PAUSE = 2600;
 const ROUND_PAUSE = 4500;
 
@@ -46,7 +48,7 @@ const value = (seg) => seg.n * seg.m;
 // way counts as perfect.
 function land(aim, angle, speed, wobble) {
   const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - 3);
-  const power = Math.abs(speed - 1) < 0.08 ? 1 : speed;
+  const power = Math.abs(speed - 1) < PERFECT ? 1 : speed;
   return {
     x: aim.x + Math.sin((lean * Math.PI) / 180) * 1.4 + gauss() * wobble,
     y: aim.y + (1 - power) * 0.6 + gauss() * wobble,
@@ -455,11 +457,13 @@ module.exports = {
       points: g.points,
       order: g.order,
       winnerId: g.winnerId,
+      perfect: PERFECT,
     };
   },
 
   score,
   land,
+  PERFECT,
   SECTORS,
   RINGS,
 };

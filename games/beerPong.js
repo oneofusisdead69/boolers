@@ -21,6 +21,8 @@ const { TEAMS } = teams; // Red and Blue: beer pong is always two teams
 const CUP_R = 0.1;
 const GAP = 0.21; // from one cup's centre to the next
 const WOBBLE = { steady: 0.025, normal: 0.05, wobbly: 0.09 };
+// How far off a perfect flick's speed still counts as perfect (sent to phones, for the readout).
+const PERFECT = 0.06;
 
 // Deals a team's cups round its players, front to back: whose cup is whose.
 function deal(cups, ids) {
@@ -44,7 +46,7 @@ function rack(n) {
 // long, too soft falls short. A little slack either way counts as perfect.
 function land(aim, angle, speed, wobble) {
   const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - 3);
-  const power = Math.abs(speed - 1) < 0.06 ? 1 : speed;
+  const power = Math.abs(speed - 1) < PERFECT ? 1 : speed;
   return {
     x: aim.x + Math.sin((lean * Math.PI) / 180) * 1.1 + gauss() * wobble,
     y: aim.y + (power - 1) * 0.9 + gauss() * wobble,
@@ -293,11 +295,13 @@ module.exports = {
       aim: g.aim || null,
       sips: g.sips,
       cupR: CUP_R,
+      perfect: PERFECT,
     };
   },
 
   rack,
   land,
+  PERFECT,
   CUP_R,
   WOBBLE,
 };

@@ -5,9 +5,6 @@
 // cups they're throwing at, with a crosshair, and the throwing pad: drag to aim, flick up to throw.
 (() => {
   const { esc, name } = PB;
-  // A perfect flick crosses this many screen heights per second (as in Darts).
-  const IDEAL_SPEED = 2.5;
-
   // ---------- The table ----------
   // In the table's drawing (100 wide, 240 long) a rack's units are 50 to 1, its front row towards
   // the middle of the table. A rack's x runs left to right as the team throwing at it sees it.
@@ -190,83 +187,38 @@
     </div>`;
   }
 
-  let lastSent = 0;
-  function sendAim(force) {
-    const now = Date.now();
-    if (!force && now - lastSent < 90) return;
-    lastSent = now;
-    PB.act('aim', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3) });
-  }
   function showAim() {
     const p = view(aimState.x, aimState.y);
     document.getElementById('bp-aim')?.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})`);
   }
 
   function setupPad() {
-    const el = document.getElementById('bp-pad');
     const held = document.getElementById('bp-held');
-    if (!el) return;
-    let hist = [];
-    let start = null;
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      el.setPointerCapture?.(e.pointerId);
-      start = { x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y };
-      hist = [{ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y }];
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!start) return;
+    PB.flickPad(document.getElementById('bp-pad'), {
+      aim: aimState,
       // Dragging across the pad's width sweeps the crosshair across the whole rack; dragging up
       // moves it further back.
-      const scale = 1.2 / el.clientWidth;
-      aimState.x = Math.max(-0.6, Math.min(0.6, start.ax + (e.clientX - start.x) * scale));
-      aimState.y = Math.max(-0.1, Math.min(0.8, start.ay - (e.clientY - start.y) * scale));
-      hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y });
-      if (hist.length > 40) hist.shift();
-      if (held) held.style.transform = `translate(${e.clientX - start.x}px, ${Math.min(0, e.clientY - start.y) * 0.3}px)`;
-      feedback = '';
-      showAim();
-      sendAim(false);
-    });
-    const release = (e) => {
-      if (!start) return;
-      start = null;
-      const now = e.timeStamp;
-      const end = hist[hist.length - 1];
-      // The flick: the last ~90ms of movement.
-      const from = hist.find((h) => h.t >= now - 90) || hist[0];
-      const dt = Math.max(1, end.t - from.t);
-      const vx = (end.x - from.x) / dt;
-      const vy = (end.y - from.y) / dt;
-      if (vy < -0.5 && from.y - end.y > 30) {
-        // Aim where the crosshair was before the flick started moving it.
-        let i = hist.length - 1;
-        while (i > 0 && hist[i].y < hist[i - 1].y - 2) i--;
-        aimState.x = hist[i].ax;
-        aimState.y = hist[i].ay;
-        const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
-        const speed = (-vy * 1000) / window.innerHeight / IDEAL_SPEED;
-        feedback = flickNote(angle, speed);
+      drag: (from, dx, dy, width) => ({
+        x: Math.max(-0.6, Math.min(0.6, from.x + (dx * 1.2) / width)),
+        y: Math.max(-0.1, Math.min(0.8, from.y - (dy * 1.2) / width)),
+      }),
+      held,
+      onAim() {
+        feedback = '';
+        showAim();
+      },
+      send: () => PB.act('aim', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3) }),
+      perfect: PB.state.game.perfect,
+      onThrow({ angle, speed, note }) {
+        feedback = note;
         // The ball leaves your hand here and flies to the cups (see afterRender).
         if (held) {
           launch = PB.centre(held);
           held.style.opacity = '0';
         }
-        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
-      } else {
-        if (held) held.style.transform = '';
-        sendAim(true);
-      }
-    };
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-  }
-
-  function flickNote(angle, speed) {
-    const lean = Math.abs(angle) > 3 ? `, leaning ${Math.round(Math.abs(angle))}° ${angle > 0 ? 'right' : 'left'}` : ', dead straight';
-    const how = Math.abs(speed - 1) < 0.06 ? 'Perfect power' : speed < 1 ? `Too soft (${Math.round(speed * 100)}%)` : `Too hard (${Math.round(speed * 100)}%)`;
-    return `${how}${lean}`;
+      },
+    });
   }
 
   // ---------- Screens ----------

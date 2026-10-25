@@ -5,7 +5,6 @@
 // throw. The quarter flies in, bounces off the table, and drops in the glass (or doesn't).
 (() => {
   const { esc, name } = PB;
-  const IDEAL_SPEED = 2.5; // a perfect flick crosses this many screen heights per second
 
   // ---------- The table, in 3D ----------
   // Table units (x across, d away from you; the glass at d = 1) to the picture, 360 × 260, and how
@@ -71,13 +70,6 @@
     </div>`;
   }
 
-  let lastSent = 0;
-  function sendAim(force) {
-    const now = Date.now();
-    if (!force && now - lastSent < 90) return;
-    lastSent = now;
-    PB.act('aim', { x: +aimState.x.toFixed(3) });
-  }
   function showAim(x) {
     const p = view(x, 1);
     document.getElementById('qt-aim')?.setAttribute('d', `M180 255 L${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
@@ -86,57 +78,28 @@
   function setupPad() {
     const el = document.getElementById('qt-pad');
     const held = document.getElementById('qt-held');
-    if (!el) return;
-    let hist = [];
-    let start = null;
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      el.setPointerCapture?.(e.pointerId);
-      start = { x: e.clientX, y: e.clientY, ax: aimState.x };
-      hist = [{ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x }];
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!start) return;
-      aimState.x = Math.max(-0.6, Math.min(0.6, start.ax + ((e.clientX - start.x) * 1.2) / el.clientWidth));
-      hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x });
-      if (hist.length > 40) hist.shift();
-      if (held) held.style.transform = `translate(${e.clientX - start.x}px, ${Math.min(0, e.clientY - start.y) * 0.3}px)`;
-      feedback = '';
-      showAim(aimState.x);
-      sendAim(false);
-    });
-    const release = (e) => {
-      if (!start) return;
-      start = null;
-      const now = e.timeStamp;
-      const end = hist[hist.length - 1];
-      const from = hist.find((h) => h.t >= now - 90) || hist[0];
-      const dt = Math.max(1, end.t - from.t);
-      const vx = (end.x - from.x) / dt;
-      const vy = (end.y - from.y) / dt;
-      if (vy < -0.5 && from.y - end.y > 30) {
-        // Lined up where it was before the flick started moving it.
-        let i = hist.length - 1;
-        while (i > 0 && hist[i].y < hist[i - 1].y - 2) i--;
-        aimState.x = hist[i].ax;
-        const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
-        const speed = (-vy * 1000) / window.innerHeight / IDEAL_SPEED;
-        const lean = Math.abs(angle) > 3 ? `, leaning ${Math.round(Math.abs(angle))}° ${angle > 0 ? 'right' : 'left'}` : ', dead straight';
-        feedback = `${Math.abs(speed - 1) < 0.05 ? 'Perfect bounce' : speed < 1 ? `Too soft (${Math.round(speed * 100)}%)` : `Too hard (${Math.round(speed * 100)}%)`}${lean}`;
+    PB.flickPad(el, {
+      aim: aimState,
+      drag: (from, dx, dy, width) => ({ x: Math.max(-0.6, Math.min(0.6, from.x + (dx * 1.2) / width)) }),
+      held,
+      onAim() {
+        feedback = '';
+        showAim(aimState.x);
+      },
+      send: () => PB.act('aim', { x: +aimState.x.toFixed(3) }),
+      perfect: PB.state.game.perfect,
+      perfectText: 'Perfect bounce',
+      onThrow({ angle, speed, vx, note }) {
+        feedback = note;
+        // The quarter shoots off up the pad.
         if (held) {
           held.style.transition = 'transform 0.3s ease-in, opacity 0.3s';
           held.style.transform = `translate(${vx * 60}px, -${el.clientHeight}px) scale(0.4)`;
           held.style.opacity = '0';
         }
-        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
-      } else {
-        if (held) held.style.transform = '';
-        sendAim(true);
-      }
-    };
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
+      },
+    });
   }
 
   // ---------- Screens ----------
