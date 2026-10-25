@@ -196,6 +196,30 @@ function viewFor(room, player) {
   };
 }
 
+// ---------- Preview (on your own computer only) ----------
+// /preview opens the TV on a made-up room with pretend players, to check how a screen looks in one
+// step: ?style=stpatricks&look=stpatricksRain&game=kingsCup&players=4 (all optional), and &moment=2
+// to play one of the scenery's moments straight away (see tools/preview.js for screenshots of many
+// at once). It never exists on Cloud Run (K_SERVICE is set there).
+if (!process.env.K_SERVICE) {
+  const NAMES = ['Ann', 'Cal', 'Dee', 'Eve', 'Finn', 'Gus', 'Hal', 'Ivy'];
+  app.get('/preview', (req, res) => {
+    const q = req.query;
+    const r = newRoom('p1');
+    const n = Math.min(8, Math.max(2, Number(q.players) || 4));
+    for (let i = 0; i < n; i++) {
+      r.players.push({ id: `p${i + 1}`, key: null, name: NAMES[i], drinks: i, total: i * 2, connected: true, socketId: null, ...LOOKS.choose({}, r.players) });
+    }
+    const look = String(q.look || '');
+    r.style = ROOM_STYLES.PICKABLE.includes(q.style) ? q.style : ROOM_STYLES.roomOf(look) || 'classic';
+    if (!ROOM_STYLES.PICKABLE.includes(r.style)) r.style = 'classic';
+    newMood(r);
+    if (ROOM_STYLES.STYLES[r.style]?.moods?.some(([id]) => id === look)) r.mood = look;
+    if (GAMES[q.game]) startGame(r, q.game);
+    res.redirect(`/tv?room=${r.code}&preview=1${q.moment !== undefined ? `&moment=${Number(q.moment) || 0}` : ''}`);
+  });
+}
+
 // ---------- TVs ----------
 // A TV watches a room: it isn't a player, and sees what everyone at the table can see (each game's
 // view for someone who isn't playing never includes anyone's hidden cards or dice).
@@ -281,6 +305,24 @@ const ctx = createContext({ emit, broadcast, signal });
 
 // Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
 // host's custom content (questions, rules…), if they wrote any.
+function newRoom(hostId) {
+  const code = makeCode();
+  const r = {
+    code,
+    hostId,
+    players: [],
+    selectedGame: Object.keys(GAMES)[0],
+    options: Object.fromEntries(Object.values(GAMES).map((g) => [g.id, defaultOptions(g)])),
+    game: null,
+    feed: [],
+    timer: null,
+    deadline: null,
+    updatedAt: Date.now(),
+  };
+  rooms.set(code, r);
+  return r;
+}
+
 function startGame(room, gameId, mine = {}) {
   const game = GAMES[gameId];
   room.selectedGame = gameId;
@@ -386,20 +428,8 @@ io.on('connection', (socket) => {
     if (!name) return ack({ error: 'Enter your name' });
     if (!validId(playerId)) return ack({ error: 'Missing player id' });
     if (!allowCreate(clientIp(socket)) || rooms.size >= MAX_ROOMS) return ack({ error: 'Too many rooms right now. Try again in a minute.' });
-    const code = makeCode();
-    const r = {
-      code,
-      hostId: playerId,
-      players: [],
-      selectedGame: Object.keys(GAMES)[0],
-      options: Object.fromEntries(Object.values(GAMES).map((g) => [g.id, defaultOptions(g)])),
-      game: null,
-      feed: [],
-      timer: null,
-      deadline: null,
-      updatedAt: Date.now(),
-    };
-    rooms.set(code, r);
+    const r = newRoom(playerId);
+    const { code } = r;
     analytics.track('room_created');
     const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }) };
     r.players.push(p);

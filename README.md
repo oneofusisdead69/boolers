@@ -82,6 +82,8 @@ npm test           # game logic tests
 ```
 - **Simulator:** http://localhost:3000/dev.html shows several phones side by side (`?n=4` for 4).
 - **Real phones on your Wi-Fi:** open `http://<your-computer's-ip>:3000` on each phone.
+- **Preview a screen:** http://localhost:3000/preview?look=stpatricksRain&game=kingsCup opens the TV on a made-up room with pretend players (`&players=6`, `&moment=0` to play a scenery moment now). Local only: it doesn't exist on Cloud Run.
+- **Screenshots of many at once:** `node tools/preview.js --all` (or name the looks, e.g. `tiki lighthouseFog@0`; `--phone` adds a phone, `--game darts` picks the game). They land in `preview-shots/`, with every one side by side in `sheet.png`.
 
 ## Deploy on Google Cloud Run (bool.games)
 One-time setup, so rooms survive restarts and redeploys (Firestore's free tier is plenty):

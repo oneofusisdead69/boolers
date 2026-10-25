@@ -17,6 +17,7 @@ const store = {
   set: (code) => { try { localStorage.setItem('tv-room', code); } catch {} },
 };
 let code = (params.get('room') || store.get() || '').toUpperCase();
+const preview = params.has('preview');
 let error = '';
 let soundOn = false; // browsers only allow sound after the first click
 const loading = {};
@@ -40,6 +41,8 @@ function watch(c) {
     }
     code = res.code;
     error = '';
+    // A preview (see /preview in server.js) is made up: don't remember it, or tidy its address.
+    if (preview) return;
     store.set(code);
     history.replaceState(null, '', `/tv?room=${code}`);
   });
@@ -370,6 +373,8 @@ function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.look || s?.style);
   Scenery.set(s?.look || s?.style);
+  // /preview?moment=N: play that scenery moment as soon as the room is up.
+  if (preview && s && params.has('moment') && !render.played) render.played = Scenery.play(Number(params.get('moment')));
   music();
   if (!s) return joinScreen();
   if (s.trip && s.phase === 'lobby') {

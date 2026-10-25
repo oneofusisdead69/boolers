@@ -377,6 +377,13 @@
     schedule(SCENES[want]);
   }
 
+  // Plays one of the current style's moments now (for /preview?moment=N).
+  function play(i) {
+    const m = current && SCENES[current].moments?.[i];
+    if (m) m();
+    return !!m;
+  }
+
   reduce?.addEventListener?.('change', () => { const s = current; current = null; set(reduce.matches ? null : s); });
-  window.Scenery = { set, styles: Object.keys(SCENES) };
+  window.Scenery = { set, play, styles: Object.keys(SCENES) };
 })();
