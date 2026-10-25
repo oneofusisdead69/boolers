@@ -1340,12 +1340,34 @@
   // Boat Race at the lighthouse: regatta day. Boats of every kind go by all the time, near and
   // far (the near ones lower and bigger), on top of the clear day's gulls and dolphins.
   const BOATS = ['⛵', '⛵', '🚤', '🛶', '🚣', '🛥️', '⛴️', '🚢', '🏄', '🚤'];
+  // Drawn boats too (all facing right; across() turns them round): a racing eight, a tall ship
+  // under full sail, a tug with its fenders and smoke, and a Spanish galleon.
+  const SCULL = `<svg viewBox="0 0 160 30" width="1em" height="0.19em"><path d="M2 18 Q80 24 158 16 L150 20 Q80 28 8 21Z" fill="#f4f0e4"/>
+    ${Array.from({ length: 8 }, (_, i) => `<circle cx="${24 + i * 15}" cy="12" r="3.5" fill="${i % 2 ? '#c0392b' : '#1b3f8e'}"/><path d="M${24 + i * 15} 15 L${12 + i * 15} 29 M${24 + i * 15} 15 L${36 + i * 15} 2" stroke="#2a2a2a" stroke-width="1.5"/>`).join('')}
+    <circle cx="146" cy="13" r="3" fill="#ffd23f"/></svg>`;
+  const TALL_SHIP = `<svg viewBox="0 0 120 110" width="1em" height="0.92em"><path d="M6 84 h108 l-12 18 h-84Z" fill="#3b2614"/><rect x="6" y="80" width="108" height="5" fill="#c8a85a"/>
+    ${[[30, 18], [60, 6], [90, 20]].map(([x, top]) => `<path d="M${x} 82 V${top}" stroke="#2a1a0e" stroke-width="3"/>${[0, 1, 2].map((k) => `<path d="M${x - 16 + k * 2} ${top + 6 + k * 20} Q${x} ${top + 2 + k * 20} ${x + 16 - k * 2} ${top + 6 + k * 20} L${x + 14 - k * 2} ${top + 22 + k * 20} Q${x} ${top + 26 + k * 20} ${x - 14 + k * 2} ${top + 22 + k * 20}Z" fill="#f4efe4" stroke="#c8c0b0" stroke-width="0.8"/>`).join('')}`).join('')}
+    <path d="M114 82 L118 40 L94 74Z" fill="#f4efe4"/><path d="M60 6 l14 4 l-14 4Z" fill="#c0392b"/></svg>`;
+  const TUG = `<svg viewBox="0 0 90 50" width="1em" height="0.56em"><path d="M2 32 h86 l-10 14 h-70Z" fill="#c0392b"/><rect x="2" y="29" width="86" height="4" fill="#1a1a1a"/>
+    <rect x="22" y="16" width="34" height="14" fill="#f4f0e4"/><rect x="28" y="6" width="22" height="10" fill="#f4f0e4"/><rect x="32" y="9" width="6" height="5" fill="#9fd0e8"/><rect x="40" y="9" width="6" height="5" fill="#9fd0e8"/>
+    <rect x="60" y="8" width="8" height="22" fill="#1a1a1a"/><rect x="60" y="11" width="8" height="3" fill="#c0392b"/>
+    ${[12, 30, 48, 66].map((x) => `<circle cx="${x}" cy="38" r="3.5" fill="#2a2a2a"/>`).join('')}
+    <circle cx="64" cy="2" r="4" fill="#aaa" opacity="0.6"/><circle cx="70" cy="-4" r="5" fill="#aaa" opacity="0.4"/></svg>`;
+  const GALLEON = `<svg viewBox="0 0 120 110" width="1em" height="0.92em"><path d="M4 76 Q60 86 116 70 L110 100 Q60 106 14 98Z" fill="#5a3a1c"/><path d="M84 60 h32 v14 h-32Z M4 62 h22 v16 h-22Z" fill="#6a4524"/>
+    <path d="M10 82 Q60 90 112 76" stroke="#d4af37" stroke-width="2" fill="none"/>${[20, 34, 48, 62, 76, 90].map((x) => `<rect x="${x}" y="86" width="5" height="4" fill="#1a1008"/>`).join('')}
+    ${[[34, 14], [66, 4], [96, 22]].map(([x, top]) => `<path d="M${x} 80 V${top}" stroke="#2a1a0e" stroke-width="3"/><path d="M${x - 15} ${top + 8} Q${x} ${top + 18} ${x + 15} ${top + 8} V${top + 30} Q${x} ${top + 40} ${x - 15} ${top + 30}Z" fill="#e8dcc0"/><path d="M${x - 4} ${top + 14} h8 v16 h-8Z M${x - 10} ${top + 20} h20 v4 h-20Z" fill="#c0392b"/>`).join('')}
+    <path d="M66 4 l18 5 l-18 5Z" fill="#d4af37"/></svg>`;
   function regattaBoat() {
     const depth = Math.random();
     const y = 42 + depth * 24;
     const size = 22 + depth * 60;
     const dur = 34 - depth * 18;
-    if (Math.random() < 0.2) return across(SAILBOAT, { y: y - 3, dur, size, cls: ['sc-pitch'] });
+    if (Math.random() < 0.15) return across(SAILBOAT, { y: y - 3, dur, size, cls: ['sc-pitch'] });
+    // A drawn one now and then: the eight goes fast, the big ships slow.
+    if (Math.random() < 0.3) {
+      const [svg, speed, scale] = pick([[SCULL, 0.5, 1.4], [TALL_SHIP, 1.4, 1.3], [TUG, 1, 0.9], [GALLEON, 1.5, 1.3]]);
+      return across(svg, { y: y - 3, dur: dur * speed, size: size * scale, cls: ['sc-pitch'] });
+    }
     const boat = pick(BOATS);
     crossing(boat, { y, dur: boat === '🚤' ? dur * 0.4 : dur, size, faces: 'left', bob: true });
   }

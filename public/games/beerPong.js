@@ -215,6 +215,7 @@
           launch = PB.centre(held);
           held.style.opacity = '0';
         }
+        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
       } else {
         if (held) held.style.transform = '';
@@ -337,6 +338,7 @@
         const to = onPage(L);
         const from = launch || { x: innerWidth / 2, y: innerHeight - 80 };
         if (to) PB.fly('<div class="pb-ball"></div>', from, to, { ms: 900, lift: 0.45, scale: [1.3, Math.max(0.25, to.f * 0.5)] });
+        if (L.cup) setTimeout(() => PB.buzz('hit'), 1000);
         launch = null;
       }
       // Once a ball's been drawn landing, it isn't animated again.

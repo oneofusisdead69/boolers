@@ -167,6 +167,7 @@
       to = { x: r.left + ((d.x + 1.32) / 2.64) * r.width, y: r.top + ((d.y + 1.32) / 2.64) * r.height - 18, f: 0.45 };
     }
     PB.fly(`<div class="pb-dart">${launch.html}</div>`, launch.at, to, { ms: 450, lift: 0.08, scale: [1.2, to.f] });
+    if (d.seg?.n) setTimeout(() => PB.buzz('hit'), 450);
     launch = null;
   }
 
@@ -251,6 +252,7 @@
           launch = { at: PB.centre(held), html: held.outerHTML.replace('id="dt-held"', '') };
           held.style.opacity = '0';
         }
+        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
       } else {
         if (held) held.style.transform = '';

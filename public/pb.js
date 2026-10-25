@@ -142,6 +142,11 @@
       anim.onfinish = () => el.remove();
       return anim;
     },
+    // A very light buzz (on phones that can: not iPhones), for throwing: a tick as it leaves your
+    // hand, a little pattern when it goes in.
+    buzz(kind = 'throw') {
+      try { navigator.vibrate?.(kind === 'hit' ? [18, 50, 28] : 12); } catch {}
+    },
     // The middle of an element on the page.
     centre(el) {
       const r = el.getBoundingClientRect();
