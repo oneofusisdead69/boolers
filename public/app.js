@@ -161,6 +161,7 @@ $app.addEventListener('click', (e) => {
   if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
   const { act, cmd, confirm: _, ...data } = el.dataset;
   if (act) PB.act(act, data);
+  else if (cmd === 'leaveRoom') leaveRoom();
   else socket.emit(cmd, data);
 });
 
@@ -407,13 +408,13 @@ function renderOptions() {
 
 // Around the World, between games: the vote for the next stop.
 function renderTrip() {
-  $app.innerHTML = `${Trip.html(PB.state)}<div class="spacer"></div><div class="game-foot">${PB.tabButton()}${Prefs.button()}</div>`;
+  $app.innerHTML = `${Trip.html(PB.state)}<div class="spacer"></div><div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.leaveButton()}</div>`;
   Trip.bind($app, (event, data) => socket.emit(event, data), render);
 }
 
 // The end-of-night recap, while the host has it open.
 function renderRecap() {
-  $app.innerHTML = Recap.html(PB.state);
+  $app.innerHTML = `${Recap.html(PB.state)}<div class="game-foot">${PB.leaveButton()}</div>`;
   PB.layout($app, '.recap-head, .recap-awards');
   document.getElementById('recap-share').onclick = async (e) => {
     e.currentTarget.disabled = true;

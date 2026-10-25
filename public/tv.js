@@ -113,6 +113,34 @@ function music() {
   btn.textContent = `🎵 Room sound: ${MUSIC[musicLevel][0]}`;
 }
 
+// ---------- Full screen ----------
+// A button in the corner (or the F key) fills the whole TV with the game.
+
+const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+function toggleFullscreen() {
+  try {
+    if (isFull()) (document.exitFullscreen || document.webkitExitFullscreen).call(document)?.catch?.(() => {});
+    else {
+      const el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' })?.catch?.(() => {});
+    }
+  } catch {}
+}
+if (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen) {
+  const btn = document.createElement('button');
+  btn.id = 'tv-full';
+  btn.className = 'tv-full';
+  const label = () => (btn.textContent = isFull() ? '⛶ Exit full screen' : '⛶ Full screen');
+  btn.onclick = toggleFullscreen;
+  document.addEventListener('fullscreenchange', label);
+  document.addEventListener('webkitfullscreenchange', label);
+  label();
+  document.body.appendChild(btn);
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) toggleFullscreen();
+  });
+}
+
 function playSounds(prev, s) {
   if (!prev || !s.game || prev.gameType !== s.gameType) return;
   const screens = PB.screens[s.gameType];
