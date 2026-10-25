@@ -10,6 +10,11 @@
 // The red arrow passes the dice to the next player (the drinker finished first). The dice only
 // change hands on a REVERSE or the arrow, and a new roller starts at a single tap.
 
+const { steady } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
+
 const SPIN_MS = [100, 1000, 2000, 3000]; // host picks how long the dice roll in the lobby
 const WINDOW_SECONDS = [2, 3, 4, 5]; // host picks the hands-off time in the lobby
 const WINDOW_GRACE_MS = 300; // allowance for network lag on the hands-off window
@@ -93,34 +98,18 @@ function openWindow(room, ctx) {
 
 // ---------- Bots ----------
 
-// A number in [0, 1) that stays the same for the same roll. The server asks a bot twice before it
-// acts (once to schedule, once to act), so a flinch or a pass has to be decided once per roll, not
-// re-rolled each time it's asked.
-function steady(...parts) {
-  let h = 2166136261;
-  for (const ch of parts.join(':')) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return (h >>> 0) / 2 ** 32;
-}
-
-// Someone at random, a human when there is one.
-function pickPlayer(ids, room) {
-  const humans = ids.filter((id) => !room.players.find((p) => p.id === id)?.bot);
-  const pool = humans.length ? humans : ids;
-  return pool[Math.floor(Math.random() * pool.length)] || null;
-}
-
 // How long a bot takes to trace this roll's dots (ms): a good one is quick and steady.
 const traceMs = (g, skill) => (250 + 300 * g.dots.length) * (1.7 - skill) + Math.random() * 200;
 
 function bot(room, me, ctx, skill) {
   const g = room.game;
   if (me.id !== g.rollerId || g.phase === 'spinning') return null;
+  // A flinch or a pass is decided once per roll (see steady), not re-rolled each time it's asked.
   const seed = (tag) => steady(me.id, g.rollNo, g.dots[0]?.x, g.dots[0]?.y, tag);
 
   // A REVERSE: hand the dice to someone else.
   if (g.phase === 'reverse') {
-    const others = g.order.filter((id) => id !== me.id && ctx.turns.isActive(room, id));
-    const targetId = pickPlayer(others, room);
+    const targetId = pickHuman(room, me.id, g.order.filter((id) => ctx.turns.isActive(room, id)));
     return targetId ? { type: 'pick', targetId } : null;
   }
 
@@ -181,11 +170,12 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
+    const o = optionValues(module.exports.options, options);
     Object.assign(room.game, {
       order: room.players.map((p) => p.id),
-      spinMs: SPIN_MS.includes(options.spinMs) ? options.spinMs : 1000,
-      windowMs: (WINDOW_SECONDS.includes(options.seconds) ? options.seconds : 3) * 1000,
-      dotConnect: options.dotConnect !== false,
+      spinMs: o.spinMs,
+      windowMs: o.seconds * 1000,
+      dotConnect: o.dotConnect,
       rollNo: 0,
     });
     newTurn(room, ctx, ctx.turns.first(room, room.game.order));
@@ -225,6 +215,13 @@ module.exports = {
     if (ctx.turns.isActive(room, g.rollerId)) return;
     const next = ctx.turns.next(room, g.order, g.rollerId);
     if (next) newTurn(room, ctx, next);
+  },
+
+  // The roller holds the dice the whole turn: to roll, to keep their hands off (or not) after a
+  // hit, to pick who's next. While the dice spin it's on the clock.
+  waitingOn(room) {
+    const g = room.game;
+    return g.phase !== 'spinning' && isActive(room, g.rollerId) ? [g.rollerId] : [];
   },
 
   onJoin(room, player) {

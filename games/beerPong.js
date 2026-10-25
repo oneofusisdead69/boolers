@@ -12,27 +12,15 @@
 // The rack is drawn in its own units: x across (-0.5 to 0.5), y back from the front row (0 to
 // about 0.6), cups CUP_R across. The server works out where each ball lands from the throw.
 
-const TEAMS = [
-  { name: 'Red', color: '#e5484d' },
-  { name: 'Blue', color: '#3d7cff' },
-];
+const teams = require('../lib/teams');
+const { gauss, clamp } = require('../lib/random');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
+
+const { TEAMS } = teams; // Red and Blue: beer pong is always two teams
 const CUP_R = 0.1;
 const GAP = 0.21; // from one cup's centre to the next
 const WOBBLE = { steady: 0.025, normal: 0.05, wobbly: 0.09 };
-
-const shuffle = (list) => {
-  const a = list.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 0));
-function gauss() {
-  const u = 1 - Math.random();
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
-}
 
 // Deals a team's cups round its players, front to back: whose cup is whose.
 function deal(cups, ids) {
@@ -81,14 +69,10 @@ function startTurn(room, ctx, team) {
 // New teams: everyone here, shuffled and dealt between the two.
 function pickTeams(room, ctx) {
   const g = room.game;
-  const here = shuffle(ctx.connectedPlayers(room).map((p) => p.id));
-  g.teams = [[], []];
-  here.forEach((id, i) => g.teams[i % 2].push(id));
+  g.teams = teams.deal(ctx.connectedPlayers(room).map((p) => p.id), 2);
   g.phase = 'teams';
   g.winner = null;
 }
-
-const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
 
 // How long a ball is in the air (and the result on screen) before the game moves on.
 const LAND_MS = 2300;
@@ -207,10 +191,7 @@ module.exports = {
 
   start(room, ctx, options = {}) {
     Object.assign(room.game, {
-      sips: [1, 2, 3].includes(options.sips) ? options.sips : 1,
-      wobble: WOBBLE[options.wobble] ? options.wobble : 'normal',
-      rerack: options.rerack !== false,
-      rebuttals: options.rebuttals !== false,
+      ...optionValues(module.exports.options, options), // sips, wobble, rerack, rebuttals
       rebuttal: null,
       throwNo: 0,
       last: null,
@@ -226,12 +207,8 @@ module.exports = {
     if (g.phase === 'teams') {
       if (!host) return;
       if (action.type === 'shuffle') pickTeams(room, ctx);
-      else if (action.type === 'move') {
-        const from = teamOf(g, action.targetId);
-        if (from < 0) return;
-        g.teams[from] = g.teams[from].filter((id) => id !== action.targetId);
-        g.teams[1 - from].push(action.targetId);
-      } else if (action.type === 'go' && g.teams.every((t) => t.length)) {
+      else if (action.type === 'move') teams.move(g, action.targetId); // to the other team
+      else if (action.type === 'go' && g.teams.every((t) => t.length)) {
         g.cups = [deal(rack(10), g.teams[0]), deal(rack(10), g.teams[1])];
         g.next = [0, 0];
         g.phase = 'throwing';
@@ -285,17 +262,23 @@ module.exports = {
     if (!g.turnId) startTurn(room, ctx, 1 - g.turnTeam);
   },
 
+  // Picking teams waits on the host; then each ball on its thrower. A ball in the air waits on
+  // nobody.
+  waitingOn(room) {
+    const g = room.game;
+    if (g.phase === 'teams') return [room.hostId];
+    return g.phase === 'throwing' && g.turnId && isActive(room, g.turnId) ? [g.turnId] : [];
+  },
+
   // Someone new joins the smaller team.
   onJoin(room, player) {
-    const g = room.game;
-    if (teamOf(g, player.id) >= 0) return;
-    g.teams[g.teams[0].length <= g.teams[1].length ? 0 : 1].push(player.id);
+    teams.join(room.game, player.id);
   },
 
   view(room) {
     const g = room.game;
     return {
-      teams: g.teams.map((ids, i) => ({ ...TEAMS[i], ids })),
+      teams: teams.view(g),
       cups: g.cups || [[], []],
       turnTeam: g.turnTeam ?? null,
       turnId: g.phase === 'throwing' || g.phase === 'landing' ? g.turnId : null,

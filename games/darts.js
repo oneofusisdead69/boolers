@@ -12,6 +12,11 @@
 // Board coordinates: the centre is (0, 0) and the outside of the double ring is radius 1, with
 // y pointing down (like the screen).
 
+const { gauss, clamp } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
+
 // Clockwise from the top.
 const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
 // Ring edges as a fraction of the double ring's outer radius (a regulation board, in mm / 170).
@@ -35,14 +40,6 @@ function score(x, y) {
 }
 
 const value = (seg) => seg.n * seg.m;
-
-// A normally distributed random number (mean 0, spread 1).
-function gauss() {
-  const u = 1 - Math.random();
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
-}
-
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 0));
 
 // Where a throw lands. `angle` is how far the flick leaned off straight up (degrees, + = right) and
 // `speed` is how hard it was compared with a perfect flick (1 = perfect). A little slack either
@@ -273,14 +270,6 @@ function cricketTarget(room, ctx, g, me) {
   return CRICKET.find((n) => others(room, ctx, g, me).some((id) => g.marks[id][n] < 3)) || 20;
 }
 
-// Who a bot hands sips to: someone at random, a human if there is one.
-function pickTarget(room, ctx, me) {
-  const pool = ctx.connectedPlayers(room).filter((p) => p.id !== me);
-  const humans = pool.filter((p) => !p.bot);
-  const from = humans.length ? humans : pool;
-  return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
-}
-
 module.exports = {
   id: 'darts',
   name: 'Darts',
@@ -330,17 +319,18 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
-    const x01 = options.mode === 301 || options.mode === 501;
-    const mode = x01 ? 'x01' : ['clock', 'cricket'].includes(options.mode) ? options.mode : 'drinking';
+    const o = optionValues(module.exports.options, options);
+    // 301 and 501 are one game (x01), starting from a different score.
+    const x01 = o.mode === 301 || o.mode === 501;
     const order = room.players.map((p) => p.id);
     Object.assign(room.game, {
-      mode,
-      start: x01 ? options.mode : null,
-      doubleOut: x01 && options.doubleOut === true,
-      rounds: [3, 5, 10].includes(options.rounds) ? options.rounds : 5,
-      sips: [1, 2, 3].includes(options.sips) ? options.sips : 2,
-      wobble: WOBBLE[options.wobble] ? options.wobble : 'normal',
-      hard: options.hard === true,
+      mode: x01 ? 'x01' : o.mode,
+      start: x01 ? o.mode : null,
+      doubleOut: x01 && o.doubleOut,
+      rounds: o.rounds,
+      sips: o.sips,
+      wobble: o.wobble,
+      hard: o.hard,
       order,
       turnIdx: Math.max(0, order.indexOf(ctx.turns.first(room, order))),
       round: 1,
@@ -383,10 +373,7 @@ module.exports = {
       else if (result === 'bust') endTurn(room, ctx, 'bust');
       else if (g.darts.length >= 3) endTurn(room, ctx);
     } else if (action.type === 'give' && g.phase === 'give' && g.give?.from === me) {
-      const target = ctx.player(room, action.targetId);
-      if (!target || target.id === me) return;
-      ctx.drink(room, target.id, g.give.sips, g.give.reason, me);
-      afterTurn(room, ctx);
+      if (ctx.giveTo(room, me, action.targetId, g.give.sips, g.give.reason)) afterTurn(room, ctx);
     } else if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) {
       afterTurn(room, ctx);
     }
@@ -397,7 +384,7 @@ module.exports = {
   bot(room, me, ctx, skill) {
     const g = room.game;
     if (g.phase === 'give' && g.give?.from === me.id) {
-      const targetId = pickTarget(room, ctx, me.id);
+      const targetId = pickHuman(room, me.id);
       return targetId ? { type: 'give', targetId } : null;
     }
     if (g.phase !== 'throwing' || thrower(g) !== me.id) return null;
@@ -424,6 +411,13 @@ module.exports = {
     } else if (g.phase === 'turnEnd' && !room.timer) {
       afterTurn(room, ctx);
     }
+  },
+
+  // The thrower, or whoever's handing out sips. Between turns and rounds it's on the clock.
+  waitingOn(room) {
+    const g = room.game;
+    const id = g.phase === 'throwing' ? thrower(g) : g.phase === 'give' ? g.give?.from : null;
+    return id && isActive(room, id) ? [id] : [];
   },
 
   // Late joiners join in at the end of the order.

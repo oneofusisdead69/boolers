@@ -11,6 +11,10 @@
 // the circle, so you finish your drink.
 
 const { newDeck, rankName } = require('../lib/cards');
+const { pick } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
 
 const RACE_MS = 10000;
 
@@ -32,8 +36,6 @@ const CARDS = {
 
 const RHYMES = ['cat', 'bed', 'light', 'cake', 'shot', 'beer', 'fun', 'night', 'game', 'dance', 'drink', 'ring', 'star', 'bus', 'king', 'cup', 'house', 'blue', 'fly', 'tree', 'hat', 'rain', 'phone', 'goal', 'ice', 'bar', 'moon', 'dog', 'fire', 'cheese'];
 const CATEGORIES = ['Beers', 'Cocktails', 'Car brands', 'Pizza toppings', 'Countries in Europe', 'Disney movies', 'Breakfast cereals', 'Things in a kitchen', 'Superheroes', 'Fast food chains', 'Card games', 'Dog breeds', 'Sports teams', 'Things that are yellow', 'Board games', 'Famous Taylors', 'Fruits', 'TV sitcoms', 'Video game characters', 'Words that start with Q', 'Ice cream flavors', 'US states', 'Rappers', 'Things you find at a party', 'Ways to say drunk', 'Shoe brands', 'Musicals', 'Animals in a zoo', 'Things in a bathroom', 'Candy bars'];
-
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 // Drinks for a player and, one step out, their mates.
 function drinkWithMates(room, ctx, id, sips, reason, from = null) {
@@ -81,13 +83,6 @@ const BOT_RULES = [
   'Thumb on the table when you drink',
   'Talk like a pirate',
 ];
-
-// Someone (not `me`) to hand sips or a mate to: at random, a human when there is one.
-function botTarget(room, ctx, me) {
-  const others = ctx.connectedPlayers(room).filter((p) => p.id !== me.id);
-  const humans = others.filter((p) => !p.bot);
-  return pick(humans.length ? humans : others);
-}
 
 // The spot a bot draws from. A good bot keeps away from the gaps so it doesn't break the circle;
 // a bad one grabs any card.
@@ -150,8 +145,7 @@ module.exports = {
       rhymes: custom.rhymes || RHYMES,
       deck: newDeck(), // the ring: deck[slot] is the card lying in that spot
       taken: [], // slots already drawn
-      reactions: options.reactions !== false,
-      circle: options.circle !== false,
+      ...optionValues(module.exports.options, options), // reactions, circle
       broke: false, // the card just drawn broke the circle
       turnId: order[0],
       phase: 'draw',
@@ -246,6 +240,13 @@ module.exports = {
     }
   },
 
+  // A race waits on everyone who hasn't tapped; otherwise it's the drawer's turn.
+  waitingOn(room) {
+    const g = room.game;
+    if (g.phase === 'race') return room.players.filter((p) => p.connected && !g.race.tapped.includes(p.id)).map((p) => p.id);
+    return g.phase !== 'over' && isActive(room, g.turnId) ? [g.turnId] : [];
+  },
+
   onJoin(room, player) {
     room.game.order.push(player.id);
   },
@@ -263,10 +264,10 @@ module.exports = {
     if (g.phase !== 'card') return null;
     if (g.resolved) return { type: 'next' };
     const rule = g.cards[g.card.rank];
-    const target = botTarget(room, ctx, me);
+    const targetId = pickHuman(room, me.id);
     // 2 (You), or a race card without reactions: the bot names who drinks.
-    if ((rule.kind === 'pick' || rule.kind === 'race') && target) return { type: 'pick', targetId: target.id };
-    if (rule.kind === 'mate' && target) return { type: 'mate', targetId: target.id };
+    if ((rule.kind === 'pick' || rule.kind === 'race') && targetId) return { type: 'pick', targetId };
+    if (rule.kind === 'mate' && targetId) return { type: 'mate', targetId };
     if (rule.kind === 'rule') return { type: 'rule', text: pick(BOT_RULES) };
     return null;
   },

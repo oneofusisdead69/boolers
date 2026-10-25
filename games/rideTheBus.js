@@ -12,6 +12,10 @@
 // face-down cards. A wrong guess means a drink (one per card reached) and a fresh row.
 
 const { newDeck, draw, color, rankName } = require('../lib/cards');
+const { pick, steady } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
 
 const ROUND_TYPES = ['color', 'highlow', 'inout', 'suit'];
 const ROUND_SIPS = [1, 2, 3, 4];
@@ -129,15 +133,6 @@ function busType(g) {
 
 // ---------- Bots ----------
 
-const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
-
-// Someone else at random to give sips to, a human when there is one.
-function pickTarget(room, meId) {
-  const others = room.players.filter((p) => p.id !== meId);
-  const humans = others.filter((p) => !p.bot);
-  return pickOne(humans.length ? humans : others)?.id || null;
-}
-
 const decksFor = (g) => (g.order.length > 8 ? 2 : 1);
 const sameCard = (a, b) => a.rank === b.rank && a.suit === b.suit;
 
@@ -160,7 +155,7 @@ function unseen(g, meId) {
 
 // The guess most likely to be right for the next card against `refs`, or a random one, by skill.
 function guessFor(g, meId, type, refs, skill) {
-  if (Math.random() >= skill) return pickOne(GUESSES[type]);
+  if (Math.random() >= skill) return pick(GUESSES[type]);
   const left = unseen(g, meId);
   const odds = GUESSES[type].map((guess) => ({ guess, n: left.filter((c) => guessRight(type, guess, c, refs)).length }));
   return odds.reduce((best, o) => (o.n > best.n ? o : best)).guess;
@@ -178,14 +173,6 @@ function honestOdds(g, meId, play) {
   return 1 - none;
 }
 
-// A steady coin for a bot's choice about one flip: the same each time it's asked, so a bot that
-// "didn't notice" its match goes on not noticing (and the host bot then turns the next card).
-function steady(text) {
-  let h = 2166136261;
-  for (const ch of text) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return (h >>> 0) / 2 ** 32;
-}
-
 function bot(room, me, ctx, skill) {
   const g = room.game;
   const id = me.id;
@@ -194,7 +181,7 @@ function bot(room, me, ctx, skill) {
     return { type: 'guess', guess: guessFor(g, id, ROUND_TYPES[g.round], g.hands[id], skill) };
   }
   if (g.phase === 'give' && id === g.give.from) {
-    const targetId = pickTarget(room, id);
+    const targetId = pickHuman(room, id);
     return targetId ? { type: 'give', targetId } : null;
   }
   if (g.phase === 'bus' && id === g.bus.riderId) {
@@ -213,11 +200,13 @@ function bot(room, me, ctx, skill) {
 
   const spot = currentSpot(g);
   const hand = g.hands[id];
-  // Every card dumped is one fewer for the bus. A bad bot sometimes doesn't notice its match.
-  const noticed = steady(`${id}:${g.pyramid.flipped}`) < 0.5 + skill / 2;
+  // Every card dumped is one fewer for the bus. A bad bot sometimes doesn't notice its match, and
+  // (a steady coin: the same each time it's asked) goes on not noticing, so the host bot turns
+  // the next card.
+  const noticed = steady(id, g.pyramid.flipped) < 0.5 + skill / 2;
   if (spot) {
     const match = hand.findIndex((c) => c.rank === spot.card.rank);
-    const targetId = pickTarget(room, id);
+    const targetId = pickHuman(room, id);
     if (match >= 0 && targetId && noticed) return { type: 'play', cardIdx: match, targetId };
     // Bluffing: once a flip at most, and a good bot keeps it to the cheap rows near the bottom.
     const bluffed = g.pyramid.plays.some((p) => p.by === id && p.flip === g.pyramid.flipped);
@@ -275,10 +264,7 @@ module.exports = {
       hands: Object.fromEntries(order.map((id) => [id, []])),
       round: 0,
       turnIdx: -1,
-      rows: options.rows === 5 ? 5 : 4,
-      busLength: [5, 7, 9].includes(options.busLength) ? options.busLength : 5,
-      busGuess: ['color', 'highlow', 'sequence'].includes(options.busGuess) ? options.busGuess : 'color',
-      bluff: options.bluff === true,
+      ...optionValues(module.exports.options, options), // rows, busLength, busGuess, bluff
       last: null,
       give: null,
       pyramid: null,
@@ -308,8 +294,8 @@ module.exports = {
         ctx.drink(room, me, sips, 'wrong guess');
         nextGuesser(room, ctx);
       }
-    } else if (action.type === 'give' && g.phase === 'give' && me === g.give.from && target) {
-      ctx.drink(room, target.id, g.give.sips, g.give.reason, me);
+    } else if (action.type === 'give' && g.phase === 'give' && me === g.give.from) {
+      if (!ctx.giveTo(room, me, action.targetId, g.give.sips, g.give.reason)) return;
       g.give = null;
       nextGuesser(room, ctx);
     } else if (action.type === 'flip' && g.phase === 'pyramid' && me === room.hostId) {
@@ -388,6 +374,17 @@ module.exports = {
         ctx.log(room, `🚌 ${ctx.name(room, next)} takes over the bus`);
       }
     }
+  },
+
+  // The guesser, the giver or the rider. In the pyramid anyone holding a match may play it, so
+  // the game waits on the host to turn the next card, and on anyone with a bluff to answer.
+  waitingOn(room) {
+    const g = room.game;
+    const id = g.phase === 'guess' ? g.order[g.turnIdx] : g.phase === 'give' ? g.give.from : g.phase === 'bus' ? g.bus.riderId : null;
+    if (id) return isActive(room, id) ? [id] : [];
+    if (g.phase !== 'pyramid') return [];
+    const answering = g.pyramid.plays.filter((p) => p.status === 'pending' && isActive(room, p.targetId)).map((p) => p.targetId);
+    return [...new Set([room.hostId, ...answering])];
   },
 
   onJoin(room, player) {

@@ -7,30 +7,18 @@
 //   g.cheers: { [botId]: how many times it's cheered this race }. Bots don't race (they've
 //   nothing to drink): they cheer from the side.
 
-const TEAMS = [
-  { name: 'Red', color: '#e5484d' },
-  { name: 'Blue', color: '#3d7cff' },
-  { name: 'Green', color: '#2fbf71' },
-  { name: 'Gold', color: '#f5b518' },
-];
+const teams = require('../lib/teams');
+const { pick } = require('../lib/random');
+const { optionValues } = require('../lib/options');
 
-const shuffle = (list) => {
-  const a = list.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-};
+const { TEAMS, teamOf } = teams;
 
 // New teams: everyone here, shuffled and dealt round like cards. The score starts again. Bots sit
 // it out: a boat race is drunk in the room, and they've nothing to drink.
 function deal(room, ctx) {
   const g = room.game;
-  const here = shuffle(ctx.connectedPlayers(room).filter((p) => !p.bot).map((p) => p.id));
-  const count = Math.max(2, Math.min(g.teamCount, here.length));
-  g.teams = Array.from({ length: count }, () => []);
-  here.forEach((id, i) => g.teams[i % count].push(id));
+  const here = ctx.connectedPlayers(room).filter((p) => !p.bot).map((p) => p.id);
+  g.teams = teams.deal(here, Math.max(2, Math.min(g.teamCount, here.length)));
   g.wins = g.teams.map(() => 0);
   g.twice = {};
   g.winner = null;
@@ -45,7 +33,6 @@ const CHEERS = [
 ];
 const MAX_CHEERS = 2;
 
-const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
 // The teams a player short, which need someone to go twice.
 const shortTeams = (g) => {
   const longest = Math.max(...g.teams.map((t) => t.length));
@@ -83,9 +70,10 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
+    const o = optionValues(module.exports.options, options);
     Object.assign(room.game, {
-      teamCount: [2, 3, 4].includes(options.teams) ? options.teams : 2,
-      penalty: [0, 1, 2, 3].includes(options.penalty) ? options.penalty : 0,
+      teamCount: o.teams,
+      penalty: o.penalty,
       race: 0,
     });
     deal(room, ctx);
@@ -101,9 +89,9 @@ module.exports = {
       g.cheers[player.id] = (g.cheers[player.id] || 0) + 1;
       const team = Math.floor(Math.random() * g.teams.length);
       const ids = g.teams[team];
-      const line = CHEERS[Math.floor(Math.random() * CHEERS.length)]
+      const line = pick(CHEERS)
         .replace('{team}', TEAMS[team].name)
-        .replace('{name}', ids.length ? ctx.name(room, ids[Math.floor(Math.random() * ids.length)]) : 'mate');
+        .replace('{name}', ids.length ? ctx.name(room, pick(ids)) : 'mate');
       ctx.log(room, `📣 ${player.name}: ${line}`);
       return;
     }
@@ -119,12 +107,7 @@ module.exports = {
     if (action.type === 'shuffle' && (g.phase === 'teams' || g.phase === 'results')) {
       deal(room, ctx);
     } else if (action.type === 'move' && g.phase === 'teams') {
-      // Moves a player to the end of the next team along.
-      const from = teamOf(g, action.targetId);
-      if (from < 0) return;
-      g.teams[from] = g.teams[from].filter((id) => id !== action.targetId);
-      g.teams[(from + 1) % g.teams.length].push(action.targetId);
-      tidyTwice(g);
+      if (teams.move(g, action.targetId)) tidyTwice(g);
     } else if (action.type === 'go' && g.phase === 'teams' && g.teams.every((t) => t.length) && shortTeams(g).every((i) => g.twice[i])) {
       g.race += 1;
       g.winner = null;
@@ -157,19 +140,21 @@ module.exports = {
     return { type: 'cheer', delay: 1500 + Math.random() * 5000 };
   },
 
-  // Someone new joins the smallest team.
+  // The race is drunk at the table: the app only waits on the host, to start it, to say who won
+  // and for the next one. (Bots cheering from the side wait on nobody.)
+  waitingOn(room) {
+    return [room.hostId];
+  },
+
+  // Someone new joins the smallest team (bots sit it out).
   onJoin(room, player) {
-    const g = room.game;
-    if (player.bot || teamOf(g, player.id) >= 0) return;
-    const smallest = g.teams.reduce((best, t, i) => (t.length < g.teams[best].length ? i : best), 0);
-    g.teams[smallest].push(player.id);
-    tidyTwice(g);
+    if (!player.bot && teams.join(room.game, player.id)) tidyTwice(room.game);
   },
 
   view(room) {
     const g = room.game;
     return {
-      teams: g.teams.map((ids, i) => ({ ...TEAMS[i], ids })),
+      teams: teams.view(g),
       wins: g.wins,
       twice: g.twice || {},
       short: shortTeams(g),

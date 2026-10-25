@@ -9,6 +9,9 @@
 // else drinks; wrong and you drink and lose a die like any lost call.
 // Lose your last die and you finish your drink and you're out. Last one with dice wins.
 
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
+
 const FACES = [1, 2, 3, 4, 5, 6];
 
 // How many dice on the table show `face`, counting 1s as wild when they are.
@@ -164,15 +167,15 @@ module.exports = {
   ],
 
   start(room, ctx, options = {}) {
+    const o = optionValues(module.exports.options, options);
     const order = room.players.map((p) => p.id);
-    const each = options.dice === 3 ? 3 : 5;
     Object.assign(room.game, {
       order,
-      dice: Object.fromEntries(order.map((id) => [id, each])),
-      sips: [1, 2, 3].includes(options.sips) ? options.sips : 2,
-      wild: options.wild !== false,
-      spotOn: options.spotOn !== false,
-      loseDice: options.loseDice !== false,
+      dice: Object.fromEntries(order.map((id) => [id, o.dice])), // how many each still has
+      sips: o.sips,
+      wild: o.wild,
+      spotOn: o.spotOn,
+      loseDice: o.loseDice,
       round: 0,
       hands: {},
       bid: null,
@@ -220,6 +223,15 @@ module.exports = {
       const next = nextBidder(room, ctx, g.turnId);
       if (next) g.turnId = next;
     }
+  },
+
+  // The bidder; after a call, whoever starts the next round (the host, if they've gone; the host
+  // may also start it for them).
+  waitingOn(room) {
+    const g = room.game;
+    if (g.phase === 'bidding') return isActive(room, g.turnId) ? [g.turnId] : [];
+    if (g.phase === 'reveal') return [isActive(room, g.nextStarter) ? g.nextStarter : room.hostId];
+    return [];
   },
 
   // Late joiners watch until the next game.

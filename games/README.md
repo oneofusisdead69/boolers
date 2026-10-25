@@ -34,13 +34,30 @@ module.exports = {
     { id: 'prompts', kind: 'list', label: 'Your prompts', hint: 'One per line', maxItems: 100, maxLen: 120 },
   ],
 
-  start(room, ctx, options) {},          // set up room.game (room.game.type is already set)
+  start(room, ctx, options) {            // set up room.game (room.game.type is already set)
+    const o = optionValues(module.exports.options, options); // lib/options.js: see below
+  },
   handle(room, player, action, ctx) {},  // a phone sent { type, ...data }; validate everything
   check(room, ctx) {},                   // optional: a player left or disconnected
   onJoin(room, player, ctx) {},          // optional: someone joined mid-game
   view(room, player, ctx) { return {} }, // what THIS player's phone may see (hide other hands!)
+  waitingOn(room) { return [] },         // who the game is waiting on right now (see below)
 };
 ```
+
+**Options** arrive as the phone sent them, so don't trust them. `optionValues(declared, options)`
+(`lib/options.js`) gives each declared option's value if it's exactly one of its choices (the
+number `3`, not the text `"3"`), else its default; `options.custom` isn't an option, so read that
+from `options` itself.
+
+**`waitingOn(room)`** returns the ids of the players the game is waiting on right now: the
+thrower, the roller, whoever's handing out sips; everyone yet to bet, answer, vote or tap in a
+race; the host when only the host can move it on (start the race, next round). `[]` while it's on
+a timer (a ball in the air, the dice spinning) or over. Leave out players who've left, and moves
+that are up to anyone (playing a match on the pyramid, joining a war, a jockey's taps): nothing
+waits for them. Pass and play uses it to hand the phone to the right player, and the "your turn"
+chime to know whose turn it is; `tests/waitingOn.test.js` checks that every bot move comes from
+someone on the list.
 
 `room.game.phase` is a string (like `'rolling'` or `'reveal'`) and is sent to phones as `state.phase`.
 Everything else in `room.game` stays on the server unless `view` returns it.
@@ -50,6 +67,7 @@ Everything else in `room.game` stays on the server unless `view` returns it.
 | Call | Does |
 |---|---|
 | `ctx.drink(room, id, sips, reason, fromId)` | Adds to the tally, logs it and buzzes that phone full-screen |
+| `ctx.giveTo(room, fromId, targetId, sips, reason)` | A player hands out sips they've won. False (nothing given) for themselves, someone unknown, or someone who's left |
 | `ctx.log(room, text)` | Adds a line to the activity feed |
 | `ctx.setTimer(room, ms, fn)` / `ctx.clearTimer(room)` | One countdown per room; phones show it with `PB.timer()` |
 | `ctx.endGame(room)` | Back to the lobby |
@@ -59,6 +77,19 @@ Everything else in `room.game` stays on the server unless `view` returns it.
 | `ctx.turns` | `next(room, order, currentId)`, `first(room, order)`; skip players who left |
 
 Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
+
+Shared helpers a game can `require`:
+
+| File | Gives you |
+|---|---|
+| `lib/random.js` | `shuffle(list)`, `gauss()`, `pick(list)`, `clamp(n, lo, hi)`, `steady(...parts)` (the same number in [0, 1) for the same parts) |
+| `lib/options.js` | `optionValues(declared, options)` |
+| `lib/teams.js` | `TEAMS` (names, colours), `deal(ids, count)`, `teamOf(g, id)`, `move(g, id)`, `join(g, id)`, `view(g)` for games kept in `g.teams` |
+| `lib/betting.js` | Betting on a race and paying out (Ace Race, Horse Race) |
+| `lib/bots.js` | `pickHuman(room, exceptId, candidates)`: who a bot hands sips to |
+
+Games also run in the browser (pass and play, `lib/bundle.js`): a `lib/` file a game requires must
+be listed in `buildBundle`, and use nothing Node-only.
 
 ## Phone screens
 
@@ -127,7 +158,8 @@ again (things may have moved on) and plays it through the game's own `handle`, l
   (another player's hand, a face-down card).
 - Bots aren't the host in a real room. A move only the host can make (start the race, next
   round) is the host's; a bot may make it when `room.hostId === me.id` (only in tests).
-- When a bot hands out sips, it picks someone at random (a human, when there is one).
+- When a bot hands out sips, it picks someone at random, a human when there is one:
+  `pickHuman(room, me.id)` (`lib/bots.js`).
 
 - A game bots can't play (Boat Race: there's nothing for them to drink) sets `botsSitOut: true`;
   its `bot()` can still give them something to do from the side (cheering).

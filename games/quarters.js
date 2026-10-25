@@ -6,15 +6,14 @@
 // The table is in its own units: x across (0 is the glass), d away from you (the glass is at 1).
 // The server works out where the quarter comes down from the throw.
 
+const { gauss, clamp } = require('../lib/random');
+const { pickHuman } = require('../lib/bots');
+const { optionValues } = require('../lib/options');
+const { isActive } = require('../lib/turns');
+
 const GLASSES = { shot: 0.07, pint: 0.12 }; // the glass's radius
 const WOBBLE = { steady: 0.02, normal: 0.04, wobbly: 0.07 };
 const RULE_AT = 3; // in a row
-
-const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : 0));
-function gauss() {
-  const u = 1 - Math.random();
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
-}
 
 // Where the quarter comes down. `aim` is where across it's lined up; `angle` how far the flick
 // leaned off straight up (degrees, + = right); `speed` how hard against a perfect flick (1): it
@@ -66,14 +65,6 @@ function flick(skill) {
   };
 }
 
-// Who a bot makes drink: someone at random, a human if there is one.
-function pickTarget(room, ctx, me) {
-  const pool = ctx.connectedPlayers(room).filter((p) => p.id !== me);
-  const humans = pool.filter((p) => !p.bot);
-  const from = humans.length ? humans : pool;
-  return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
-}
-
 module.exports = {
   id: 'quarters',
   name: 'Quarters',
@@ -107,11 +98,7 @@ module.exports = {
       turnIdx: 0,
       turnId: order[0],
       round: 1,
-      rounds: [2, 3, 5].includes(options.rounds) ? options.rounds : 3,
-      sips: [1, 2, 3].includes(options.sips) ? options.sips : 1,
-      glass: GLASSES[options.glass] ? options.glass : 'pint',
-      wobble: WOBBLE[options.wobble] ? options.wobble : 'normal',
-      missDrinks: options.missDrinks === true,
+      ...optionValues(module.exports.options, options), // glass, rounds, sips, missDrinks, wobble
       streak: 0,
       sinks: {},
       shots: 0,
@@ -133,10 +120,7 @@ module.exports = {
       return 'quiet';
     }
     if (action.type === 'give' && g.phase === 'give') {
-      const target = ctx.player(room, action.targetId);
-      if (!target || target.id === me) return;
-      ctx.drink(room, target.id, g.sips, `${player.name} sank a quarter`, me);
-      g.phase = 'shooting';
+      if (ctx.giveTo(room, me, action.targetId, g.sips, `${player.name} sank a quarter`)) g.phase = 'shooting';
       return;
     }
     if (action.type !== 'throw' || g.phase !== 'shooting') return;
@@ -173,7 +157,7 @@ module.exports = {
     const g = room.game;
     if (g.turnId !== me.id) return null;
     if (g.phase === 'give') {
-      const targetId = pickTarget(room, ctx, me.id);
+      const targetId = pickHuman(room, me.id);
       return targetId ? { type: 'give', targetId } : null;
     }
     if (g.phase !== 'shooting') return null;
@@ -184,6 +168,12 @@ module.exports = {
   check(room, ctx) {
     const g = room.game;
     if (g.phase !== 'over' && !ctx.turns.isActive(room, g.turnId)) nextShooter(room, ctx);
+  },
+
+  // The shooter: to throw, or to pick who drinks after a sink.
+  waitingOn(room) {
+    const g = room.game;
+    return g.phase !== 'over' && isActive(room, g.turnId) ? [g.turnId] : [];
   },
 
   onJoin(room, player) {
