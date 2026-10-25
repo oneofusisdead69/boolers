@@ -279,9 +279,10 @@
     // In the rain, lightning flickers in the windows now and then and thunder rolls in later.
     stpatricksRain: {
       moments: [...hearth(), () => {
-        for (const [left, top] of [['calc(3vw + 13px)', 'calc(11vh + 13px)'], ['calc(97vw - 187px)', 'calc(64vh + 13px)']]) {
-          el('', { left, top, width: '174px', height: '148px' }, 1600).classList.add('sc-winflash');
-        }
+        // Over the panes of the two windows (see stpatricks in lib/roomStyles.js: 230 x 200, panes inset 15).
+        const w = Math.min(300, innerWidth * 0.34);
+        const pane = { width: `${(w * 200) / 230}px`, height: `${(w * 170) / 230}px`, top: `calc(11vh + ${(w * 15) / 230}px)` };
+        for (const left of [`calc(3vw + ${(w * 15) / 230}px)`, `calc(97vw - ${(w * 215) / 230}px)`]) el('', { left, ...pane }, 1600).classList.add('sc-winflash');
         later(() => window.Ambience?.cue('thunderFar'), rand(1500, 3500));
       }],
     },
