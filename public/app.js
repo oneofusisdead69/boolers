@@ -372,6 +372,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=horseRace">🏇 Horse Race</a>
         <a class="btn-link" href="/play/local.html?game=aceRace">♠️ Ace Race</a>
         <a class="btn-link" href="/play/local.html?game=darts">🎯 Darts</a>
+        <a class="btn-link" href="/play/local.html?game=boatRace">🚣 Boat Race</a>
       </div>
     </div>
     <div class="spacer"></div>

@@ -676,6 +676,15 @@
         now(12, (t) => play(out, ['cue-gull-1', 'cue-gull-2'], t, { gain: 0.35 })),
       ];
     },
+    // Regatta day: the calm sea, gulls, the shanty on the squeezebox and horns now and then.
+    lighthouseRegatta(out) {
+      return [
+        background(out, 'bed-waves-3', { gain: 0.35 }),
+        tune(out, { bpm: 112, notes: SONGS.sailor, voice: VOICES.squeeze, gain: 0.035 }),
+        now(10, (t) => play(out, ['cue-gull-1', 'cue-gull-2'], t, { gain: 0.35 })),
+        now(30, (t) => CUES.horn(out, t)),
+      ];
+    },
     lighthouseFog(out) {
       // Fog muffles everything: the sea, faintly. The foghorn comes with the scenery.
       return [
@@ -1093,6 +1102,16 @@
       play(out, 'cue-splash-2', t, { gain: 0.8 });
     },
     // The foghorn: two long low blasts.
+    // A boat's horn: two toots.
+    horn(out, t) {
+      for (const d of [0, 0.7]) {
+        const f = ac.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.value = 900;
+        f.connect(out);
+        for (const freq of [233, 349]) note(f, t + d, { freq, len: d ? 1.1 : 0.45, gain: 0.05, type: 'sawtooth', attack: 0.04 });
+      }
+    },
     foghorn(out, t) {
       for (const at of [0, 3.2]) {
         for (const [freq, gain, type] of [[110, 0.14, 'sawtooth'], [111.5, 0.08, 'square'], [220, 0.03, 'sine']]) {

@@ -948,6 +948,29 @@
     ],
   };
 
+  // Boat Race at the lighthouse: regatta day. Boats of every kind go by all the time, near and
+  // far (the near ones lower and bigger), on top of the clear day's gulls and dolphins.
+  const BOATS = ['⛵', '⛵', '🚤', '🛶', '🚣', '🛥️', '⛴️', '🚢', '🏄', '🚤'];
+  function regattaBoat() {
+    const depth = Math.random();
+    const y = 42 + depth * 24;
+    const size = 22 + depth * 60;
+    const dur = 34 - depth * 18;
+    if (Math.random() < 0.2) return across(SAILBOAT, { y: y - 3, dur, size, cls: ['sc-pitch'] });
+    const boat = pick(BOATS);
+    crossing(boat, { y, dur: boat === '🚤' ? dur * 0.4 : dur, size, faces: 'left', bob: true });
+  }
+  SCENES.lighthouseRegatta = {
+    decor() {
+      banner('Regatta Day!', 'Every boat in the harbour is out', 'regatta');
+      cue('horn', 300);
+      for (let i = 0; i < 4; i++) later(regattaBoat, i * 1200);
+      const more = () => later(() => { regattaBoat(); more(); }, rand(1800, 4200));
+      more();
+    },
+    moments: [...dayMoments(), () => cue('horn')],
+  };
+
   // Shot Poker at the casino: the gilded salon at Monte Carlo. A roulette wheel spins, the
   // champagne flows, and now and then a Grand Prix car screams past outside.
   SCENES.casinoMonteCarlo = {
