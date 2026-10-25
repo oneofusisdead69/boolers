@@ -39,7 +39,9 @@ function myLook() {
   }
   return look;
 }
-const lookToSend = () => (store.get('lookPicked') ? myLook() : {});
+// The drink you have in front of you on the TV (none: whatever the room's drinking).
+const myDrink = () => (LOOKS.DRINKS.includes(store.get('drink')) ? store.get('drink') : null);
+const lookToSend = () => ({ ...(store.get('lookPicked') ? myLook() : {}), ...(myDrink() ? { drink: myDrink() } : {}) });
 
 let homeError = '';
 const loading = {};
@@ -226,12 +228,17 @@ function openLookPicker() {
         if (typed) store.set('name', typed); // the home screen redraws; keep what was typed
         return render();
       }
-      const b = e.target.closest('[data-av], [data-color]');
+      const b = e.target.closest('[data-av], [data-color], [data-drink]');
       if (!b) return;
-      store.set('lookPicked', '1');
-      if (b.dataset.av) store.set('avatar', b.dataset.av);
-      if (b.dataset.color) store.set('color', b.dataset.color);
-      if (PB.state) socket.emit('setLook', myLook());
+      if (b.dataset.drink !== undefined) {
+        if (b.dataset.drink) store.set('drink', b.dataset.drink);
+        else store.del('drink');
+      } else {
+        store.set('lookPicked', '1');
+        if (b.dataset.av) store.set('avatar', b.dataset.av);
+        if (b.dataset.color) store.set('color', b.dataset.color);
+      }
+      if (PB.state) socket.emit('setLook', { ...myLook(), drink: myDrink() });
       openLookPicker();
     });
   }
@@ -242,6 +249,10 @@ function openLookPicker() {
         <button class="${c === look.color ? 'on' : ''}" data-color="${c}" style="--pc:${c}" aria-label="Colour ${c}"></button>`).join('')}</div>
       <div class="look-avatars">${LOOKS.AVATARS.map((a) => `
         <button class="${a === look.avatar ? 'on' : ''}" data-av="${a}" style="--pc:${look.color}">${a}</button>`).join('')}</div>
+      <h3>Your drink <small class="muted">on the TV's table</small></h3>
+      <div class="look-avatars look-drinks">
+        <button class="house ${myDrink() ? '' : 'on'}" data-drink="" style="--pc:${look.color}">${PB.esc(ROOM_STYLES.STYLES[PB.state?.look || PB.state?.style]?.drink || '🍺')}<small>House</small></button>${LOOKS.DRINKS.map((d) => `
+        <button class="${d === myDrink() ? 'on' : ''}" data-drink="${d}" style="--pc:${look.color}">${d}</button>`).join('')}</div>
       <button data-look-done>Done</button>
     </div>`;
   if (!lookPicker.isConnected) document.body.appendChild(lookPicker);
@@ -332,6 +343,7 @@ function renderHome() {
     </div>
     <p class="or ls-l">or</p>
     <button id="create" class="secondary ls-l">Create a new room</button>
+    <p class="tv-note ls-l">📺 <b>Got a TV or a laptop?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter your room code. The table, the scores and the sound go on the big screen.</p>
     <p class="error ls-l" id="err">${PB.esc(homeError)}</p>
     <div class="card">
       <h2>📱 Pass and play</h2>
@@ -426,7 +438,7 @@ function renderRecap() {
 // The host picks how the room looks; everyone's phone (and the TV) follows.
 function roomStyleCard(s) {
   const { STYLES } = ROOM_STYLES;
-  const style = STYLES[s.style] || STYLES.classic;
+  const style = STYLES[s.look] || STYLES[s.style] || STYLES.classic;
   if (!s.isHost) {
     if (!style.welcome && !s.venue) return '';
     return `<p class="center room-welcome"><b>${PB.esc(style.emoji)} ${PB.esc(s.venue || style.label)}</b>${style.welcome ? `<br><span class="muted">${PB.esc(style.welcome)}</span>` : ''}</p>`;
@@ -434,7 +446,7 @@ function roomStyleCard(s) {
   return `<div class="card room-style-card">
       <h2>Venue &amp; style</h2>
       <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
-      ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([, st]) => !!st.seasonal === seasonal).map(([id, st]) => `
+      ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([id, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
         <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('')}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;
@@ -563,7 +575,7 @@ function renderGame() {
 }
 
 function render() {
-  ROOM_STYLES.apply(PB.state?.style);
+  ROOM_STYLES.apply(PB.state?.look || PB.state?.style);
   if (!PB.state) return renderHome();
   if (PB.state.phase === 'lobby' && PB.state.trip) return renderTrip();
   if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();

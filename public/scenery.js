@@ -84,6 +84,11 @@
     <circle cx="26" cy="25" r="1.4" fill="#1a1024"/><circle cx="34" cy="25" r="1.4" fill="#1a1024"/><path d="M27 31 Q30 33 33 31" stroke="#a04040" stroke-width="1.2" fill="none"/></g></svg>`;
   const TAIL = `<svg viewBox="0 0 60 50" width="1em" height="0.83em"><path d="M26 50 Q22 30 30 22 Q16 16 6 2 Q24 6 30 14 Q36 6 54 2 Q44 16 30 22 Q38 30 34 50Z" fill="#3fb5a8"/></svg>`;
   const GULL = `<svg viewBox="0 0 60 20" width="1em" height="0.33em"><path class="sc-wing" d="M2 8 Q16 0 30 12 Q44 0 58 8" fill="none" stroke="#e8eef2" stroke-width="3" stroke-linecap="round"/></svg>`;
+  const SAILBOAT = `<svg viewBox="0 0 60 60" width="1em" height="1em">
+    <path d="M30 4 L30 44 L8 44Z" fill="#fdfcf7"/><path d="M33 10 L33 44 L52 44Z" fill="#f1ede2"/><rect x="29.5" y="2" width="1.6" height="44" fill="#3a3a3a"/>
+    <path d="M4 46 L56 46 L50 54 L10 54Z" fill="#b3392f"/><path d="M10 54 L50 54" stroke="#7a2620" stroke-width="1.5"/></svg>`;
+  const DOLPHIN = `<svg viewBox="0 0 70 34" width="1em" height="0.49em"><path d="M2 22 Q16 4 40 6 Q56 7 66 16 Q58 14 54 16 Q60 20 62 26 Q52 20 44 20 Q38 26 30 26 L33 20 Q18 20 8 26 Q10 22 2 22Z" fill="#5b7f9c"/>
+    <path d="M30 8 Q32 0 40 2 Q36 4 36 7Z" fill="#4c6d87"/><circle cx="58" cy="15" r="1.2" fill="#10202c"/></svg>`;
   const TUMBLEWEED = `<svg viewBox="0 0 40 40" width="1em" height="1em"><g fill="none" stroke="#a07b45" stroke-width="2">
     <circle cx="20" cy="20" r="17"/><path d="M5 15 Q20 30 35 12 M8 28 Q22 8 33 30 M14 5 Q12 22 26 36 M30 6 Q16 18 10 34"/></g></svg>`;
 
@@ -155,6 +160,55 @@
     ];
   }
 
+  // A fine day: gulls overhead, sailing boats, dolphins, the odd wave on the rocks.
+  function dayMoments() {
+    return [
+      () => {
+        const right = Math.random() < 0.5;
+        const y = rand(6, 24);
+        for (let i = 0; i < pick([2, 3, 5]); i++) {
+          drift(GULL, { from: [right ? -10 : 110, y + rand(-4, 4)], to: [right ? 110 : -10, y + rand(-6, 10)], dur: rand(10, 14), size: rand(30, 55), extra: { animationDelay: `${i * rand(0.3, 0.9)}s`, filter: 'drop-shadow(0 1px 0 rgba(40, 60, 80, 0.5))' } });
+        }
+      },
+      () => across(SAILBOAT, { y: rand(36, 41), dur: rand(40, 55), size: rand(30, 50), cls: ['sc-pitch'] }),
+      () => across(SHIP, { y: 39, dur: rand(30, 38), size: rand(50, 70) }),
+      // Dolphins leaping out of the water, one after another.
+      () => {
+        const x = rand(10, 70);
+        for (let i = 0; i < pick([1, 2, 3]); i++) {
+          el(DOLPHIN, { left: `${x + i * 4}vw`, top: `${rand(55, 62)}vh`, fontSize: `${rand(50, 70)}px`, animationDelay: `${i * 0.5}s` }, 4000)
+            .classList.add('sc-dolphin');
+        }
+        later(() => window.Ambience?.cue('splash'), 1500);
+      },
+      () => {
+        el('<i></i><i></i><i></i><i></i><i></i>', { left: `${rand(10, 80)}vw`, bottom: '10vh' }, 3200).classList.add('sc-crash');
+        window.Ambience?.cue('crash');
+      },
+      () => {
+        const m = el(`<div class="sc-mer-in">${MERMAID}</div><div class="sc-mer-tail">${TAIL}</div>`, { left: `${rand(15, 75)}vw`, top: '46vh', fontSize: `${rand(60, 90)}px` }, 7000);
+        m.classList.add('sc-mermaid');
+        later(() => window.Ambience?.cue('splash'), 4600);
+      },
+    ];
+  }
+
+  // Fog: the foghorn sounds now and then (a ship out there answers), the beam glows in the murk,
+  // and ships and the ghost ship loom out of the grey and back in.
+  const foghorn = () => window.Ambience?.cue('foghorn');
+  function fogMoments() {
+    return [
+      () => { foghorn(); el('', { left: '50vw', bottom: '-10vh' }, 7000).classList.add('sc-beam', 'sc-fogbeam'); },
+      () => { foghorn(); later(() => window.Ambience?.cue('foghornFar'), rand(7000, 10000)); },
+      () => window.Ambience?.cue('foghornFar'),
+      () => across(SHIP, { y: 40, dur: rand(30, 38), size: rand(45, 65), cls: ['sc-fogged'] }),
+      () => across(GHOST_SHIP, { y: 36, dur: rand(18, 24), size: rand(80, 120), cls: ['sc-ghostship'] }),
+      () => el('', { left: '50vw', bottom: '-10vh' }, 7000).classList.add('sc-beam', 'sc-fogbeam'),
+    ];
+  }
+
+  const hearth = () => [() => embers(6, () => [rand(25, 75), 102]), () => embers(5, () => [rand(25, 75), 102]), () => fall(['☘️'], 5, 1.2, 0.45)];
+
   const SCENES = {
     halloween: {
       decor() {
@@ -219,7 +273,19 @@
       gap: [20, 40],
     },
     christmas: { moments: [() => shower(12, 0.3, () => drift('❄', { from: [rand(0, 100), -5], to: [rand(0, 100), 105], dur: rand(9, 16), size: rand(10, 22), spin: rand(-180, 180), opacity: rand(0.4, 0.9) }))] },
-    stpatricks: { moments: [() => fall(['☘️'], 8, 0.8, 0.55)] },
+    // Sparks off the peat fire, and now and then a few shamrocks.
+    stpatricks: { moments: hearth() },
+    stpatricksFog: { moments: hearth() },
+    // In the rain, lightning flickers in the windows now and then and thunder rolls in later.
+    stpatricksRain: {
+      moments: [...hearth(), () => {
+        // Over the panes of the two windows (see stpatricks in lib/roomStyles.js: 230 x 200, panes inset 15).
+        const w = Math.min(300, innerWidth * 0.34);
+        const pane = { width: `${(w * 200) / 230}px`, height: `${(w * 170) / 230}px`, top: `calc(11vh + ${(w * 15) / 230}px)` };
+        for (const left of [`calc(3vw + ${(w * 15) / 230}px)`, `calc(97vw - ${(w * 215) / 230}px)`]) el('', { left, ...pane }, 1600).classList.add('sc-winflash');
+        later(() => window.Ambience?.cue('thunderFar'), rand(1500, 3500));
+      }],
+    },
     saloon: { moments: [() => drift(TUMBLEWEED, { from: [-12, rand(70, 85)], to: [112, rand(70, 85)], dur: rand(7, 10), size: rand(50, 80), spin: 720, opacity: 0.85 })] },
     space: {
       moments: [() => {
@@ -255,6 +321,17 @@
     diner: { moments: [() => shower(6, 1, () => drift(pick(['♪', '♫', '♬']), { from: [rand(5, 95), 100], to: [rand(5, 95), rand(45, 70)], dur: rand(5, 8), size: rand(18, 30), spin: rand(-30, 30), opacity: 0.5, extra: { color: '#e63946' } }))] },
     dive: { moments: [() => el('', { right: '-10vw', top: '-10vh' }, 3000).classList.add('sc-neon')] },
     lighthouse: { moments: seaMoments() },
+    lighthouseDay: { moments: dayMoments() },
+    lighthouseFog: {
+      decor() {
+        // Banks of fog drifting slowly across, in front of the sea.
+        for (const [top, h, dur, delay] of [[24, 40, 70, -20], [44, 46, 95, -60], [60, 40, 80, -35]]) {
+          el('', { left: '-60vw', top: `${top}vh`, width: '90vw', height: `${h}vh`, animation: `sc-fogbank ${dur}s linear ${delay}s infinite` }).classList.add('sc-fogcloud');
+        }
+      },
+      moments: fogMoments(),
+      gap: [10, 24],
+    },
     storm: {
       decor() {
         el('', { inset: '0' }).classList.add('sc-rain');
@@ -300,6 +377,13 @@
     schedule(SCENES[want]);
   }
 
+  // Plays one of the current style's moments now (for /preview?moment=N).
+  function play(i) {
+    const m = current && SCENES[current].moments?.[i];
+    if (m) m();
+    return !!m;
+  }
+
   reduce?.addEventListener?.('change', () => { const s = current; current = null; set(reduce.matches ? null : s); });
-  window.Scenery = { set, styles: Object.keys(SCENES) };
+  window.Scenery = { set, play, styles: Object.keys(SCENES) };
 })();

@@ -23,3 +23,9 @@ test('pass-and-play seats get different looks', () => {
   assert.strictEqual(new Set(seats.map((s) => s.color)).size, 10);
   assert.strictEqual(new Set(seats.map((s) => s.avatar)).size, 10);
 });
+
+test('a drink is kept only when it is one of the drinks (none means the house drink)', () => {
+  assert.strictEqual(LOOKS.choose({ drink: '🍹' }).drink, '🍹');
+  assert.ok(!('drink' in LOOKS.choose({ drink: '<b>' })));
+  assert.ok(!('drink' in LOOKS.choose({})));
+});

@@ -177,13 +177,14 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    look: lookOf(room), // what the room looks like right now (the Lighthouse's weather)
     venue: room.venue || '',
     trip: trips.view(room, player.id),
     // The end-of-night recap, while the host has it open.
     recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color, drink = null }) => ({ id, name, connected, drinks, total, finished, avatar, color, drink })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     gameNo: room.gameNo || 0, // changes with every new game (screens forget the last one)
@@ -195,10 +196,68 @@ function viewFor(room, player) {
   };
 }
 
+// ---------- Preview (on your own computer only) ----------
+// /preview opens the TV on a made-up room with pretend players, to check how a screen looks in one
+// step: ?style=stpatricks&look=stpatricksRain&game=kingsCup&players=4 (all optional), and &moment=2
+// to play one of the scenery's moments straight away (see tools/preview.js for screenshots of many
+// at once). It never exists on Cloud Run (K_SERVICE is set there).
+if (!process.env.K_SERVICE) {
+  const NAMES = ['Ann', 'Cal', 'Dee', 'Eve', 'Finn', 'Gus', 'Hal', 'Ivy'];
+  app.get('/preview', (req, res) => {
+    const q = req.query;
+    const r = newRoom('p1');
+    const n = Math.min(8, Math.max(2, Number(q.players) || 4));
+    for (let i = 0; i < n; i++) {
+      r.players.push({ id: `p${i + 1}`, key: null, name: NAMES[i], drinks: i, total: i * 2, connected: true, socketId: null, ...LOOKS.choose({}, r.players) });
+    }
+    const look = String(q.look || '');
+    r.style = ROOM_STYLES.PICKABLE.includes(q.style) ? q.style : ROOM_STYLES.roomOf(look) || 'classic';
+    if (!ROOM_STYLES.PICKABLE.includes(r.style)) r.style = 'classic';
+    newMood(r);
+    if (ROOM_STYLES.STYLES[r.style]?.moods?.some(([id]) => id === look)) r.mood = look;
+    if (GAMES[q.game]) startGame(r, q.game);
+    res.redirect(`/tv?room=${r.code}&preview=1${q.moment !== undefined ? `&moment=${Number(q.moment) || 0}` : ''}`);
+  });
+}
+
 // ---------- TVs ----------
 // A TV watches a room: it isn't a player, and sees what everyone at the table can see (each game's
 // view for someone who isn't playing never includes anyone's hidden cards or dice).
 const TV = { id: '__tv', name: 'TV' };
+
+// ---------- Moods ----------
+// Some rooms change on their own: the Lighthouse moves between night, day, fog and a storm every
+// few minutes while a game is on. The server picks, so every phone and the TV see the same sky.
+const MOOD_MS = [6 * 60 * 1000, 12 * 60 * 1000];
+function newMood(room) {
+  if (!ROOM_STYLES.STYLES[room.style]?.moods) {
+    delete room.mood;
+    delete room.moodUntil;
+    return;
+  }
+  room.mood = ROOM_STYLES.pickMood(room.style, room.mood);
+  room.moodUntil = Date.now() + MOOD_MS[0] + Math.random() * (MOOD_MS[1] - MOOD_MS[0]);
+}
+function lookOf(room) {
+  // A room saved on the old 'Lighthouse in a storm' style is the Lighthouse, in a storm.
+  if (ROOM_STYLES.STYLES[room.style]?.mood) {
+    room.mood = room.style;
+    room.style = ROOM_STYLES.roomOf(room.style);
+    room.moodUntil ??= Date.now() + MOOD_MS[0];
+  }
+  const moods = ROOM_STYLES.STYLES[room.style]?.moods;
+  if (!moods) return room.style || 'classic';
+  if (!moods.some(([look]) => look === room.mood)) newMood(room);
+  return room.mood;
+}
+setInterval(() => {
+  for (const room of rooms.values()) {
+    if (room.game && room.moodUntil && Date.now() >= room.moodUntil) {
+      newMood(room);
+      broadcast(room);
+    }
+  }
+}, 15 * 1000).unref();
 const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
@@ -246,6 +305,24 @@ const ctx = createContext({ emit, broadcast, signal });
 
 // Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
 // host's custom content (questions, rules…), if they wrote any.
+function newRoom(hostId) {
+  const code = makeCode();
+  const r = {
+    code,
+    hostId,
+    players: [],
+    selectedGame: Object.keys(GAMES)[0],
+    options: Object.fromEntries(Object.values(GAMES).map((g) => [g.id, defaultOptions(g)])),
+    game: null,
+    feed: [],
+    timer: null,
+    deadline: null,
+    updatedAt: Date.now(),
+  };
+  rooms.set(code, r);
+  return r;
+}
+
 function startGame(room, gameId, mine = {}) {
   const game = GAMES[gameId];
   room.selectedGame = gameId;
@@ -346,34 +423,22 @@ io.on('connection', (socket) => {
     ensureHost(r);
   }
 
-  on('create', ({ name, playerId, key, avatar, color } = {}, ack = () => {}) => {
+  on('create', ({ name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
     name = cleanName(name);
     if (!name) return ack({ error: 'Enter your name' });
     if (!validId(playerId)) return ack({ error: 'Missing player id' });
     if (!allowCreate(clientIp(socket)) || rooms.size >= MAX_ROOMS) return ack({ error: 'Too many rooms right now. Try again in a minute.' });
-    const code = makeCode();
-    const r = {
-      code,
-      hostId: playerId,
-      players: [],
-      selectedGame: Object.keys(GAMES)[0],
-      options: Object.fromEntries(Object.values(GAMES).map((g) => [g.id, defaultOptions(g)])),
-      game: null,
-      feed: [],
-      timer: null,
-      deadline: null,
-      updatedAt: Date.now(),
-    };
-    rooms.set(code, r);
+    const r = newRoom(playerId);
+    const { code } = r;
     analytics.track('room_created');
-    const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }) };
+    const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }) };
     r.players.push(p);
     attach(r, p);
     ack({ ok: true, code });
     broadcast(r);
   });
 
-  on('join', async ({ code, name, playerId, key, avatar, color } = {}, ack = () => {}) => {
+  on('join', async ({ code, name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
     code = String(code || '').toUpperCase().trim().slice(0, 4);
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
     const r = await findRoom(code);
@@ -393,7 +458,7 @@ io.on('connection', (socket) => {
       if (r.players.some((x) => x.name.toLowerCase() === name.toLowerCase())) {
         return ack({ error: 'That name is taken in this room' });
       }
-      p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }, r.players) };
+      p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }, r.players) };
       // Back after missing a game: tonight's tab is still theirs.
       const back = r.away?.[playerId];
       if (back && (!back.key || back.key === key)) {
@@ -420,10 +485,13 @@ io.on('connection', (socket) => {
   }
 
   // Change your avatar or colour, any time.
-  on('setLook', ({ avatar, color } = {}) => {
+  on('setLook', ({ avatar, color, drink } = {}) => {
     if (!room || !player) return;
     if (LOOKS.AVATARS.includes(avatar)) player.avatar = avatar;
     if (LOOKS.COLORS.includes(color)) player.color = color;
+    // No drink (or an unknown one) is the house drink.
+    if (LOOKS.DRINKS.includes(drink)) player.drink = drink;
+    else delete player.drink;
     broadcast(room);
   });
 
@@ -455,8 +523,11 @@ io.on('connection', (socket) => {
 
   // The host dresses the room up (any time, even mid-game).
   on('setStyle', ({ style } = {}) => {
-    if (!hostOnly() || !ROOM_STYLES.IDS.includes(style)) return;
-    room.style = style;
+    if (!hostOnly() || !ROOM_STYLES.PICKABLE.includes(style)) return;
+    if (room.style !== style) {
+      room.style = style;
+      newMood(room);
+    }
     broadcast(room);
   });
 

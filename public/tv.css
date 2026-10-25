@@ -57,8 +57,33 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
   position: absolute; inset: 16% 13%;
   border-radius: 50%;
   background: var(--felt, radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%));
-  box-shadow: 0 0 0 1.2rem var(--rim, #5b3a1e), 0 0 0 1.5rem rgba(0, 0, 0, 0.35), 0 2rem 4rem rgba(0, 0, 0, 0.6), inset 0 0 4rem rgba(0, 0, 0, 0.45);
+  /* A dark padded bumper where the felt meets the wood, and the felt sinking into it. */
+  box-shadow: 0 0 0 0.35rem rgba(0, 0, 0, 0.55), inset 0 0 0 0.15rem rgba(0, 0, 0, 0.4), inset 0 0 3.5rem rgba(0, 0, 0, 0.5);
 }
+/* The wooden rail round the table: lit from above, with a bevel and a shadow on the floor. */
+.tv-felt::before {
+  content: ''; position: absolute; inset: -1.55rem; border-radius: 50%; z-index: -1;
+  background:
+    repeating-radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.07) 0 0.25rem, transparent 0.25rem 0.7rem),
+    linear-gradient(170deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.04) 30%, rgba(0, 0, 0, 0.12) 60%, rgba(0, 0, 0, 0.38)),
+    var(--rim, #5b3a1e);
+  box-shadow: inset 0 0.18rem 0.1rem rgba(255, 255, 255, 0.28), inset 0 -0.3rem 0.5rem rgba(0, 0, 0, 0.45), 0 1.8rem 3.5rem rgba(0, 0, 0, 0.65), 0 0 0 0.12rem rgba(0, 0, 0, 0.5);
+}
+/* The lamp hanging over the table, and the weave of the cloth. */
+.tv-felt::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 42%, rgba(255, 250, 225, 0.16), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay; opacity: 0.9;
+}
+/* Each player's drink, standing on the rail; it tips up when they drink. */
+.tv-glass {
+  position: absolute; transform: translate(-50%, -50%); z-index: 1; pointer-events: none;
+  font-size: 2.1rem; line-height: 1; filter: drop-shadow(0 0.35rem 0.25rem rgba(0, 0, 0, 0.55));
+}
+.tv-glass.sip { animation: tv-sip 1.6s ease-in-out; }
+@keyframes tv-sip { 0% { transform: translate(-50%, -50%); } 25% { transform: translate(-50%, -85%) rotate(-38deg) scale(1.15); } 70% { transform: translate(-50%, -85%) rotate(-38deg) scale(1.15); } 100% { transform: translate(-50%, -50%); } }
 .tv-seat {
   position: absolute; transform: translate(-50%, -50%);
   display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 0.6rem; align-items: center;
@@ -87,7 +112,12 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 #tv-center .card { background: color-mix(in srgb, var(--card) 85%, transparent); }
 
 .tv-side { grid-area: side; display: flex; flex-direction: column; gap: 1.2vh; min-height: 0; overflow: hidden; font-size: 1rem; }
-.tv-side .card { padding: 1rem; gap: 0.6rem; }
+.tv-side .card { padding: 1rem; gap: 0.6rem; background: var(--card); box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55); }
+/* The sidebar's cards join into one solid panel (no gaps for the wall behind to show through). */
+.tv-side:has(> .card + .card) { gap: 0; }
+.tv-side > .card + .card { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.tv-side > .feed { margin-top: 1.2vh; }
+.tv-side > .card:has(+ .card) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .tv-side h2 { font-size: 1.1rem; }
 .tv-board ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .tv-board li { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; column-gap: 0.6rem; align-items: center; }

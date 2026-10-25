@@ -17,6 +17,7 @@ const store = {
   set: (code) => { try { localStorage.setItem('tv-room', code); } catch {} },
 };
 let code = (params.get('room') || store.get() || '').toUpperCase();
+const preview = params.has('preview');
 let error = '';
 let soundOn = false; // browsers only allow sound after the first click
 const loading = {};
@@ -40,6 +41,8 @@ function watch(c) {
     }
     code = res.code;
     error = '';
+    // A preview (see /preview in server.js) is made up: don't remember it, or tidy its address.
+    if (preview) return;
     store.set(code);
     history.replaceState(null, '', `/tv?room=${code}`);
   });
@@ -64,8 +67,15 @@ socket.on('state', (s) => {
 // Quick updates a game sends without the whole state (where a dart is aimed).
 socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
 
-// Every drink pops up on the TV, with a buzz.
+// Every drink pops up on the TV, with a buzz, and the drinker's glass tips up.
+const sipping = new Set();
 socket.on('drink', (d) => {
+  sipping.add(d.playerId);
+  document.querySelector(`.tv-glass[data-player="${CSS.escape(d.playerId)}"]`)?.classList.add('sip');
+  setTimeout(() => {
+    sipping.delete(d.playerId);
+    document.querySelector(`.tv-glass[data-player="${CSS.escape(d.playerId)}"]`)?.classList.remove('sip');
+  }, 1800);
   const el = document.createElement('div');
   el.className = 'tv-drink';
   el.innerHTML = `${PB.avatar(d.playerId)}<div><b>${esc(d.who)}</b>${d.title ? `: ${esc(d.title)}` : ` drinks ${PB.plural(d.sips, 'sip')}`}
@@ -94,7 +104,7 @@ const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
 let musicLevel = 1;
 try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length; } catch {}
 function music() {
-  if (soundOn) Ambience.set(PB.state?.style, MUSIC[musicLevel][1]);
+  if (soundOn) Ambience.set(PB.state?.look || PB.state?.style, MUSIC[musicLevel][1]);
   let btn = document.getElementById('tv-music');
   // It appears once sound is on (the "click for sound" button sits in the same corner till then).
   const show = soundOn && PB.state && PB.state.style && PB.state.style !== 'classic';
@@ -196,7 +206,7 @@ function lobbyScreen(s) {
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
         <p class="muted">${esc(PB.name(s.hostId))} starts the game from their phone</p>
-        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(s.venue || ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
+        ${ROOM_STYLES.STYLES[s.look]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.look].emoji)} ${esc(s.venue || ROOM_STYLES.STYLES[s.look].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.look].welcome)}</p>` : ''}
       </div>
     </div>
     ${soundButton()}`;
@@ -208,9 +218,12 @@ function seats(s) {
   const turn = g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
   // A game can put things on the table in front of each player (their dice, their cards).
   const front = PB.screens[s.gameType]?.tvFront;
+  // Everyone's drink sits on the rail beside them: what they picked, or whatever the room drinks.
+  const drink = ROOM_STYLES.STYLES[s.look || s.style]?.drink || '🍺';
   return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
       ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>
-    <div class="tv-front">${front?.(s, p.id) || ''}</div>`).join('');
+    <div class="tv-front">${front?.(s, p.id) || ''}</div>
+    <div class="tv-glass ${sipping.has(p.id) ? 'sip' : ''}" data-player="${esc(p.id)}">${esc(p.drink || drink)}</div>`).join('');
 }
 
 // Everyone sits just outside the table's edge (never on it), whatever the screen's shape: each
@@ -220,6 +233,7 @@ function placeSeats() {
   const felt = document.querySelector('.tv-felt');
   const els = [...document.querySelectorAll('#tv-seats .tv-seat')];
   const fronts = [...document.querySelectorAll('#tv-seats .tv-front')];
+  const glasses = [...document.querySelectorAll('#tv-seats .tv-glass')];
   if (!table || !felt || !els.length) return;
   const W = table.clientWidth;
   const H = table.clientHeight;
@@ -239,6 +253,13 @@ function placeSeats() {
     // Keep the whole seat on screen.
     el.style.left = `${Math.min(W - el.offsetWidth / 2, Math.max(el.offsetWidth / 2, x)).toFixed(0)}px`;
     el.style.top = `${Math.min(H - el.offsetHeight / 2, Math.max(el.offsetHeight / 2, y)).toFixed(0)}px`;
+    // Their drink stands on the rail a little round from them (towards their right hand).
+    const g = glasses[i];
+    if (g) {
+      const b = a - Math.min(0.32, Math.PI / els.length / 1.6);
+      g.style.left = `${(W / 2 + (rx + rim * 0.45) * Math.cos(b)).toFixed(0)}px`;
+      g.style.top = `${(H / 2 + (ry + rim * 0.45) * Math.sin(b)).toFixed(0)}px`;
+    }
     // What's in front of them sits on the felt, just inside the rim.
     const f = fronts[i];
     if (f?.firstElementChild) {
@@ -350,8 +371,10 @@ function gameScreen(s) {
 
 function render() {
   const s = PB.state;
-  ROOM_STYLES.apply(s?.style);
-  Scenery.set(s?.style);
+  ROOM_STYLES.apply(s?.look || s?.style);
+  Scenery.set(s?.look || s?.style);
+  // /preview?moment=N: play that scenery moment as soon as the room is up.
+  if (preview && s && params.has('moment') && !render.played) render.played = Scenery.play(Number(params.get('moment')));
   music();
   if (!s) return joinScreen();
   if (s.trip && s.phase === 'lobby') {
