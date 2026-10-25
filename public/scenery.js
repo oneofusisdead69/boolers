@@ -101,6 +101,42 @@
   const TENTACLE = `<svg viewBox="0 0 60 160" width="0.375em" height="1em"><path d="M30 160 Q8 120 26 86 Q44 52 22 24 Q14 10 26 4 Q38 0 36 14 Q34 24 40 34 Q56 64 40 96 Q30 124 44 160Z" fill="#7a3b6e"/>
     <g fill="#d99bc6">${[30, 50, 72, 96, 120, 142].map((y, i) => `<circle cx="${i % 2 ? 36 : 30}" cy="${y}" r="${3.5 - i * 0.2}"/>`).join('')}</g></svg>`;
   const FLUKE = `<svg viewBox="0 0 120 60" width="1em" height="0.5em"><path d="M60 60 Q56 36 60 26 Q40 30 6 8 Q30 4 52 16 Q60 20 60 24 Q60 20 68 16 Q90 4 114 8 Q80 30 60 26 Q64 36 60 60Z" fill="#0b1014" stroke="#e98a52" stroke-width="1.2"/></svg>`;
+  // Bar room bits: a dartboard and a dart, a mouse, a fly, a cat.
+  const DARTBOARD = `<svg viewBox="0 0 60 60" width="1em" height="1em"><circle cx="30" cy="30" r="29" fill="#111"/>
+    ${[26, 20, 12, 6, 2.5].map((r, i) => `<circle cx="30" cy="30" r="${r}" fill="${['#1d8f4e', '#e8dcc0', '#d3262e', '#e8dcc0', '#d3262e'][i]}"/>`).join('')}
+    ${Array.from({ length: 10 }, (_, i) => `<path d="M30 30 L${30 + 26 * Math.cos(i * 0.628)} ${30 + 26 * Math.sin(i * 0.628)}" stroke="#111" stroke-width="1"/>`).join('')}</svg>`;
+  const DART = `<svg viewBox="0 0 40 8" width="1em" height="0.2em"><path d="M0 4 L10 1 L10 7Z" fill="#e63946"/><rect x="10" y="3" width="20" height="2" fill="#bbb"/><path d="M30 2 L40 4 L30 6Z" fill="#666"/></svg>`;
+  const MOUSE = `<svg viewBox="0 0 50 24" width="1em" height="0.48em"><path d="M4 22 Q0 12 10 8 Q22 2 34 10 L44 14 Q46 18 40 20 L8 22Z" fill="#5b524a"/>
+    <circle cx="30" cy="8" r="4" fill="#7a6f64"/><circle cx="41" cy="15" r="1.2" fill="#111"/><path d="M4 20 Q-6 18 -10 10" stroke="#5b524a" stroke-width="1.5" fill="none"/></svg>`;
+  const FLY = `<svg viewBox="0 0 20 14" width="1em" height="0.7em"><ellipse cx="10" cy="9" rx="4" ry="3" fill="#111"/>
+    <ellipse class="sc-buzz" cx="7" cy="5" rx="4" ry="2.4" fill="rgba(220,230,255,0.6)"/><ellipse class="sc-buzz" cx="13" cy="5" rx="4" ry="2.4" fill="rgba(220,230,255,0.6)"/></svg>`;
+  const CAT = `<svg viewBox="0 0 80 50" width="1em" height="0.62em"><g fill="#9d958b">
+    <path class="sc-tail" d="M12 26 Q0 20 4 6 Q6 2 8 6 Q6 18 16 22Z"/><ellipse cx="34" cy="30" rx="22" ry="11"/><circle cx="60" cy="22" r="9"/>
+    <path d="M53 16 L55 6 L60 14Z M62 14 L67 6 L68 17Z"/><g class="sc-legs-f"><rect x="18" y="36" width="4" height="13" rx="2"/><rect x="46" y="36" width="4" height="13" rx="2"/></g>
+    <g class="sc-legs-b"><rect x="24" y="36" width="4" height="13" rx="2"/><rect x="52" y="36" width="4" height="13" rx="2"/></g></g>
+    <path d="M26 21 Q28 26 26 31 M34 20 Q36 26 34 32 M42 21 Q44 26 42 31" stroke="#6f675e" stroke-width="2.4" fill="none"/>
+    <circle cx="63" cy="21" r="1.6" fill="#3d8f3a"/><path d="M53 16 L55 8 L58 14Z" fill="#e4a6a0"/></svg>`;
+  // The diner's ceiling fan; space's ringed planet, flying saucer and astronaut; Santa's sleigh.
+  const FAN = `<svg viewBox="0 0 120 120" width="1em" height="1em"><rect x="58" y="0" width="4" height="44" fill="#8a8f96"/>
+    <g class="sc-blades" fill="#7a5a40" stroke="#4e3826" stroke-width="1.5">${[0, 90, 180, 270].map((a) => `<rect transform="rotate(${a} 60 60)" x="68" y="53" width="48" height="14" rx="7"/>`).join('')}</g>
+    <circle cx="60" cy="60" r="13" fill="#c9ccd1" stroke="#8a8f96" stroke-width="2"/><circle cx="60" cy="60" r="4" fill="#8a8f96"/></svg>`;
+  const PLANET = `<svg viewBox="0 0 140 90" width="1em" height="0.64em"><defs><radialGradient id="pl" cx="40%" cy="35%"><stop offset="0" stop-color="#f6c48a"/><stop offset="1" stop-color="#9c4f2f"/></radialGradient></defs>
+    <ellipse cx="70" cy="45" rx="66" ry="14" fill="none" stroke="rgba(240,210,170,0.55)" stroke-width="5"/><circle cx="70" cy="45" r="30" fill="url(#pl)"/>
+    <path d="M4 45 A66 14 0 0 0 136 45" fill="none" stroke="rgba(240,210,170,0.8)" stroke-width="5"/>
+    <path d="M44 38 Q70 30 96 38 M42 50 Q70 44 98 52" stroke="rgba(120,60,30,0.35)" stroke-width="3" fill="none"/></svg>`;
+  const UFO = `<svg viewBox="0 0 90 40" width="1em" height="0.44em"><ellipse cx="45" cy="16" rx="16" ry="12" fill="rgba(160,230,255,0.75)"/>
+    <ellipse cx="45" cy="24" rx="44" ry="10" fill="#9aa4b4"/><ellipse cx="45" cy="22" rx="44" ry="6" fill="#c9d1dc"/>
+    <g class="sc-ufolights">${[14, 30, 45, 60, 76].map((x) => `<circle cx="${x}" cy="26" r="2.6" fill="#ffd23f"/>`).join('')}</g></svg>`;
+  const ASTRONAUT = `<svg viewBox="0 0 60 70" width="0.86em" height="1em"><g fill="#eef1f5" stroke="#9aa4b4" stroke-width="1.5">
+    <rect x="16" y="26" width="28" height="28" rx="8"/><rect x="2" y="28" width="16" height="9" rx="4.5" transform="rotate(-30 10 32)"/><rect x="42" y="28" width="16" height="9" rx="4.5" transform="rotate(25 50 32)"/>
+    <rect x="18" y="50" width="10" height="18" rx="5"/><rect x="32" y="50" width="10" height="18" rx="5"/><circle cx="30" cy="16" r="14"/></g>
+    <ellipse cx="31" cy="16" rx="9" ry="7" fill="#203a5c"/><path d="M26 12 Q30 10 34 12" stroke="#9cc8ff" stroke-width="1.5" fill="none"/></svg>`;
+  const SLEIGH = `<svg viewBox="0 0 200 50" width="1em" height="0.25em"><g fill="#a0683a">
+    ${[0, 34, 68].map((x) => `<g transform="translate(${x} 0)"><ellipse cx="18" cy="24" rx="12" ry="6"/><path d="M28 20 L34 10 L33 22Z"/><path d="M33 10 L36 2 M33 10 L30 3" stroke="#160d0a" stroke-width="1.5"/>
+    <g class="sc-legs-f"><rect x="9" y="27" width="2" height="10"/><rect x="24" y="27" width="2" height="10"/></g></g>`).join('')}
+    <path d="M104 22 L130 26" stroke="#e8d7a8" stroke-width="1"/><path d="M128 18 L176 18 Q186 18 184 30 L130 32 Q124 26 128 18Z" fill="#c0392b"/><path d="M124 36 L188 36 Q194 34 194 30" stroke="#e8c15a" stroke-width="2.5" fill="none"/>
+    <circle cx="152" cy="13" r="6" fill="#f2d2b6"/><path d="M144 10 L152 0 L160 10Z" fill="#c0392b"/><circle cx="160" cy="11" r="1.8" fill="#fff"/><path d="M146 16 Q152 24 158 16Z" fill="#fff"/>
+    <rect x="140" y="18" width="24" height="10" rx="4" fill="#c0392b"/><circle cx="102" cy="20" r="2.4" fill="#ff3b3b"/></g></svg>`;
   const TUMBLEWEED = `<svg viewBox="0 0 40 40" width="1em" height="1em"><g fill="none" stroke="#a07b45" stroke-width="2">
     <circle cx="20" cy="20" r="17"/><path d="M5 15 Q20 30 35 12 M8 28 Q22 8 33 30 M14 5 Q12 22 26 36 M30 6 Q16 18 10 34"/></g></svg>`;
 
@@ -284,7 +320,17 @@
       ],
       gap: [20, 40],
     },
-    christmas: { moments: [() => shower(12, 0.3, () => drift('❄', { from: [rand(0, 100), -5], to: [rand(0, 100), 105], dur: rand(9, 16), size: rand(10, 22), spin: rand(-180, 180), opacity: rand(0.4, 0.9) }))] },
+    // Snow coming down, and Santa's sleigh crossing the sky with his bells.
+    christmas: {
+      moments: [
+        () => shower(12, 0.3, () => drift('❄', { from: [rand(0, 100), -5], to: [rand(0, 100), 105], dur: rand(9, 16), size: rand(10, 22), spin: rand(-180, 180), opacity: rand(0.4, 0.9) })),
+        () => {
+          // High up, through the strip behind the TV's heading (lower, it's hidden by the top seat).
+          drift(SLEIGH, { from: [-30, rand(6, 8)], to: [115, rand(1, 3)], dur: rand(11, 14), size: rand(200, 240) }).classList.add('sc-sleigh');
+          later(() => window.Ambience?.cue('sleighbells'), 2000);
+        },
+      ],
+    },
     // Sparks off the peat fire, and now and then a few shamrocks.
     stpatricks: { moments: hearth() },
     stpatricksFog: { moments: hearth() },
@@ -299,14 +345,42 @@
       }],
     },
     saloon: { moments: [() => drift(TUMBLEWEED, { from: [-12, rand(70, 85)], to: [112, rand(70, 85)], dur: rand(7, 10), size: rand(50, 80), spin: 720, opacity: 0.85 })] },
+    // A ringed planet turning slowly in the window; shooting stars, a flying saucer, a lost
+    // astronaut tumbling past, a comet.
     space: {
-      moments: [() => {
-        for (let i = 0; i < pick([1, 2, 3]); i++) {
-          later(() => el('', { left: `${rand(10, 90)}vw`, top: `${rand(5, 40)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 600);
-        }
-      }],
+      decor() {
+        el(PLANET, { left: '1vw', top: '18vh', fontSize: '160px' }).classList.add('sc-planet');
+      },
+      moments: [
+        () => {
+          for (let i = 0; i < pick([1, 2, 3]); i++) {
+            later(() => el('', { left: `${rand(10, 90)}vw`, top: `${rand(5, 40)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 600);
+          }
+        },
+        () => {
+          const right = Math.random() < 0.5;
+          drift(UFO, { from: [right ? -12 : 110, rand(8, 14)], to: [right ? 112 : -12, rand(8, 16)], dur: rand(7, 10), size: rand(70, 100) }).classList.add('sc-ufo');
+          later(() => window.Ambience?.cue('ufo'), 800);
+        },
+        () => drift(ASTRONAUT, { from: [-10, rand(60, 80)], to: [rand(20, 40), rand(10, 30)], dur: rand(22, 28), size: rand(50, 70), spin: rand(-200, 200) }),
+        () => drift('', { from: [110, rand(4, 12)], to: [-20, rand(20, 34)], dur: 3.5 }).classList.add('sc-comet'),
+      ],
     },
-    tavern: { moments: [() => embers(6, () => [rand(10, 90), 102])] },
+    // Lanterns hanging from the beams; sparks from the fire, the tavern cat strolling past.
+    tavern: {
+      decor() {
+        el(LANTERN, { left: '3vw', top: '9vh', fontSize: '70px' }).classList.add('sc-lantern');
+        el(LANTERN, { left: '30vw', top: '6vh', fontSize: '56px', animationDelay: '-1.4s' }).classList.add('sc-lantern');
+      },
+      moments: [
+        () => embers(6, () => [rand(10, 90), 102]),
+        () => {
+          const right = Math.random() < 0.5;
+          drift(CAT, { from: [right ? -10 : 108, 89], to: [right ? 108 : -10, 89], dur: rand(14, 18), size: rand(70, 90) }).classList.add('sc-cat', right ? 'sc-face-r' : 'sc-face-l');
+          later(() => window.Ambience?.cue('meow'), rand(3000, 6000));
+        },
+      ],
+    },
     castle: {
       decor() {
         for (const left of ['3vw', 'calc(97vw - 26px)']) el('<div class="sc-flame"></div>', { left, top: '18vh' }).classList.add('sc-torch');
@@ -369,8 +443,37 @@
         }
       }],
     },
-    diner: { moments: [() => shower(6, 1, () => drift(pick(['♪', '♫', '♬']), { from: [rand(5, 95), 100], to: [rand(5, 95), rand(45, 70)], dur: rand(5, 8), size: rand(18, 30), spin: rand(-30, 30), opacity: 0.5, extra: { color: '#e63946' } }))] },
-    dive: { moments: [() => el('', { right: '-10vw', top: '-10vh' }, 3000).classList.add('sc-neon')] },
+    // The neon OPEN sign and a ceiling fan turning; notes off the jukebox, and a car's headlights
+    // sweeping past the window.
+    diner: {
+      decor() {
+        el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open');
+        el(FAN, { left: '17vw', top: '-4vh', fontSize: '170px' }).classList.add('sc-fan');
+      },
+      moments: [
+        () => shower(6, 1, () => drift(pick(['♪', '♫', '♬']), { from: [rand(5, 95), 100], to: [rand(5, 95), rand(45, 70)], dur: rand(5, 8), size: rand(18, 30), spin: rand(-30, 30), opacity: 0.5, extra: { color: '#e63946' } })),
+        () => { const right = Math.random() < 0.5; drift('', { from: [right ? -40 : 110, 20], to: [right ? 110 : -40, 20], dur: 2.6 }).classList.add('sc-headlights'); },
+      ],
+    },
+    // A neon BEER sign that sputters, a dartboard on the wall; a fly, a dart, a mouse.
+    dive: {
+      decor() {
+        el('<span>BEER</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'beer');
+        el(DARTBOARD, { left: '2vw', top: '62vh', fontSize: '90px' }).classList.add('sc-board');
+      },
+      moments: [
+        () => el('', { right: '-10vw', top: '-10vh' }, 3000).classList.add('sc-neon'),
+        () => layer.querySelector('.sc-sign.beer')?.animate([{ opacity: 1 }, { opacity: 0.15 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 0.2 }, { opacity: 1 }], { duration: 1400, easing: 'steps(1)' }),
+        () => {
+          // A dart flies in and sticks in the board.
+          // (Not drift(): the dart stays in the board a while after it lands.)
+          el(DART, { left: '-12vw', top: '66.5vh', fontSize: '60px', '--dx': '14.5vw', '--dy': '0vh', '--spin': '0deg', animation: 'sc-drift 0.45s ease-out forwards' }, 6000);
+          later(() => window.Ambience?.cue('thud'), 450);
+        },
+        () => el(FLY, { left: `${rand(5, 60)}vw`, top: `${rand(8, 20)}vh`, fontSize: '16px' }, 9000).classList.add('sc-fly'),
+        () => { const right = Math.random() < 0.5; drift(MOUSE, { from: [right ? -6 : 104, 94], to: [right ? 104 : -6, 94], dur: rand(3, 4.5), size: 56 }).classList.add('sc-mouse', right ? 'sc-face-r' : 'sc-face-l'); },
+      ],
+    },
     lighthouse: { moments: seaMoments() },
     lighthouseDay: { moments: dayMoments() },
     lighthouseFog: {

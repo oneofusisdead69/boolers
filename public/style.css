@@ -1200,6 +1200,36 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-spout { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(var(--x, 0), -9vh) scale(1.4); } 100% { transform: translate(calc(var(--x, 0) * 2), -5vh) scale(2); opacity: 0; } }
 .sc-fluke { opacity: 0; transform-origin: 50% 100%; animation: sc-fluke 4s ease-in-out forwards; }
 @keyframes sc-fluke { 0% { opacity: 0; transform: translateY(40%) rotate(-10deg); } 25% { opacity: 1; } 50% { transform: translateY(0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(50%) rotate(12deg); } }
+/* Signs in neon tube: the dive bar's BEER (amber) and the diner's OPEN (red). */
+.sc-sign span { display: block; font: 700 46px/1 "Arial Rounded MT Bold", system-ui, sans-serif; letter-spacing: 0.08em; padding: 6px 14px; border: 3px solid currentColor; border-radius: 14px; }
+.sc-sign.beer { color: #ffb347; text-shadow: 0 0 6px #ff8a1a, 0 0 18px #ff8a1a; filter: drop-shadow(0 0 10px rgba(255, 138, 26, 0.7)); }
+.sc-sign.open { color: #ff4d5e; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); animation: sc-open 6s steps(1) infinite; }
+@keyframes sc-open { 0%, 88%, 92%, 100% { opacity: 1; } 90% { opacity: 0.25; } }
+.sc-board { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.6)); }
+/* A fly buzzing about. */
+.sc-fly { animation: sc-flyabout 9s ease-in-out forwards; }
+@keyframes sc-flyabout { 0% { transform: translate(0, 0); opacity: 0; } 5% { opacity: 1; } 20% { transform: translate(6vw, -3vh); } 35% { transform: translate(2vw, 4vh); } 50% { transform: translate(10vw, 1vh); } 65% { transform: translate(5vw, -4vh); } 80% { transform: translate(14vw, 3vh); } 95% { opacity: 1; } 100% { transform: translate(24vw, -6vh); opacity: 0; } }
+.sc-buzz { animation: sc-flap 0.05s linear infinite alternate; transform-origin: 10px 7px; }
+.sc-mouse svg { animation: sc-bob 0.18s ease-in-out infinite alternate; }
+/* The tavern cat: legs going, tail swishing. */
+.sc-cat .sc-tail { transform-origin: 14px 24px; animation: sc-swish 1.2s ease-in-out infinite alternate; }
+@keyframes sc-swish { from { transform: rotate(-12deg); } to { transform: rotate(10deg); } }
+/* The diner: the fan turning, headlights sweeping past the window. */
+.sc-fan .sc-blades { transform-origin: 60px 60px; animation: sc-spin 2.4s linear infinite; }
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+.sc-headlights { width: 40vw; height: 60vh; background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 245, 210, 0.22), transparent 70%); filter: blur(10px); }
+/* Space: the planet turning slowly, the saucer wobbling with its lights going round, a comet. */
+.sc-planet { animation: sc-planet 30s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px rgba(246, 196, 138, 0.35)); }
+@keyframes sc-planet { from { transform: rotate(-6deg) translateY(0); } to { transform: rotate(4deg) translateY(1.5vh); } }
+.sc-ufo svg { animation: sc-wobble 0.9s ease-in-out infinite alternate; filter: drop-shadow(0 0 12px rgba(160, 230, 255, 0.6)); }
+@keyframes sc-wobble { from { transform: rotate(-5deg) translateY(-3px); } to { transform: rotate(5deg) translateY(3px); } }
+.sc-ufolights circle { animation: sc-blinkon 0.6s steps(1) infinite; } .sc-ufolights circle:nth-child(2n) { animation-delay: 0.3s; }
+@keyframes sc-blinkon { 50% { fill: #ff5cc8; } }
+.sc-comet { width: 26vw; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #fff, rgba(160, 220, 255, 0.6) 15%, transparent); transform-origin: left center; box-shadow: 0 0 10px #bfe4ff; rotate: -10deg; }
+/* Santa's sleigh: the reindeer's legs going. */
+.sc-sleigh { filter: drop-shadow(0 0 8px rgba(255, 240, 200, 0.7)); }
+.sc-sleigh svg { display: block; } /* at the top of its box, not on the text baseline 1em down */
+.sc-sleigh::after { content: ''; position: absolute; right: 100%; top: 40%; width: 30vw; height: 3px; background: linear-gradient(90deg, transparent, rgba(255, 230, 150, 0.7)); border-radius: 3px; filter: blur(1px); }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
