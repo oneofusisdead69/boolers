@@ -318,7 +318,8 @@
     const showTable = PB.isTV || !s.tv;
     const throwing = mine && s.phase === 'throwing';
     return `
-      ${PB.turn(g.turnId, `Team ${team.name} · ${PB.plural(g.balls, 'ball')} left`)}
+      ${PB.turn(g.turnId, g.rebuttal ? `🔁 Rebuttal · ${PB.plural(g.rebuttal.left, 'cup')} to sink, no misses` : `Team ${team.name} · ${PB.plural(g.balls, 'ball')} left`)}
+      ${g.rebuttal ? `<p class="bp-rebuttal">Team ${esc(team.name)} lost their last cup. Sink all ${PB.plural(g.rebuttal.left, 'cup')} without a miss to win it!</p>` : ''}
       ${mine ? closeUp(s) : showTable ? table(s) : ''}
       ${lastLine(s)}
       ${throwing ? pad(s) : ''}
@@ -331,7 +332,7 @@
     const w = g.teams[g.winner];
     const l = g.teams[1 - g.winner];
     return `
-      <div class="drink win" style="--team:${w.color}"><div class="big">🏆 Team ${esc(w.name)} wins!</div>
+      <div class="drink win" style="--team:${w.color}"><div class="big">${g.comeback ? '🔥' : '🏆'} Team ${esc(w.name)} wins${g.comeback ? ' on the rebuttal' : ''}!</div>
         <div class="sips">Team ${esc(l.name)}: finish your drinks</div></div>
       ${PB.isTV || !s.tv ? table(s) : ''}
       ${teams(s)}
