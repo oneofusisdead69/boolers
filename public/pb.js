@@ -137,6 +137,11 @@
       return `<details class="exit-menu"><summary class="end-mini">Exit</summary><div class="exit-pop">${all.replaceAll('class="end-mini"', 'class="secondary"')}</div></details>`;
     },
 
+    // A little 📺 when a TV is showing the room (online only, and not on the TV itself).
+    tvBadge() {
+      return PB.state?.tv && !PB.isTV && !PB.passAndPlay ? '<span class="tv-badge" title="A TV is showing this room">📺 TV</span>' : '';
+    },
+
     // Leave the room (you can come back with the code). Not in pass and play or on the TV.
     leaveButton(className = 'link') {
       if (PB.passAndPlay || PB.isTV || !PB.state?.code) return '';

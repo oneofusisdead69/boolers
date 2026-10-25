@@ -27,28 +27,47 @@
     return ac;
   }
 
-  let noiseBuf = null;
-  function noise() {
-    if (!noiseBuf) {
-      noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
-      const d = noiseBuf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  // Two kinds of noise. White (every pitch equally) is right for short bright things: a hi-hat, a
+  // brush, a pop. For anything that goes on and on (a murmur, wind, the sea) it sounds like static
+  // on a TV's speakers, so those use brown noise, which falls away steeply up high: a soft rush.
+  const noiseBufs = {};
+  function noise(color = 'white') {
+    if (!noiseBufs[color]) {
+      const buf = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      if (color === 'brown') {
+        let last = 0;
+        let peak = 0;
+        for (let i = 0; i < d.length; i++) {
+          last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+          d[i] = last;
+          peak = Math.max(peak, Math.abs(last));
+        }
+        // Loud enough to stand in for the white noise it replaces, and no click where it loops.
+        const fade = 2000;
+        for (let i = 0; i < d.length; i++) d[i] = (d[i] / peak) * 0.9 * Math.min(1, i / fade, (d.length - i) / fade);
+      } else {
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      noiseBufs[color] = buf;
     }
     const src = ac.createBufferSource();
-    src.buffer = noiseBuf;
+    src.buffer = noiseBufs[color];
     return src;
   }
 
   // ---------- Building blocks ----------
 
   // A steady bed of filtered noise (murmur, wind, sizzle), gently swelling.
-  function bed(out, { type = 'lowpass', freq, q = 0.7, gain, wobble = 0.3, rate = 0.08, sweep = 0 }) {
-    const src = noise();
+  function bed(out, { type = 'lowpass', freq, q = 0.7, gain, wobble = 0.3, rate = 0.08, sweep = 0, color = 'brown' }) {
+    const src = noise(color);
     src.loop = true;
     const f = ac.createBiquadFilter();
     f.type = type;
     f.frequency.value = freq;
     f.Q.value = q;
+    // Brown noise comes out louder than the white it replaced: brought back to the same level.
+    if (color === 'brown') gain *= 0.6;
     const g = ac.createGain();
     g.gain.value = gain;
     const lfo = ac.createOscillator();
@@ -61,7 +80,15 @@
       fd.gain.value = sweep;
       lfo.connect(fd).connect(f.frequency);
     }
-    src.connect(f).connect(g).connect(out);
+    // Nothing below about 130 Hz (two filters, for a steep cut): TV speakers can't play it, and it
+    // only muddies the rest.
+    const [low1, low2] = [0, 1].map(() => {
+      const h = ac.createBiquadFilter();
+      h.type = 'highpass';
+      h.frequency.value = 130;
+      return h;
+    });
+    src.connect(low1).connect(low2).connect(f).connect(g).connect(out);
     src.start();
     lfo.start();
     return () => { src.stop(); lfo.stop(); };
@@ -144,28 +171,76 @@
     return () => { flames(); pops(); };
   }
 
-  // A pub session up in the hills: the crowd, the peat fire, a bodhrán and a jig on the fiddle
-  // (filtered, so it's a fiddle across the room and not a buzzer). `level` turns the band down.
+  // A pub session up in the hills: the crowd and the peat fire, and in the corner a fiddle playing
+  // a slow air over a guitar's open chords, with a soft bodhrán. A real tune, at an easy walking
+  // pace (a random run of quick notes on a bright tone sounded like a fairground organ).
+  // `level` turns the band down.
+  // The air, in D mixolydian: [midi note or null for a rest, length in eighths], one bar = 6.
+  const AIR = [
+    [69, 2], [71, 1], [74, 3], [76, 1], [74, 1], [71, 2], [69, 2], [67, 1], [69, 1], [71, 2], [69, 1], [67, 1], [64, 2], [62, 4],
+    [62, 1], [64, 1], [67, 2], [69, 1], [71, 1], [72, 2], [71, 1], [69, 1], [67, 4], [64, 1], [62, 1], [64, 2], [67, 6],
+    [74, 2], [76, 1], [78, 3], [76, 1], [74, 1], [72, 2], [71, 2], [69, 1], [67, 1], [69, 2], [71, 1], [69, 1], [67, 2], [64, 4],
+    [62, 1], [64, 1], [67, 2], [69, 1], [67, 1], [64, 2], [62, 1], [60, 1], [62, 6], [null, 8],
+  ];
+  // A chord a bar under it: D, C (mixolydian's flat seventh) and G.
+  const CHORDS = [[50, 57, 62], [50, 57, 62], [48, 55, 64], [50, 57, 62], [55, 59, 62], [48, 55, 64], [55, 62, 67], [50, 57, 62]];
+
+  // The fiddle: a soft bowed tone that swells in, with vibrato once the note settles.
+  function fiddle(out, t, freq, len, gain) {
+    const o = ac.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = freq;
+    const vib = ac.createOscillator();
+    vib.frequency.value = 5.2;
+    const depth = ac.createGain();
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.linearRampToValueAtTime(freq * 0.006, t + Math.min(0.5, len * 0.6));
+    vib.connect(depth).connect(o.frequency);
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 1500;
+    f.Q.value = 0.8;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.12);
+    g.gain.setValueAtTime(gain * 0.85, t + Math.max(0.13, len - 0.12));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.15);
+    o.connect(f).connect(g).connect(out);
+    o.start(t);
+    vib.start(t);
+    o.stop(t + len + 0.2);
+    vib.stop(t + len + 0.2);
+  }
+
   function session(out, level = 1) {
-    const scale = [62, 64, 66, 67, 69, 71, 73, 74, 76, 78];
-    let i = 4;
-    const band = ac.createBiquadFilter();
-    band.type = 'lowpass';
-    band.frequency.value = 2200;
-    const bandGain = ac.createGain();
-    bandGain.gain.value = level;
-    band.connect(bandGain).connect(out);
+    const band = ac.createGain();
+    band.gain.value = level;
+    band.connect(out);
+    const eighth = 60 / 76 / 2; // a slow air: about 76 beats a minute
+    let step = 0; // which note of the air
+    let at = 0; // eighths into it
+    let bar = 0;
     return [
-      bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.09, wobble: 0.4, rate: 0.15 }),
+      bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.15, wobble: 0.4, rate: 0.15 }),
       crackles(out, 0.08),
-      sequencer(118, (t, n, dur) => {
-        // Jigs go in threes.
-        if (n % 3 === 0) hit(band, t, { type: 'lowpass', freq: 160, gain: 0.22, len: 0.2 });
-        i = Math.max(0, Math.min(scale.length - 1, i + pick([-1, -1, 1, 1, 2, -2])));
-        note(band, t, { freq: hz(scale[i]), len: dur * 0.95, gain: 0.04, type: 'sawtooth', attack: 0.025 });
-        note(band, t, { freq: hz(scale[i]) * 1.003, len: dur * 0.95, gain: 0.025, type: 'triangle', attack: 0.025 });
-      }, { div: 3 }),
-      () => bandGain.disconnect(),
+      sequencer(76 * 2, (t, n) => {
+        // Each bar (six eighths): a strummed chord and a soft beat on the drum.
+        if (n % 6 === 0) {
+          CHORDS[bar % CHORDS.length].forEach((m, k) => note(band, t + k * 0.03, { freq: hz(m), len: 2.2, gain: 0.03, type: 'triangle', attack: 0.01 }));
+          hit(band, t, { type: 'lowpass', freq: 120, gain: 0.12, len: 0.35 });
+          bar += 1;
+        }
+        if (n % 6 === 3) hit(band, t, { type: 'lowpass', freq: 160, gain: 0.05, len: 0.2 });
+        // The fiddle starts the next note of the air when the last one's run its length.
+        if (at === 0) {
+          const [m, len] = AIR[step];
+          if (m) fiddle(band, t, hz(m), len * eighth, 0.035);
+          at = len;
+          step = (step + 1) % AIR.length;
+        }
+        at -= 1;
+      }),
+      () => band.disconnect(),
     ];
   }
 
@@ -183,7 +258,7 @@
     tavern(out) {
       const scale = [62, 65, 67, 69, 72, 74, 77];
       return [
-        bed(out, { freq: 160, gain: 0.18, wobble: 0.2, rate: 0.05 }),
+        bed(out, { freq: 420, gain: 0.12, wobble: 0.2, rate: 0.05 }), // the room, and the fire's roar
         crackles(out, 0.14),
         // A lute somewhere in the corner.
         now(7, (t) => { let i = Math.floor(Math.random() * 4); for (let k = 0; k < 4; k++) { note(out, t + k * 0.22, { freq: hz(scale[i]), len: 0.9, gain: 0.06 }); i = Math.min(scale.length - 1, i + pick([1, 2])); } }),
@@ -239,8 +314,8 @@
     },
     diner(out) {
       return [
-        bed(out, { type: 'bandpass', freq: 850, q: 0.7, gain: 0.12, wobble: 0.5, rate: 0.17 }),
-        bed(out, { type: 'highpass', freq: 5000, gain: 0.025, wobble: 0.6, rate: 0.4 }), // the grill
+        bed(out, { type: 'bandpass', freq: 850, q: 0.7, gain: 0.22, wobble: 0.5, rate: 0.17 }),
+        bed(out, { type: 'bandpass', freq: 3500, q: 0.8, gain: 0.004, wobble: 0.6, rate: 0.4, color: 'white' }), // the grill, just
         // Order up!
         now(25, (t) => { note(out, t, { freq: 2093, len: 1.2, gain: 0.05, type: 'sine' }); note(out, t, { freq: 4186, len: 0.6, gain: 0.015, type: 'sine' }); }),
       ];
@@ -270,7 +345,7 @@
     casino(out) {
       // The floor's buzz, chips clacking and slot machines paying out.
       return [
-        bed(out, { type: 'bandpass', freq: 800, q: 0.6, gain: 0.14, wobble: 0.3, rate: 0.2 }),
+        bed(out, { type: 'bandpass', freq: 800, q: 0.6, gain: 0.26, wobble: 0.3, rate: 0.2 }),
         now(0.9, (t) => hit(out, t, { type: 'bandpass', freq: 3200, q: 4, gain: 0.05, len: 0.03 })),
         now(9, (t) => { for (let k = 0; k < 8; k++) note(out, t + k * 0.07, { freq: hz(pick([84, 88, 91, 96])), len: 0.2, gain: 0.03, type: 'square' }); }),
       ];
@@ -340,7 +415,7 @@
       // what's on screen.
       return [
         bed(out, { type: 'bandpass', freq: 500, q: 1.5, gain: 0.2, wobble: 0.9, rate: 0.12, sweep: 350 }),
-        bed(out, { type: 'highpass', freq: 3000, gain: 0.08, wobble: 0.2, rate: 0.3 }),
+        bed(out, { type: 'bandpass', freq: 2500, q: 0.6, gain: 0.025, wobble: 0.2, rate: 0.3, color: 'white' }), // rain on the glass
         bed(out, { freq: 300, gain: 0.25, wobble: 0.95, rate: 0.1, sweep: 150 }),
       ];
     },
@@ -374,7 +449,7 @@
       // A crackling fire, sleigh bells and a music box.
       const scale = [72, 74, 76, 79, 81, 84];
       return [
-        bed(out, { freq: 160, gain: 0.12, wobble: 0.2, rate: 0.05 }),
+        bed(out, { freq: 420, gain: 0.08, wobble: 0.2, rate: 0.05 }), // the fire's roar
         crackles(out, 0.1),
         sequencer(100, (t, n) => {
           if (n % 16 < 8) for (let k = 0; k < 2; k++) hit(out, t + k * 0.15, { type: 'bandpass', freq: 7500, q: 3, gain: 0.04, len: 0.08 });
@@ -401,7 +476,7 @@
     // The rain outside, on the windows, with thunder far off (the windows flicker first, on screen).
     stpatricksRain: (out) => [
       ...session(out, 0.8),
-      bed(out, { type: 'highpass', freq: 2500, gain: 0.05, wobble: 0.3, rate: 0.2 }),
+      bed(out, { type: 'bandpass', freq: 2200, q: 0.6, gain: 0.018, wobble: 0.3, rate: 0.2, color: 'white' }), // rain on the windows
       bed(out, { type: 'bandpass', freq: 1200, q: 0.5, gain: 0.04, wobble: 0.4, rate: 0.13 }),
     ],
     stpatricksFog: (out) => session(out, 0.8),

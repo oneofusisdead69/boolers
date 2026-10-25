@@ -27,7 +27,7 @@ const GAMES = Object.fromEntries(
 const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 16;
 const LOBBY_GRACE_MS = 30 * 1000; // drop disconnected players from the lobby after this
-const ROOM_IDLE_MS = 30 * 60 * 1000; // delete empty rooms after this
+const ROOM_IDLE_MS = 10 * 60 * 1000; // delete rooms nobody's in (no host, no players) after this
 
 const app = express();
 // Cloud Run's front end is the one proxy in front of us: its X-Forwarded-For entry is the real client.
@@ -261,8 +261,9 @@ setInterval(() => {
 const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
-  // Nobody is ever left waiting on a player who's gone: each game moves past them.
-  if (room.game && ctx.connectedPlayers(room).length) {
+  // Nobody is ever left waiting on a player who's gone: each game moves past them (but just after
+  // a restart, give everyone a moment to reconnect first).
+  if (room.game && ctx.connectedPlayers(room).length && !(room.graceUntil > Date.now())) {
     try {
       GAMES[room.game.type].check?.(room, ctx);
     } catch (err) {
@@ -676,9 +677,14 @@ setInterval(() => {
 process.on('uncaughtException', (err) => console.error('Uncaught error', err));
 
 // Cloud Run says it's about to stop the server with SIGTERM: save every room first.
+// During a deploy the new server is already taking new connections: once every room is saved,
+// close everyone's connection so their phones and TVs reconnect straight away, to the new one.
+// (Otherwise a phone can stay on this one for a minute or more, in a copy of the room that people
+// joining the new server can't see.)
 process.on('SIGTERM', async () => {
   await roomStore.flush();
-  process.exit(0);
+  io.engine.close();
+  setTimeout(() => process.exit(0), 300);
 });
 
 roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {

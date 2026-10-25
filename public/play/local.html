@@ -108,7 +108,22 @@
     let localGames = 0;
     // The room style (dive bar, tavern…) is remembered on this phone.
     let roomStyle = 'classic';
-    try { roomStyle = localStorage.getItem('local-room-style') || 'classic'; } catch {}
+    try { roomStyle = ROOM_STYLES.roomOf(localStorage.getItem('local-room-style')) || 'classic'; } catch {}
+    if (!ROOM_STYLES.PICKABLE.includes(roomStyle)) roomStyle = 'classic';
+    // Rooms whose look changes on its own (the Lighthouse's weather) do it here too: a new mood
+    // every few minutes while a game is on, as in an online room.
+    let mood = null;
+    let moodUntil = 0;
+    function look() {
+      const moods = ROOM_STYLES.STYLES[roomStyle]?.moods;
+      if (!moods) return roomStyle;
+      if (!moods.some(([id]) => id === mood) || (room?.game && Date.now() >= moodUntil)) {
+        mood = ROOM_STYLES.pickMood(roomStyle, mood);
+        moodUntil = Date.now() + (6 + Math.random() * 6) * 60 * 1000;
+      }
+      return mood;
+    }
+    setInterval(() => ROOM_STYLES.apply(look()), 15 * 1000);
     const howToPlay = (rules = []) => (rules.length
       ? `<details class="how-to"><summary>📖 How to play</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : '');
 
@@ -196,12 +211,12 @@
         </div>
         <div class="card room-style-card">
           <h2>Room style</h2>
-          ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).filter(([, st]) => !!st.seasonal === seasonal).map(([id, st]) => `
+          ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(ROOM_STYLES.STYLES).filter(([, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
             <button class="${id === roomStyle ? 'selected' : ''}" data-room-style="${id}"><span>${esc(st.emoji)}</span>${esc(st.label)}</button>`).join('')}</div>`).join('')}
         </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
-      ROOM_STYLES.apply(roomStyle);
+      ROOM_STYLES.apply(look());
       PB.layout($app, '.ls-l');
 
       const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());

@@ -169,6 +169,20 @@ $app.addEventListener('click', (e) => {
 
 // ---------- Connection ----------
 
+// The server closing the connection itself (a deploy) means: reconnect now.
+socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
+
+// A phone that's been locked or in another app can hold a dead connection for a while without
+// noticing: when you come back to it, ask the room for where things are now.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return void (hiddenAt = Date.now());
+  if (Date.now() - hiddenAt < 3000) return;
+  if (!socket.connected) return void socket.connect();
+  const room = store.get('room');
+  if (room) socket.emit('join', { code: room, playerId, key: playerKey, name: store.get('name'), ...lookToSend() }, () => {});
+});
+
 socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
@@ -349,8 +363,8 @@ function renderHome() {
       <h2>📱 Pass and play</h2>
       <p class="muted">One phone, passed around. No room code needed.</p>
       <div class="pass-play">
-        <a class="btn-link" href="/play/slevens.html">🎲 Slevens</a>
-        <a class="btn-link" href="/play/madmax.html">🃏 Mad Max</a>
+        <a class="btn-link" href="/play/local.html?game=slevens">🎲 Slevens</a>
+        <a class="btn-link" href="/play/local.html?game=madMax">🃏 Mad Max</a>
         <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
         <a class="btn-link" href="/play/local.html?game=kingsCup">👑 Kings Cup</a>
         <a class="btn-link" href="/play/local.html?game=liarsDice">🤥 Liar's Dice</a>
@@ -470,7 +484,7 @@ function renderLobby() {
       <button id="share" class="secondary">Share invite link</button>
     </div>
     <div class="card ls-l">
-      <h2>Players (${s.players.length})</h2>
+      <h2 class="players-head">Players (${s.players.length})${PB.tvBadge()}</h2>
       ${playerList({ showKick: host })}
     </div>
     <div class="card">
@@ -568,7 +582,7 @@ function renderGame() {
     ${html}
     <div class="spacer"></div>
     ${Trip.chip(s)}
-    <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
+    <div class="game-foot">${PB.tvBadge()}${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   if (!screens.fullscreen) PB.layout($app, screens.stage);
   screens.afterRender?.(s);

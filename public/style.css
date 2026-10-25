@@ -921,6 +921,8 @@ main.ls .ar-track { padding: 6px; gap: 2px; }
   .fs-screen { max-width: none; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
 }
 .tv-card { padding: 12px 16px; font-size: 0.95rem; }
+.tv-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; background: var(--card-2); color: var(--text); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.players-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .tv-note { text-align: center; color: var(--muted); font-size: 0.9rem; line-height: 1.45; padding: 0 8px; }
 .tv-note b { color: var(--text); }
 
