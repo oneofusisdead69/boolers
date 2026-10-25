@@ -4,6 +4,7 @@ const darts = require('../games/darts');
 const { setup } = require('./helpers');
 
 const { score, RINGS } = darts;
+const value = (seg) => seg.n * seg.m;
 
 // Where to aim for a segment: the middle of `n`'s wedge at radius r.
 function spot(n, r) {
@@ -170,4 +171,58 @@ test('only the thrower can aim or throw, and a thrower who leaves is skipped', (
 test('hard mode is passed to the phones', () => {
   assert.strictEqual(setup(darts, 2, {}).view(0).hard, false);
   assert.strictEqual(setup(darts, 2, { hard: true }).view(0).hard, true);
+});
+
+// Where a bot's dart lands, at normal wobble.
+function botDart(t, i, skill) {
+  const a = t.bot(i, skill);
+  const at = darts.land(a, a.angle, a.speed, 0.06);
+  return score(at.x, at.y);
+}
+
+test('bots throw only on their turn, and a Booler scores clearly more than an NPV', () => {
+  const t = setup(darts, 2, { mode: 'drinking' });
+  assert.strictEqual(t.bot(1, 0.9), null, 'not their turn');
+  assert.strictEqual(t.bot(0, 0.9).type, 'throw');
+  const avg = (skill) => {
+    let total = 0;
+    for (let i = 0; i < 2000; i++) total += value(botDart(t, 0, skill));
+    return total / 2000;
+  };
+  const booler = avg(0.9);
+  const npv = avg(0.25);
+  assert.ok(booler > npv * 1.6, `Booler ${booler.toFixed(1)} a dart, NPV ${npv.toFixed(1)}`);
+});
+
+test('bots go for the right thing: the clock number, an open cricket number, a finish', () => {
+  const t = setup(darts, 2, { mode: 'clock' });
+  t.room.game.target.p0 = 7;
+  let hits = 0;
+  for (let i = 0; i < 500; i++) if (botDart(t, 0, 0.9).n === 7) hits++;
+  assert.ok(hits > 350, `${hits}/500 on the 7`);
+
+  const c = setup(darts, 2, { mode: 'cricket' });
+  Object.assign(c.room.game.marks.p0, { 20: 3, 19: 3 });
+  let on18 = 0;
+  for (let i = 0; i < 500; i++) if (botDart(c, 0, 0.9).n === 18) on18++;
+  assert.ok(on18 > 300, `${on18}/500 on the 18`);
+
+  const x = setup(darts, 2, { mode: 301, doubleOut: true });
+  x.room.game.left.p0 = 32;
+  const finish = x.bot(0, 1);
+  assert.strictEqual(score(finish.x, finish.y).label, 'D16');
+});
+
+test('a bot hands its sips to a human', () => {
+  const t = setup(darts, 3, { mode: 'drinking' });
+  t.room.players[0].bot = 'booler';
+  t.room.players[1].bot = 'npv';
+  throwAt(t, 0, { x: 0, y: 0 });
+  throwAt(t, 0, spot(20, SINGLE));
+  throwAt(t, 0, spot(20, SINGLE));
+  t.fireTimer();
+  assert.strictEqual(t.room.game.phase, 'give');
+  assert.strictEqual(t.bot(1, 0.6), null, 'not theirs to give');
+  assert.deepStrictEqual(t.bot(0, 0.6), { type: 'give', targetId: 'p2' });
+  t.cleanup();
 });

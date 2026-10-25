@@ -56,6 +56,24 @@ function finish(room, ctx) {
   ctx.log(room, `🏆 ${g.winners.map((id) => ctx.name(room, id)).join(' & ')} ${g.winners.length > 1 ? 'tie' : 'wins'} with ${best}`);
 }
 
+// Bots. A bot's flick goes wrong like a person's: it leans off straight and comes out too hard or
+// too soft, by less the better the bot. Quarters takes a finer touch than darts (a sink means you
+// go again, so a near-perfect bot would never hand over): at 0.9 about 4° and 9%, at 0.25 9° and 22%.
+function flick(skill) {
+  return {
+    angle: gauss() * (3 + 8 * (1 - skill)),
+    speed: 1 + gauss() * (0.07 + 0.2 * (1 - skill)),
+  };
+}
+
+// Who a bot makes drink: someone at random, a human if there is one.
+function pickTarget(room, ctx, me) {
+  const pool = ctx.connectedPlayers(room).filter((p) => p.id !== me);
+  const humans = pool.filter((p) => !p.bot);
+  const from = humans.length ? humans : pool;
+  return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
+}
+
 module.exports = {
   id: 'quarters',
   name: 'Quarters',
@@ -148,6 +166,18 @@ module.exports = {
     ctx.log(room, rim ? `😩 ${player.name} rims it` : `💨 ${player.name} misses`);
     if (g.missDrinks) ctx.drink(room, me, 1, 'missed the glass');
     nextShooter(room, ctx);
+  },
+
+  // A bot lines up on the glass and flicks on its go; when it sinks one, it picks who drinks.
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    if (g.turnId !== me.id) return null;
+    if (g.phase === 'give') {
+      const targetId = pickTarget(room, ctx, me.id);
+      return targetId ? { type: 'give', targetId } : null;
+    }
+    if (g.phase !== 'shooting') return null;
+    return { type: 'throw', x: 0, ...flick(skill) };
   },
 
   // The shooter leaves: the next player's up.

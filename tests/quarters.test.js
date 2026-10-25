@@ -57,3 +57,26 @@ test('too soft falls short, too hard goes long, leaning goes sideways', () => {
   assert.strictEqual(game.land(0, 0, 1.02, 0).d, 1);
   assert.ok(game.land(0, 15, 1, 0).x > 0.2);
 });
+
+test('bots shoot only on their go, sink more the better they are, and make a human drink', () => {
+  const t = setup(game, 3);
+  t.room.players[1].bot = 'npv';
+  assert.strictEqual(t.bot(1, 0.9), null, 'not their go');
+  const rate = (skill) => {
+    let sunk = 0;
+    for (let i = 0; i < 2000; i++) {
+      const a = t.bot(0, skill);
+      const at = game.land(a.x, a.angle, a.speed, game.WOBBLE.normal);
+      if (Math.hypot(at.x, (at.d - 1) * 0.8) < game.GLASSES.pint) sunk++;
+    }
+    return sunk / 2000;
+  };
+  const booler = rate(0.9);
+  const npv = rate(0.25);
+  assert.ok(booler > 0.6 && npv < 0.45 && booler > npv + 0.3, `Booler ${booler}, NPV ${npv}`);
+
+  t.room.players[0].bot = 'booler';
+  t.room.game.wobble = 'none';
+  t.act(0, 'throw', sink);
+  assert.deepStrictEqual(t.bot(0, 0.6), { type: 'give', targetId: 'p2' });
+});
