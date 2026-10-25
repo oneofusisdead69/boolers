@@ -332,6 +332,7 @@ function renderHome() {
     </div>
     <p class="or ls-l">or</p>
     <button id="create" class="secondary ls-l">Create a new room</button>
+    <p class="tv-note ls-l">📺 <b>Got a TV or a laptop?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter your room code. The table, the scores and the sound go on the big screen.</p>
     <p class="error ls-l" id="err">${PB.esc(homeError)}</p>
     <div class="card">
       <h2>📱 Pass and play</h2>
