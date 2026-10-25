@@ -788,7 +788,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .hz-pick button:disabled { opacity: 0.4; }
 .hz-speed { color: var(--muted); font-variant-numeric: tabular-nums; }
 .hz-dial { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px 14px; background: var(--card); color: var(--text); border-radius: 18px; border: 3px solid transparent; touch-action: none; user-select: none; -webkit-user-select: none; transition: border-color 0.1s; }
-.hz-dial svg { width: 100%; max-width: 320px; height: auto; }
+.hz-dial > svg { width: 100%; max-width: 320px; height: auto; }
 .hz-zones path { fill: none; stroke-width: 26; }
 #hz-needle line { stroke: var(--text); stroke-width: 5; stroke-linecap: round; }
 #hz-needle circle { fill: var(--text); }

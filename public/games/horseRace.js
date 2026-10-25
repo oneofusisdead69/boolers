@@ -318,7 +318,7 @@
       <div class="turn">🏇 Race ${g.race}<span>${riding ? `You're riding ${esc(horse(riding).name)}!` : 'And they\'re off!'}</span></div>
       ${track(s)}
       ${riding ? dialHtml(g, riding) : ''}
-      <div class="card hz-standings" id="hz-standings">${standings(s)}</div>`;
+      ${PB.isTV ? `<div class="card hz-standings" id="hz-standings">${standings(s)}</div>` : ''}`;
   }
 
   function finishScreen(s) {
@@ -398,7 +398,7 @@
       const land = PB.landscape();
       const turned = land !== lastLand;
       lastLand = land;
-      if (!turned && s.phase === 'race' && document.getElementById('hz-standings') && moveHorses(s)) return null;
+      if (!turned && s.phase === 'race' && document.getElementById('hz-track')?.classList.contains('running') && moveHorses(s)) return null;
       if (s.phase === 'betting') return bettingScreen(s);
       if (s.phase === 'race') return raceScreen(s);
       if (s.phase === 'payout' || s.phase === 'results') return finishScreen(s);
