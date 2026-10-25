@@ -382,6 +382,7 @@ function render() {
   const s = PB.state;
   ROOM_STYLES.apply(s?.look || s?.style);
   Scenery.set(s?.look || s?.style);
+  Scenery.update(s);
   // /preview?moment=N: play that scenery moment as soon as the room is up.
   if (preview && s && params.has('moment') && !render.played) render.played = Scenery.play(Number(params.get('moment')));
   music();

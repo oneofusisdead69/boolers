@@ -71,6 +71,29 @@
   }
 
   const hz = (midi) => 440 * 2 ** ((midi - 69) / 12);
+
+  // A trumpet: two saws through a filter that opens as the note speaks.
+  function brass(out, t, freq, len, gain) {
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(500, t);
+    f.frequency.linearRampToValueAtTime(2600, t + 0.06);
+    f.frequency.exponentialRampToValueAtTime(1400, t + len);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.04);
+    g.gain.setValueAtTime(gain * 0.8, t + Math.max(0.05, len - 0.06));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.05);
+    f.connect(g).connect(out);
+    for (const d of [1, 1.006]) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = freq * d;
+      o.connect(f);
+      o.start(t);
+      o.stop(t + len + 0.1);
+    }
+  }
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
   // Calls step(time, beat) for every beat (or tick) just ahead of time, so rhythms stay steady.
@@ -379,6 +402,11 @@
       o.start(t); vib.start(t);
       o.stop(t + len + 0.15); vib.stop(t + len + 0.15);
     },
+    // A steel pan: a bright, bell-like note that rings and fades, with the pan's slight sag in pitch.
+    steelpan(out, t, f, len, gain) {
+      const ring = Math.max(0.5, len * 1.6);
+      for (const [mult, g] of [[1, 1], [2, 0.35], [3.01, 0.12]]) note(out, t, { freq: f * mult, to: f * mult * 0.995, len: ring * (mult === 1 ? 1 : 0.6), gain: gain * g, type: 'sine', attack: 0.004 });
+    },
     // A mandolin: the note picked fast and over, the way a mandolin holds a long note.
     mandolin(out, t, f, len, gain) {
       for (let at = 0; at < len; at += 0.075) note(out, t + at, { freq: f, len: 0.12, gain: gain * (1 - (at / len) * 0.3), type: 'triangle', attack: 0.002 });
@@ -428,6 +456,13 @@
       [62, 2], [65, 2], [69, 2], [74, 4], [72, 2], [69, 4], [67, 2], [65, 2], [64, 4], [62, 8],
       [69, 2], [72, 2], [74, 2], [77, 4], [76, 2], [74, 4], [72, 2], [69, 2], [67, 2], [65, 2], [62, 8],
     ],
+    // A calypso for the tiki bar, in C, on the steel pan.
+    calypso: [
+      [72, 1], [74, 1], [76, 2], [72, 1], [74, 2], [76, 1], [77, 2], [76, 1], [74, 1], [72, 4],
+      [71, 1], [72, 1], [74, 2], [71, 1], [72, 2], [74, 1], [76, 2], [74, 1], [72, 1], [67, 4],
+      [72, 1], [74, 1], [76, 2], [79, 1], [77, 2], [76, 1], [74, 2], [76, 1], [77, 1], [79, 4],
+      [81, 1], [79, 1], [77, 1], [76, 1], [74, 2], [71, 2], [72, 6], [null, 2],
+    ],
     // A serenade under the vines, in D, in waltz time.
     serenade: [
       [66, 4], [69, 2], [74, 4], [73, 2], [71, 3], [69, 1], [67, 2], [66, 6],
@@ -464,6 +499,22 @@
 
   // Every room is three layers at most: one background (a recording, where there's a good one),
   // a few sounds now and then, and a tune. Never a wash of noise under everything.
+  // The Blue Danube (Strauss, 1866): the waltz in the salon at Monte Carlo, one bar of 3/4 per
+  // six eighths. The tune rises D F# A to the A above, twice, then over A7 back down.
+  const DANUBE = (a, b, c, high, end) => [[a, 2], [a, 2], [b, 2], [c, 4], [c, 2], [null, 2], [high, 2], [high, 2], [null, 2], [end, 2], [end, 2]];
+  SONGS.danube = [...DANUBE(62, 66, 69, 81, 78), ...DANUBE(62, 66, 69, 81, 79), ...DANUBE(61, 64, 71, 83, 79), ...DANUBE(61, 64, 71, 83, 78)];
+  const DANUBE_CHORDS = [[50, 62, 66, 69], [50, 62, 66, 69], [50, 62, 66, 69], [50, 62, 66, 69], [50, 62, 66, 69], [50, 62, 66, 69], [45, 61, 67, 69], [45, 61, 67, 69],
+    [45, 61, 67, 69], [45, 61, 67, 69], [45, 61, 67, 69], [45, 61, 67, 69], [45, 61, 67, 69], [45, 61, 67, 69], [50, 62, 66, 69], [50, 62, 66, 69]];
+  // Oom-pah-pah: the bass on one, the chord on two and three.
+  const waltz = (gain) => (out, t, [bass, ...chord], len) => {
+    VOICES.piano(out, t, hz(bass), len / 3, gain * 1.4);
+    for (const k of [1, 2]) chord.forEach((m) => VOICES.piano(out, t + (k * len) / 3, hz(m), len / 4, gain * 0.5));
+  };
+  // A slow dirge in D minor on the Dutchman's organ, with the chords held under it.
+  SONGS.dirge = [[62, 4], [65, 2], [69, 2], [70, 4], [69, 4], [67, 2], [65, 2], [64, 2], [65, 2], [62, 8],
+    [69, 4], [72, 2], [70, 2], [69, 4], [65, 4], [67, 2], [69, 2], [64, 4], [61, 4], [62, 8]];
+  const held = (gain) => (out, t, chord, len) => chord.forEach((m) => VOICES.organ(out, t, hz(m), len, gain));
+
   const ROOMS = {
     dive(out) {
       // The jukebox playing the blues, and glasses clinking now and then.
@@ -522,11 +573,22 @@
       ];
     },
     tiki(out) {
-      // Waves lapping, and a ukulele.
-      const chords = [[67, 71, 74, 79], [65, 69, 72, 77], [64, 67, 72, 76], [62, 67, 71, 74]];
+      // Waves lapping on the beach, and the band: a calypso on the steel pan, a ukulele strumming
+      // the calypso rhythm, bongos, a conga and a shaker.
+      const bpm = 104;
+      const chords = [[67, 72, 76, 79], [65, 69, 72, 77], [67, 71, 74, 79], [67, 72, 76, 79], [67, 72, 76, 79], [67, 71, 74, 79], [67, 71, 74, 79], [67, 72, 76, 79]];
       return [
-        background(out, 'bed-waves-3', { gain: 0.4 }),
-        now(6, (t) => { const c = pick(chords); for (let k = 0; k < 2; k++) c.forEach((m, i) => note(out, t + k * 0.45 + i * 0.03, { freq: hz(m), len: 0.7, gain: 0.04 })); }),
+        background(out, 'bed-waves-3', { gain: 0.3 }),
+        tune(out, { bpm, notes: SONGS.calypso, voice: VOICES.steelpan, gain: 0.05 }),
+        sequencer(bpm * 2, (t, n) => {
+          const beat = n % 8;
+          // Ukulele: down, down-up, up-down-up (the calypso strum).
+          if ([0, 2, 3, 5, 6].includes(beat)) chords[Math.floor(n / 8) % chords.length].forEach((m, i) => note(out, t + i * 0.012, { freq: hz(m), len: 0.25, gain: beat === 0 ? 0.022 : 0.014, type: 'triangle', attack: 0.002 }));
+          // Conga on the one, bongos on the off-beats, a shaker underneath.
+          if (beat === 0 || beat === 4) note(out, t, { freq: 180, to: 120, len: 0.25, gain: 0.08, type: 'sine', attack: 0.003 });
+          if (beat === 3 || beat === 7) note(out, t, { freq: 420, to: 340, len: 0.12, gain: 0.05, type: 'sine', attack: 0.002 });
+          hit(out, t, { type: 'bandpass', freq: 6500, q: 1.5, gain: beat % 2 ? 0.006 : 0.01, len: 0.05, attack: 0.003 });
+        }),
       ];
     },
     speakeasy(out) {
@@ -664,6 +726,28 @@
       background(out, 'bed-crickets-1', { gain: 0.12, lowpass: 5000 }),
       tune(out, { bpm: 84, notes: SONGS.musette, voice: VOICES.piano, gain: 0.045, chords: MUSETTE_CHORDS, every: 6, comp: strum(0.025) }),
     ],
+    // The easter eggs. The château burning: the fire, the drums of the revolution, the mob.
+    chateauRevolution: (out) => [
+      background(out, 'bed-fire-1', { gain: 0.45 }),
+      sequencer(112, (t, n) => {
+        const s = n % 16;
+        if (s === 0 || s === 8) hit(out, t, { type: 'lowpass', freq: 140, gain: 0.12, len: 0.3, attack: 0.002 });
+        if (s % 4 === 0 || s >= 13) hit(out, t, { type: 'bandpass', freq: 1900, q: 0.7, gain: s % 4 === 0 ? 0.05 : 0.025, len: 0.1, attack: 0.001 });
+      }, { div: 4 }),
+      now(35, (t) => CUES.mob(out, t)),
+    ],
+    // Aboard the Dutchman: the sea, the organ, the timbers groaning and the bell.
+    pirateDutchman: (out) => [
+      background(out, 'bed-waves-1', { gain: 0.3, lowpass: 1600 }),
+      tune(out, { bpm: 52, notes: SONGS.dirge, voice: VOICES.organ, gain: 0.03, chords: [[38, 50, 57], [41, 53, 57], [43, 55, 58], [38, 50, 57], [41, 53, 57], [46, 53, 58], [45, 52, 57], [38, 50, 57]], every: 8, comp: held(0.012) }),
+      now(16, (t) => play(out, ['cue-creak-1', 'cue-creak-2'], t, { gain: 0.6 })),
+      now(50, (t) => CUES.toll(out, t)),
+    ],
+    // Monte Carlo: the Blue Danube on the piano, and the chips.
+    casinoMonteCarlo: (out) => [
+      tune(out, { bpm: 132, notes: SONGS.danube, voice: VOICES.piano, gain: 0.04, chords: DANUBE_CHORDS, every: 6, comp: waltz(0.03) }),
+      now(6, (t) => play(out, ['cue-chips-1', 'cue-chips-2', 'cue-chips-3'], t, { gain: 0.4 })),
+    ],
     stpatricks: (out) => session(out),
     // The rain outside the windows, with thunder far off (the windows flicker first, on screen).
     stpatricksRain: (out) => [...session(out, 0.8, 'bed-rain-1')],
@@ -770,6 +854,107 @@
       o.connect(g).connect(out);
       o.start(t); lfo.start(t);
       o.stop(t + 5.1); lfo.stop(t + 5.1);
+    },
+    // The room cheering a winning roll: a rising "whoo!" from a few voices, and claps.
+    cheer(out, t) {
+      for (const [f0, d] of [[260, 0], [330, 0.05], [400, 0.1], [220, 0.12]]) {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f0, t + d);
+        o.frequency.exponentialRampToValueAtTime(f0 * 2.2, t + d + 0.5);
+        o.frequency.exponentialRampToValueAtTime(f0 * 1.6, t + d + 1.1);
+        const f = ac.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.value = 1100;
+        f.Q.value = 1.2;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.0001, t + d);
+        g.gain.linearRampToValueAtTime(0.018, t + d + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d + 1.2);
+        o.connect(f).connect(g).connect(out);
+        o.start(t + d);
+        o.stop(t + d + 1.25);
+      }
+      for (let k = 0; k < 16; k++) hit(out, t + 0.3 + k * 0.09 + Math.random() * 0.05, { type: 'bandpass', freq: 1800 + Math.random() * 800, q: 1.5, gain: 0.03, len: 0.04, attack: 0.001 });
+    },
+    // The room going "awww" at a losing roll: a few voices falling away.
+    aww(out, t) {
+      for (const [f0, d] of [[300, 0], [250, 0.06], [350, 0.1]]) {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f0, t + d);
+        o.frequency.exponentialRampToValueAtTime(f0 * 0.6, t + d + 1.1);
+        const f = ac.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.value = 800;
+        f.Q.value = 1.5;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.0001, t + d);
+        g.gain.linearRampToValueAtTime(0.02, t + d + 0.2);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d + 1.2);
+        o.connect(f).connect(g).connect(out);
+        o.start(t + d);
+        o.stop(t + d + 1.25);
+      }
+    },
+    // The Marseillaise on two trumpets: "Allons enfants de la Patrie, le jour de gloire est arrivé!"
+    marseillaise(out, t) {
+      const q = 0.32;
+      const tune_ = [[62, 0.75], [62, 0.25], [62, 1], [67, 1], [67, 1], [69, 1], [69, 1], [74, 1.5], [71, 0.5],
+        [67, 0.75], [67, 0.25], [71, 0.75], [67, 0.25], [64, 1], [72, 2], [69, 0.75], [66, 0.25], [67, 2.5]];
+      let at = t;
+      for (const [m, beats] of tune_) {
+        brass(out, at, hz(m + 12), beats * q * 0.92, 0.05);
+        brass(out, at, hz(m), beats * q * 0.92, 0.025);
+        at += beats * q;
+      }
+      // A drum roll under the last note.
+      for (let k = 0; k < 14; k++) hit(out, at - 2.5 * q + k * 0.05, { type: 'bandpass', freq: 1900, q: 0.7, gain: 0.03, len: 0.08, attack: 0.001 });
+      hit(out, at - 2.5 * q, { type: 'lowpass', freq: 120, gain: 0.25, len: 1, attack: 0.002 });
+    },
+    // The mob: a roar that swells and fades, and a cheer in it.
+    mob(out, t) {
+      hit(out, t, { type: 'bandpass', freq: 520, q: 0.6, gain: 0.07, len: 3, attack: 0.9 });
+      hit(out, t + 0.3, { type: 'bandpass', freq: 900, q: 0.8, gain: 0.04, len: 2.5, attack: 0.8 });
+      CUES.cheer(out, t + 0.6);
+    },
+    // A window going in.
+    shatter(out, t) {
+      hit(out, t, { type: 'highpass', freq: 3500, gain: 0.12, len: 0.35, attack: 0.001 });
+      for (let k = 0; k < 12; k++) note(out, t + 0.05 + k * 0.035 + Math.random() * 0.03, { freq: 3000 + Math.random() * 4000, len: 0.18, gain: 0.012, type: 'sine', attack: 0.001 });
+    },
+    // A great ship's bell, tolling once.
+    toll(out, t) {
+      for (const [mult, g, len] of [[1, 0.05, 4.5], [2, 0.025, 3], [2.4, 0.02, 2.5], [3, 0.015, 2], [4.2, 0.01, 1.4]]) note(out, t, { freq: 174 * mult, len, gain: g, type: 'sine', attack: 0.004 });
+    },
+    // A ghost's moan, low and wavering.
+    moan(out, t) {
+      note(out, t, { freq: 230, to: 150, len: 2.6, gain: 0.03, type: 'sine', attack: 0.9 });
+      note(out, t + 0.1, { freq: 236, to: 156, len: 2.4, gain: 0.02, type: 'sine', attack: 0.9 });
+    },
+    // A harp, rippling up.
+    harp(out, t) {
+      [62, 66, 69, 74, 78, 81, 86, 90].forEach((m, k) => note(out, t + k * 0.07, { freq: hz(m), len: 1.4, gain: 0.03, type: 'triangle', attack: 0.003 }));
+    },
+    // The roulette ball rattling round and slowing, then dropping in.
+    spin(out, t) {
+      let at = t;
+      for (let k = 0; k < 34; k++) {
+        hit(out, at, { type: 'highpass', freq: 3200, gain: 0.03, len: 0.03, attack: 0.001 });
+        at += 0.06 * (1 + k * 0.09);
+      }
+      hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
+    },
+    // A Grand Prix car going by: up as it comes, down as it goes.
+    vroom(out, t) {
+      note(out, t, { freq: 240, to: 320, len: 0.6, gain: 0.03, type: 'sawtooth', attack: 0.3 });
+      note(out, t + 0.6, { freq: 260, to: 110, len: 1.1, gain: 0.03, type: 'sawtooth', attack: 0.01 });
+    },
+    // A gunshot in the saloon, and the ricochet.
+    bang(out, t) {
+      hit(out, t, { type: 'lowpass', freq: 900, gain: 0.5, len: 0.35, attack: 0.001 });
+      hit(out, t, { type: 'bandpass', freq: 2500, q: 0.8, gain: 0.25, len: 0.08, attack: 0.001 });
+      note(out, t + 0.12, { freq: 3200, to: 900, len: 0.5, gain: 0.02, type: 'sine', attack: 0.01 });
     },
     // A glass sliding down the bar, then stopping.
     slide(out, t) {
