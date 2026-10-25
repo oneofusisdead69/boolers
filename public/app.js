@@ -412,7 +412,7 @@ function renderHome() {
 }
 
 // Bots the host can add (lib/bots.js), up to three.
-const BOT_LEVELS = { booler: { name: 'Booler', tag: 'great' }, baller: { name: 'Baller', tag: 'medium' }, npv: { name: 'NPV', tag: 'bad' } };
+const BOT_LEVELS = { booler: { name: 'Booler', tag: 'great' }, baller: { name: 'Baller', tag: 'medium' }, npc: { name: 'NPC', tag: 'bad' } };
 function botRow(s) {
   if (!s.isHost) return '';
   const count = s.players.filter((p) => p.bot).length;

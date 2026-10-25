@@ -4,6 +4,8 @@
 // host taps the team that finished first. A team a player short picks who goes twice (at the end).
 //
 //   g.twice: { [team index]: playerId } for the short teams that have picked.
+//   g.cheers: { [botId]: how many times it's cheered this race }. Bots don't race (they've
+//   nothing to drink): they cheer from the side.
 
 const TEAMS = [
   { name: 'Red', color: '#e5484d' },
@@ -35,6 +37,14 @@ function deal(room, ctx) {
   g.phase = 'teams';
 }
 
+// What a bot shouts from the side while the race is on.
+const CHEERS = [
+  'Chug! Chug! Chug!', 'Come on, Team {team}!', 'Flip it! FLIP IT!', 'Team {team} are flying!',
+  'Don’t you dare spill, {name}!', 'GO GO GO!', 'That’s a sipper, not a chugger, {name}!',
+  'Down the hatch, {name}!', 'Team {team}, this is your moment!', 'I believe in you, {name}!',
+];
+const MAX_CHEERS = 2;
+
 const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
 // The teams a player short, which need someone to go twice.
 const shortTeams = (g) => {
@@ -61,6 +71,7 @@ module.exports = {
   ],
   minPlayers: 2,
   order: 11,
+  botsSitOut: true, // bots don't race (see bot() below)
   options: [
     { id: 'teams', label: 'Teams', default: 2, choices: [2, 3, 4].map((n) => ({ value: n, label: `${n}` })) },
     {
@@ -83,6 +94,19 @@ module.exports = {
   handle(room, player, action, ctx) {
     const g = room.game;
     tidyTwice(g);
+    // A bot cheers on someone racing (a couple of times a race).
+    if (action.type === 'cheer' && player.bot && g.phase === 'racing') {
+      g.cheers ||= {};
+      if ((g.cheers[player.id] || 0) >= MAX_CHEERS) return;
+      g.cheers[player.id] = (g.cheers[player.id] || 0) + 1;
+      const team = Math.floor(Math.random() * g.teams.length);
+      const ids = g.teams[team];
+      const line = CHEERS[Math.floor(Math.random() * CHEERS.length)]
+        .replace('{team}', TEAMS[team].name)
+        .replace('{name}', ids.length ? ctx.name(room, ids[Math.floor(Math.random() * ids.length)]) : 'mate');
+      ctx.log(room, `📣 ${player.name}: ${line}`);
+      return;
+    }
     // Who goes twice: the host, or anyone on that team, picks one of the team.
     if (action.type === 'twice' && g.phase === 'teams') {
       const team = Number(action.team);
@@ -105,6 +129,7 @@ module.exports = {
       g.race += 1;
       g.winner = null;
       g.startedAt = Date.now();
+      g.cheers = {};
       g.phase = 'racing';
       ctx.log(room, `🚣 Boat race ${g.race}: GO!`);
     } else if (action.type === 'win' && g.phase === 'racing') {
@@ -123,6 +148,13 @@ module.exports = {
     } else if (action.type === 'rematch' && g.phase === 'results') {
       g.phase = 'teams';
     }
+  },
+
+  // Bots sit the race out and cheer from the side, at their own pace.
+  bot(room, me) {
+    const g = room.game;
+    if (g.phase !== 'racing' || (g.cheers?.[me.id] || 0) >= MAX_CHEERS) return null;
+    return { type: 'cheer', delay: 1500 + Math.random() * 5000 };
   },
 
   // Someone new joins the smallest team.

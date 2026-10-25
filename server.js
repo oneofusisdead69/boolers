@@ -638,7 +638,7 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
-  // The host adds a bot (Booler, Baller or NPV), up to three.
+  // The host adds a bot (Booler, Baller or NPC), up to three.
   on('addBot', ({ level } = {}) => {
     if (!hostOnly() || room.players.length >= MAX_PLAYERS) return;
     if (bots.add(room, String(level), (wanted, taken) => LOOKS.choose(wanted, taken))) broadcast(room);

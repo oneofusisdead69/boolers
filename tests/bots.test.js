@@ -35,7 +35,8 @@ function play(game, players, skill, steps = 3000) {
 
 for (const id of ids) {
   const game = require(`../games/${id}`);
-  if (!game.bot) continue;
+  // (A game bots only watch, like Boat Race, can't be played by bots alone.)
+  if (!game.bot || game.botsSitOut) continue;
   test(`bots play ${game.name}`, () => {
     for (const skill of [0.9, 0.25]) {
       for (const players of [Math.max(2, game.minPlayers), 4]) {

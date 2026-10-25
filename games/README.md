@@ -109,13 +109,13 @@ and dice / card styles apply to your screens too.
 ## Bots
 
 The host can add up to three bots (`lib/bots.js`): **Booler** (great), **Baller** (medium) and
-**NPV** (bad). A bot is a player (`p.bot` is its level) who's always connected and has no phone.
+**NPC** (bad). A bot is a player (`p.bot` is its level) who's always connected and has no phone.
 Whenever the room changes, the server asks the game what each bot would do, waits a moment, asks
 again (things may have moved on) and plays it through the game's own `handle`, like a tap:
 
 ```js
   // What bot `me` would do right now: an action (as a phone would send it), or null for nothing.
-  // `skill` is 0 to 1: Booler 0.9, Baller 0.6, NPV 0.25. Optional `delay` (ms) overrides how long
+  // `skill` is 0 to 1: Booler 0.9, Baller 0.6, NPC 0.25. Optional `delay` (ms) overrides how long
   // the bot thinks first (e.g. a reaction that has to beat a clock).
   bot(room, me, ctx, skill) { return { type: 'roll' }; },
 ```
@@ -129,7 +129,10 @@ again (things may have moved on) and plays it through the game's own `handle`, l
   round) is the host's; a bot may make it when `room.hostId === me.id` (only in tests).
 - When a bot hands out sips, it picks someone at random (a human, when there is one).
 
-`tests/bots.test.js` plays every game with bots only, start to finish.
+- A game bots can't play (Boat Race: there's nothing for them to drink) sets `botsSitOut: true`;
+  its `bot()` can still give them something to do from the side (cheering).
+
+`tests/bots.test.js` plays every game with bots only, start to finish (except `botsSitOut` ones).
 
 ## Testing
 
