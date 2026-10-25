@@ -734,6 +734,7 @@
     },
     // Tiki torches burning; fireflies, a parrot flying over, a coconut dropping.
     tiki: {
+      // (The volcano erupting is in MORE.tiki below.)
       decor() {
         for (const left of ['2vw', '9vw']) {
           el(TORCH, { left, bottom: '0', fontSize: '220px' }).classList.add('sc-tikitorch');
@@ -1339,6 +1340,23 @@
       () => { burst(['🪙', '💰', '💎', '🪙'], { x: 5, y: 84, n: 20, spread: 12 }); cue('jackpot'); },
     ],
   };
+  // The tiki bar's volcano, out on the horizon (see tikiBeach in lib/roomStyles.js: its crater at
+  // 1000, 132 of 1600 × 900, the view scaled to cover the screen) goes off: a rumble, the crater
+  // flares, lava bursts up and falls back, and a plume of smoke rises.
+  function eruption() {
+    const s = Math.max(innerWidth / 1600, innerHeight / 900);
+    const x = ((innerWidth - 1600 * s) / 2 + 1000 * s) / innerWidth * 100;
+    const y = ((innerHeight - 900 * s) / 2 + 132 * s) / innerHeight * 100;
+    cue('rumble');
+    el('', { left: `${x}vw`, top: `${y}vh` }, 7000).classList.add('sc-crater');
+    later(() => {
+      cue('boom');
+      burst(['●', '●', '•'], { x, y, n: 40, spread: 6, size: [6, 14], colors: ['#ffd23f', '#ff8a1a', '#ff4a1a'], rise: [-24, -10], fall: [16, 34] });
+      for (let i = 0; i < 5; i++) later(() => drift('', { from: [x - 1, y - 2], to: [x - 6 + i * 2, y - 26], dur: 6, size: 10 }).classList.add('sc-plume'), i * 300);
+    }, 1400);
+  }
+  MORE.tiki = [...(MORE.tiki || []), eruption, eruption];
+
   for (const [id, list] of Object.entries(MORE)) SCENES[id]?.moments.push(...list);
 
   // Plays a moment, then waits a while before the next.
