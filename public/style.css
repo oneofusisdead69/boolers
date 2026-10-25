@@ -1445,6 +1445,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-banner.champ b { font-size: clamp(30px, 4vw, 56px); }
 .sc-banner.rink { --banner-font: "Monoton"; color: #fff; text-shadow: 0 0 12px #ff2bd6, 0 0 30px #29f0ff; }
 .sc-banner.rink b { font-size: clamp(30px, 4vw, 56px); }
+.sc-banner.mead { --banner-font: "IM Fell English SC"; color: #ffe3a0; text-shadow: 0 3px 0 #5a1010, 0 0 30px #ff7a1a; }
+.sc-oneeighty.skal b { font-family: "IM Fell English SC", Georgia, serif; color: #ffe3a0; text-shadow: 0 0 20px #ff7a1a, 0 4px 0 #3a0e00; }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
