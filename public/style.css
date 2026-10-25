@@ -1495,7 +1495,7 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-line { stroke: rgba(255, 255, 255, 0.7); stroke-width: 0.8; fill: none; }
 .bp-label { font: 700 7px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.5); stroke-width: 1.5px; }
 .bp-close { display: flex; justify-content: center; margin: 6px 0; }
-.bp-rack { position: relative; width: min(100%, 360px); aspect-ratio: 360 / 300; border-radius: 14px; overflow: hidden; background: color-mix(in srgb, var(--bg) 70%, #000); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.bp-rack { position: relative; width: min(100%, 360px); aspect-ratio: 360 / 230; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
 .bp-rack svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .bp-felt { position: absolute; inset: 0; background: var(--felt, #1f6a3a); }
 .bp-edge { stroke: var(--rim, #f4f4f4); stroke-width: 7; fill: none; stroke-linecap: round; }
