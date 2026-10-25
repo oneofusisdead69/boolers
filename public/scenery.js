@@ -1086,6 +1086,46 @@
     ],
   };
 
+  // Beer Pong at the frat house: the championship. The crowd goes off for every cup (SPLASH!), for
+  // balls back, and for the winners; the lights strobe; someone's on the air horn.
+  let lastBall = null;
+  const shout = (text, cls = '') => inFront(`<b>${text}</b>`, { left: '0', right: '0', top: '26vh' }, 2600).classList.add('sc-oneeighty', 'ton', ...(cls ? [cls] : []));
+  SCENES.fratChampionship = {
+    gap: [8, 16],
+    decor() {
+      lastBall = null;
+      SCENES.frat.decor();
+      banner('Beer pong championship', 'Winner stays on', 'champ');
+      cue('airhorn', 300);
+    },
+    update(s) {
+      const g = s?.gameType === 'beerPong' ? s.game : null;
+      const L = g?.last;
+      if (!L || L.n === lastBall) return;
+      const first = lastBall === null;
+      lastBall = L.n;
+      if (first) return;
+      if (s.phase === 'over') {
+        shout(`TEAM ${String(g.teams[g.winner].name).toUpperCase()} WINS!`);
+        fall(['🎉', '🏆', '🥤'], 5, 0.2, 0.9);
+        cue('airhorn'); cue('cheer', 300);
+      } else if (g.ballsBack === L.n) {
+        shout('BALLS BACK! 🔥');
+        cue('airhorn'); cue('cheer', 200);
+      } else if (L.cup) {
+        shout('SPLASH!');
+        cue('cheer', 200);
+      } else if (L.rim) {
+        cue('aww');
+      }
+    },
+    moments: [
+      ...SCENES.frat.moments,
+      () => cue('airhorn'),
+      () => { for (let i = 0; i < 6; i++) later(() => document.body.animate([{ filter: 'brightness(1.6)' }, { filter: 'none' }], { duration: 120 }), i * 180); },
+    ],
+  };
+
   // The mechanic's garage: the radio on, a tyre rolling across, sparks off the welder.
   SCENES.garage = {
     decor() { el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open'); },

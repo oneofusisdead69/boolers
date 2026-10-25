@@ -375,6 +375,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=aceRace">♠️ Ace Race</a>
         <a class="btn-link" href="/play/local.html?game=darts">🎯 Darts</a>
         <a class="btn-link" href="/play/local.html?game=boatRace">🚣 Boat Race</a>
+        <a class="btn-link" href="/play/local.html?game=beerPong">🏓 Beer Pong</a>
       </div>
     </div>
     <div class="spacer"></div>
@@ -518,7 +519,7 @@ function renderLobby() {
     ${host && s.players.some((p) => p.total || p.finished)
       ? '<button class="secondary" data-cmd="recap" data-open="true">🏁 Wrap up the night</button>' : ''}
     ${host && Trip.isOn()
-      ? '<button id="trip-start">🌍 Start the trip</button>'
+      ? '<button id="trip-start">🏆 Start the tournament</button>'
       : host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}

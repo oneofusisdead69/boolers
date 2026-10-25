@@ -764,6 +764,8 @@
       now(30, (t) => CUES.chant(out, t)),
       now(18, (t) => CUES.pop(out, t)),
     ],
+    // The championship: the party, louder, the crowd chanting more often.
+    fratChampionship: (out) => [...ROOMS.frat(out), now(20, (t) => CUES.chant(out, t))],
     // The garage: the radio playing rock, low; the impact wrench now and then.
     garage: (out) => [
       sequencer(112, (t, n) => {
@@ -1051,6 +1053,10 @@
         at += 0.06 * (1 + k * 0.09);
       }
       hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
+    },
+    // An air horn: three blasts.
+    airhorn(out, t) {
+      for (const [d, len] of [[0, 0.25], [0.32, 0.25], [0.64, 0.7]]) for (const f of [440, 554]) note(out, t + d, { freq: f, len, gain: 0.03, type: 'sawtooth', attack: 0.01 });
     },
     // The ship's computer: a couple of blips.
     beep(out, t) { [88, 93].forEach((m, k) => note(out, t + k * 0.12, { freq: hz(m), len: 0.1, gain: 0.025, type: 'square' })); },

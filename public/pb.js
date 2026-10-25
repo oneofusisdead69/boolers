@@ -123,13 +123,13 @@
       return '<span class="timer" id="timer"></span>';
     },
 
-    // The ways out of a game. The host can end it (on Around the World: skip it, or end the whole
-    // trip), and everyone can leave the room. Pass and play only has "End game"; the TV has none.
+    // The ways out of a game. The host can end it (in a Tournament: skip it, or end the whole
+    // tournament), and everyone can leave the room. Pass and play only has "End game"; the TV has none.
     endButton(className = 'link') {
       const s = PB.state;
       const host = !s.isHost ? ''
-        : s.trip ? `<button class="${className}" data-cmd="endGame" data-confirm="Skip the rest of this game and go to the next stop?">Skip this game</button>
-          <button class="${className}" data-cmd="endTrip" data-confirm="End Around the World for everyone?">End trip</button>`
+        : s.trip ? `<button class="${className}" data-cmd="endGame" data-confirm="Skip the rest of this game and go to the next one?">Skip this game</button>
+          <button class="${className}" data-cmd="endTrip" data-confirm="End the tournament for everyone?">End tournament</button>`
         : `<button class="${className}" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>`;
       const all = `${host}${PB.leaveButton(className)}`;
       // In a tight header (Slevens) they fold into one small "Exit" menu.
