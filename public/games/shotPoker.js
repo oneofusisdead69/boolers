@@ -23,7 +23,8 @@
   // The player's own name (PB.name says "You" for yourself).
   const realName = (s, id) => s.players.find((p) => p.id === id)?.name ?? '???';
 
-  const banner = () => '<div class="sp-banner">☠️ All debts must be paid before the next round...</div>';
+  // The reminder, once a hand's over, while anyone still owes.
+  const banner = (g) => (g.waitingOn?.length ? '<div class="sp-banner">☠️ All debts must be paid before the next round...</div>' : '');
 
   function table(g) {
     const slots = Array.from({ length: 5 }, (_, i) => g.community[i] || null);
@@ -113,7 +114,6 @@
     const g = s.game;
     const mine = g.turnId === s.me;
     const head = `
-      ${banner()}
       ${PB.turn(g.turnId, `Hand ${g.hand} · ${STREET_NAMES[g.street]}`)}
       ${table(g)}`;
     const key = `${g.hand}:${g.street}:${g.turnId}:${g.pot}`;
@@ -175,7 +175,7 @@
     const canDeal = s.isHost || g.nextDealerId === s.me;
     const waiting = g.waitingOn.map((id) => esc(name(id))).join(', ');
     return `
-      ${banner()}
+      ${banner(g)}
       <div class="turn">🏆 ${winners} ${r.winners.length > 1 ? 'split it' : isMe(s, r.winners[0]) ? 'win' : 'wins'}<span>${how}</span></div>
       ${table(g)}
       ${seats(s, { reveal: true })}
