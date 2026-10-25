@@ -71,3 +71,12 @@ test('who goes twice: anyone on the short team picks, and moving players clears 
   assert.deepStrictEqual(g.twice, {});
   assert.deepStrictEqual(t.view(0).short, [1]);
 });
+
+test('bots sit the boat race out: they are never dealt onto a team', () => {
+  const t = setup(game, 2, { teams: 2 });
+  t.room.players.push({ id: 'b0', name: 'Booler', bot: 'booler', drinks: 0, connected: true });
+  t.act(0, 'shuffle');
+  assert.deepStrictEqual(t.room.game.teams.flat().sort(), ['p0', 'p1']);
+  game.onJoin(t.room, t.room.players[2]);
+  assert.deepStrictEqual(t.room.game.teams.flat().sort(), ['p0', 'p1']);
+});

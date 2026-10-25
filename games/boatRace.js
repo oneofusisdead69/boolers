@@ -21,10 +21,11 @@ const shuffle = (list) => {
   return a;
 };
 
-// New teams: everyone here, shuffled and dealt round like cards. The score starts again.
+// New teams: everyone here, shuffled and dealt round like cards. The score starts again. Bots sit
+// it out: a boat race is drunk in the room, and they've nothing to drink.
 function deal(room, ctx) {
   const g = room.game;
-  const here = shuffle(ctx.connectedPlayers(room).map((p) => p.id));
+  const here = shuffle(ctx.connectedPlayers(room).filter((p) => !p.bot).map((p) => p.id));
   const count = Math.max(2, Math.min(g.teamCount, here.length));
   g.teams = Array.from({ length: count }, () => []);
   here.forEach((id, i) => g.teams[i % count].push(id));
@@ -127,7 +128,7 @@ module.exports = {
   // Someone new joins the smallest team.
   onJoin(room, player) {
     const g = room.game;
-    if (teamOf(g, player.id) >= 0) return;
+    if (player.bot || teamOf(g, player.id) >= 0) return;
     const smallest = g.teams.reduce((best, t, i) => (t.length < g.teams[best].length ? i : best), 0);
     g.teams[smallest].push(player.id);
     tidyTwice(g);

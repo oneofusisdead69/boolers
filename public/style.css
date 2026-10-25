@@ -1598,3 +1598,9 @@ html[data-room="speakeasyNoir"] .card > h2,
 html[data-room="speakeasyNoir"] .feed,
 html[data-room="speakeasyNoir"] .tv-feed,
 html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflood) { filter: grayscale(1); }
+
+/* Bots in the lobby: their tag, and the host's row for adding them. */
+.tag.bot { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.bot-row { display: grid; gap: 6px; margin-top: 10px; }
+.bot-row .segmented button { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.bot-row .segmented button small { color: var(--muted); font-size: 0.72em; font-weight: 600; }

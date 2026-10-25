@@ -106,6 +106,31 @@ buzzer and the win fanfare (phase `'over'`) itself, so `sounds` only needs the g
 Colours come from CSS variables (`--bg`, `--card`, `--accent`, `--die`, `--back-1`…) so themes
 and dice / card styles apply to your screens too.
 
+## Bots
+
+The host can add up to three bots (`lib/bots.js`): **Booler** (great), **Baller** (medium) and
+**NPV** (bad). A bot is a player (`p.bot` is its level) who's always connected and has no phone.
+Whenever the room changes, the server asks the game what each bot would do, waits a moment, asks
+again (things may have moved on) and plays it through the game's own `handle`, like a tap:
+
+```js
+  // What bot `me` would do right now: an action (as a phone would send it), or null for nothing.
+  // `skill` is 0 to 1: Booler 0.9, Baller 0.6, NPV 0.25. Optional `delay` (ms) overrides how long
+  // the bot thinks first (e.g. a reaction that has to beat a clock).
+  bot(room, me, ctx, skill) { return { type: 'roll' }; },
+```
+
+- Return only moves the game would take now (whose turn, which phase). A move it won't take three
+  times in a row makes the bot wait until the game changes, so a wrong guess never spins.
+- Skill is how good the bot is: how sound its choices are (bets, calls, bluffs) and how true its
+  aim is (throwing games: perfect at 1, sloppy at 0). Never let a bot see what a player couldn't
+  (another player's hand, a face-down card).
+- Bots aren't the host in a real room. A move only the host can make (start the race, next
+  round) is the host's; a bot may make it when `room.hostId === me.id` (only in tests).
+- When a bot hands out sips, it picks someone at random (a human, when there is one).
+
+`tests/bots.test.js` plays every game with bots only, start to finish.
+
 ## Testing
 
 ```js
