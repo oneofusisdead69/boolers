@@ -16,7 +16,8 @@ function ready(teams, options = {}) {
   Object.assign(g, { wobble: 'none', turnTeam: 0, balls: 2, sunk: 0, turnId: teams[0][0], next: [0, 0] });
   return t;
 }
-const throwAt = (t, target) => t.act(idx(t.room.game.turnId), 'throw', target);
+// A throw, and the ball landing.
+const throwAt = (t, target) => { t.act(idx(t.room.game.turnId), 'throw', target); if (t.room.timerFn) t.fireTimer(); };
 
 test('racks of ten; only the host starts; a ball each, then the other team', () => {
   const t = setup(game, 4);

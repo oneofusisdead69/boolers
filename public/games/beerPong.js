@@ -18,7 +18,8 @@
   const BACK = 0.72;
 
   // A cup's colour is its owner's (each player's chosen colour); the team's if nobody has it.
-  const colorOf = (c, g, team) => (c.owner && PB.state?.players.some((p) => p.id === c.owner) ? PB.look(c.owner).color : g.teams[team].color);
+  // (Pass and play has no chosen colours: then it's the team's.)
+  const colorOf = (c, g, team) => PB.state?.players.find((p) => p.id === c.owner)?.color || g.teams[team].color;
   const cup = (cx, cy, r, color, cls = '') => `<g class="bp-cup ${cls}" transform="translate(${cx.toFixed(2)} ${cy.toFixed(2)})">
     <circle r="${r}" fill="${color}"/><circle r="${r * 0.8}" fill="#f4f4f4"/><circle r="${r * 0.66}" fill="#e8b84a"/><circle r="${r * 0.66}" fill="url(#bp-foam)" opacity="0.6"/></g>`;
 
@@ -32,7 +33,7 @@
     if (L) {
       const p = toTable(L.target, L.x, L.y);
       const from = L.team === 0 ? { x: 50, y: 236 } : { x: 50, y: 4 };
-      const fresh = L.n !== shown;
+      const fresh = s.phase === 'landing';
       // The ball flies in from the thrower's end of the table (when it's new) and lands.
       ball = `<g class="bp-ball ${L.cup ? 'in' : 'out'}" transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})">
         ${L.cup ? `<circle class="bp-splash ${fresh ? 'fresh' : ''}" r="${r * 1.6}"/>` : ''}
@@ -74,6 +75,7 @@
   // the rim is one cup-spacing (0.21 of the rack) across. Seen from up high its height looks
   // shorter: H is its height in the picture, near the front.
   const RIM = 0.105 * 300;
+  const ry3 = (f) => 0.105 * 0.7 * DEPTH * f * f; // a rim's height on screen
   const TOP = 70; // the picture starts this far down (above it there's only the room)
   const H = 58;
   // A red-cup shape in 3D: the rim's ellipse on top, the body tapering down, shaded round, with the
@@ -81,7 +83,7 @@
   function cup3d(c, color, id) {
     const { x, y, f } = view(c.x, c.y);
     const rx = RIM * f;
-    const ry = 0.105 * 0.7 * DEPTH * f * f;
+    const ry = ry3(f);
     const h = H * f;
     const b = rx * 0.68;
     return `<g class="bp-cup3d">
@@ -93,6 +95,19 @@
       <ellipse cx="${x - rx * 0.12}" cy="${y}" rx="${rx * 0.5}" ry="${ry * 0.4}" fill="#fff5d6" opacity="0.55"/>
     </g>`;
   }
+  let launch = null; // where your ball left the pad (for its flight across the screen)
+  let flown = 0; // the last throw flown
+
+  // Where a landing point in the close-up is on the page.
+  function onPage(L) {
+    const svg = document.querySelector('.bp-rack svg');
+    if (!svg) return null;
+    const r = svg.getBoundingClientRect();
+    const e = view(L.x, L.y);
+    const y = L.cup ? e.y + ry3(e.f) * 0.2 : e.y + H * e.f;
+    return { x: r.left + (e.x / 360) * r.width, y: r.top + ((y - TOP) / (300 - TOP)) * r.height, f: e.f };
+  }
+
   function closeUp(s) {
     const g = s.game;
     const target = 1 - g.turnTeam;
@@ -108,13 +123,24 @@
     const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f - TOP) / (300 - TOP)) * 100).toFixed(2)}%`; };
     const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, BACK)}, ${pct(-0.75, BACK)})"></div>`;
     const p = view(a.x, a.y);
-    const L = g.last && g.last.target === target && !g.last.cup ? view(g.last.x, g.last.y) : null;
+    // The ball in the air (while it lands): from your hand up in an arc and down onto the rack,
+    // then into the cup (a splash) or off the table.
+    let ball = '';
+    const last = g.last;
+    if (s.phase === 'landing' && last && last.target === target) {
+      const e = view(last.x, last.y);
+      const end = { x: e.x, y: last.cup ? e.y + ry3(e.f) * 0.2 : e.y + H * e.f };
+      ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})">
+        ${last.cup ? `<ellipse class="bp-splash3d" rx="${(RIM * e.f).toFixed(1)}" ry="${ry3(e.f).toFixed(1)}"/>` : ''}
+        <g class="bp-fly3d ${last.cup ? 'in' : last.rim ? 'rim' : 'out'} ${last.by === s.me && !PB.isTV ? 'handoff' : ''}" style="--sx:${(180 - end.x).toFixed(1)}px;--sy:${(320 - end.y).toFixed(1)}px">
+          <circle r="${(8 * e.f).toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g>`;
+    }
     return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 ${TOP} 360 ${300 - TOP}" aria-label="Their cups">
       <defs>${shades}</defs>
       <path d="M${corner(0, -0.25)} L${corner(0, BACK)}" class="bp-line" stroke-width="2"/>
       <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, BACK)} L${corner(0.75, BACK)} L${corner(0.75, -0.25)}" class="bp-edge"/>
       ${cups}
-      ${L ? `<circle cx="${L.x}" cy="${L.y + H * L.f}" r="${7 * L.f}" fill="#fffdf4" opacity="0.8"/>` : ''}
+      ${ball}
       <g id="bp-aim" class="bp-aim big" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})"><circle r="16"/><path d="M-26 0 H26 M0 -26 V26"/></g>
     </svg></div></div>`;
   }
@@ -184,9 +210,9 @@
         const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
         const speed = (-vy * 1000) / window.innerHeight / IDEAL_SPEED;
         feedback = flickNote(angle, speed);
+        // The ball leaves your hand here and flies to the cups (see afterRender).
         if (held) {
-          held.style.transition = 'transform 0.3s ease-in, opacity 0.3s';
-          held.style.transform = `translate(${vx * 60}px, -${el.clientHeight}px) scale(0.4)`;
+          launch = PB.centre(held);
           held.style.opacity = '0';
         }
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
@@ -227,6 +253,8 @@
     const g = s.game;
     const L = g.last;
     if (!L) return '<p class="bp-last muted">First ball coming up…</p>';
+    // In the air: no result yet.
+    if (s.phase === 'landing') return `<p class="bp-last flying">🏓 ${esc(name(L.by))} ${L.by === s.me && !PB.passAndPlay ? 'throw' : 'throws'}…</p>`;
     const who = esc(name(L.by));
     const you = L.by === s.me && !PB.passAndPlay; // "You miss", not "You misses"
     const owner = L.cup?.owner && s.players.some((p) => p.id === L.cup.owner) ? L.cup.owner : null;
@@ -250,11 +278,12 @@
     const team = g.teams[g.turnTeam];
     const mine = g.turnId === s.me && !PB.isTV;
     const showTable = PB.isTV || !s.tv;
+    const throwing = mine && s.phase === 'throwing';
     return `
       ${PB.turn(g.turnId, `Team ${team.name} · ${PB.plural(g.balls, 'ball')} left`)}
       ${mine ? closeUp(s) : showTable ? table(s) : ''}
       ${lastLine(s)}
-      ${mine ? pad(s) : ''}
+      ${throwing ? pad(s) : ''}
       ${teams(s)}
       ${mine ? '' : PB.feed(3)}`;
   }
@@ -301,6 +330,15 @@
     },
     afterRender(s) {
       setupPad();
+      // Your ball, in the air: from your finger on the pad up to where it lands.
+      const L = s.game.last;
+      if (s.phase === 'landing' && L && L.by === s.me && !PB.isTV && L.n !== flown) {
+        flown = L.n;
+        const to = onPage(L);
+        const from = launch || { x: innerWidth / 2, y: innerHeight - 80 };
+        if (to) PB.fly('<div class="pb-ball"></div>', from, to, { ms: 900, lift: 0.45, scale: [1.3, Math.max(0.25, to.f * 0.5)] });
+        launch = null;
+      }
       // Once a ball's been drawn landing, it isn't animated again.
       if (s.game.last) setTimeout(() => { shown = s.game.last.n; }, 50);
     },

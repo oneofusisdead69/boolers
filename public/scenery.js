@@ -1086,6 +1086,38 @@
     ],
   };
 
+  // Slevens in the tavern: the mead hall. Embers fly up from the fire pit, ravens wheel through
+  // the smoke, a horn sounds; on every hit the hall pounds the tables and roars SKÅL!
+  let lastRoll = null;
+  const pound = () => {
+    for (let i = 0; i < 4; i++) later(() => { document.body.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(4px)' }, { transform: 'translateY(0)' }], { duration: 140 }); cue('thud'); }, i * 260);
+  };
+  SCENES.tavernMeadhall = {
+    decor() {
+      lastRoll = null;
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-fireglow');
+      banner('Welcome to the mead hall', 'Horns up!', 'mead');
+      cue('lur', 300);
+    },
+    update(s) {
+      const g = s?.gameType === 'slevens' ? s.game : null;
+      if (!g || !g.hit || g.rollNo === lastRoll) return;
+      const first = lastRoll === null;
+      lastRoll = g.rollNo;
+      if (first) return;
+      pound();
+      later(() => { inFront(`<b>${g.hit === 'snake' ? 'ODIN’S EYES!' : 'SKÅL!'}</b>`, { left: '0', right: '26vw', top: '26vh' }, 2400).classList.add('sc-oneeighty', 'ton', 'skal'); cue('cheer'); }, 1000);
+    },
+    moments: [
+      () => burst(['●', '•', '✦'], { x: rand(40, 60), y: 82, n: 22, spread: 10, size: [5, 10], colors: ['#ff8a2a', '#ffd23f', '#ff5a14'], rise: [-50, -26], fall: [-10, 0] }),
+      () => { for (let i = 0; i < pick([1, 2, 3]); i++) drift('🐦‍⬛', { from: [-8, rand(6, 20)], to: [108, rand(4, 22)], dur: rand(9, 13), size: rand(36, 50), extra: { animationDelay: `${i * 0.8}s` } }); },
+      () => { cue('lur'); popup('📯', { x: 2, bottom: 20, size: 60, life: 4000 }); },
+      pound,
+      () => crossing('🐕', { y: 93, dur: 9, size: 50 }),
+      () => { crossing('🛡️⚔️', { y: 91, dur: 11, size: 48 }); },
+    ],
+  };
+
   // Quarters in the diner: the roller rink. Skaters go round, a couples skate, someone wipes out,
   // the disco ball throws spots everywhere; every quarter in gets the crowd.
   let lastCoin = null;

@@ -764,6 +764,15 @@
       now(30, (t) => CUES.chant(out, t)),
       now(18, (t) => CUES.pop(out, t)),
     ],
+    // The mead hall: the fire, a slow drum and a bowed drone; the lur (a long horn) now and then.
+    tavernMeadhall: (out) => [
+      background(out, 'bed-fire-1', { gain: 0.45 }),
+      sequencer(72, (t, n) => {
+        if (n % 4 === 0 || n % 4 === 3) note(out, t, { freq: 70, to: 42, len: 0.6, gain: 0.18, type: 'sine' });
+        if (n % 16 === 0) for (const m of [38, 45]) note(out, t, { freq: hz(m), len: 3.2, gain: 0.03, type: 'sawtooth', attack: 0.8 });
+      }),
+      now(40, (t) => CUES.lur(out, t)),
+    ],
     // The roller rink: synth-pop, four on the floor, with an arpeggio over it.
     dinerRink: (out) => [
       sequencer(118, (t, n) => {
@@ -1064,6 +1073,14 @@
         at += 0.06 * (1 + k * 0.09);
       }
       hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
+    },
+    // A lur: a long, low bronze horn call, rising and falling.
+    lur(out, t) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 900;
+      f.connect(out);
+      [[45, 1.2], [52, 0.8], [50, 1.8]].reduce((at, [m, len]) => { note(f, at, { freq: hz(m), len, gain: 0.06, type: 'sawtooth', attack: 0.15 }); return at + len * 0.9; }, t);
     },
     // An air horn: three blasts.
     airhorn(out, t) {
