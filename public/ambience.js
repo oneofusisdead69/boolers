@@ -3,7 +3,7 @@
 // CC0 recordings from /sounds), a few sounds now and then (gulls, a creaking timber, chips, glasses)
 // and a tune, played on the fly with the Web Audio API: the blues on the dive bar's jukebox, a
 // lute in the tavern, Drunken Sailor on the pirate ship, Shenandoah at the lighthouse, a fiddle and
-// the pipes at St Patrick's, Bach on the organ at Halloween... Classic is quiet.
+// the pipes in the Highlands pub, Bach on the organ at Halloween... Classic is quiet.
 //
 //   Ambience.set(style, level)   start, switch or stop (level 0 = off, up to 1)
 (() => {
@@ -1005,6 +1005,16 @@
       note(out, t, { freq: 1850, len: 1.2, gain: 0.01, type: 'sine' });
     },
     // A sheep out on the hill.
+    // A Highland cow, lowing.
+    moo(out, t) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(400, t);
+      f.frequency.linearRampToValueAtTime(900, t + 0.5);
+      f.frequency.linearRampToValueAtTime(300, t + 1.6);
+      f.connect(out);
+      note(f, t, { freq: 110, to: 92, len: 1.6, gain: 0.08, type: 'sawtooth', attack: 0.25 });
+    },
     baa(out, t) {
       const o = ac.createOscillator();
       o.type = 'sawtooth';

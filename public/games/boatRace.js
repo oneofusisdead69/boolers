@@ -5,8 +5,8 @@
 
   const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}.${Math.floor(ms / 100) % 10}`;
 
-  // Each team in its order, top to bottom. A team a player short has its first drinker again at the
-  // end. The host can tap a player (before the race) to move them to the next team.
+  // Each team in its order, top to bottom. A team a player short has whoever's going twice again
+  // at the end. The host can tap a player (before the race) to move them to the next team.
   function teams(s, { movable = false } = {}) {
     const g = s.game;
     const longest = Math.max(...g.teams.map((t) => t.ids.length));
@@ -17,13 +17,33 @@
           ? `<button class="br-player ${id === s.me ? 'me' : ''}" data-act="move" data-target-id="${esc(id)}">${who}<span class="br-move">→</span></button>`
           : `<div class="br-player ${id === s.me ? 'me' : ''}">${who}</div>`;
       });
-      if (t.ids.length && t.ids.length < longest) rows.push(`<div class="br-player again"><span class="br-n">${t.ids.length + 1}</span>${PB.avatar(t.ids[0], 'sm')}<span class="br-name">${esc(name(t.ids[0]))}</span><span class="br-move">↺</span></div>`);
+      // (Two short, after the host's moved people about: the same one goes again each time.)
+      const again = g.twice[i];
+      for (let n = t.ids.length; g.short.includes(i) && n < longest; n++) {
+        rows.push(again
+          ? `<div class="br-player again"><span class="br-n">${n + 1}</span>${PB.avatar(again, 'sm')}<span class="br-name">${esc(name(again))}</span><span class="br-move">↺</span></div>`
+          : `<div class="br-player again"><span class="br-n">${n + 1}</span><span class="br-name">Who? ↺</span></div>`);
+      }
       return `<div class="br-team ${g.winner === i ? 'won' : ''}" style="--team:${t.color}">
         <h3>Team ${esc(t.name)}${g.race ? ` <small>${PB.plural(g.wins[i], 'win')}</small>` : ''}</h3>${rows.join('') || '<p class="muted">Nobody yet</p>'}</div>`;
     }).join('')}</div>`;
   }
 
   // (Passing one phone round, there's no 'your' team.)
+  // A team a player short: who's going twice? The host or anyone on the team picks.
+  function twicePrompts(s) {
+    const g = s.game;
+    return g.short.map((i) => {
+      const t = g.teams[i];
+      const canPick = s.isHost || t.ids.includes(s.me);
+      if (!canPick && g.twice[i]) return '';
+      return `<div class="br-twice" style="--team:${t.color}"><h3>Team ${esc(t.name)}: who’s going twice?</h3>
+        ${canPick
+          ? `<div class="br-twice-pick">${t.ids.map((id) => `<button class="${g.twice[i] === id ? 'selected' : 'secondary'}" data-act="twice" data-team="${i}" data-target-id="${esc(id)}">${PB.avatar(id, 'sm')} ${esc(name(id))}</button>`).join('')}</div>`
+          : `<p class="muted">Team ${esc(t.name)} is picking…</p>`}</div>`;
+    }).join('');
+  }
+
   const myTeam = (s) => (PB.passAndPlay ? null : s.game.teams.find((t) => t.ids.includes(s.me)));
 
   function lineUp(s) {
@@ -32,9 +52,12 @@
     return `
       <div class="turn">🚣 Boat race${g.race ? ` ${g.race + 1}` : ''}<span>${mine ? `You’re on Team ${esc(mine.name)}` : 'Line up!'}</span></div>
       ${teams(s, { movable: s.isHost })}
+      ${twicePrompts(s)}
       ${s.isHost
         ? `<p class="br-hint">Tap someone to move them to the next team.</p>
-          <div class="row"><button class="secondary" data-act="shuffle">🔀 New teams</button><button data-act="go">🏁 Start the race</button></div>`
+          <div class="row"><button class="secondary" data-act="shuffle">🔀 New teams</button>${g.short.every((i) => g.twice[i])
+            ? '<button data-act="go">🏁 Start the race</button>'
+            : '<button disabled>Who’s going twice?</button>'}</div>`
         : `<p class="br-hint">Line up with your team. ${esc(name(s.hostId))} starts the race.</p>`}`;
   }
 
