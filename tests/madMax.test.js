@@ -442,3 +442,28 @@ test('final battle with colour terms: a right call wins the round for whoever ma
   assert.deepStrictEqual(g.war.rounds.map((r) => r.winnerId), ['p2', 'p2', 'p1', 'p1']);
   t.cleanup();
 });
+
+test('a tied war with nobody holding a card takes the tiebreak cards from the pile', () => {
+  const t = setup(game, 3, { takePile: true, finalBattle: false });
+  const g = t.room.game;
+  // Three rounds, one won by each: a three-way tie. Every hand is empty; the rest are in the pile.
+  for (const id of g.order) g.hands[id] = [];
+  g.pile = [c(9, 'S'), c(5, 'C'), c(3, 'D')];
+  g.phase = 'war';
+  g.war = {
+    challengers: ['p1', 'p2'], challengedId: 'p0', final: false, size: 3, terms: 'high',
+    cards: { p0: [c(13, 'H'), c(12, 'H'), c(7, 'H')], p1: [c(7, 'C'), c(2, 'D'), c(10, 'H')], p2: [c(4, 'H'), c(6, 'D'), c(2, 'S')] },
+    borrowed: {}, inRound: ['p0', 'p1', 'p2'], callerId: 'p0', winnerId: null,
+    rounds: [
+      { call: 'high', cards: {}, winnerId: 'p0', tiebreak: false },
+      { call: 'low', cards: {}, winnerId: 'p1', tiebreak: false },
+    ],
+  };
+  t.act(0, 'warCall', { call: 'low' }); // the third round goes to p2: a tie
+  assert.strictEqual(g.phase, 'war');
+  assert.strictEqual(g.pile.length, 0, 'each tied player took a tiebreak card from the pile');
+  assert.ok(['p0', 'p1', 'p2'].every((id) => g.war.cards[id].length === 4));
+  t.act(Number(g.war.callerId.slice(1)), 'warCall', { call: 'high' });
+  assert.ok(['warResult', 'over'].includes(g.phase), 'the tiebreak was played with real cards and settled (here, with every card won, the game)');
+  t.cleanup();
+});

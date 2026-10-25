@@ -199,6 +199,12 @@ function layOut(room, ctx, id, n) {
         got.push(...takeRandom(g.hands[supplier], missing - got.length));
       }
     }
+    // Nobody else has a card either (everyone's in the war with empty hands): then it comes from the
+    // pile after all, even when the winner's due to take it.
+    if (got.length < missing && g.pile.length) {
+      if (!got.length) from = 'pile';
+      got.push(...takeRandom(g.pile, missing - got.length));
+    }
     if (got.length) {
       const prev = w.borrowed[id];
       w.borrowed[id] = { n: (prev?.n || 0) + got.length, from: prev?.from || from };

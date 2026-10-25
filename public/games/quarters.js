@@ -128,6 +128,7 @@
           held.style.transform = `translate(${vx * 60}px, -${el.clientHeight}px) scale(0.4)`;
           held.style.opacity = '0';
         }
+        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
       } else {
         if (held) held.style.transform = '';
@@ -214,6 +215,9 @@
     },
     afterRender(s) {
       setupPad();
+      // Yours went in: a little buzz as it drops.
+      const L = s.game.last;
+      if (L && L.n !== shown && L.hit && L.by === s.me && !PB.isTV) setTimeout(() => PB.buzz('hit'), 900);
       if (s.game.last) setTimeout(() => { shown = s.game.last.n; }, 50);
     },
     onAim(aim) {
