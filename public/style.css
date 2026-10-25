@@ -1552,12 +1552,6 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 /* The ball in the air in the close-up: up in an arc from your hand, and down onto the rack. */
 .bp-fly3d { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both; }
 @keyframes bp-fly3d { 0% { translate: var(--sx) var(--sy); scale: 3; } 50% { translate: calc(var(--sx) * 0.45) calc(var(--sy) * 0.45 - 110px); scale: 2; } 100% { translate: 0 0; scale: 1; } }
-.bp-fly3d.in { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-drop 0.35s ease-in 1.1s forwards; }
-@keyframes bp-drop { to { translate: 0 8px; scale: 0.6; opacity: 0; } }
-.bp-fly3d.out, .bp-fly3d.rim { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-skip 0.6s ease-out 1.1s forwards; }
-.bp-fly3d.rim { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-rimout 0.7s ease-out 1.1s forwards; }
-@keyframes bp-skip { to { translate: 20px -40px; opacity: 0; } }
-@keyframes bp-rimout { 30% { translate: 6px -10px; } to { translate: 60px 30px; opacity: 0; } }
 .bp-splash3d { fill: rgba(255, 240, 200, 0.7); opacity: 0; animation: bp-splash 0.7s ease-out 1.1s both; }
 .bp-last.flying { color: var(--muted); }
 
@@ -1588,15 +1582,43 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .pb-dart svg { width: 100%; height: 100%; display: block; }
 /* The thrower's phone: the ball's flight is the one across the screen, so in the close-up it just
    arrives (after PB.fly's 0.9s) and drops in, or skips away. */
-/* (1.4s: FLIGHT_MS in public/games/beerPong.js) */
-.bp-fly3d.handoff { animation: bp-show 0.01s linear 1.4s both; }
-.bp-fly3d.handoff.in { animation: bp-show 0.01s linear 1.4s both, bp-drop 0.35s ease-in 1.4s forwards; }
-.bp-fly3d.handoff.out { animation: bp-show 0.01s linear 1.4s both, bp-skip 0.6s ease-out 1.4s forwards; }
-.bp-fly3d.handoff.rim { animation: bp-show 0.01s linear 1.4s both, bp-rimout 0.7s ease-out 1.4s forwards; }
-.bp-close .bp-splash3d:has(+ .handoff) { animation-delay: 1.4s; }
+/* (1.1s: FLIGHT_MS in public/games/beerPong.js) */
+.bp-fly3d.handoff { animation: bp-show 0.01s linear 1.1s both; }
+.bp-close .bp-splash3d:has(+ .handoff) { animation-delay: 1.1s; }
+/* A miss: the ball hits the table and bounces away from you (smaller as it goes), twice, then
+   off the end of the table; its shadow runs along the table under it. A rim-out spins off
+   sideways first. */
+.bp-fly3d.handoff.out, .bp-fly3d.handoff.rim { animation: bp-show 0.01s linear var(--land) both; }
+.bp-bounce { animation: bp-away 1s linear var(--land) both; }
+.bp-hop { animation: bp-hops 1s linear var(--land) both; }
+.bp-bounce-shadow { fill: rgba(0, 0, 0, 0.35); animation: bp-shadow 1s linear var(--land) both; }
+.bp-fly3d.rim .bp-bounce { animation-name: bp-away-rim; }
+@keyframes bp-away {
+  0% { translate: 0 0; scale: 1; opacity: 1; }
+  80% { opacity: 1; }
+  100% { translate: var(--bx) -95px; scale: 0.55; opacity: 0; }
+}
+@keyframes bp-away-rim {
+  0% { translate: 0 0; scale: 1; opacity: 1; }
+  25% { translate: calc(var(--bx) * 0.2 + 14px) -6px; }
+  80% { opacity: 1; }
+  100% { translate: calc(var(--bx) + 50px) -80px; scale: 0.55; opacity: 0; }
+}
+/* Two hops off the table, the second lower. */
+@keyframes bp-hops {
+  0% { translate: 0 0; animation-timing-function: ease-out; }
+  22% { translate: 0 -34px; animation-timing-function: ease-in; }
+  45% { translate: 0 0; animation-timing-function: ease-out; }
+  60% { translate: 0 -14px; animation-timing-function: ease-in; }
+  75% { translate: 0 0; animation-timing-function: ease-out; }
+  84% { translate: 0 -5px; animation-timing-function: ease-in; }
+  92%, 100% { translate: 0 0; }
+}
+@keyframes bp-shadow { 0%, 45%, 75%, 92% { opacity: 1; } 22% { opacity: 0.35; } 60% { opacity: 0.6; } }
+.bp-wet { fill: #d8a63a; stroke: #fff5d6; stroke-width: 1; opacity: 0; animation: bp-show 0.01s linear var(--land) both; }
 /* A ball that goes in floats in the cup (it lands at --land, set by the screen), with a ripple on
    the beer and drops thrown up out of the cup. */
-.bp-landed .bp-fly3d.in, .bp-landed .bp-fly3d.handoff.in { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both; }
+.bp-landed .bp-fly3d.in { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both; }
 .bp-landed .bp-fly3d.handoff.in { animation: bp-show 0.01s linear var(--land) both; }
 .bp-float { animation: bp-plop 0.45s ease-out var(--land) both, bp-bob 1.6s ease-in-out calc(var(--land) + 0.45s) infinite; }
 @keyframes bp-plop { 0% { translate: 0 -6px; } 45% { translate: 0 3px; } 100% { translate: 0 0; } }
