@@ -245,6 +245,9 @@ function lookOf(room) {
     room.style = ROOM_STYLES.roomOf(room.style);
     room.moodUntil ??= Date.now() + MOOD_MS[0];
   }
+  // An easter egg (Kings Cup at the château...) while its game is on.
+  const egg = room.game && ROOM_STYLES.eggOf(room.style, room.game.type);
+  if (egg) return egg;
   const moods = ROOM_STYLES.STYLES[room.style]?.moods;
   if (!moods) return room.style || 'classic';
   if (!moods.some(([look]) => look === room.mood)) newMood(room);
@@ -384,7 +387,7 @@ function removePlayer(room, playerId) {
 // ---------- Sockets ----------
 
 // The list of games never changes, so each phone and TV gets it once, when it connects.
-const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [] }) => ({ id, name, description, minPlayers, rules }));
+const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [], bestWithTv = false }) => ({ id, name, description, minPlayers, rules, bestWithTv }));
 
 io.on('connection', (socket) => {
   socket.emit('games', GAME_LIST);

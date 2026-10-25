@@ -1070,10 +1070,12 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 
 /* ---------- Moving scenery for room styles (public/scenery.js) ---------- */
 #scenery { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+#scenery-front { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
 main#app, #tv { position: relative; z-index: 1; }
 .sc { position: absolute; line-height: 1; will-change: transform; }
 @keyframes sc-drift { to { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); } }
-.sc-face-l svg { transform: scaleX(-1); }
+/* Turned round with `scale` (not `transform`), so a drawing's own wobble or bob doesn't undo it. */
+.sc-face-l svg { scale: -1 1; }
 .sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
 @keyframes sc-flap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
 .sc-fog { background: radial-gradient(ellipse at 50% 60%, rgba(190, 160, 220, 0.22), transparent 70%); filter: blur(8px); }
@@ -1246,9 +1248,10 @@ main#app, #tv { position: relative; z-index: 1; }
 /* Castle: banners stirring, the dragon's wings and fire, the knight. */
 .sc-banner .sc-cloth { transform-origin: 25px 6px; animation: sc-banner 4s ease-in-out infinite alternate; }
 @keyframes sc-banner { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
-.sc-dragon .sc-dwing { transform-origin: 100px 48px; animation: sc-dflap 0.6s ease-in-out infinite alternate; }
-@keyframes sc-dflap { from { transform: scaleY(1); } to { transform: scaleY(-0.5); } }
-.sc-dragon .sc-fire { transform-origin: 202px 38px; animation: sc-breathe 1.6s ease-in-out infinite; }
+.sc-dragon .sc-dwing { transform-origin: 160px 86px; animation: sc-dflap 0.7s ease-in-out infinite alternate; }
+.sc-dragon .sc-dwing.back { transform-origin: 148px 94px; animation-delay: -0.12s; }
+@keyframes sc-dflap { from { transform: scaleY(1); } to { transform: scaleY(-0.35) skewX(-8deg); } }
+.sc-dragon .sc-fire { transform-origin: 294px 52px; animation: sc-breathe 1.8s ease-in-out infinite; }
 @keyframes sc-breathe { 0%, 60% { transform: scaleX(0); opacity: 0; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1.6); opacity: 0; } }
 .sc-dragon { filter: drop-shadow(0 0 12px rgba(255, 150, 60, 0.6)); }
 .sc-knight svg { animation: sc-bob 0.42s ease-in-out infinite alternate; }
@@ -1260,7 +1263,7 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-bulb { transform-origin: 50% 0; animation: sc-swing 4s ease-in-out infinite alternate; filter: drop-shadow(0 0 22px rgba(255, 196, 100, 0.85)); }
 /* The speakeasy: lit bottles on the shelf, the gramophone's record turning, and the peephole. */
 .sc-shelf { filter: drop-shadow(0 0 16px rgba(255, 190, 110, 0.35)); }
-.sc-record { transform-origin: 50px 72px; animation: sc-wobble 1.8s linear infinite; }
+.sc-record { transform-origin: 54px 99px; animation: sc-wobble 1.8s linear infinite; }
 .sc-door .sc-slit-cover { transition: transform 0.35s ease; transform-origin: 22px 39px; }
 .sc-door .sc-peep-eyes { opacity: 0; transition: opacity 0.3s 0.3s; }
 .sc-door.peek .sc-slit-cover { transform: translateX(46px) scaleX(0.02); }
@@ -1272,7 +1275,7 @@ main#app, #tv { position: relative; z-index: 1; }
 /* Beer hall: bunting, and two steins meeting in the middle with a clink. */
 .sc-bunting { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 4 Q40 14 80 4' stroke='%23e8e3d6' stroke-width='1.5' fill='none'/%3E%3Cpath d='M6 7 L22 9 L13 30Z' fill='%23ffffff'/%3E%3Cpath d='M30 10 L50 10 L40 34Z' fill='%232f6fd0'/%3E%3Cpath d='M58 9 L74 7 L67 30Z' fill='%23ffffff'/%3E%3C/svg%3E") 0 0 / 80px 40px repeat-x; animation: sc-banner 5s ease-in-out infinite alternate; transform-origin: 50% 0; }
 .sc-stein.l { animation: sc-cheers-l 3s ease-in-out forwards; } .sc-stein.r { animation: sc-cheers-r 3s ease-in-out forwards; }
-.sc-stein.r svg { transform: scaleX(-1); }
+.sc-stein.r svg { scale: -1 1; }
 @keyframes sc-cheers-l { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(22vw) rotate(10deg); } 40% { transform: translateX(21vw) rotate(4deg); } 70% { transform: translateX(21vw) rotate(4deg); } 100% { transform: translateX(0) rotate(0); } }
 @keyframes sc-cheers-r { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(-22vw) rotate(-10deg); } 40% { transform: translateX(-21vw) rotate(-4deg); } 70% { transform: translateX(-21vw) rotate(-4deg); } 100% { transform: translateX(0) rotate(0); } }
 /* Casino: the marquee's bulbs chasing round, and the slot machine. */
@@ -1294,10 +1297,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-tikitorch { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)); }
 /* The kinds of moment (scenery.js): crossings, pop-ups, slides, bursts, tosses. */
 .sc-walker span { display: inline-block; }
-.sc-walker.flip span { transform: scaleX(-1); }
+.sc-walker.flip span { scale: -1 1; }
 .sc-walker.bob > span { animation: sc-bob 0.3s ease-in-out infinite alternate; }
-.sc-walker.flip.bob > span { animation-name: sc-bob-flip; }
-@keyframes sc-bob-flip { from { transform: scaleX(-1) translateY(0); } to { transform: scaleX(-1) translateY(-4px); } }
 .sc-pop span { display: inline-block; transform-origin: 50% 100%; animation: sc-wave-hello 0.6s ease-in-out 0.8s 5 alternate; }
 @keyframes sc-popup { 0% { transform: translateY(110%); } 18%, 82% { transform: translateY(0); } 100% { transform: translateY(110%); } }
 @keyframes sc-wave-hello { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
@@ -1305,7 +1306,8 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-burst { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 40% { transform: translate(var(--bx), var(--by)) rotate(calc(var(--spin) * 0.5)); } 100% { transform: translate(calc(var(--bx) * 1.3), var(--fall)) rotate(var(--spin)); opacity: 0; } }
 @keyframes sc-toss { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(var(--h)) rotate(var(--spin)); } }
 /* Rolling things (balls, dice, pretzels) turn as they go. */
-.sc-walker.roll > span { animation: sc-spin 0.6s linear infinite; }
+.sc-walker.roll > span { animation: sc-roll 0.6s linear infinite; }
+@keyframes sc-roll { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 /* The tavern dog, asleep: z z z. */
 .sc-sleeper b { position: absolute; font: 700 20px/1 system-ui, sans-serif; color: rgba(255, 240, 210, 0.8); opacity: 0; animation: sc-zzz 3s ease-out infinite; }
 .sc-sleeper b:nth-of-type(1) { left: 44px; } .sc-sleeper b:nth-of-type(2) { left: 52px; animation-delay: 1s; } .sc-sleeper b:nth-of-type(3) { left: 60px; animation-delay: 2s; }
@@ -1340,6 +1342,59 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-rainbow { 0%, 100% { opacity: 0; transform: scale(0.9); } 20%, 80% { opacity: 0.85; transform: scale(1); } }
 /* The château's balloon, drifting gently. */
 .sc-balloon { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2)); }
+/* A coconut falling from the palm to land where it lands (and bounce once). */
+@keyframes sc-coconut { 0% { transform: translateY(-100vh) rotate(0); } 80% { transform: translateY(0) rotate(var(--spin)); } 90% { transform: translateY(-10px) rotate(var(--spin)); } 100% { transform: translateY(0) rotate(var(--spin)); } }
+/* Casino: two dice rolled in to the bottom middle, and the verdict. */
+@keyframes sc-roll-in { 0% { transform: translate(-40vw, -6vh) rotate(0); } 60% { transform: translate(2vw, 0) rotate(calc(var(--spin) * 0.9)); } 75% { transform: translate(0, -2vh) rotate(var(--spin)); } 100% { transform: translate(0, 0) rotate(var(--spin)); } }
+.sc-die svg { filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.5)); }
+.sc-verdict b { display: block; font: 900 46px/1 system-ui, sans-serif; letter-spacing: 0.02em; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-verdict.win b { color: #ffd23f; text-shadow: 0 0 18px rgba(255, 210, 63, 0.8), 0 3px 0 #7a4a00; }
+.sc-verdict.lose b { color: #e8dcc0; opacity: 0.85; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6); }
+/* The diner's counter bell, slapped; the bell buoy rocking on the swell. */
+.sc-orderup .sc-svcbell { animation: sc-ding 0.5s ease-out 0.3s 2; transform-origin: 50% 100%; }
+@keyframes sc-ding { 0% { transform: scaleY(1); } 30% { transform: scaleY(0.86); } 60% { transform: scaleY(1.04); } 100% { transform: scaleY(1); } }
+.sc-buoy { opacity: 0; animation: sc-fade-in-out 6.8s ease-in-out forwards; }
+@keyframes sc-fade-in-out { 0%, 100% { opacity: 0; } 15%, 85% { opacity: 0.95; } }
+.sc-buoy .sc-buoy-rock { transform-origin: 40px 74px; animation: sc-swing 2.6s ease-in-out infinite alternate; }
+/* Easter eggs: the banner as one begins, the fire's glow, the ghost ship's fog and lightning. */
+.sc-banner { text-align: center; animation: sc-orderup 6.2s ease-out forwards; }
+.sc-banner b { display: block; font: 400 clamp(48px, 7vw, 96px)/1.1 var(--banner-font, Georgia), serif; }
+.sc-banner small { display: block; margin-top: 8px; text-shadow: 0 2px 8px #000, 0 0 3px #000; font: italic 600 clamp(18px, 2.2vw, 30px)/1.2 Georgia, serif; opacity: 0.9; }
+.sc-banner.rev { --banner-font: "Parisienne"; color: #fff; text-shadow: 0 0 24px #ff5a14, 0 4px 0 #0055a4, 0 -4px 0 #ef4135; }
+.sc-banner.ghost { --banner-font: "Pirata One"; color: #c8ffe0; text-shadow: 0 0 24px #7cf0b0, 0 0 60px #2a8a60; }
+.sc-banner.gold { --banner-font: "Abril Fatface"; color: #ffe39a; text-shadow: 0 2px 0 #8a5a14, 0 0 30px rgba(255, 210, 120, 0.7); }
+.sc-quote b { display: block; text-align: center; font: italic 700 36px/1.2 Georgia, serif; color: #ffe8c8; text-shadow: 0 2px 10px #000; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-fireglow { background: radial-gradient(ellipse 70% 50% at 60% 30%, rgba(255, 110, 30, 0.22), transparent 70%); animation: sc-fireflicker 2.6s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes sc-fireflicker { 0% { opacity: 0.5; } 30% { opacity: 1; } 55% { opacity: 0.7; } 80% { opacity: 0.95; } 100% { opacity: 0.6; } }
+.sc-ghostfog { background: linear-gradient(transparent, rgba(124, 240, 176, 0.16) 60%, rgba(124, 240, 176, 0.06)); animation: sc-fogdrift 9s ease-in-out infinite alternate; }
+@keyframes sc-fogdrift { from { transform: translateX(-3vw); opacity: 0.6; } to { transform: translateX(3vw); opacity: 1; } }
+.sc-ghostlight { filter: hue-rotate(100deg) drop-shadow(0 0 16px rgba(124, 240, 176, 0.9)); }
+.sc-ghostgreen { filter: hue-rotate(200deg) saturate(0.6) brightness(0.8); }
+.sc-ghost { display: inline-block; filter: drop-shadow(0 0 12px #7cf0b0) sepia(1) hue-rotate(90deg); animation: sc-bob 1.6s ease-in-out infinite alternate; }
+.sc-greenflash { background: rgba(180, 255, 215, 0.5); animation: sc-gflash 1.3s steps(1) forwards; }
+@keyframes sc-gflash { 0% { opacity: 1; } 8% { opacity: 0; } 16% { opacity: 0.8; } 24%, 100% { opacity: 0; } }
+.sc-rise { opacity: 0; filter: drop-shadow(0 0 14px #7cf0b0); animation: sc-risefall 4.8s ease-in-out forwards; }
+@keyframes sc-risefall { 0% { opacity: 0; transform: translateY(20vh); } 30%, 70% { opacity: 0.85; transform: translateY(0); } 100% { opacity: 0; transform: translateY(20vh); } }
+.sc-roulette { animation: sc-fade-in-out 8.8s ease-in-out forwards; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.6)); }
+.sc-roulette .sc-wheel { transform-origin: 50px 50px; animation: sc-wheelspin 5.2s cubic-bezier(0.15, 0.6, 0.3, 1) forwards; }
+.sc-roulette .sc-ball { transform-origin: 50px 50px; animation: sc-ballspin 5.2s cubic-bezier(0.1, 0.5, 0.25, 1) forwards; }
+@keyframes sc-wheelspin { to { transform: rotate(1440deg); } }
+@keyframes sc-ballspin { 0% { transform: rotate(0) translateY(0); } 70% { transform: rotate(-1700deg) translateY(0); } 100% { transform: rotate(-1980deg) translateY(14px); } }
+/* Saloon: the tumbleweed bounces as it rolls; the shootout. */
+.sc-tumble svg { display: block; animation: sc-hop 0.55s ease-in-out infinite alternate; }
+@keyframes sc-hop { from { translate: 0 0; } to { translate: 0 -18px; } }
+.sc-slinger { animation: sc-fade-in-out 8.8s ease-in-out forwards; transform-origin: 50% 100%; }
+.sc-slinger .sc-gunarm { transform-origin: 46px 40px; transition: transform 0.12s ease-out; }
+.sc-slinger.draw .sc-gunarm { transform: rotate(-62deg); }
+.sc-slinger .sc-muzzle { opacity: 0; }
+.sc-slinger.draw .sc-muzzle { animation: sc-flash 0.25s steps(1) 1; }
+@keyframes sc-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+.sc-slinger.down svg { transform-origin: 50% 100%; animation: sc-keel 0.7s ease-in forwards; }
+@keyframes sc-keel { to { transform: rotate(-82deg) translateY(10px); } }
+.sc-slinger.smoke::after { content: ''; position: absolute; left: 60%; top: 8%; width: 18px; height: 18px; border-radius: 50%; background: rgba(230, 230, 230, 0.6); filter: blur(3px); animation: sc-puff 2s ease-out forwards; }
+.sc-slinger.smoke.sc-face-l::after { left: auto; right: 60%; }
+@keyframes sc-puff { 0% { transform: translate(0, 0) scale(0.5); opacity: 0.8; } 100% { transform: translate(6px, -50px) scale(2.4); opacity: 0; } }
+.sc-bang b { display: block; font: 900 64px/1 Georgia, serif; color: #ffd23f; text-shadow: 0 0 20px #ff8a1a, 0 4px 0 #7a2a00; animation: sc-orderup 1.7s ease-out forwards; }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
@@ -1349,3 +1404,7 @@ main#app, #tv { position: relative; z-index: 1; }
 /* Day: dolphins leaping in an arc out of the water and back in. */
 .sc-dolphin { opacity: 0; animation: sc-leap 1.6s ease-in-out forwards; }
 @keyframes sc-leap { 0% { opacity: 0; transform: translate(0, 4vh) rotate(-35deg); } 15% { opacity: 1; } 50% { transform: translate(6vw, -8vh) rotate(0deg); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(12vw, 4vh) rotate(35deg); } }
+
+/* "Best with a TV", on the games that are. */
+.tv-best { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 0.72em; font-weight: 600; vertical-align: 0.12em; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
+.sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }

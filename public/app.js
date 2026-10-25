@@ -492,9 +492,9 @@ function renderLobby() {
       ${host
         ? `<div class="games">${s.games.map((g) => `
             <button class="game-option ${g.id === s.selectedGame ? 'selected' : ''}" data-cmd="selectGame" data-game-id="${PB.esc(g.id)}">
-              ${PB.esc(g.name)}<small>${PB.esc(g.description)}</small>
+              ${PB.esc(g.name)}${g.bestWithTv ? '<span class="tv-best">📺 Best with a TV</span>' : ''}<small>${PB.esc(g.description)}</small>
             </button>`).join('')}</div>`
-        : `<p><strong>${PB.esc(game.name)}</strong></p><p class="muted">${PB.esc(game.description)}</p>`}
+        : `<p><strong>${PB.esc(game.name)}</strong>${game.bestWithTv ? ' <span class="tv-best">📺 Best with a TV</span>' : ''}</p><p class="muted">${PB.esc(game.description)}</p>`}
       ${game.rules?.length ? `<details class="how-to"><summary>📖 How to play ${PB.esc(game.name)}</summary><ul>${game.rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : ''}
       ${renderOptions()}
       ${host && s.custom.length ? `

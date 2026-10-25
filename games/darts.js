@@ -239,6 +239,8 @@ module.exports = {
     'Around the clock: 1 to 20, then the bull. No hits in a turn? Drink.',
     'Cricket: close 15–20 and the bull. Close one and everyone still open drinks.',
   ],
+  // Best played with a TV in the room (the board, the table), so the game list says so.
+  bestWithTv: true,
   minPlayers: 1,
   order: 10,
   options: [
