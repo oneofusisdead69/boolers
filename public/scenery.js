@@ -1101,6 +1101,7 @@
       el('', { right: '0', top: '0', width: '40vw', height: '80vh' }).classList.add('sc-rainglass');
       el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-noirflicker');
       el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 2500).classList.add('sc-fadein');
+      later(() => banner('This is serious business', '', 'noir'), 900);
     },
     update(s) {
       const g = s?.gameType === 'slevens' ? s.game : null;
@@ -1168,7 +1169,7 @@
     ],
   };
 
-  // Slevens in the tavern: the mead hall. Embers fly up from the fire pit, ravens wheel through
+  // The mead hall (saved for an easter egg). Embers fly up from the fire pit, ravens wheel through
   // the smoke, a horn sounds; on every hit the hall pounds the tables and roars SKÅL!
   let lastRoll = null;
   const pound = () => {
