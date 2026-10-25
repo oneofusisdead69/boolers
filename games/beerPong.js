@@ -2,7 +2,7 @@
 // throws one ball (on your own, you throw both): drag to aim at the other team's cups, then flick
 // up to throw, as in Darts. Each team's cups are dealt round its players (each cup in its
 // player's colour): a ball in your cup takes it off the table, and you drink.
-// Both balls in: balls back, go again. Down to 6 cups, then 3, a team's rack is tidied back into a
+// Both balls in: balls back, go again. Down to 6 cups a team's rack is tidied back into a
 // triangle; at 2, into the gentleman's (two in a line, one behind the other). Sink the other team's last cup to win; the losers finish their drinks.
 //
 // The rack is drawn in its own units: x across (-0.5 to 0.5), y back from the front row (0 to
@@ -93,7 +93,7 @@ module.exports = {
   rules: [
     'Drag to aim at the other team’s cups, then flick up to throw. Too hard goes long; too soft falls short.',
     'Each of you throws a ball on your team’s turn. Your team’s cups are in your colours: sink one and its owner drinks.',
-    'Both balls in: balls back, go again. At 6 cups and at 3 the rack is tidied up; at 2, the gentleman’s: two in a line.',
+    'Both balls in: balls back, go again. At 6 cups the rack is tidied up; at 2, the gentleman’s: two in a line.',
     'Sink their last cup to win. The losers finish their drinks.',
   ],
   bestWithTv: true,
@@ -107,7 +107,7 @@ module.exports = {
       default: 'normal',
       choices: [{ value: 'steady', label: 'Steady' }, { value: 'normal', label: 'Normal' }, { value: 'wobbly', label: 'Wobbly' }],
     },
-    { id: 'rerack', label: 'Re-racks', default: true, choices: [{ value: true, label: 'At 6, 3 and 2' }, { value: false, label: 'Off' }] },
+    { id: 'rerack', label: 'Re-racks', default: true, choices: [{ value: true, label: 'At 6 and 2' }, { value: false, label: 'Off' }] },
   ],
 
   start(room, ctx, options = {}) {
@@ -180,7 +180,7 @@ module.exports = {
         for (const id of g.teams[target]) ctx.drink(room, id, g.sips, 'lost beer pong', null, { title: 'Finish your drink!' });
         return;
       }
-      if (g.rerack && [6, 3, 2].includes(cups.length)) {
+      if (g.rerack && [6, 2].includes(cups.length)) {
         g.cups[target] = deal(rack(cups.length), g.teams[target]);
         ctx.log(room, cups.length === 2 ? `🎩 The gentleman's: Team ${TEAMS[target].name}'s last 2 cups, in a line` : `🔺 Re-rack: Team ${TEAMS[target].name}'s ${cups.length} cups`);
       }
