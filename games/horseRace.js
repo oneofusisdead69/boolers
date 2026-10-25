@@ -89,6 +89,39 @@ function tick(room, ctx, rand = Math.random) {
   ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
 }
 
+// ---------- Bots ----------
+
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+
+// A bot's bet: good bots keep it modest (a sip or two), bad ones go big. Nothing on the screen says
+// which horse will win (form is hidden), so everyone picks at random.
+function botSips(maxBet, skill) {
+  const cap = Math.min(maxBet, Math.max(1, Math.round(maxBet * (1.1 - skill))));
+  const floor = Math.max(1, Math.round(cap * (1 - skill)));
+  return floor + Math.floor(Math.random() * (cap - floor + 1));
+}
+
+// A winning bot's sips, each to someone at random: a human here when there is one.
+function botAlloc(room, me, total) {
+  const others = room.players.filter((p) => p.id !== me.id && p.connected);
+  const pool = others.some((p) => !p.bot) ? others.filter((p) => !p.bot) : others;
+  if (!pool.length) return null;
+  const alloc = {};
+  for (let i = 0; i < total; i++) {
+    const to = pickOne(pool).id;
+    alloc[to] = (alloc[to] || 0) + 1;
+  }
+  return JSON.stringify(alloc);
+}
+
+// A jockey bot's tap. The phone judges where the needle was and sends the colour, so a bot
+// "aims" by choosing it: good bots hit green nearly every time, bad ones often miss into red.
+function botHit(skill) {
+  const r = Math.random();
+  if (r < 0.3 + 0.6 * skill) return 'green';
+  return r < 1 - (1 - skill) * 0.4 ? 'yellow' : 'red';
+}
+
 module.exports = {
   id: 'horseRace',
   name: 'Horse Race',
@@ -162,6 +195,34 @@ module.exports = {
     } else if (action.type === 'nextRace' && (g.phase === 'results' || g.phase === 'payout') && host) {
       newRace(room, ctx);
     }
+  },
+
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    const host = room.hostId === me.id;
+    if (g.phase === 'betting') {
+      if (!g.bets[me.id]) {
+        // Jockey mode: only a horse nobody else rides.
+        const free = IDS.filter((id) => !g.jockey || !Object.values(g.bets).some((b) => b.pick === id));
+        if (!free.length) return null;
+        return { type: 'bet', horse: pickOne(free), sips: botSips(g.maxBet, skill) };
+      }
+      // The host's bot starts once everyone who can bet has (in jockey mode, horses run out).
+      const full = g.jockey && Object.keys(g.bets).length >= IDS.length;
+      const waiting = ctx.connectedPlayers(room).some((p) => !g.bets[p.id]);
+      if (host && (full || !waiting)) return { type: 'startRace' };
+      return null;
+    }
+    if (g.phase === 'race' && g.jockey && g.bets[me.id]) {
+      // A tap every so often, never faster than the dial allows; good jockeys tap quicker.
+      return { type: 'ride', hit: botHit(skill), delay: TAP_GAP_MS + 100 + Math.random() * 400 + (1 - skill) * 700 };
+    }
+    if (g.phase === 'payout' && g.payout[me.id] && !g.payout[me.id].done) {
+      const alloc = botAlloc(room, me, g.payout[me.id].total);
+      return alloc && { type: 'give', alloc };
+    }
+    if (g.phase === 'results' && host) return { type: 'nextRace' };
+    return null;
   },
 
   // A winner who leaves doesn't hold up the payout.

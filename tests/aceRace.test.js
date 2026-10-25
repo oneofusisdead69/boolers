@@ -93,3 +93,31 @@ test('auto races flip on a timer and the deck reshuffles if it runs out', () => 
   assert.ok(g.winner);
   t.cleanup();
 });
+
+test('bots bet once, flip as host in manual mode, and hand out their winnings', () => {
+  const t = setup(game, 2, { speed: 'manual', maxBet: 5 });
+  const g = t.room.game;
+  t.player(1).bot = 'npv';
+  const bad = t.bot(1, 0.25);
+  assert.ok(bad.type === 'bet' && bad.sips >= 3 && bad.sips <= 5, `bad bot bets ${bad.sips}`);
+  t.act(1, 'bet', bad);
+  assert.strictEqual(t.bot(1, 0.25), null, 'once a race');
+  assert.strictEqual(t.bot(0, 0.9).type, 'bet');
+  assert.ok(t.bot(0, 0.9).sips <= 1, 'good bots bet modestly');
+  t.act(0, 'bet', { suit: bad.suit, sips: 1 });
+  assert.strictEqual(t.bot(0, 0.9).type, 'startRace');
+  assert.strictEqual(t.bot(1, 0.9), null, 'only the host starts');
+  t.act(0, 'startRace');
+  // Their suit is one step from the line; the host bot flips it over.
+  g.positions[bad.suit] = g.length;
+  stack(t, `2${bad.suit}`);
+  t.act(0, t.bot(0, 0.9).type);
+  assert.strictEqual(g.winner, bad.suit);
+  // Both backed the winner: the bot hands its sips to the human.
+  const give = t.bot(1, 0.25);
+  assert.deepStrictEqual(JSON.parse(give.alloc), { p0: bad.sips * 2 });
+  t.act(1, 'give', give).act(0, 'give', { alloc: JSON.stringify({ p1: 2 }) });
+  assert.strictEqual(g.phase, 'results');
+  assert.strictEqual(t.bot(0, 0.9).type, 'nextRace');
+  t.cleanup();
+});
