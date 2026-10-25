@@ -61,11 +61,13 @@
   }
 
   // A dart stuck in the board: the tip at (x, y), the barrel and flights back towards the thrower.
-  function dart(d, color, isNew) {
+  // (`late`: on the thrower's phone the dart's flight is the one across the screen, PB.fly, so it
+  // only appears in the board as that arrives.)
+  function dart(d, color, isNew, late = false) {
     const x = d.x.toFixed(3);
     const y = d.y.toFixed(3);
     const at = (k) => `${(d.x + 0.09 * k).toFixed(3)} ${(d.y + 0.13 * k).toFixed(3)}`;
-    return `<g class="dt-dart ${isNew ? 'new' : ''}" style="transform-origin:${x}px ${y}px">
+    return `<g class="dt-dart ${isNew ? 'new' : ''} ${isNew && late ? 'late' : ''}" style="transform-origin:${x}px ${y}px">
       <path d="M${x} ${y} L${at(1)}" stroke="#e6e6e6" stroke-width="0.03" stroke-linecap="round"/>
       <path d="M${at(1)} L${at(1.7)}" stroke="${esc(color)}" stroke-width="0.075" stroke-linecap="round"/>
       <circle cx="${x}" cy="${y}" r="0.018" fill="#fff" stroke="#000" stroke-width="0.006"/>
@@ -87,7 +89,7 @@
     const aim = g.throwerId === s.me && !PB.isTV ? localAim(s) : g.aim;
     return `<svg class="dt-board" id="dt-board" viewBox="-1.32 -1.32 2.64 2.64" aria-label="Dartboard">
       ${face()}
-      ${g.darts.map((d, i) => dart(d, color, i >= seen)).join('')}
+      ${g.darts.map((d, i) => dart(d, color, i >= seen, g.throwerId === s.me && !PB.isTV)).join('')}
       ${aimMark(s.phase === 'throwing' && !g.hard ? aim : null)}
     </svg>`;
   }
@@ -147,6 +149,26 @@
     return aimState;
   }
   let feedback = '';
+  let launch = null; // where your dart left the pad, and what it looks like (for its flight)
+  let flown = 0; // darts flown so far this turn
+
+  // Your dart, in the air: from your finger on the pad to where it hits the board (or, with the
+  // board on the TV, off the top of the screen).
+  function flyDart(s) {
+    const g = s.game;
+    if (g.darts.length < flown) flown = 0; // a new turn
+    if (!launch || g.throwerId !== s.me || PB.isTV || g.darts.length <= flown) { flown = g.darts.length; return; }
+    flown = g.darts.length;
+    const d = g.darts[g.darts.length - 1];
+    const board = document.getElementById('dt-board');
+    let to = { x: launch.at.x, y: -80, f: 0.5 };
+    if (board) {
+      const r = board.getBoundingClientRect();
+      to = { x: r.left + ((d.x + 1.32) / 2.64) * r.width, y: r.top + ((d.y + 1.32) / 2.64) * r.height - 18, f: 0.45 };
+    }
+    PB.fly(`<div class="pb-dart">${launch.html}</div>`, launch.at, to, { ms: 450, lift: 0.08, scale: [1.2, to.f] });
+    launch = null;
+  }
 
   function pad(s, big) {
     return `<div class="dt-pad ${big ? 'big' : ''}" id="dt-pad">
@@ -224,9 +246,9 @@
         const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
         const speed = (-vy * 1000) / window.innerHeight / IDEAL_SPEED;
         feedback = flickNote(angle, speed);
+        // The dart leaves your hand here and flies to the board (see afterRender).
         if (held) {
-          held.style.transition = 'transform 0.25s ease-in, opacity 0.25s';
-          held.style.transform = `translate(${vx * 60}px, -${el.clientHeight}px) scale(0.4)`;
+          launch = { at: PB.centre(held), html: held.outerHTML.replace('id="dt-held"', '') };
           held.style.opacity = '0';
         }
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
@@ -360,6 +382,7 @@
       mark.setAttribute('transform', `translate(${aim.x} ${aim.y})`);
     },
     afterRender(s) {
+      flyDart(s);
       if (s.game.throwerId === s.me && s.phase === 'throwing' && !PB.isTV) setupPad();
       else feedback = '';
     },

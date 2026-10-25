@@ -24,7 +24,9 @@ html, body {
 main {
   max-width: 480px;
   margin: 0 auto;
-  padding: max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  /* (A clear strip along the bottom: on iPhones a tap near the bottom edge brings up Safari's
+     address and tab bars instead of reaching the button.) */
+  padding: max(20px, env(safe-area-inset-top)) 16px calc(max(24px, env(safe-area-inset-bottom)) + 44px);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -270,7 +272,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  padding: max(12px, env(safe-area-inset-top)) 12px calc(max(12px, env(safe-area-inset-bottom)) + 30px);
 }
 .fs-header { display: flex; gap: 8px; align-items: stretch; }
 .fs-header .turn { flex: 1; font-size: 1.05rem; padding: 8px 12px; }
@@ -882,7 +884,7 @@ main.ls {
   gap: 14px;
   align-items: start;
   /* Room at the top that grows with the screen: tight on a phone turned sideways, roomy on a laptop. */
-  padding: max(clamp(10px, 4.5vh, 48px), env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  padding: max(clamp(10px, 4.5vh, 48px), env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(max(12px, env(safe-area-inset-bottom)) + 36px) max(16px, env(safe-area-inset-left));
 }
 .ls-stage, .ls-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .ls-stage { position: sticky; top: max(clamp(10px, 4.5vh, 48px), env(safe-area-inset-top)); }
@@ -1506,16 +1508,29 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-aim circle { fill: none; stroke: #ffd23f; stroke-width: 0.8; }
 .bp-aim path { stroke: #ffd23f; stroke-width: 0.8; }
 .bp-aim.big circle, .bp-aim.big path { stroke-width: 3; }
-.bp-fly.fresh { animation: bp-fly 0.7s cubic-bezier(0.3, 0.1, 0.4, 1) both; }
-@keyframes bp-fly { 0% { translate: var(--fx) var(--fy); scale: 1.4; } 55% { scale: 2.2; } 100% { translate: 0 0; scale: 1; } }
+.bp-fly.fresh { animation: bp-fly 1.1s cubic-bezier(0.35, 0.1, 0.45, 1) both; }
+@keyframes bp-fly { 0% { translate: var(--fx) var(--fy); scale: 1.4; } 50% { scale: 3; } 100% { translate: 0 0; scale: 1; } }
 .bp-ball.in .bp-fly { opacity: 0.85; }
 .bp-splash { fill: rgba(255, 240, 200, 0.6); opacity: 0; }
-.bp-splash.fresh { animation: bp-splash 0.8s ease-out 0.65s both; }
+.bp-splash.fresh { animation: bp-splash 0.7s ease-out 1.05s both; }
 @keyframes bp-splash { 0% { opacity: 0.9; scale: 0.4; } 100% { opacity: 0; scale: 1.6; } }
 .bp-last { text-align: center; margin: 6px 0; font-weight: 600; }
 .bp-last.hit { color: var(--ok); }
 .br-team.up { box-shadow: 0 0 0 2px var(--team); }
 .bp-pad .dt-held { width: 44px; height: 44px; }
+/* A long pad, for a proper flick. */
+.dt-pad.bp-pad, .dt-pad.qt-pad { height: 44vh; min-height: 260px; }
+/* The ball in the air in the close-up: up in an arc from your hand, and down onto the rack. */
+.bp-fly3d { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both; }
+@keyframes bp-fly3d { 0% { translate: var(--sx) var(--sy); scale: 3; } 50% { translate: calc(var(--sx) * 0.45) calc(var(--sy) * 0.45 - 110px); scale: 2; } 100% { translate: 0 0; scale: 1; } }
+.bp-fly3d.in { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-drop 0.35s ease-in 1.1s forwards; }
+@keyframes bp-drop { to { translate: 0 8px; scale: 0.6; opacity: 0; } }
+.bp-fly3d.out, .bp-fly3d.rim { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-skip 0.6s ease-out 1.1s forwards; }
+.bp-fly3d.rim { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both, bp-rimout 0.7s ease-out 1.1s forwards; }
+@keyframes bp-skip { to { translate: 20px -40px; opacity: 0; } }
+@keyframes bp-rimout { 30% { translate: 6px -10px; } to { translate: 60px 30px; opacity: 0; } }
+.bp-splash3d { fill: rgba(255, 240, 200, 0.7); opacity: 0; animation: bp-splash 0.7s ease-out 1.1s both; }
+.bp-last.flying { color: var(--muted); }
 
 /* Quarters: the table and the glass in 3D, the quarter flying in and bouncing. */
 .qt-view { position: relative; width: min(100%, 380px); margin: 6px auto; aspect-ratio: 360 / 260; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
@@ -1532,3 +1547,20 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .qt-name { flex: 1; }
 .qt-score.up { background: var(--card-2); outline: 2px solid var(--accent); }
 .qt-pad .dt-held { width: 54px; height: 54px; }
+
+/* Pass and play's music switch. */
+.music-btn { width: auto; padding: 8px 14px; font-size: 0.9rem; }
+
+/* A ball or a dart in the air, flying across the screen (PB.fly). */
+.pb-fly { position: fixed; z-index: 60; pointer-events: none; will-change: transform; }
+.pb-ball { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #fffdf0 40%, #d8d0c0); box-shadow: 0 6px 10px rgba(0, 0, 0, 0.35); }
+.pb-dart { width: 34px; height: 120px; }
+.pb-dart svg { width: 100%; height: 100%; display: block; }
+/* The thrower's phone: the ball's flight is the one across the screen, so in the close-up it just
+   arrives (after PB.fly's 0.9s) and drops in, or skips away. */
+.bp-fly3d.handoff { animation: bp-show 0.01s linear 0.9s both; }
+.bp-fly3d.handoff.in { animation: bp-show 0.01s linear 0.9s both, bp-drop 0.35s ease-in 0.9s forwards; }
+.bp-fly3d.handoff.out { animation: bp-show 0.01s linear 0.9s both, bp-skip 0.6s ease-out 0.9s forwards; }
+.bp-fly3d.handoff.rim { animation: bp-show 0.01s linear 0.9s both, bp-rimout 0.7s ease-out 0.9s forwards; }
+@keyframes bp-show { from { opacity: 0; } to { opacity: 1; } }
+.dt-dart.new.late { animation: bp-show 0.01s linear 0.45s both, dt-hit 0.28s ease-out 0.45s both; }

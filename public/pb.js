@@ -123,6 +123,31 @@
       return '<span class="timer" id="timer"></span>';
     },
 
+    // Something thrown, flying across the screen from one point to another (from your finger on
+    // the throwing pad to where it lands): up in an arc, getting smaller as it goes away. `html`
+    // is what flies; `from` and `to` are page points ({ x, y }).
+    fly(html, from, to, { ms = 800, lift = 0.35, scale = [1.5, 0.6] } = {}) {
+      const el = document.createElement('div');
+      el.className = 'pb-fly';
+      el.innerHTML = html;
+      el.style.left = `${from.x}px`;
+      el.style.top = `${from.y}px`;
+      document.body.appendChild(el);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const peak = Math.abs(dy) * lift + 30;
+      const at = (k, up, sc) => ({ transform: `translate(-50%, -50%) translate(${(dx * k).toFixed(1)}px, ${(dy * k - up).toFixed(1)}px) scale(${sc.toFixed(2)})` });
+      const anim = el.animate([at(0, 0, scale[0]), { ...at(0.5, peak, (scale[0] + scale[1]) / 2), offset: 0.5 }, at(1, 0, scale[1])],
+        { duration: ms, easing: 'cubic-bezier(0.3, 0.1, 0.5, 1)', fill: 'forwards' });
+      anim.onfinish = () => el.remove();
+      return anim;
+    },
+    // The middle of an element on the page.
+    centre(el) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    },
+
     // The ways out of a game. The host can end it (in a Tournament: skip it, or end the whole
     // tournament), and everyone can leave the room. Pass and play only has "End game"; the TV has none.
     endButton(className = 'link') {

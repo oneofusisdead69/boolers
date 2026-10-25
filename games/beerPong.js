@@ -86,6 +86,53 @@ function pickTeams(room, ctx) {
 
 const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
 
+// How long a ball is in the air (and the result on screen) before the game moves on.
+const LAND_MS = 1800;
+
+// The ball's landed: the cup comes off and its owner drinks, maybe a re-rack or the win; then the
+// next ball.
+function settle(room, ctx, player, hit) {
+  const g = room.game;
+  const me = player.id;
+  const target = 1 - g.turnTeam;
+  const cups = g.cups[target];
+  g.next[g.turnTeam] += 1;
+  g.balls -= 1;
+  g.phase = 'throwing';
+
+  if (hit !== null) {
+    const [sunk] = cups.splice(hit, 1);
+    g.sunk += 1;
+    // Whoever's cup it was drinks (the whole team, if they've gone).
+    const owner = sunk.owner && ctx.turns.isActive(room, sunk.owner) ? sunk.owner : null;
+    ctx.log(room, `🏓 ${player.name} sinks ${owner ? `${ctx.name(room, owner)}'s cup` : 'one'}! ${cups.length} left for Team ${TEAMS[target].name}`);
+    for (const id of owner ? [owner] : g.teams[target]) ctx.drink(room, id, g.sips, `${player.name} sank your cup`, me);
+    if (!cups.length) {
+      g.phase = 'over';
+      g.winner = g.turnTeam;
+      ctx.log(room, `🏆 Team ${TEAMS[g.winner].name} wins beer pong!`);
+      for (const id of g.teams[target]) ctx.drink(room, id, g.sips, 'lost beer pong', null, { title: 'Finish your drink!' });
+      return;
+    }
+    if (g.rerack && [6, 2].includes(cups.length)) {
+      g.cups[target] = deal(rack(cups.length), g.teams[target]);
+      ctx.log(room, cups.length === 2 ? `🎩 The gentleman's: Team ${TEAMS[target].name}'s last 2 cups, in a line` : `🔺 Re-rack: Team ${TEAMS[target].name}'s ${cups.length} cups`);
+    }
+  } else if (g.last.rim) {
+    ctx.log(room, `😩 ${player.name} rims out`);
+  }
+
+  if (g.balls > 0) {
+    g.turnId = nextThrower(room, ctx, g, g.turnTeam);
+  } else if (g.sunk === 2) {
+    ctx.log(room, `🔥 Balls back! Team ${TEAMS[g.turnTeam].name} goes again`);
+    startTurn(room, ctx, g.turnTeam);
+    g.ballsBack = g.throwNo;
+  } else {
+    startTurn(room, ctx, target);
+  }
+}
+
 module.exports = {
   id: 'beerPong',
   name: 'Beer Pong',
@@ -154,8 +201,8 @@ module.exports = {
 
     const aim = { x: clamp(Number(action.x), -0.8, 0.8), y: clamp(Number(action.y), -0.2, 1) };
     const at = land(aim, clamp(Number(action.angle), -45, 45), clamp(Number(action.speed), 0.3, 2.5), WOBBLE[g.wobble]);
+    const cups = g.cups[1 - g.turnTeam];
     const target = 1 - g.turnTeam;
-    const cups = g.cups[target];
     const dist = (c) => Math.hypot(c.x - at.x, c.y - at.y);
     const nearest = cups.reduce((best, c, i) => (best < 0 || dist(c) < dist(cups[best]) ? i : best), -1);
     const hit = nearest >= 0 && dist(cups[nearest]) < CUP_R * 0.95 ? nearest : null;
@@ -163,40 +210,9 @@ module.exports = {
     g.throwNo += 1;
     g.last = { n: g.throwNo, by: me, team: g.turnTeam, target, x: +at.x.toFixed(3), y: +at.y.toFixed(3), cup: hit === null ? null : { ...cups[hit] }, rim };
     g.aim = aim;
-    g.next[g.turnTeam] += 1;
-    g.balls -= 1;
-
-    if (hit !== null) {
-      const [sunk] = cups.splice(hit, 1);
-      g.sunk += 1;
-      // Whoever's cup it was drinks (the whole team, if they've gone).
-      const owner = sunk.owner && ctx.turns.isActive(room, sunk.owner) ? sunk.owner : null;
-      ctx.log(room, `🏓 ${player.name} sinks ${owner ? `${ctx.name(room, owner)}'s cup` : 'one'}! ${cups.length} left for Team ${TEAMS[target].name}`);
-      for (const id of owner ? [owner] : g.teams[target]) ctx.drink(room, id, g.sips, `${player.name} sank your cup`, me);
-      if (!cups.length) {
-        g.phase = 'over';
-        g.winner = g.turnTeam;
-        ctx.log(room, `🏆 Team ${TEAMS[g.winner].name} wins beer pong!`);
-        for (const id of g.teams[target]) ctx.drink(room, id, g.sips, 'lost beer pong', null, { title: 'Finish your drink!' });
-        return;
-      }
-      if (g.rerack && [6, 2].includes(cups.length)) {
-        g.cups[target] = deal(rack(cups.length), g.teams[target]);
-        ctx.log(room, cups.length === 2 ? `🎩 The gentleman's: Team ${TEAMS[target].name}'s last 2 cups, in a line` : `🔺 Re-rack: Team ${TEAMS[target].name}'s ${cups.length} cups`);
-      }
-    } else if (rim) {
-      ctx.log(room, `😩 ${player.name} rims out`);
-    }
-
-    if (g.balls > 0) {
-      g.turnId = nextThrower(room, ctx, g, g.turnTeam);
-    } else if (g.sunk === 2) {
-      ctx.log(room, `🔥 Balls back! Team ${TEAMS[g.turnTeam].name} goes again`);
-      startTurn(room, ctx, g.turnTeam);
-      g.ballsBack = g.throwNo;
-    } else {
-      startTurn(room, ctx, target);
-    }
+    // Everyone watches the ball fly and land before anything happens.
+    g.phase = 'landing';
+    ctx.setTimer(room, LAND_MS, () => settle(room, ctx, player, hit));
   },
 
   // A thrower who leaves: the next one on the team takes the ball.
@@ -220,7 +236,7 @@ module.exports = {
       teams: g.teams.map((ids, i) => ({ ...TEAMS[i], ids })),
       cups: g.cups || [[], []],
       turnTeam: g.turnTeam ?? null,
-      turnId: g.phase === 'throwing' ? g.turnId : null,
+      turnId: g.phase === 'throwing' || g.phase === 'landing' ? g.turnId : null,
       balls: g.balls ?? 2,
       sunk: g.sunk ?? 0,
       last: g.last,

@@ -26,6 +26,7 @@
   <script src="/looks.js"></script>
   <script src="/room-styles.js"></script>
   <script src="/pb.js"></script>
+  <script src="/ambience.js"></script>
   <script src="/shared/bundle.js"></script>
   <script>
     // Pass and play for any game: runs the real rules (from /shared/bundle.js) and the real game
@@ -123,6 +124,9 @@
     let mood = null;
     let moodUntil = 0;
     function look() {
+      // An easter egg (Kings Cup at the château...) while its game is on, as online.
+      const egg = room?.game && ROOM_STYLES.eggOf(roomStyle, gameId);
+      if (egg) return egg;
       const moods = ROOM_STYLES.STYLES[roomStyle]?.moods;
       if (!moods) return roomStyle;
       if (!moods.some(([id]) => id === mood) || (room?.game && Date.now() >= moodUntil)) {
@@ -131,7 +135,30 @@
       }
       return mood;
     }
-    setInterval(() => ROOM_STYLES.apply(look()), 15 * 1000);
+    setInterval(() => { ROOM_STYLES.apply(look()); music(); }, 15 * 1000);
+
+    // The room's background music, as on the TV (public/ambience.js): off, low or high, remembered
+    // on this phone. Browsers only allow sound after the first tap.
+    const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
+    let musicLevel = 1;
+    try { musicLevel = Number(localStorage.getItem('local-music') ?? 1) % MUSIC.length; } catch {}
+    let soundOn = false;
+    function music() {
+      if (soundOn) Ambience.set(look(), MUSIC[musicLevel][1]);
+      document.querySelectorAll('[data-music]').forEach((b) => (b.textContent = `🎵 Music: ${MUSIC[musicLevel][0]}`));
+    }
+    const musicButton = () => `<button class="secondary music-btn" data-music>🎵 Music: ${MUSIC[musicLevel][0]}</button>`;
+    document.addEventListener('pointerdown', () => {
+      if (soundOn) return;
+      soundOn = true;
+      music();
+    }, { capture: true });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-music]')) return;
+      musicLevel = (musicLevel + 1) % MUSIC.length;
+      try { localStorage.setItem('local-music', musicLevel); } catch {}
+      music();
+    });
     const howToPlay = (rules = []) => (rules.length
       ? `<details class="how-to"><summary>📖 How to play</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : '');
 
@@ -193,6 +220,7 @@
         <p class="tagline ls-l">${esc(game.name)} · pass and play</p>
         <a class="home-link" href="/">← Back to Bool Games</a>
         ${Prefs.button()}
+        ${musicButton()}
         ${Prefs.feedbackButton()}
         <div class="card ls-l">
           <h2>${esc(game.name)}</h2>
@@ -227,6 +255,7 @@
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
       ROOM_STYLES.apply(look());
+      music();
       PB.layout($app, '.ls-l');
 
       const readNames = () => names.map((_, i) => document.getElementById(`name-${i}`).value.trim());
@@ -342,7 +371,9 @@
         ${holderBar()}
         ${html}
         <div class="spacer"></div>
-        <div class="game-foot">${PB.tabButton()}${Prefs.button()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
+        <div class="game-foot">${PB.tabButton()}${Prefs.button()}${musicButton()}<button class="link" data-cmd="setup">Back to setup</button></div>`;
+      ROOM_STYLES.apply(look());
+      music();
       PB.layout($app, screens.stage);
       screens.afterRender?.(PB.state);
       updateTimer();
