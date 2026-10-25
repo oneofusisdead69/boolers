@@ -94,7 +94,7 @@ const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
 let musicLevel = 1;
 try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length; } catch {}
 function music() {
-  if (soundOn) Ambience.set(PB.state?.style, MUSIC[musicLevel][1]);
+  if (soundOn) Ambience.set(PB.state?.look || PB.state?.style, MUSIC[musicLevel][1]);
   let btn = document.getElementById('tv-music');
   // It appears once sound is on (the "click for sound" button sits in the same corner till then).
   const show = soundOn && PB.state && PB.state.style && PB.state.style !== 'classic';
@@ -196,7 +196,7 @@ function lobbyScreen(s) {
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
         <p class="muted">${esc(PB.name(s.hostId))} starts the game from their phone</p>
-        ${ROOM_STYLES.STYLES[s.style]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.style].emoji)} ${esc(s.venue || ROOM_STYLES.STYLES[s.style].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.style].welcome)}</p>` : ''}
+        ${ROOM_STYLES.STYLES[s.look]?.welcome ? `<p class="room-welcome"><b>${esc(ROOM_STYLES.STYLES[s.look].emoji)} ${esc(s.venue || ROOM_STYLES.STYLES[s.look].label)}</b> · ${esc(ROOM_STYLES.STYLES[s.look].welcome)}</p>` : ''}
       </div>
     </div>
     ${soundButton()}`;
@@ -350,8 +350,8 @@ function gameScreen(s) {
 
 function render() {
   const s = PB.state;
-  ROOM_STYLES.apply(s?.style);
-  Scenery.set(s?.style);
+  ROOM_STYLES.apply(s?.look || s?.style);
+  Scenery.set(s?.look || s?.style);
   music();
   if (!s) return joinScreen();
   if (s.trip && s.phase === 'lobby') {

@@ -177,6 +177,7 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    look: lookOf(room), // what the room looks like right now (the Lighthouse's weather)
     venue: room.venue || '',
     trip: trips.view(room, player.id),
     // The end-of-night recap, while the host has it open.
@@ -199,6 +200,40 @@ function viewFor(room, player) {
 // A TV watches a room: it isn't a player, and sees what everyone at the table can see (each game's
 // view for someone who isn't playing never includes anyone's hidden cards or dice).
 const TV = { id: '__tv', name: 'TV' };
+
+// ---------- Moods ----------
+// Some rooms change on their own: the Lighthouse moves between night, day, fog and a storm every
+// few minutes while a game is on. The server picks, so every phone and the TV see the same sky.
+const MOOD_MS = [6 * 60 * 1000, 12 * 60 * 1000];
+function newMood(room) {
+  if (!ROOM_STYLES.STYLES[room.style]?.moods) {
+    delete room.mood;
+    delete room.moodUntil;
+    return;
+  }
+  room.mood = ROOM_STYLES.pickMood(room.style, room.mood);
+  room.moodUntil = Date.now() + MOOD_MS[0] + Math.random() * (MOOD_MS[1] - MOOD_MS[0]);
+}
+function lookOf(room) {
+  // A room saved on the old 'Lighthouse in a storm' style is the Lighthouse, in a storm.
+  if (ROOM_STYLES.STYLES[room.style]?.mood) {
+    room.mood = room.style;
+    room.style = ROOM_STYLES.roomOf(room.style);
+    room.moodUntil ??= Date.now() + MOOD_MS[0];
+  }
+  const moods = ROOM_STYLES.STYLES[room.style]?.moods;
+  if (!moods) return room.style || 'classic';
+  if (!moods.some(([look]) => look === room.mood)) newMood(room);
+  return room.mood;
+}
+setInterval(() => {
+  for (const room of rooms.values()) {
+    if (room.game && room.moodUntil && Date.now() >= room.moodUntil) {
+      newMood(room);
+      broadcast(room);
+    }
+  }
+}, 15 * 1000).unref();
 const tvView = (room) => ({ ...viewFor(room, TV), isHost: false, custom: [] });
 
 function broadcast(room) {
@@ -455,8 +490,11 @@ io.on('connection', (socket) => {
 
   // The host dresses the room up (any time, even mid-game).
   on('setStyle', ({ style } = {}) => {
-    if (!hostOnly() || !ROOM_STYLES.IDS.includes(style)) return;
-    room.style = style;
+    if (!hostOnly() || !ROOM_STYLES.PICKABLE.includes(style)) return;
+    if (room.style !== style) {
+      room.style = style;
+      newMood(room);
+    }
     broadcast(room);
   });
 

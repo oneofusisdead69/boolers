@@ -328,6 +328,23 @@
         now(22, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 0.25, { freq: 1400, to: 900, len: 0.22, gain: 0.02, type: 'sine' }); }),
       ];
     },
+    lighthouseDay(out) {
+      // A calm sea in the sun: waves on the rocks, a breeze, gulls, and the buoy bell far out.
+      return [
+        bed(out, { freq: 650, gain: 0.17, wobble: 0.9, rate: 0.09, sweep: 300 }),
+        bed(out, { type: 'bandpass', freq: 900, q: 1.5, gain: 0.03, wobble: 0.6, rate: 0.05, sweep: 200 }),
+        now(8, (t) => { for (let k = 0; k < pick([2, 3, 4]); k++) note(out, t + k * 0.22, { freq: 1500 + Math.random() * 200, to: 950, len: 0.2, gain: 0.022, type: 'sine' }); }),
+        now(24, (t) => { note(out, t, { freq: 740, len: 2.4, gain: 0.03, type: 'sine' }); note(out, t, { freq: 1850, len: 1.2, gain: 0.01, type: 'sine' }); }),
+      ];
+    },
+    lighthouseFog(out) {
+      // Fog muffles everything: a slow swell below and a hush. The foghorn comes with the scenery.
+      return [
+        bed(out, { freq: 380, gain: 0.2, wobble: 0.85, rate: 0.06, sweep: 120 }),
+        bed(out, { type: 'bandpass', freq: 500, q: 0.7, gain: 0.03, wobble: 0.3, rate: 0.04 }),
+        now(30, (t) => note(out, t, { freq: 740, len: 2.4, gain: 0.015, type: 'sine' })),
+      ];
+    },
     christmas(out) {
       // A crackling fire, sleigh bells and a music box.
       const scale = [72, 74, 76, 79, 81, 84];
@@ -410,6 +427,25 @@
           o.start(t + at);
           o.stop(t + at + 2.7);
         }
+      }
+    },
+    // Another ship's horn, somewhere out in the fog: higher, shorter, muffled.
+    foghornFar(out, t) {
+      for (const [freq, gain, type] of [[165, 0.05, 'sawtooth'], [166.5, 0.03, 'square']]) {
+        const o = ac.createOscillator();
+        o.type = type;
+        o.frequency.value = freq;
+        const f = ac.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.value = 350;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(gain, t + 0.4);
+        g.gain.setValueAtTime(gain, t + 1.5);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 2.3);
+        o.connect(f).connect(g).connect(out);
+        o.start(t);
+        o.stop(t + 2.4);
       }
     },
     // A wolf howls at the moon, and another answers in the distance.

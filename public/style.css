@@ -1179,3 +1179,10 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-rain { background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(200, 220, 240, 0.18) 22px 23px, transparent 23px 47px); background-size: 200px 200px; animation: sc-rain 0.5s linear infinite; }
 @keyframes sc-rain { to { background-position: -40px 200px; } }
 @keyframes sc-fogbank { 0% { transform: translateX(0); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }
+/* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
+.sc-fogcloud { background: radial-gradient(ellipse at 50% 50%, rgba(205, 215, 225, 0.42), rgba(205, 215, 225, 0.16) 45%, transparent 70%); filter: blur(14px); }
+.sc-fogbeam { filter: blur(10px); opacity: 0.8; clip-path: polygon(42% 100%, 18% 0, 82% 0, 58% 100%); }
+.sc-fogged { opacity: 0.4; filter: blur(1.5px); }
+/* Day: dolphins leaping in an arc out of the water and back in. */
+.sc-dolphin { opacity: 0; animation: sc-leap 1.6s ease-in-out forwards; }
+@keyframes sc-leap { 0% { opacity: 0; transform: translate(0, 4vh) rotate(-35deg); } 15% { opacity: 1; } 50% { transform: translate(6vw, -8vh) rotate(0deg); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(12vw, 4vh) rotate(35deg); } }
