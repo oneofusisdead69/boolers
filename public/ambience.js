@@ -67,8 +67,8 @@
     return () => { src.stop(); lfo.stop(); };
   }
 
-  // A short burst of filtered noise: a crackle, a hi-hat, a brush.
-  function hit(out, t, { type = 'highpass', freq, q = 1, gain, len }) {
+  // A short burst of filtered noise: a pop, a hi-hat, a brush.
+  function hit(out, t, { type = 'highpass', freq, q = 1, gain, len, attack = 0.004 }) {
     const src = noise();
     const f = ac.createBiquadFilter();
     f.type = type;
@@ -76,7 +76,7 @@
     f.Q.value = q;
     const g = ac.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(gain, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
     src.connect(f).connect(g).connect(out);
     src.start(t, Math.random());
@@ -128,7 +128,21 @@
     return () => { stopped = true; clearTimeout(t); };
   }
 
-  const crackles = (out, gain = 0.12) => now(0.12, (t) => hit(out, t, { freq: 1500 + Math.random() * 3000, gain: gain * Math.random(), len: 0.02 + Math.random() * 0.04 }));
+  // A wood fire: the soft rush of the flames, and pops and snaps that come in little clusters with
+  // quiet in between (a steady stream of bright clicks sounds like a broken speaker, not a fire).
+  function crackles(out, gain = 0.12) {
+    const flames = bed(out, { type: 'bandpass', freq: 700, q: 0.5, gain: gain * 0.35, wobble: 0.5, rate: 0.23 });
+    const pops = now(1.1, (t) => {
+      const n = 1 + Math.floor(Math.random() ** 2 * 5);
+      for (let k = 0, at = t; k < n; k++, at += 0.04 + Math.random() * 0.16) {
+        const big = Math.random() < 0.2;
+        hit(out, at, big
+          ? { type: 'bandpass', freq: 500 + Math.random() * 400, q: 0.9, gain: gain * 0.8, len: 0.09, attack: 0.002 }
+          : { type: 'bandpass', freq: 1000 + Math.random() * 1200, q: 1.2, gain: gain * (0.2 + Math.random() * 0.3), len: 0.025 + Math.random() * 0.03, attack: 0.002 });
+      }
+    });
+    return () => { flames(); pops(); };
+  }
 
   // ---------- The rooms ----------
 
@@ -207,11 +221,10 @@
       ];
     },
     tiki(out) {
-      // Waves rolling in, torches, and a ukulele now and then.
+      // Waves rolling in and a ukulele now and then.
       const chords = [[67, 71, 74, 79], [65, 69, 72, 77], [64, 67, 72, 76], [62, 67, 71, 74]];
       return [
         bed(out, { freq: 700, gain: 0.2, wobble: 0.9, rate: 0.11, sweep: 300 }),
-        crackles(out, 0.07),
         now(6, (t) => { const c = pick(chords); for (let k = 0; k < 2; k++) c.forEach((m, i) => note(out, t + k * 0.45 + i * 0.03, { freq: hz(m), len: 0.7, gain: 0.04 })); }),
       ];
     },
