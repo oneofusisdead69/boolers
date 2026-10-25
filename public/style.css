@@ -1542,6 +1542,13 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-pad .dt-held { width: 44px; height: 44px; }
 /* A long pad, for a proper flick. */
 .dt-pad.bp-pad, .dt-pad.qt-pad { height: 44vh; min-height: 260px; }
+/* On a phone the whole throw fits on screen without scrolling: the pad takes what's left of the
+   visible screen (svh: with the address and tab bars showing), and you hold the ball in its
+   middle, not down by the tab bar. */
+@supports (height: 1svh) {
+  .dt-pad.bp-pad, .dt-pad.qt-pad { height: max(210px, calc(100svh - 480px)); min-height: 0; }
+}
+.dt-pad.bp-pad, .dt-pad.qt-pad { justify-content: center; padding-top: 44px; }
 /* The ball in the air in the close-up: up in an arc from your hand, and down onto the rack. */
 .bp-fly3d { animation: bp-fly3d 1.1s cubic-bezier(0.3, 0.05, 0.5, 1) both; }
 @keyframes bp-fly3d { 0% { translate: var(--sx) var(--sy); scale: 3; } 50% { translate: calc(var(--sx) * 0.45) calc(var(--sy) * 0.45 - 110px); scale: 2; } 100% { translate: 0 0; scale: 1; } }

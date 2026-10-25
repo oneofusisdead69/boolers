@@ -303,6 +303,7 @@
   }
 
   let lastKey = '';
+  let hadPad = false; // the pad was up last time round
   const keyOf = (s) => JSON.stringify([s.phase, s.tv, PB.landscape(), { ...s.game, aim: null }, s.players.map((p) => [p.id, p.connected, p.drinks])]);
 
   PB.register('beerPong', {
@@ -332,6 +333,10 @@
     },
     afterRender(s) {
       setupPad();
+      // Your go: back to the top, so the cups and the pad are all on screen.
+      const padNow = !!document.getElementById('bp-pad');
+      if (padNow && !hadPad) window.scrollTo({ top: 0 });
+      hadPad = padNow;
       // Your ball, in the air: from your finger on the pad up to where it lands.
       const L = s.game.last;
       if (s.phase === 'landing' && L && L.by === s.me && !PB.isTV && L.n !== flown) {
