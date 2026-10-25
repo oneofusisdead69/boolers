@@ -1449,6 +1449,13 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-banner.rink b { font-size: clamp(30px, 4vw, 56px); }
 .sc-banner.mead { --banner-font: "IM Fell English SC"; color: #ffe3a0; text-shadow: 0 3px 0 #5a1010, 0 0 30px #ff7a1a; }
 .sc-oneeighty.skal b { font-family: "IM Fell English SC", Georgia, serif; color: #ffe3a0; text-shadow: 0 0 20px #ff7a1a, 0 4px 0 #3a0e00; }
+.sc-banner.river { --banner-font: "Rye"; color: #ffe3a0; text-shadow: 0 3px 0 #5a1010, 0 0 24px rgba(0, 0, 0, 0.7); }
+.sc-banner.river b { font-size: clamp(32px, 4.4vw, 60px); }
+.sc-oneeighty.steam b { font-family: "Rye", Georgia, serif; color: #ffe3a0; text-shadow: 0 0 20px #c0392b, 0 4px 0 #3a0e00; }
+.sc-wheel .sc-paddle { transform-origin: 50px 50px; animation: sc-paddle 6s linear infinite; }
+.sc-wheel.fast .sc-paddle { animation-duration: 1.2s; }
+@keyframes sc-paddle { to { transform: rotate(-360deg); } }
+.sc-plume.steam { background: radial-gradient(rgba(250, 250, 250, 0.8), rgba(250, 250, 250, 0) 70%); }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */

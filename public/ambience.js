@@ -764,6 +764,13 @@
       now(30, (t) => CUES.chant(out, t)),
       now(18, (t) => CUES.pop(out, t)),
     ],
+    // The riverboat: the river lapping, a ragtime piano, the paddles churning and the whistle.
+    saloonRiverboat: (out) => [
+      background(out, 'bed-waves-3', { gain: 0.2, lowpass: 1400 }),
+      ...ROOMS.saloon(out),
+      now(14, (t) => { for (let k = 0; k < 6; k++) hit(out, t + k * 0.5, { type: 'bandpass', freq: 300, q: 0.6, gain: 0.04, len: 0.3, attack: 0.05 }); }),
+      now(45, (t) => CUES.whistle(out, t)),
+    ],
     // The mead hall: the fire, a slow drum and a bowed drone; the lur (a long horn) now and then.
     tavernMeadhall: (out) => [
       background(out, 'bed-fire-1', { gain: 0.45 }),
@@ -1073,6 +1080,13 @@
         at += 0.06 * (1 + k * 0.09);
       }
       hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
+    },
+    // A steamboat's whistle: a chord, breathy, long then short.
+    whistle(out, t) {
+      for (const [d, len] of [[0, 1.4], [1.6, 0.6]]) {
+        for (const f of [392, 494, 587]) note(out, t + d, { freq: f, len, gain: 0.02, type: 'sawtooth', attack: 0.08 });
+        hit(out, t + d, { type: 'bandpass', freq: 2500, q: 0.8, gain: 0.03, len, attack: 0.08 });
+      }
     },
     // A lur: a long, low bronze horn call, rising and falling.
     lur(out, t) {
