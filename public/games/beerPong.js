@@ -62,22 +62,26 @@
   // The close-up is drawn in perspective, as if you're standing at your end of the table: the
   // far cups smaller and higher up. `view(x, y)` is where a point in the rack's units (at the
   // height of the cups' rims) appears in the picture, 360 × 300, and how big things are there.
-  // (From up high: the rows spread well apart, the rims seen fairly round.)
+  // (From up high: the rims seen fairly round.) DEPTH is how far up the picture the far rows go;
+  // a rim's height on screen comes from the same perspective (its depth, squashed the way the rows
+  // are), so the rows' rims touch as they do across a row.
+  const DEPTH = 320;
   const view = (x, y) => {
     const f = 1 / (1 + y * 0.7);
-    return { x: 180 + x * 300 * f, y: 222 - (1 - f) * 380, f };
+    return { x: 180 + x * 300 * f, y: 226 - (1 - f) * DEPTH, f };
   };
   // A solo cup stands about 1.3 times as tall as its rim is wide, and in a rack the rims touch:
   // the rim is one cup-spacing (0.21 of the rack) across. Seen from up high its height looks
   // shorter: H is its height in the picture, near the front.
   const RIM = 0.105 * 300;
-  const H = 62;
+  const TOP = 70; // the picture starts this far down (above it there's only the room)
+  const H = 58;
   // A red-cup shape in 3D: the rim's ellipse on top, the body tapering down, shaded round, with the
   // beer inside and a white lip.
   function cup3d(c, color, id) {
     const { x, y, f } = view(c.x, c.y);
     const rx = RIM * f;
-    const ry = rx * 0.52;
+    const ry = 0.105 * 0.7 * DEPTH * f * f;
     const h = H * f;
     const b = rx * 0.68;
     return `<g class="bp-cup3d">
@@ -101,11 +105,11 @@
     const cups = [...g.cups[target]].sort((p, q) => q.y - p.y).map((c) => cup3d(c, colorOf(c, g, target), colors.indexOf(colorOf(c, g, target)))).join('');
     const corner = (x, y) => { const p = view(x, y); return `${p.x.toFixed(1)} ${(p.y + H * p.f).toFixed(1)}`; };
     // The venue's table top, cut to the table's shape in perspective.
-    const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f) / 300) * 100).toFixed(2)}%`; };
+    const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f - TOP) / (300 - TOP)) * 100).toFixed(2)}%`; };
     const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, BACK)}, ${pct(-0.75, BACK)})"></div>`;
     const p = view(a.x, a.y);
     const L = g.last && g.last.target === target && !g.last.cup ? view(g.last.x, g.last.y) : null;
-    return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 0 360 300" aria-label="Their cups">
+    return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 ${TOP} 360 ${300 - TOP}" aria-label="Their cups">
       <defs>${shades}</defs>
       <path d="M${corner(0, -0.25)} L${corner(0, BACK)}" class="bp-line" stroke-width="2"/>
       <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, BACK)} L${corner(0.75, BACK)} L${corner(0.75, -0.25)}" class="bp-edge"/>
