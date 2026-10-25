@@ -1575,15 +1575,18 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 
 /* A ball or a dart in the air, flying across the screen (PB.fly). */
 .pb-fly { position: fixed; z-index: 60; pointer-events: none; will-change: transform; }
+.pb-shadow { width: 30px; height: 10px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); filter: blur(2px); z-index: 59; }
 .pb-ball { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #fffdf0 40%, #d8d0c0); box-shadow: 0 6px 10px rgba(0, 0, 0, 0.35); }
 .pb-dart { width: 34px; height: 120px; }
 .pb-dart svg { width: 100%; height: 100%; display: block; }
 /* The thrower's phone: the ball's flight is the one across the screen, so in the close-up it just
    arrives (after PB.fly's 0.9s) and drops in, or skips away. */
-.bp-fly3d.handoff { animation: bp-show 0.01s linear 0.9s both; }
-.bp-fly3d.handoff.in { animation: bp-show 0.01s linear 0.9s both, bp-drop 0.35s ease-in 0.9s forwards; }
-.bp-fly3d.handoff.out { animation: bp-show 0.01s linear 0.9s both, bp-skip 0.6s ease-out 0.9s forwards; }
-.bp-fly3d.handoff.rim { animation: bp-show 0.01s linear 0.9s both, bp-rimout 0.7s ease-out 0.9s forwards; }
+/* (1.4s: FLIGHT_MS in public/games/beerPong.js) */
+.bp-fly3d.handoff { animation: bp-show 0.01s linear 1.4s both; }
+.bp-fly3d.handoff.in { animation: bp-show 0.01s linear 1.4s both, bp-drop 0.35s ease-in 1.4s forwards; }
+.bp-fly3d.handoff.out { animation: bp-show 0.01s linear 1.4s both, bp-skip 0.6s ease-out 1.4s forwards; }
+.bp-fly3d.handoff.rim { animation: bp-show 0.01s linear 1.4s both, bp-rimout 0.7s ease-out 1.4s forwards; }
+.bp-close .bp-splash3d:has(+ .handoff) { animation-delay: 1.4s; }
 @keyframes bp-show { from { opacity: 0; } to { opacity: 1; } }
 .dt-dart.new.late { animation: bp-show 0.01s linear 0.45s both, dt-hit 0.28s ease-out 0.45s both; }
 

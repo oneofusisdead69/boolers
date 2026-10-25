@@ -87,7 +87,7 @@ function pickTeams(room, ctx) {
 const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
 
 // How long a ball is in the air (and the result on screen) before the game moves on.
-const LAND_MS = 1800;
+const LAND_MS = 2300;
 
 // The ball's landed: the cup comes off and its owner drinks, maybe a re-rack or the win; then the
 // next ball.

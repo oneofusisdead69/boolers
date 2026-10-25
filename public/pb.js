@@ -126,7 +126,7 @@
     // Something thrown, flying across the screen from one point to another (from your finger on
     // the throwing pad to where it lands): up in an arc, getting smaller as it goes away. `html`
     // is what flies; `from` and `to` are page points ({ x, y }).
-    fly(html, from, to, { ms = 800, lift = 0.35, scale = [1.5, 0.6] } = {}) {
+    fly(html, from, to, { ms = 800, lift = 0.35, scale = [1.5, 0.6], shadow = false } = {}) {
       const el = document.createElement('div');
       el.className = 'pb-fly';
       el.innerHTML = html;
@@ -135,11 +135,31 @@
       document.body.appendChild(el);
       const dx = to.x - from.x;
       const dy = to.y - from.y;
-      const peak = Math.abs(dy) * lift + 30;
-      const at = (k, up, sc) => ({ transform: `translate(-50%, -50%) translate(${(dx * k).toFixed(1)}px, ${(dy * k - up).toFixed(1)}px) scale(${sc.toFixed(2)})` });
-      const anim = el.animate([at(0, 0, scale[0]), { ...at(0.5, peak, (scale[0] + scale[1]) / 2), offset: 0.5 }, at(1, 0, scale[1])],
-        { duration: ms, easing: 'cubic-bezier(0.3, 0.1, 0.5, 1)', fill: 'forwards' });
+      // (Never so high it goes under the top of the screen, or a phone's address bar.)
+      const peak = Math.max(0, Math.min(Math.abs(dy) * lift + 30, from.y + dy / 2 - 110));
+      // A real arc: up and over, a touch slower as it comes down, shrinking into the distance.
+      const frames = Array.from({ length: 25 }, (_, i) => {
+        const t = i / 24;
+        const k = t * (1.2 - 0.2 * t);
+        const up = 4 * peak * k * (1 - k);
+        const sc = scale[0] + (scale[1] - scale[0]) * k;
+        return { transform: `translate(-50%, -50%) translate(${(dx * k).toFixed(1)}px, ${(dy * k - up).toFixed(1)}px) scale(${sc.toFixed(2)})` };
+      });
+      const anim = el.animate(frames, { duration: ms, easing: 'linear', fill: 'forwards' });
       anim.onfinish = () => el.remove();
+      // Its shadow runs along the ground under it, so you can tell how high it is.
+      if (shadow) {
+        const sh = document.createElement('div');
+        sh.className = 'pb-fly pb-shadow';
+        sh.style.left = `${from.x}px`;
+        sh.style.top = `${from.y}px`;
+        document.body.appendChild(sh);
+        sh.animate(frames.map((_, i) => {
+          const k = (i / 24) * (1.2 - 0.2 * (i / 24));
+          const sc = scale[0] + (scale[1] - scale[0]) * k;
+          return { transform: `translate(-50%, -50%) translate(${(dx * k).toFixed(1)}px, ${(dy * k + 14 * sc).toFixed(1)}px) scale(${sc.toFixed(2)})`, opacity: 0.15 + 0.3 * k };
+        }), { duration: ms, easing: 'linear', fill: 'forwards' }).onfinish = () => sh.remove();
+      }
       return anim;
     },
     // A very light buzz (on phones that can: not iPhones), for throwing: a tick as it leaves your
