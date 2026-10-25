@@ -1490,13 +1490,15 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 
 /* Beer Pong: the table from above (a pong table's green with its lines), red cups, the ball. */
 .bp-table-wrap { display: flex; justify-content: center; }
-.bp-table { width: min(100%, 340px); height: auto; display: block; }
-.bp-top { fill: #1f6a3a; stroke: #f4f4f4; stroke-width: 1.2; }
-.bp-close .bp-top { stroke-width: 0.01; }
+.bp-board { width: min(100%, 340px); aspect-ratio: 100 / 240; background: var(--felt, #1f6a3a); border: 5px solid var(--rim, #f4f4f4); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 2px rgba(255, 255, 255, 0.15); overflow: hidden; }
+.bp-table { width: 100%; height: 100%; display: block; }
 .bp-line { stroke: rgba(255, 255, 255, 0.7); stroke-width: 0.8; fill: none; }
 .bp-label { font: 700 7px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.5); stroke-width: 1.5px; }
 .bp-close { display: flex; justify-content: center; margin: 6px 0; }
-.bp-rack { width: min(100%, 360px); height: auto; border-radius: 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.bp-rack { position: relative; width: min(100%, 360px); aspect-ratio: 360 / 300; border-radius: 14px; overflow: hidden; background: color-mix(in srgb, var(--bg) 70%, #000); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.bp-rack svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bp-felt { position: absolute; inset: 0; background: var(--felt, #1f6a3a); }
+.bp-edge { stroke: var(--rim, #f4f4f4); stroke-width: 7; fill: none; stroke-linecap: round; }
 .bp-aim circle { fill: none; stroke: #ffd23f; stroke-width: 0.8; }
 .bp-aim path { stroke: #ffd23f; stroke-width: 0.8; }
 .bp-aim.big circle, .bp-aim.big path { stroke-width: 3; }

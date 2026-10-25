@@ -22,7 +22,7 @@
   let shown = 0; // the last throw drawn landing
   function table(s) {
     const g = s.game;
-    const r = g.cupR * S;
+    const r = 0.105 * S; // rims touching
     const racks = g.cups.map((cups, t) => cups.map((c) => { const p = toTable(t, c.x, c.y); return cup(p.x, p.y, r, colorOf(c, g, t)); }).join('')).join('');
     let ball = '';
     const L = g.last;
@@ -37,13 +37,13 @@
     }
     const aim = g.aim && s.phase === 'throwing' ? (() => { const p = toTable(1 - g.turnTeam, g.aim.x, g.aim.y); return `<g id="bp-aim-t" class="bp-aim" transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})"><circle r="4"/><path d="M-6 0 H6 M0 -6 V6"/></g>`; })() : '';
     const label = (t, y) => `<text x="50" y="${y}" class="bp-label" style="fill:${g.teams[t].color}">Team ${esc(g.teams[t].name)} · ${g.cups[t].length}</text>`;
-    return `<div class="bp-table-wrap"><svg class="bp-table" viewBox="0 0 100 240" role="img" aria-label="The beer pong table">
+    // The table top is the venue's (its --felt and --rim, as on every other game's table), under the drawing.
+    return `<div class="bp-table-wrap"><div class="bp-board"><svg class="bp-table" viewBox="0 0 100 240" role="img" aria-label="The beer pong table">
       <defs><radialGradient id="bp-foam"><stop offset="0" stop-color="#fffbe6"/><stop offset="1" stop-color="#fffbe6" stop-opacity="0"/></radialGradient></defs>
-      <rect x="1" y="1" width="98" height="238" rx="3" class="bp-top"/>
       <path d="M50 4 V236 M1 120 H99" class="bp-line"/>
       ${label(1, 92)}${label(0, 154)}
       ${racks}${aim}${ball}
-    </svg></div>`;
+    </svg></div></div>`;
   }
 
   // ---------- Throwing ----------
@@ -59,18 +59,24 @@
   // The close-up is drawn in perspective, as if you're standing at your end of the table: the
   // far cups smaller and higher up. `view(x, y)` is where a point in the rack's units (at the
   // height of the cups' rims) appears in the picture, 360 × 300, and how big things are there.
+  // (From up high: the rows spread well apart, the rims seen fairly round.)
   const view = (x, y) => {
-    const f = 1 / (1 + y * 1.1);
-    return { x: 180 + x * 330 * f, y: 70 + 190 * f, f };
+    const f = 1 / (1 + y * 0.7);
+    return { x: 180 + x * 300 * f, y: 222 - (1 - f) * 380, f };
   };
+  // A solo cup stands about 1.3 times as tall as its rim is wide, and in a rack the rims touch:
+  // the rim is one cup-spacing (0.21 of the rack) across. Seen from up high its height looks
+  // shorter: H is its height in the picture, near the front.
+  const RIM = 0.105 * 300;
+  const H = 62;
   // A red-cup shape in 3D: the rim's ellipse on top, the body tapering down, shaded round, with the
   // beer inside and a white lip.
   function cup3d(c, color, id) {
     const { x, y, f } = view(c.x, c.y);
-    const rx = 31 * f;
-    const ry = rx * 0.34;
-    const h = 62 * f;
-    const b = rx * 0.7;
+    const rx = RIM * f;
+    const ry = rx * 0.52;
+    const h = H * f;
+    const b = rx * 0.68;
     return `<g class="bp-cup3d">
       <ellipse cx="${x}" cy="${y + h}" rx="${b * 1.15}" ry="${ry * 0.7}" fill="rgba(0,0,0,0.35)"/>
       <path d="M${x - rx} ${y} L${x - b} ${y + h} A${b} ${ry * 0.7} 0 0 0 ${x + b} ${y + h} L${x + rx} ${y} Z" fill="url(#bp-shade-${id})"/>
@@ -90,18 +96,20 @@
       <stop offset="0.4" stop-color="${c}"/><stop offset="0.55" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.68" stop-color="${c}"/><stop offset="1" stop-color="#000" stop-opacity="0.85"/></linearGradient>`).join('');
     // Back rows first, so the front cups stand in front of them.
     const cups = [...g.cups[target]].sort((p, q) => q.y - p.y).map((c) => cup3d(c, colorOf(c, g, target), colors.indexOf(colorOf(c, g, target)))).join('');
-    const corner = (x, y) => { const p = view(x, y); return `${p.x.toFixed(1)} ${(p.y + 62 * p.f).toFixed(1)}`; };
+    const corner = (x, y) => { const p = view(x, y); return `${p.x.toFixed(1)} ${(p.y + H * p.f).toFixed(1)}`; };
+    // The venue's table top, cut to the table's shape in perspective.
+    const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f) / 300) * 100).toFixed(2)}%`; };
+    const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, 1.6)}, ${pct(-0.75, 1.6)})"></div>`;
     const p = view(a.x, a.y);
     const L = g.last && g.last.target === target && !g.last.cup ? view(g.last.x, g.last.y) : null;
-    return `<div class="bp-close"><svg viewBox="0 0 360 300" class="bp-rack" aria-label="Their cups">
+    return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 0 360 300" aria-label="Their cups">
       <defs>${shades}</defs>
-      <rect width="360" height="300" fill="#0e1a12"/>
-      <path d="M${corner(-0.75, -0.25)} L${corner(0.75, -0.25)} L${corner(0.75, 1.6)} L${corner(-0.75, 1.6)}Z" fill="#1f6a3a"/>
-      <path d="M${corner(0, -0.25)} L${corner(0, 1.6)} M${corner(-0.75, -0.25)} L${corner(-0.75, 1.6)} M${corner(0.75, -0.25)} L${corner(0.75, 1.6)}" stroke="rgba(255,255,255,0.7)" stroke-width="2" fill="none"/>
+      <path d="M${corner(0, -0.25)} L${corner(0, 1.6)}" class="bp-line" stroke-width="2"/>
+      <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, 1.6)} M${corner(0.75, -0.25)} L${corner(0.75, 1.6)}" class="bp-edge"/>
       ${cups}
-      ${L ? `<circle cx="${L.x}" cy="${L.y + 62 * L.f}" r="${7 * L.f}" fill="#fffdf4" opacity="0.8"/>` : ''}
+      ${L ? `<circle cx="${L.x}" cy="${L.y + H * L.f}" r="${7 * L.f}" fill="#fffdf4" opacity="0.8"/>` : ''}
       <g id="bp-aim" class="bp-aim big" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})"><circle r="16"/><path d="M-26 0 H26 M0 -26 V26"/></g>
-    </svg></div>`;
+    </svg></div></div>`;
   }
 
   function pad(s) {
