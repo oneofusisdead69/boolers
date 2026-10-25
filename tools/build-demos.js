@@ -1,5 +1,5 @@
 // Builds the stand-alone demo pages (for sharing a link without the server) from the real
-// pass-and-play pages: inlines the shared rules bundle, styles and screens, and drops the link
+// pass-and-play page: inlines each game's rules bundle, styles and screens, and drops the link
 // back to the app.
 //
 //   node tools/build-demos.js <output-dir>
@@ -11,7 +11,6 @@ const { buildBundle } = require('../lib/bundle');
 const root = path.join(__dirname, '..');
 const out = process.argv[2] || path.join(root, 'demos');
 fs.mkdirSync(out, { recursive: true });
-const bundle = buildBundle(root);
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
 // The demo viewer supplies the document shell, viewport and safe-area padding, so a demo is
@@ -29,35 +28,26 @@ function write(name, { title, style, body }) {
   console.log(`${name}: ${Math.round(demo.length / 1024)} KB`);
 }
 
-// Hand-built pass-and-play pages.
-for (const name of ['slevens', 'madmax']) {
-  const parts = pageParts(read(`public/play/${name}.html`));
-  parts.body = parts.body
-    .replace('<script src="/analytics.js"></script>\n', '')
-    .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
-    .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>`)
-    .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`);
-  write(`${name}-demo.html`, parts);
-}
-
-// Games played through the general pass-and-play page, with their screens baked in.
-const TITLES = { darts: 'Darts', rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice", shotPoker: 'Shot Poker', aceRace: 'Ace Race', horseRace: 'Horse Race' };
+// Every pass-and-play game with a demo, played through the pass-and-play page with its screens
+// and its rules baked in.
+const TITLES = { slevens: 'Slevens', madMax: 'Mad Max', darts: 'Darts', rideTheBus: 'Ride the Bus', kingsCup: 'Kings Cup', liarsDice: "Liar's Dice", shotPoker: 'Shot Poker', aceRace: 'Ace Race', horseRace: 'Horse Race' };
+// (Mad Max's demo keeps the name it had when it was built from a page of its own.)
+const FILES = { madMax: 'madmax' };
+const BUNDLE = /  <script>\n    \/\/ The rules for just this game[^]*?<\/script>\n/;
 for (const id of Object.keys(TITLES)) {
   const parts = pageParts(read('public/play/local.html'));
-  let body = parts.body
+  if (!BUNDLE.test(parts.body)) throw new Error('bundle loader not found in local.html');
+  // (Replaced by functions, so a `$'` in the code isn't read as a replacement pattern.)
+  const body = parts.body
     .replace('<script src="/analytics.js"></script>\n', '')
-    .replace('<script src="/prefs.js"></script>', `<script>\n${read('public/prefs.js')}</script>`)
-    .replace('<script src="/looks.js"></script>', `<script>\n${read('lib/looks.js')}</script>`)
-    .replace('<script src="/room-styles.js"></script>', `<script>\n${read('lib/roomStyles.js')}</script>`)
-    .replace('<script src="/ambience.js"></script>', `<script>\n${read('public/ambience.js')}</script>`)
-    .replace('<script src="/pb.js"></script>', `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
-    .replace('<script src="/shared/bundle.js"></script>', `<script>\n${bundle}</script>`)
+    .replace('<script src="/prefs.js"></script>', () => `<script>\n${read('public/prefs.js')}</script>`)
+    .replace('<script src="/looks.js"></script>', () => `<script>\n${read('lib/looks.js')}</script>`)
+    .replace('<script src="/room-styles.js"></script>', () => `<script>\n${read('lib/roomStyles.js')}</script>`)
+    .replace('<script src="/ambience.js"></script>', () => `<script>\n${read('public/ambience.js')}</script>`)
+    .replace('<script src="/pb.js"></script>', () => `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
+    .replace(BUNDLE, () => `  <script>\n${buildBundle(root, id)}</script>\n`)
     .replace("const gameId = params.get('game');", `const gameId = '${id}';`);
-  const start = body.indexOf("    // Load the game's screens, then show setup.");
-  const end = body.indexOf('document.head.appendChild(script);', start) + 'document.head.appendChild(script);'.length;
-  if (start < 0 || end < start) throw new Error('screen loader not found in local.html');
-  body = `${body.slice(0, start)}    renderSetup();${body.slice(end)}`;
-  write(`${id}-demo.html`, {
+  write(`${FILES[id] || id}-demo.html`, {
     title: `<title>${TITLES[id]} · Bool Games</title>`,
     style: `${read('public/style.css')}\n${parts.style}`,
     body,

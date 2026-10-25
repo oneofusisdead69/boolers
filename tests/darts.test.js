@@ -226,3 +226,18 @@ test('a bot hands its sips to a human', () => {
   assert.deepStrictEqual(t.bot(0, 0.6), { type: 'give', targetId: 'p2' });
   t.cleanup();
 });
+
+// The throwing pad's "Perfect power" (public/pb.js) goes by the slack the game sends, so it has to
+// be the slack its land() uses.
+test('throwing games: a flick within PERFECT lands as a perfect one, and phones are told PERFECT', () => {
+  for (const game of [darts, require('../games/beerPong'), require('../games/quarters')]) {
+    const aim = game.id === 'quarters' ? 0 : { x: 0, y: 0.3 };
+    const perfect = game.land(aim, 0, 1, 0);
+    assert.deepStrictEqual(game.land(aim, 0, 1 + game.PERFECT * 0.95, 0), perfect, `${game.id}: just inside`);
+    assert.deepStrictEqual(game.land(aim, 0, 1 - game.PERFECT * 0.95, 0), perfect, `${game.id}: just inside, soft`);
+    assert.notDeepStrictEqual(game.land(aim, 0, 1 + game.PERFECT * 1.05, 0), perfect, `${game.id}: just outside`);
+    const t = setup(game, 2);
+    assert.strictEqual(t.view(0).perfect, game.PERFECT, `${game.id}: in the view`);
+    t.cleanup();
+  }
+});

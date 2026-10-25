@@ -44,7 +44,6 @@ const myDrink = () => (LOOKS.DRINKS.includes(store.get('drink')) ? store.get('dr
 const lookToSend = () => ({ ...(store.get('lookPicked') ? myLook() : {}), ...(myDrink() ? { drink: myDrink() } : {}) });
 
 let homeError = '';
-const loading = {};
 
 // Shared screen helpers (cards, dice, pickers…) live in /pb.js; this page plugs in the server.
 PB.socket = socket;
@@ -157,15 +156,7 @@ function leaveRoom() {
 }
 
 // Taps on anything with data-act send a game action; data-cmd sends a room command.
-$app.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-act], [data-cmd]');
-  if (!el || el.disabled) return;
-  if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
-  const { act, cmd, confirm: _, ...data } = el.dataset;
-  if (act) PB.act(act, data);
-  else if (cmd === 'leaveRoom') leaveRoom();
-  else socket.emit(cmd, data);
-});
+PB.onTaps($app, (cmd, data) => (cmd === 'leaveRoom' ? leaveRoom() : socket.emit(cmd, data)));
 
 // ---------- Connection ----------
 
@@ -281,16 +272,18 @@ document.addEventListener('click', (e) => {
 // Compares each new state with the last: a game's screens say which of its moments make a sound
 // (dice rolled, card flipped), and the app adds "your turn" and the game ending.
 
+// "Your turn" is when the game starts waiting on you (s.waiting, from each game's waitingOn). A
+// moment that waits on nobody (the dice spinning, a ball in the air) isn't the turn moving on, so
+// rolling again or your second ball doesn't chime.
+let waitedOn = false;
 function playSounds(prev, s) {
+  const was = waitedOn;
+  if (!s.game || s.waiting?.length) waitedOn = !!s.waiting?.includes(s.me);
   if (s.tv) return; // the TV plays the sounds
   if (!prev || !s.game || prev.gameType !== s.gameType || prev.code !== s.code) return;
-  const screens = PB.screens[s.gameType];
-  const sounds = new Set(screens?.sounds?.(prev, s) || []);
-  const turn = (x) => x.game?.turnId ?? x.game?.rollerId ?? null;
-  if (turn(s) === s.me && turn(prev) !== s.me) sounds.add('turn');
-  if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
-  // One at a time, the most important first.
-  const pick = ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x));
+  const sounds = PB.soundsFor(prev, s);
+  if (waitedOn && !was) sounds.add('turn');
+  const pick = PB.loudest(sounds);
   if (pick) Prefs.play(pick);
   if (pick !== 'turn' && pick !== 'win' && sounds.has('turn')) setTimeout(() => Prefs.play('turn'), 600);
 }
@@ -302,8 +295,7 @@ socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
   if (!PB.state?.tv) Prefs.play('drink'); // with a TV, the TV buzzes
-  const heading = title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
-  showAlert(`<div class="big">🍺 ${PB.esc(heading)}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
+  showAlert(`<div class="big">🍺 ${PB.esc(PB.drinkTitle({ sips, title }))}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
 });
 
 // A message for the whole room. The water reminder between games is a banner across the top.
@@ -436,16 +428,8 @@ function playerList({ showKick }) {
 
 function renderOptions() {
   const s = PB.state;
-  if (!s.options.length) return '';
   const values = Object.fromEntries(s.options.map((o) => [o.id, o.value]));
-  return s.options.filter((o) => PB.optionShown(o, values)).map((o) => `
-    <div class="option">
-      <span class="muted">${PB.esc(o.label)}</span>
-      ${s.isHost
-        ? `<div class="segmented">${o.choices.map((c) => `
-            <button class="${c.value === o.value ? 'selected' : ''}" data-option="${PB.esc(o.id)}" data-value='${PB.esc(JSON.stringify(c.value))}'>${PB.esc(c.label)}</button>`).join('')}</div>`
-        : `<strong>${PB.esc(o.choices.find((c) => c.value === o.value)?.label)}</strong>`}
-    </div>`).join('');
+  return PB.optionsHtml(s.options, values, { readOnly: !s.isHost });
 }
 
 // Around the World, between games: the vote for the next stop.
@@ -476,8 +460,7 @@ function roomStyleCard(s) {
   return `<div class="card room-style-card">
       <h2>Venue &amp; style</h2>
       <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
-      ${[false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([id, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
-        <button class="${id === s.style ? 'selected' : ''}" data-cmd="setStyle" data-style="${PB.esc(id)}"><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('')}
+      ${PB.roomStylePicker(s.style, (id) => `data-cmd="setStyle" data-style="${PB.esc(id)}"`)}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;
 }
@@ -514,7 +497,7 @@ function renderLobby() {
               ${PB.esc(g.name)}${g.bestWithTv ? '<span class="tv-best">📺 Best with a TV</span>' : ''}<small>${PB.esc(g.description)}</small>
             </button>`).join('')}</div>`
         : `<p><strong>${PB.esc(game.name)}</strong>${game.bestWithTv ? ' <span class="tv-best">📺 Best with a TV</span>' : ''}</p><p class="muted">${PB.esc(game.description)}</p>`}
-      ${game.rules?.length ? `<details class="how-to"><summary>📖 How to play ${PB.esc(game.name)}</summary><ul>${game.rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : ''}
+      ${PB.howToPlay(game.rules, `How to play ${game.name}`)}
       ${renderOptions()}
       ${host && s.custom.length ? `
         <div class="custom-row">
@@ -577,22 +560,12 @@ function renderLobby() {
   }
 }
 
-function loadGame(gameId) {
-  if (loading[gameId]) return;
-  loading[gameId] = true;
-  const script = document.createElement('script');
-  script.src = `/games/${encodeURIComponent(gameId)}.js`;
-  script.onload = render;
-  script.onerror = () => { $app.innerHTML = `<p class="error">Couldn't load ${PB.esc(gameId)}</p>`; };
-  document.head.appendChild(script);
-}
-
 function renderGame() {
   const s = PB.state;
   const screens = PB.screens[s.gameType];
   if (!screens) {
     $app.innerHTML = '<p class="center muted">Loading…</p>';
-    return loadGame(s.gameType);
+    return PB.loadScreens(s.gameType, render, () => { $app.innerHTML = `<p class="error">Couldn't load ${PB.esc(s.gameType)}</p>`; });
   }
   // A screen returns null to keep what's showing (e.g. while a finger is mid-gesture). One that
   // can't draw (a bug, or a game saved by an older version) still leaves a way out: End game, Leave.
@@ -622,15 +595,7 @@ function render() {
   if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();
   if (PB.state.phase === 'lobby') return renderLobby();
   renderGame();
-  updateTimer();
+  PB.tickTimer();
 }
-
-function updateTimer() {
-  const el = document.getElementById('timer');
-  if (!el || !PB.state?.deadline) return;
-  const left = Math.max(0, Math.ceil((PB.state.deadline - PB.now()) / 1000));
-  el.textContent = `⏱ ${left}s`;
-}
-setInterval(updateTimer, 250);
 
 render();

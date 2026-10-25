@@ -14,13 +14,15 @@ const { isActive } = require('../lib/turns');
 const GLASSES = { shot: 0.07, pint: 0.12 }; // the glass's radius
 const WOBBLE = { steady: 0.02, normal: 0.04, wobbly: 0.07 };
 const RULE_AT = 3; // in a row
+// How far off a perfect flick's speed still counts as perfect (sent to phones, for the readout).
+const PERFECT = 0.05;
 
 // Where the quarter comes down. `aim` is where across it's lined up; `angle` how far the flick
 // leaned off straight up (degrees, + = right); `speed` how hard against a perfect flick (1): it
 // bounces that far (a perfect flick, right to the glass). A little slack counts as perfect.
 function land(aim, angle, speed, wobble) {
   const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - 3);
-  const power = Math.abs(speed - 1) < 0.05 ? 1 : speed;
+  const power = Math.abs(speed - 1) < PERFECT ? 1 : speed;
   return {
     x: aim + Math.sin((lean * Math.PI) / 180) * 1.2 + gauss() * wobble,
     d: power + gauss() * wobble,
@@ -196,10 +198,12 @@ module.exports = {
       rule: g.rule,
       aim: g.aim,
       winners: g.winners || [],
+      perfect: PERFECT,
     };
   },
 
   land,
+  PERFECT,
   GLASSES,
   WOBBLE,
 };

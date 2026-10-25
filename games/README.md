@@ -89,7 +89,7 @@ Shared helpers a game can `require`:
 | `lib/bots.js` | `pickHuman(room, exceptId, candidates)`: who a bot hands sips to |
 
 Games also run in the browser (pass and play, `lib/bundle.js`): a `lib/` file a game requires must
-be listed in `buildBundle`, and use nothing Node-only.
+be listed in `LIB` there, and use nothing Node-only.
 
 ## Phone screens
 
@@ -126,13 +126,14 @@ Add `data-confirm="Sure?"` to ask first. The host's "End game" button is added f
 | `PB.turn(playerId, subtitle)` | "Your turn" / "Bea's turn" banner |
 | `PB.playerPicker(action, { exclude, selected, extra })` | A grid of player buttons that sends `{ type: action, targetId }` |
 | `PB.timer()` | Countdown for the current `ctx.setTimer` |
+| `PB.flickPad(el, { aim, drag, held, onAim, send, onThrow, perfect })` | A throwing pad: drag to aim, flick up to throw (Darts, Beer Pong, Quarters; see `public/pb.js`). Send the rules' own `perfect` slack in the view so the readout agrees with the server |
 | `PB.feed(n)` | The last n activity lines |
 | `PB.scoreboard()` | Sip totals |
 | `PB.avatar(id, size)` | The player's emoji avatar in their colour (`size`: `''`, `'sm'`, `'lg'`) |
 | `PB.name(id)`, `PB.esc(text)`, `PB.plural(n, word)` | Text helpers. **Always `esc` player-typed text.** |
 | `PB.isTV`, `s.tv` | `PB.isTV` is true when drawing for the TV; `s.tv` is true on phones while a TV is watching |
 
-The app adds the "your turn" chime (when `game.turnId` or `game.rollerId` becomes you), the drink
+The app adds the "your turn" chime (when the game's `waitingOn` starts including you), the drink
 buzzer and the win fanfare (phase `'over'`) itself, so `sounds` only needs the game's own moments.
 Colours come from CSS variables (`--bg`, `--card`, `--accent`, `--die`, `--back-1`…) so themes
 and dice / card styles apply to your screens too.

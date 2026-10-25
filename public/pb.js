@@ -14,6 +14,7 @@
     C: 'M50 7a19 19 0 0 1 15.6 29.8A19 19 0 1 1 54 66.2C54.6 80 58 88 66 94H34c8-6 11.4-14 12-27.8A19 19 0 1 1 34.4 36.8 19 19 0 0 1 50 7Z',
   };
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  const loadingScreens = {}; // game ids whose screens have been asked for
 
   const PB = {
     state: null,
@@ -123,6 +124,89 @@
       return '<span class="timer" id="timer"></span>';
     },
 
+    // Counts down the PB.timer() on screen to the current state's deadline (on the server's clock).
+    // Runs a few times a second on its own; pages call it after drawing too, so it never shows blank.
+    tickTimer() {
+      const el = document.getElementById('timer');
+      if (!el || !PB.state?.deadline) return;
+      el.textContent = `⏱ ${Math.max(0, Math.ceil((PB.state.deadline - PB.now()) / 1000))}s`;
+    },
+
+    // ---------- Shared by the pages (the phone app, the TV, pass and play) ----------
+
+    // Loads a game's screens (/games/<id>.js) once, then runs `done` (straight away if they're
+    // already here, as in a demo with them baked in). `failed` runs if they can't be loaded.
+    loadScreens(gameId, done = () => {}, failed = () => {}) {
+      if (PB.screens[gameId]) return void done();
+      if (loadingScreens[gameId]) return;
+      loadingScreens[gameId] = true;
+      const script = document.createElement('script');
+      script.src = `/games/${encodeURIComponent(gameId)}.js`;
+      script.onload = done;
+      script.onerror = failed;
+      document.head.appendChild(script);
+    },
+
+    // Which sounds what changed between two states of the same game makes: the game's own (its
+    // screens' `sounds`) and the fanfare when it ends. PB.loudest picks the one to play.
+    soundsFor(prev, s) {
+      const sounds = new Set(PB.screens[s.gameType]?.sounds?.(prev, s) || []);
+      if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
+      return sounds;
+    },
+    // One at a time, the most important first.
+    loudest(sounds) {
+      return ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x)) || null;
+    },
+
+    // The heading of a "drink!" alert: the game's own, or how many sips.
+    drinkTitle({ sips, title }) {
+      return title || `DRINK ${sips} SIP${sips === 1 ? '' : 'S'}`;
+    },
+
+    // A game's rules (lib/options.js), each as a row of buttons with data-option and data-value
+    // (JSON) on them; `values` is what's picked. `readOnly` shows only the picked one (a guest in
+    // the lobby).
+    optionsHtml(options, values, { readOnly = false } = {}) {
+      const esc = PB.esc;
+      return options.filter((o) => PB.optionShown(o, values)).map((o) => `
+        <div class="option">
+          <span class="muted">${esc(o.label)}</span>
+          ${readOnly
+            ? `<strong>${esc(o.choices.find((c) => c.value === values[o.id])?.label)}</strong>`
+            : `<div class="segmented">${o.choices.map((c) => `
+                <button class="${c.value === values[o.id] ? 'selected' : ''}" data-option="${esc(o.id)}" data-value='${esc(JSON.stringify(c.value))}'>${esc(c.label)}</button>`).join('')}</div>`}
+        </div>`).join('');
+    },
+
+    // A game's rules, folded away under "How to play".
+    howToPlay(rules = [], title = 'How to play') {
+      if (!rules.length) return '';
+      return `<details class="how-to"><summary>📖 ${PB.esc(title)}</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>`;
+    },
+
+    // The room styles to pick from (the seasonal ones under their own heading). `attrs(id)` is
+    // what a style's button does when tapped (its data-* attributes).
+    roomStylePicker(selected, attrs) {
+      const { STYLES } = ROOM_STYLES;
+      return [false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
+        <button class="${id === selected ? 'selected' : ''}" ${attrs(id)}><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('');
+    },
+
+    // Taps on anything in `root` with data-act send a game action (its other data-* attributes are
+    // the action's data); data-cmd goes to `command(cmd, data)`, the page's own. Either asks
+    // data-confirm's question first, if it has one.
+    onTaps(root, command) {
+      root.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-act], [data-cmd]');
+        if (!el || el.disabled) return;
+        if (el.dataset.confirm && !confirm(el.dataset.confirm)) return;
+        const { act, cmd, confirm: _, ...data } = el.dataset;
+        if (act) PB.act(act, data);
+        else command(cmd, data);
+      });
+    },
+
     // Something thrown, flying across the screen from one point to another (from your finger on
     // the throwing pad to where it lands): up in an arc, getting smaller as it goes away. `html`
     // is what flies; `from` and `to` are page points ({ x, y }).
@@ -167,6 +251,77 @@
     buzz(kind = 'throw') {
       try { navigator.vibrate?.(kind === 'hit' ? [18, 50, 28] : 12); } catch {}
     },
+    // A throwing pad (Darts, Beer Pong, Quarters): drag on `el` to aim, then flick up to throw.
+    // The flick is the last ~90ms of the finger's movement: how far it leaned off straight up is
+    // the throw's angle (degrees, + = right), and how fast it went against a perfect flick (1) its
+    // speed. Options:
+    //   aim         the game's aim ({ x, y } or just { x }), changed in place as you drag
+    //   drag(from, dx, dy, width)  the aim for a finger moved (dx, dy) from where it went down,
+    //               when the aim was `from`, on a pad `width` wide
+    //   held        what's in your hand (the dart, the ball), following your finger a little
+    //   onAim()     after each move: show the new aim
+    //   send()      tells the others where you're aiming (no more than every 90ms); null for not at all
+    //   onThrow({ angle, speed, vx, note })  the throw, with the aim put back where it was before
+    //               the flick moved it; `note` says how it went ("Too soft (80%), leaning 4° left")
+    //   perfect     how far off 1 the speed can be and still count as perfect (the game's own
+    //               slack, sent in its view, so the note agrees with where it lands)
+    //   perfectText what a perfect one is called ('Perfect power')
+    flickPad(el, { aim, drag, held = null, onAim = () => {}, send = null, onThrow, perfect, perfectText = 'Perfect power' }) {
+      if (!el) return;
+      let hist = [];
+      let start = null;
+      let lastSent = 0;
+      const sendAim = (force) => {
+        const now = Date.now();
+        if (!send || (!force && now - lastSent < 90)) return;
+        lastSent = now;
+        send();
+      };
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        el.setPointerCapture?.(e.pointerId);
+        start = { x: e.clientX, y: e.clientY, aim: { ...aim } };
+        hist = [{ t: e.timeStamp, x: e.clientX, y: e.clientY, aim: { ...aim } }];
+      });
+      el.addEventListener('pointermove', (e) => {
+        if (!start) return;
+        Object.assign(aim, drag(start.aim, e.clientX - start.x, e.clientY - start.y, el.clientWidth));
+        hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY, aim: { ...aim } });
+        if (hist.length > 40) hist.shift();
+        if (held) held.style.transform = `translate(${e.clientX - start.x}px, ${Math.min(0, e.clientY - start.y) * 0.3}px)`;
+        onAim();
+        sendAim(false);
+      });
+      const release = (e) => {
+        if (!start) return;
+        start = null;
+        const end = hist[hist.length - 1];
+        const from = hist.find((h) => h.t >= e.timeStamp - 90) || hist[0];
+        const dt = Math.max(1, end.t - from.t);
+        const vx = (end.x - from.x) / dt;
+        const vy = (end.y - from.y) / dt;
+        if (vy < -0.5 && from.y - end.y > 30) {
+          // Aim where it was before the flick started moving it.
+          let i = hist.length - 1;
+          while (i > 0 && hist[i].y < hist[i - 1].y - 2) i--;
+          Object.assign(aim, hist[i].aim);
+          const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
+          const speed = (-vy * 1000) / window.innerHeight / PB.IDEAL_SPEED;
+          const lean = Math.abs(angle) > 3 ? `, leaning ${Math.round(Math.abs(angle))}° ${angle > 0 ? 'right' : 'left'}` : ', dead straight';
+          const how = Math.abs(speed - 1) < perfect ? perfectText : `${speed < 1 ? 'Too soft' : 'Too hard'} (${Math.round(speed * 100)}%)`;
+          PB.buzz();
+          onThrow({ angle, speed, vx, note: `${how}${lean}` });
+        } else {
+          if (held) held.style.transform = '';
+          sendAim(true);
+        }
+      };
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+    },
+    // A perfect flick crosses this many screen heights per second.
+    IDEAL_SPEED: 2.5,
+
     // The middle of an element on the page.
     centre(el) {
       const r = el.getBoundingClientRect();
@@ -425,6 +580,7 @@
   };
   // Turning the phone redraws the screen for the new shape.
   window.matchMedia('(orientation: landscape) and (min-width: 560px)').addEventListener?.('change', () => PB.redraw());
+  setInterval(() => PB.tickTimer(), 250);
 
   // Any 🍺 Tab button opens the tab; Hide / Show folds it away; + / − hand out race winnings.
   document.addEventListener('click', (e) => {

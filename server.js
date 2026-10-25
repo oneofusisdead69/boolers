@@ -63,9 +63,16 @@ app.post('/api/feedback', express.json({ limit: '8kb' }), (req, res) => {
   res.json({ ok: true });
 });
 
-// The game rules, packed for pass-and-play games that run entirely on one phone.
-const sharedBundle = require('./lib/bundle').buildBundle(__dirname);
-app.get('/shared/bundle.js', (req, res) => res.type('application/javascript').send(sharedBundle));
+// The game rules, packed for pass-and-play games that run entirely on one phone: ?game=<id> for
+// just that game's (each built once), or all of them.
+const { buildBundle } = require('./lib/bundle');
+const bundles = {};
+app.get('/shared/bundle.js', (req, res) => {
+  const id = req.query.game ?? '';
+  if (id !== '' && !(typeof id === 'string' && Object.hasOwn(GAMES, id))) return res.status(404).end();
+  bundles[id] ??= buildBundle(__dirname, id || null);
+  res.type('application/javascript').send(bundles[id]);
+});
 
 // A Big Tom drawing, once the final vote has started: each phone fetches it once (and caches it)
 // instead of every drawing riding along with every update.
@@ -205,6 +212,8 @@ function viewFor(room, player) {
     gameType: room.game ? room.game.type : null,
     gameNo: room.gameNo || 0, // changes with every new game (screens forget the last one)
     game: game ? game.view(room, player, ctx) : null,
+    // Who the game is waiting on (games/README.md), for the "your turn" chime.
+    waiting: game ? game.waitingOn(room) : [],
     feed: room.feed.slice(-8),
     deadline: room.deadline,
     serverNow: Date.now(),

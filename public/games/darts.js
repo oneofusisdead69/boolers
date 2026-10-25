@@ -9,8 +9,6 @@
   const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
   const R = { bull: 6.35 / 170, outerBull: 15.9 / 170, tripleIn: 99 / 170, tripleOut: 107 / 170, doubleIn: 162 / 170 };
   const CRICKET = [20, 19, 18, 17, 16, 15, 25];
-  // A perfect flick crosses this many screen heights per second.
-  const IDEAL_SPEED = 2.5;
 
   // What the crosshair is over, for the "Aiming at T20" readout.
   function label(x, y) {
@@ -184,14 +182,6 @@
     </div>`;
   }
 
-  let lastSent = 0;
-  function sendAim(force) {
-    const now = Date.now();
-    if (!force && now - lastSent < 90) return;
-    lastSent = now;
-    PB.act('aim', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3) });
-  }
-
   function showAim() {
     const mark = document.getElementById('dt-aim');
     if (mark && !PB.state.game.hard) {
@@ -203,72 +193,34 @@
   }
 
   function setupPad() {
-    const el = document.getElementById('dt-pad');
     const held = document.getElementById('dt-held');
-    if (!el) return;
-    let hist = [];
-    let start = null;
-    el.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      el.setPointerCapture?.(e.pointerId);
-      start = { x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y };
-      hist = [{ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y }];
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!start) return;
+    const g = PB.state.game;
+    PB.flickPad(document.getElementById('dt-pad'), {
+      aim: aimState,
       // Dragging across the pad's width sweeps the crosshair across the whole board.
-      const scale = 2.4 / el.clientWidth;
-      aimState.x = Math.max(-1.3, Math.min(1.3, start.ax + (e.clientX - start.x) * scale));
-      aimState.y = Math.max(-1.3, Math.min(1.3, start.ay + (e.clientY - start.y) * scale));
-      hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY, ax: aimState.x, ay: aimState.y });
-      if (hist.length > 40) hist.shift();
-      if (held) held.style.transform = `translate(${e.clientX - start.x}px, ${Math.min(0, e.clientY - start.y) * 0.3}px)`;
-      feedback = '';
-      showAim();
-      if (!PB.state.game.hard) sendAim(false); // hard mode: nobody sees the crosshair
-    });
-    const release = (e) => {
-      if (!start) return;
-      start = null;
-      const now = e.timeStamp;
-      const end = hist[hist.length - 1];
-      // The flick: the last ~90ms of movement.
-      const from = hist.find((h) => h.t >= now - 90) || hist[0];
-      const dt = Math.max(1, end.t - from.t);
-      const vx = (end.x - from.x) / dt;
-      const vy = (end.y - from.y) / dt;
-      const up = from.y - end.y;
-      if (vy < -0.5 && up > 30) {
-        // Aim where the crosshair was before the flick started moving it.
-        let i = hist.length - 1;
-        while (i > 0 && hist[i].y < hist[i - 1].y - 2) i--;
-        aimState.x = hist[i].ax;
-        aimState.y = hist[i].ay;
-        const angle = (Math.atan2(vx, -vy) * 180) / Math.PI;
-        const speed = (-vy * 1000) / window.innerHeight / IDEAL_SPEED;
-        feedback = flickNote(angle, speed);
+      drag: (from, dx, dy, width) => ({
+        x: Math.max(-1.3, Math.min(1.3, from.x + (dx * 2.4) / width)),
+        y: Math.max(-1.3, Math.min(1.3, from.y + (dy * 2.4) / width)),
+      }),
+      held,
+      onAim() {
+        feedback = '';
+        showAim();
+      },
+      // Hard mode: nobody sees the crosshair.
+      send: g.hard ? null : () => PB.act('aim', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3) }),
+      perfect: g.perfect,
+      onThrow({ angle, speed, note }) {
+        // How the last flick went, so you can learn the throw.
+        feedback = note;
         // The dart leaves your hand here and flies to the board (see afterRender).
         if (held) {
           launch = { at: PB.centre(held), html: held.outerHTML.replace('id="dt-held"', '') };
           held.style.opacity = '0';
         }
-        PB.buzz();
         PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
-      } else {
-        if (held) held.style.transform = '';
-        if (!PB.state.game.hard) sendAim(true);
-      }
-    };
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-  }
-
-  // How the last flick went, so you can learn the throw.
-  function flickNote(angle, speed) {
-    const power = Math.round(speed * 100);
-    const lean = Math.abs(angle) > 3 ? `, leaning ${Math.round(Math.abs(angle))}° ${angle > 0 ? 'right' : 'left'}` : ', dead straight';
-    const how = Math.abs(speed - 1) < 0.08 ? 'Perfect power' : speed < 1 ? `Too soft (${power}%)` : `Too hard (${power}%)`;
-    return `${how}${lean}`;
+      },
+    });
   }
 
   // ---------- Screens ----------

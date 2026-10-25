@@ -21,7 +21,6 @@ let code = (params.get('room') || store.get() || '').toUpperCase();
 const preview = params.has('preview');
 let error = '';
 let soundOn = false; // browsers only allow sound after the first click
-const loading = {};
 const { esc } = PB;
 
 // The TV never acts; it only watches.
@@ -184,10 +183,7 @@ document.body.appendChild(leaveBtn);
 
 function playSounds(prev, s) {
   if (!prev || !s.game || prev.gameType !== s.gameType) return;
-  const screens = PB.screens[s.gameType];
-  const sounds = new Set(screens?.sounds?.(prev, s) || []);
-  if (s.phase === 'over' && prev.phase !== 'over') sounds.add('win');
-  const pick = ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x));
+  const pick = PB.loudest(PB.soundsFor(prev, s));
   if (pick) Prefs.play(pick);
 }
 
@@ -366,13 +362,7 @@ window.addEventListener('resize', () => {
 function gameScreen(s) {
   const screens = PB.screens[s.gameType];
   if (!screens) {
-    if (!loading[s.gameType]) {
-      loading[s.gameType] = true;
-      const script = document.createElement('script');
-      script.src = `/games/${encodeURIComponent(s.gameType)}.js`;
-      script.onload = () => render();
-      document.head.appendChild(script);
-    }
+    PB.loadScreens(s.gameType, () => render());
     $tv.innerHTML = '<p class="center muted tv-wait">Loading…</p>';
     return;
   }
@@ -397,7 +387,7 @@ function gameScreen(s) {
   }
   document.getElementById('tv-side').innerHTML = `${Trip.chip(s)}${sidebar(s)}`;
   if (fillCenter(s, screens)) fit();
-  updateTimer();
+  PB.tickTimer();
 }
 
 function render() {
@@ -426,12 +416,5 @@ function render() {
   }
   gameScreen(s);
 }
-
-function updateTimer() {
-  const el = document.getElementById('timer');
-  if (!el || !PB.state?.deadline) return;
-  el.textContent = `⏱ ${Math.max(0, Math.ceil((PB.state.deadline - PB.now()) / 1000))}s`;
-}
-setInterval(updateTimer, 250);
 
 render();
