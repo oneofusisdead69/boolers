@@ -1338,6 +1338,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-walker.bottle { opacity: 0.85; }
 /* St Patrick's: a rainbow over the glen. */
 @keyframes sc-rainbow { 0%, 100% { opacity: 0; transform: scale(0.9); } 20%, 80% { opacity: 0.85; transform: scale(1); } }
+/* The château's balloon, drifting gently. */
+.sc-balloon { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2)); }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */

@@ -244,9 +244,10 @@
     el(`<span>${html}</span>`, { left: `${right ? -6 : 96}vw`, top: `${y}vh`, fontSize: `${size}px`, '--dx': `${right ? 40 : -40}vw`, animation: 'sc-slide 4.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards' }, 4600).classList.add('sc-slider');
   };
   // A burst of little things flying out of one spot and falling.
-  function burst(chars, { x, y, n = 24, spread = 30, size = [14, 24] }) {
+  // (`rise` is how far up they fly, `fall` how far down they end; a firework goes every way.)
+  function burst(chars, { x, y, n = 24, spread = 30, size = [14, 24], colors = null, rise = [-30, -8], fall = [20, 60] }) {
     for (let i = 0; i < n; i++) {
-      el(pick(chars), { left: `${x}vw`, top: `${y}vh`, fontSize: `${rand(...size)}px`, '--bx': `${rand(-spread, spread)}vw`, '--by': `${rand(-30, -8)}vh`, '--fall': `${rand(20, 60)}vh`, '--spin': `${rand(-540, 540)}deg`, animation: `sc-burst ${rand(2.2, 3.2)}s cubic-bezier(0.2, 0.6, 0.4, 1) forwards` }, 3400);
+      el(pick(chars), { left: `${x}vw`, top: `${y}vh`, fontSize: `${rand(...size)}px`, ...(colors ? { color: pick(colors) } : {}), '--bx': `${rand(-spread, spread)}vw`, '--by': `${rand(...rise)}vh`, '--fall': `${rand(...fall)}vh`, '--spin': `${rand(-540, 540)}deg`, animation: `sc-burst ${rand(2.2, 3.2)}s cubic-bezier(0.2, 0.6, 0.4, 1) forwards` }, 3400);
     }
   }
   // Something tossed up and caught (a burger flipped, a juggler's balls).
@@ -693,6 +694,67 @@
       moments: [...seaMoments(true), lightning, lightning],
     },
   };
+
+  // ---------- Outdoors: the vineyard and the château ----------
+  const SWALLOW = `<svg viewBox="0 0 60 30" width="1em" height="0.5em"><path class="sc-wing" d="M2 6 Q18 4 30 16 Q42 4 58 6 Q44 12 34 20 L30 28 L26 20 Q16 12 2 6Z" fill="#1c1a24"/></svg>`;
+  const flock = (svg, { y = [4, 12], n = [4, 7], size = [26, 40], dur = [9, 13], extra = {} } = {}) => {
+    const right = Math.random() < 0.5;
+    const y0 = rand(...y);
+    const emoji = !svg.startsWith('<svg');
+    for (let i = 0; i < Math.round(rand(...n)); i++) {
+      const d = drift(emoji ? `<span>${svg}</span>` : svg, { from: [right ? -8 : 108, y0 + rand(-3, 3)], to: [right ? 108 : -8, y0 + rand(-4, 6)], dur: rand(...dur), size: rand(...size), extra: { animationDelay: `${i * rand(0.15, 0.5)}s`, ...extra } });
+      // Drawings face right; emoji face left, so they're turned round to go right.
+      if (emoji) d.classList.add('sc-walker', ...(right ? ['flip'] : []));
+      else d.classList.add(right ? 'sc-face-r' : 'sc-face-l');
+    }
+  };
+  const flutter = (char, n = 2) => { for (let i = 0; i < n; i++) el(char, { left: `${rand(2, 40)}vw`, top: `${rand(6, 22)}vh`, fontSize: `${rand(22, 30)}px`, animationDelay: `${i * 0.6}s` }, 9600).classList.add('sc-fly'); };
+  const fireworks = () => {
+    for (let i = 0; i < pick([2, 3]); i++) {
+      later(() => {
+        const x = rand(12, 62);
+        const y = rand(10, 16);
+        burst(['✦', '✧', '•', '✺', '✦'], { x, y, n: 36, spread: 10, size: [14, 26], colors: [pick(['#ffd23f', '#ff5cc8', '#29f0ff']), pick(['#ff8a3d', '#ffffff', '#9b5cff'])], rise: [-12, 12], fall: [10, 26] });
+        window.Ambience?.cue('boom');
+      }, i * 1100);
+    }
+  };
+  const fireflies = () => {
+    for (let i = 0; i < 12; i++) {
+      el('', { left: `${rand(0, 100)}vw`, top: `${rand(20, 95)}vh`, animation: `sc-fly ${rand(4, 7)}s ease-in-out ${rand(0, 3)}s 2 alternate`, '--sx': `${rand(-12, 12)}vw`, '--sy': `${rand(-10, 10)}vh` }, 18000).classList.add('sc-firefly');
+    }
+  };
+  const vineyard = (sunset) => [
+    () => flock(SWALLOW),
+    () => notes(3, 82, '#7a1f2b'),
+    () => { burst(['🍷', '✨', '🍇'], { x: 4, y: 82, n: 14, spread: 10, size: [18, 28] }); cue('clink'); },
+    ...(sunset
+      ? [fireflies, () => popup('🦉', { x: 2, bottom: 2, size: 60, life: 5000 }), () => { flock(SWALLOW, { n: [7, 11] }); }]
+      : [
+        () => flutter('🦋', 2),
+        () => flutter('🐝', 1),
+        () => { const x = rand(10, 60); drift('🍇', { from: [x, 6], to: [x, 92], dur: 1.2, size: 32, spin: 90, extra: { animationTimingFunction: 'ease-in' } }); cue('thud', 1200); },
+        () => { crossing('🛵', { y: 91, dur: 4, size: 54, faces: 'left', bob: false }); cue('vespa'); },
+        () => crossing('🐕', { y: 92, dur: 8, size: 50 }),
+      ]),
+  ];
+  const chateauMoments = (night) => [
+    () => { burst(['🥂', '✨', '🫧'], { x: 4, y: 82, n: 16, spread: 10, size: [18, 28] }); cue('pop'); },
+    () => crossing('🐩', { y: 92, dur: 9, size: 52 }),
+    ...(night
+      ? [fireworks, fireworks, () => { for (let i = 0; i < 2; i++) later(() => el('', { left: `${rand(10, 70)}vw`, top: `${rand(3, 12)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 800); }]
+      : [
+        () => drift('🎈', { from: [-8, rand(8, 14)], to: [108, rand(4, 10)], dur: 34, size: 70, opacity: 0.95 }).classList.add('sc-balloon'),
+        () => flock('🕊️', { y: [4, 12], n: [3, 5], size: [30, 40] }),
+        () => { crossing('🦚', { y: 90, dur: 14, size: 70 }); cue('peacock', 2500); },
+        () => crossing('🚲', { y: 92, dur: 6, size: 54, bob: false }),
+        () => fall(['🌸', '🌸', '🌹'], 8, 0.7, 0.8),
+      ]),
+  ];
+  SCENES.vineyard = { moments: vineyard(false) };
+  SCENES.vineyardSunset = { moments: vineyard(true) };
+  SCENES.chateau = { moments: chateauMoments(false) };
+  SCENES.chateauNight = { moments: chateauMoments(true) };
 
   // ---------- More moments, room by room ----------
   // So no room shows the same three things all night.
