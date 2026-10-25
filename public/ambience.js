@@ -774,14 +774,18 @@
       }, { div: 2 }),
       now(26, (t) => CUES.wrench(out, t)),
     ],
-    // The party bus: a club beat, and the horn.
-    garageParty: (out) => [...ROOMS.club(out), now(30, (t) => CUES.horn(out, t))],
+    // The starship: the space lounge's music, the engines humming, and the bridge's computer.
+    spaceStarship: (out) => [
+      ...ROOMS.space(out),
+      now(20, (t) => note(out, t, { freq: 55, to: 50, len: 6, gain: 0.05, type: 'sawtooth', attack: 2 })),
+      now(11, (t) => { for (let k = 0; k < 4; k++) note(out, t + k * 0.1, { freq: hz(pick([84, 88, 91, 96])), len: 0.08, gain: 0.015, type: 'square' }); }),
+    ],
     // Open mic night: the jazz trio, low, between the acts.
     jazzOpenMic: (out) => ROOMS.jazz(out),
     // Oktoberfest: the oompah band, and someone yodelling.
     beerhallOktoberfest: (out) => [...ROOMS.beerhall(out), now(40, (t) => CUES.yodel(out, t))],
     // The wasteland: the wind, war drums, and the guitar now and then.
-    saloonWasteland: (out) => [
+    garageWasteland: (out) => [
       background(out, 'bed-castle-1', { gain: 0.35, lowpass: 1200 }),
       sequencer(96, (t, n) => {
         const s = n % 8;
@@ -1047,6 +1051,15 @@
         at += 0.06 * (1 + k * 0.09);
       }
       hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
+    },
+    // The ship's computer: a couple of blips.
+    beep(out, t) { [88, 93].forEach((m, k) => note(out, t + k * 0.12, { freq: hz(m), len: 0.1, gain: 0.025, type: 'square' })); },
+    // Red alert: a two-tone klaxon, three times.
+    alarm(out, t) { for (let k = 0; k < 3; k++) note(out, t + k * 0.8, { freq: 440, to: 660, len: 0.6, gain: 0.03, type: 'square', attack: 0.02 }); },
+    // The jump to lightspeed: a rising whine and a boom.
+    warp(out, t) {
+      note(out, t, { freq: 80, to: 1200, len: 1.4, gain: 0.04, type: 'sawtooth', attack: 0.6 });
+      hit(out, t + 1.3, { type: 'lowpass', freq: 200, gain: 0.3, len: 1.2, attack: 0.005 });
     },
     // A Grand Prix car going by: up as it comes, down as it goes.
     vroom(out, t) {

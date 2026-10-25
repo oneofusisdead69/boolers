@@ -1047,9 +1047,9 @@
     ],
   };
 
-  // Mad Max in the saloon: the wasteland. The dust blows through; a war rig thunders past with a
+  // Mad Max in the garage: the wasteland. The dust blows through; a war rig thunders past with a
   // bike gang behind it; vultures circle; an oil drum goes up.
-  SCENES.saloonWasteland = {
+  SCENES.garageWasteland = {
     decor() {
       el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-dust');
       banner('Welcome to the Wasteland', 'Fuel’s low. Drinks are lower.', 'waste');
@@ -1098,35 +1098,41 @@
     ],
   };
 
-  // Ride the Bus in the garage: the party bus. The city goes by outside the windows, the lights
-  // pulse; when someone has to ride the bus, the horn goes and everyone lurches.
+  // Ride the Bus in the space lounge: the starship. Stars stream past the viewport; an astronaut
+  // floats by, an alien waves from a passing saucer, a planet slides past; red alert now and
+  // then. When someone has to ride the bus, the ship jumps to lightspeed.
   let busPhase = null;
-  const lurch = () => { document.body.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-14px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 700, easing: 'ease-out' }); cue('brakes'); };
-  SCENES.garageParty = {
-    gap: [8, 16],
+  const warp = () => {
+    const w = layer.querySelector('.sc-viewport');
+    w?.classList.add('warp');
+    cue('warp');
+    later(() => el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 900).classList.add('sc-warpflash'), 1300);
+    later(() => w?.classList.remove('warp'), 3200);
+  };
+  SCENES.spaceStarship = {
     decor() {
       busPhase = null;
-      el('<div class="sc-city"></div><div class="sc-city far"></div>', { left: '0', top: '19vh', width: '100vw', height: '30vh' }).classList.add('sc-windows');
-      el('', { left: '0', top: '19vh', width: '100vw', height: '30vh' }).classList.add('sc-frames');
-      banner('All aboard the party bus!', 'Hold on to something', 'party');
-      cue('horn', 300);
+      el('<div class="sc-stars"></div><div class="sc-stars near"></div>', { left: '1.5vw', top: '19.5vh', width: '97vw', height: '32vh' }).classList.add('sc-viewport');
+      for (let i = 0; i < 6; i++) el('', { left: `${8 + i * 14}vw`, top: '77vh', animationDelay: `-${rand(0, 2)}s`, background: pick(['#7cf0ff', '#ffd23f', '#ff5c8a', '#7dff9e']) }).classList.add('sc-blink');
+      banner('All crew aboard', 'Next stop: anywhere', 'ship');
+      cue('beep', 300);
     },
     update(s) {
       if (s?.gameType !== 'rideTheBus' || s.phase === busPhase) return;
       const was = busPhase;
       busPhase = s.phase;
       if (was && s.phase === 'bus') {
-        cue('horn');
-        inFront('<b>Ride the bus!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'busride');
-        later(lurch, 600);
+        inFront('<b>Punch it!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'punchit');
+        later(warp, 500);
       }
     },
     moments: [
-      lurch,
-      () => { for (let i = 0; i < 8; i++) el('', { left: `${rand(5, 95)}vw`, top: `${rand(50, 95)}vh`, background: pick(['#ff2bd6', '#29f0ff', '#ffd23f', '#9b5cff']), animation: `sc-spot ${rand(2, 4)}s ease-in-out infinite alternate, sc-fade-out 1s 7s forwards`, '--sx': `${rand(-30, 30)}vw`, '--sy': `${rand(-20, 20)}vh` }, 8200).classList.add('sc-spot'); },
-      () => fall(['🎊', '✨', '🎉'], 4, 0.25, 0.9),
-      () => { cue('horn'); popup('🚌', { x: 3, bottom: 3, size: 60, life: 3000 }); },
-      () => crossing('🕺', { y: 90, dur: 10, size: 56 }),
+      warp,
+      () => drift('🧑‍🚀', { from: [-8, rand(55, 70)], to: [108, rand(50, 70)], dur: 16, size: 60, spin: 360 }),
+      () => drift('🛸', { from: [110, rand(22, 30)], to: [-12, rand(22, 34)], dur: 9, size: 54 }),
+      () => drift('🪐', { from: [110, 26], to: [-15, 30], dur: 30, size: 120 }),
+      () => drift('☄️', { from: [105, 21], to: [-10, 40], dur: 3, size: 44 }),
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 3200).classList.add('sc-redalert'); cue('alarm'); },
     ],
   };
 
