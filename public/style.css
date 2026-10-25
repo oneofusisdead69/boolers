@@ -1615,6 +1615,7 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
   92%, 100% { translate: 0 0; }
 }
 @keyframes bp-shadow { 0%, 45%, 75%, 92% { opacity: 1; } 22% { opacity: 0.35; } 60% { opacity: 0.6; } }
+.bp-rebuttal { text-align: center; margin: 4px 0; font-weight: 700; color: var(--accent); }
 .bp-wet { fill: #d8a63a; stroke: #fff5d6; stroke-width: 1; opacity: 0; animation: bp-show 0.01s linear var(--land) both; }
 /* A ball that goes in floats in the cup (it lands at --land, set by the screen), with a ripple on
    the beer and drops thrown up out of the cup. */

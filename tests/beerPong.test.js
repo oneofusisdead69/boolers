@@ -52,7 +52,7 @@ test('a ball in a cup takes it off and the other team drinks; both in is balls b
 });
 
 test('the rack is tidied at 6 and 3; the last cup wins, and the losers finish their drinks', () => {
-  const t = ready([['p0'], ['p1']]);
+  const t = ready([['p0'], ['p1']], { rebuttals: false });
   const g = t.room.game;
   g.cups[1] = game.rack(10).slice(0, 7);
   throwAt(t, at(g.cups[1][6]));
@@ -71,6 +71,41 @@ test('the rack is tidied at 6 and 3; the last cup wins, and the losers finish th
   throwAt(t, at(g.cups[1][0]));
   assert.strictEqual(g.phase, 'over');
   assert.strictEqual(t.view(1).winner, 0);
+});
+
+test('rebuttal: the team that lost its last cup throws on; a miss ends it', () => {
+  const t = ready([['p0', 'p2'], ['p1', 'p3']]);
+  const g = t.room.game;
+  g.cups[0] = game.rack(10).slice(0, 2);
+  g.cups[1] = [{ x: 0, y: 0.1, owner: 'p1' }];
+  throwAt(t, at(g.cups[1][0]));
+  assert.strictEqual(g.phase, 'throwing', 'not over yet: a rebuttal');
+  assert.deepStrictEqual(t.view(0).rebuttal, { for: 0, left: 2 });
+  assert.strictEqual(g.turnTeam, 1);
+  throwAt(t, at(g.cups[0][0]));
+  assert.strictEqual(g.phase, 'throwing', 'a hit: the next ball');
+  assert.strictEqual(g.turnId, 'p3', 'teammates take turns');
+  throwAt(t, miss);
+  assert.strictEqual(g.phase, 'over');
+  assert.strictEqual(t.view(0).winner, 0);
+  assert.strictEqual(t.view(0).comeback, false);
+  assert.deepStrictEqual(t.room.players.map((p) => p.finished || 0), [0, 1, 0, 1], 'Blue finish their drinks');
+});
+
+test('rebuttal: sink every cup without a miss and you win', () => {
+  const t = ready([['p0'], ['p1']]);
+  const g = t.room.game;
+  g.cups[0] = game.rack(10).slice(0, 3);
+  g.cups[1] = [{ x: 0, y: 0.1, owner: 'p1' }];
+  throwAt(t, at(g.cups[1][0]));
+  for (let n = 0; n < 3; n++) {
+    assert.strictEqual(g.balls, 3 - n, 'balls left: every cup still to sink');
+    throwAt(t, at(g.cups[0][0]));
+  }
+  assert.strictEqual(g.phase, 'over');
+  assert.strictEqual(t.view(0).winner, 1);
+  assert.strictEqual(t.view(0).comeback, true);
+  assert.strictEqual(t.room.players[0].finished, 1);
 });
 
 test('too soft falls short, too hard goes long', () => {

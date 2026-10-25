@@ -4,6 +4,10 @@
 // player's colour): a ball in your cup takes it off the table, and you drink.
 // Both balls in: balls back, go again. Down to 6 cups a team's rack is tidied back into a
 // triangle; at 2, into the gentleman's (two in a line, one behind the other). Sink the other team's last cup to win; the losers finish their drinks.
+// With rebuttals on, the team that's lost its last cup gets one more turn: sink every cup they
+// have left to hit, ball after ball without a miss, and they win instead.
+//
+//   g.rebuttal: { for: the team that cleared the rack (it wins on a miss) } while one's on.
 //
 // The rack is drawn in its own units: x across (-0.5 to 0.5), y back from the front row (0 to
 // about 0.6), cups CUP_R across. The server works out where each ball lands from the throw.
@@ -108,11 +112,17 @@ function settle(room, ctx, player, hit) {
     ctx.log(room, `🏓 ${player.name} sinks ${owner ? `${ctx.name(room, owner)}'s cup` : 'one'}! ${cups.length} left for Team ${TEAMS[target].name}`);
     for (const id of owner ? [owner] : g.teams[target]) ctx.drink(room, id, g.sips, `${player.name} sank your cup`, me);
     if (!cups.length) {
-      g.phase = 'over';
-      g.winner = g.turnTeam;
-      ctx.log(room, `🏆 Team ${TEAMS[g.winner].name} wins beer pong!`);
-      for (const id of g.teams[target].filter((x) => ctx.turns.isActive(room, x))) ctx.finishDrink(room, id, 'lost beer pong');
-      return;
+      // The rebuttal team cleared the lot: they win. Otherwise it's the other team's rebuttal
+      // (if on).
+      if (g.rebuttal) return finish(room, ctx, g.turnTeam, true);
+      if (g.rebuttals) {
+        g.rebuttal = { for: g.turnTeam };
+        ctx.log(room, `🔁 Rebuttal! Team ${TEAMS[target].name}: sink all ${g.cups[g.turnTeam].length} of Team ${TEAMS[g.turnTeam].name}'s cups without a miss`);
+        startTurn(room, ctx, target);
+        g.balls = g.cups[g.rebuttal.for].length;
+        return;
+      }
+      return finish(room, ctx, g.turnTeam);
     }
     if (g.rerack && [6, 2].includes(cups.length)) {
       g.cups[target] = deal(rack(cups.length), g.teams[target]);
@@ -122,6 +132,13 @@ function settle(room, ctx, player, hit) {
     ctx.log(room, `😩 ${player.name} rims out`);
   }
 
+  // A rebuttal: a miss ends it; after a hit, the next ball.
+  if (g.rebuttal) {
+    if (hit === null) return finish(room, ctx, g.rebuttal.for);
+    g.balls = cups.length;
+    g.turnId = nextThrower(room, ctx, g, g.turnTeam);
+    return;
+  }
   if (g.balls > 0) {
     g.turnId = nextThrower(room, ctx, g, g.turnTeam);
   } else if (g.sunk === 2) {
@@ -151,6 +168,17 @@ function pickCup(cups, skill) {
   return cups.slice().sort((a, b) => around(b) - around(a) || a.y - b.y || Math.abs(a.x) - Math.abs(b.x))[0];
 }
 
+// The game's won: the losers finish their drinks (those still here).
+function finish(room, ctx, winner, comeback = false) {
+  const g = room.game;
+  g.phase = 'over';
+  g.winner = winner;
+  g.comeback = comeback;
+  g.rebuttal = null;
+  ctx.log(room, comeback ? `🔥 Team ${TEAMS[winner].name} wins it on the rebuttal!` : `🏆 Team ${TEAMS[winner].name} wins beer pong!`);
+  for (const id of g.teams[1 - winner].filter((x) => ctx.turns.isActive(room, x))) ctx.finishDrink(room, id, 'lost beer pong');
+}
+
 module.exports = {
   id: 'beerPong',
   name: 'Beer Pong',
@@ -160,6 +188,7 @@ module.exports = {
     'Each of you throws a ball on your team’s turn. Your team’s cups are in your colours: sink one and its owner drinks.',
     'Both balls in: balls back, go again. At 6 cups the rack is tidied up; at 2, the gentleman’s: two in a line.',
     'Sink their last cup to win. The losers finish their drinks.',
+    'Rebuttal: lose your last cup and your team throws on, ball after ball. Sink all their cups without a miss and you win instead.',
   ],
   bestWithTv: true,
   minPlayers: 2,
@@ -172,6 +201,7 @@ module.exports = {
       default: 'normal',
       choices: [{ value: 'steady', label: 'Steady' }, { value: 'normal', label: 'Normal' }, { value: 'wobbly', label: 'Wobbly' }],
     },
+    { id: 'rebuttals', label: 'Rebuttal', default: true, choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }] },
     { id: 'rerack', label: 'Re-racks', default: true, choices: [{ value: true, label: 'At 6 and 2' }, { value: false, label: 'Off' }] },
   ],
 
@@ -180,6 +210,8 @@ module.exports = {
       sips: [1, 2, 3].includes(options.sips) ? options.sips : 1,
       wobble: WOBBLE[options.wobble] ? options.wobble : 'normal',
       rerack: options.rerack !== false,
+      rebuttals: options.rebuttals !== false,
+      rebuttal: null,
       throwNo: 0,
       last: null,
     });
@@ -272,6 +304,9 @@ module.exports = {
       last: g.last,
       ballsBack: g.ballsBack || null,
       winner: g.winner,
+      // A rebuttal on: whose rack it is, and how many cups are still to sink, without a miss.
+      rebuttal: g.rebuttal ? { for: g.rebuttal.for, left: g.cups[g.rebuttal.for].length } : null,
+      comeback: !!g.comeback,
       aim: g.aim || null,
       sips: g.sips,
       cupR: CUP_R,
