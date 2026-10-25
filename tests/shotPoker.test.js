@@ -162,3 +162,21 @@ test("tonight's tab counts every sip and finished drink across games", () => {
   assert.strictEqual(t.room.players[0].total, 1);
   assert.strictEqual(t.room.players[1].finished, 1);
 });
+
+test('bots fold rags to a raise, play Aces, pay their tab and deal', () => {
+  const t = setup(game, 2);
+  const g = t.room.game;
+  t.room.hostId = 'nobody';
+  rig(t, ['AS AH', '7C 2D'], '9C 9D 4S KH 3C');
+  assert.strictEqual(g.turnId, 'p0');
+  assert.strictEqual(t.bot(1, 1), null, 'not its turn');
+  assert.notStrictEqual(t.bot(0, 1).type, 'fold', 'Aces play');
+  t.act(0, 'raise', { to: 3 });
+  assert.deepStrictEqual(t.bot(1, 1), { type: 'fold' }, '7-2 is not worth 3 more sips');
+  t.act(1, 'fold');
+  assert.deepStrictEqual(t.bot(1), { type: 'paid' }, 'debts are paid right away');
+  assert.strictEqual(t.bot(0), null, 'the next dealer waits for the tab');
+  t.act(1, 'paid');
+  assert.deepStrictEqual(t.bot(0), { type: 'deal' }, 'p0 deals next');
+  assert.strictEqual(t.bot(1), null);
+});

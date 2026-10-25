@@ -343,6 +343,72 @@ function startPile(room, ctx) {
   if (!checkEnd(room, ctx)) startTurn(room, ctx, nextTurn(room, ctx, g, winnerId));
 }
 
+// ---------- Bots ----------
+
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+
+// The call most likely to be right against the top card, from what's face up: the cards played
+// on this pile are gone, the rest (hands and the pile underneath) could be anything. Suits are
+// right a quarter of the time and cost double, so they're never the best call.
+function bestCall(g) {
+  const prev = top(g);
+  const left = newDeck({ decks: g.decks });
+  for (const c of g.run) {
+    const i = left.findIndex((x) => x.rank === c.rank && x.suit === c.suit);
+    if (i >= 0) left.splice(i, 1);
+  }
+  const odds = ['same', 'different', 'higher', 'lower'].map((call) => ({
+    call,
+    p: left.filter((c) => callIsRight(call, c, prev)).length,
+  }));
+  return odds.reduce((best, o) => (o.p > best.p ? o : best)).call;
+}
+
+// Wars are coin flips: even on cards, but a chance to swing. The player behind wants that chance;
+// the one ahead doesn't. An out player has nothing to lose but a drink.
+const wantsWar = (g, me, rivalId) => count(g, me) === 0 || count(g, me) < count(g, rivalId);
+
+function bot(room, me, ctx, skill) {
+  const g = room.game;
+  const w = g.war;
+  const id = me.id;
+  const smart = Math.random() < skill;
+
+  if (g.phase === 'call' && id === g.turnId && count(g, id) > 0) {
+    return { type: 'call', call: smart ? bestCall(g) : pickOne(CALLS) };
+  }
+  if (g.phase === 'challenge' && id !== g.lastFlip.by && !g.passed.includes(id)) {
+    const war = smart ? wantsWar(g, id, g.lastFlip.by) : Math.random() < 0.4;
+    return { type: war ? 'war' : 'pass' };
+  }
+  if (g.phase === 'pick' && id === g.lastFlip.by) {
+    const targets = holders(room, g).filter((pid) => pid !== id);
+    if (!targets.length) return null;
+    // A good bot takes on the leader: winning hurts the biggest stack most.
+    const leader = targets.reduce((a, b) => (count(g, b) > count(g, a) ? b : a));
+    return { type: 'pick', targetId: smart ? leader : pickOne(targets) };
+  }
+  if (g.phase === 'terms') {
+    if (id === w.challengers[0]) {
+      // Every round is a blind call either way; high/low is always allowed.
+      const terms = w.challengers.length > 1 || smart ? 'high' : pickOne(['high', 'color']);
+      return { type: 'terms', terms };
+    }
+    if (!w.final && !warPlayers(w).includes(id) && count(g, id) > 0) {
+      // Join when behind everyone in it (a good bot); a bad one sometimes piles in anyway.
+      const behind = warPlayers(w).every((pid) => count(g, id) < count(g, pid));
+      if (smart ? behind : Math.random() < 0.25) return { type: 'join', delay: 500 + Math.random() * 800 };
+    }
+    return null;
+  }
+  // The laid-out cards are face down: any call is a guess.
+  if (g.phase === 'war' && id === w.callerId) {
+    return { type: 'warCall', call: pickOne(w.terms === 'color' ? ['same', 'different'] : ['high', 'low']) };
+  }
+  if (g.phase === 'warResult' && id === w.winnerId) return { type: 'startPile' };
+  return null;
+}
+
 // ---------- Module ----------
 
 module.exports = {
@@ -501,6 +567,8 @@ module.exports = {
       finalBattle: g.finalBattle,
     };
   },
+
+  bot,
 
   callIsRight,
 };

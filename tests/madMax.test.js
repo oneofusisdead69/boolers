@@ -467,3 +467,24 @@ test('a tied war with nobody holding a card takes the tiebreak cards from the pi
   assert.ok(['warResult', 'over'].includes(g.phase), 'the tiebreak was played with real cards and settled (here, with every card won, the game)');
   t.cleanup();
 });
+
+test('bots: a sharp bot calls the odds on its turn only, and calls war when it is behind', () => {
+  const t = setup(game, 3, { finalBattle: false });
+  rig(t, [[c(9, 'H')], [c(2, 'S'), c(4, 'S')], [c(3, 'S')]], [c(3, 'D')]);
+  assert.strictEqual(t.bot(1, 1), null, 'not its turn');
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'call', call: 'higher' }, 'higher on a 3');
+  t.room.game.run = [c(13, 'D')];
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'call', call: 'lower' }, 'lower on a king');
+  t.room.game.run = [c(8, 'D')];
+  assert.ok(['same', 'different'].includes(t.bot(0, 1).call), 'colour on an 8');
+
+  // A 9 on an 8 is one off: anyone may call war on the flipper. Behind the flipper, a bot wants
+  // the war; ahead of it, it doesn't.
+  t.act(0, 'call', { call: 'higher' });
+  assert.strictEqual(t.room.game.phase, 'challenge');
+  assert.strictEqual(t.bot(0, 1), null, 'the flipper cannot challenge');
+  assert.strictEqual(t.bot(1, 1).type, 'pass', 'two cards against none: pass');
+  t.room.game.hands.p0.push(c(5, 'C'), c(6, 'C'));
+  assert.strictEqual(t.bot(2, 1).type, 'war', 'one card against two: war');
+  t.cleanup();
+});

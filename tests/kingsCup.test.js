@@ -225,3 +225,34 @@ test('break the circle can be switched off; spots wrap round the ring', () => {
   assert.strictEqual(u.room.game.broke, true);
   u.cleanup();
 });
+
+test('bots draw away from the gaps, hand sips to humans, make rules and race', () => {
+  const t = setup(game, 3);
+  const g = t.room.game;
+  t.player(0).bot = 'booler';
+  t.player(2).bot = 'npv';
+  assert.strictEqual(t.bot(1), null, 'not its turn');
+  g.taken = [5];
+  const draw = t.bot(0, 1);
+  assert.strictEqual(draw.type, 'draw');
+  assert.ok(![4, 5, 6].includes(draw.slot), 'a good bot keeps the circle whole');
+  drawAs(t, 0, c(2));
+  assert.deepStrictEqual(t.bot(0, 0.9), { type: 'pick', targetId: 'p1' }, 'the human drinks, not the other bot');
+  t.act(0, 'pick', { targetId: 'p1' });
+  assert.deepStrictEqual(t.bot(0), { type: 'next' });
+  t.act(0, 'next');
+  drawAs(t, 1, c(5));
+  t.act(1, 'next');
+  drawAs(t, 2, c(11));
+  const rule = t.bot(2, 0.25);
+  assert.strictEqual(rule.type, 'rule');
+  t.act(2, 'rule', { text: rule.text });
+  assert.strictEqual(g.rules.length, 1);
+  t.act(2, 'next');
+  drawAs(t, 0, c(7));
+  const quick = t.bot(0, 0.9);
+  const slow = t.bot(2, 0.25);
+  assert.strictEqual(quick.type, 'tap');
+  assert.ok(quick.delay < slow.delay && slow.delay < 10000, 'a good bot taps first, a bad one still beats the clock');
+  t.cleanup();
+});

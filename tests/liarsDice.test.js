@@ -155,3 +155,21 @@ test('a bidder who disconnects is skipped, and late joiners watch', () => {
   t.act(2, 'bid', { qty: 2, face: 2 });
   assert.strictEqual(t.room.game.turnId, 'p0', 'the newcomer has no dice to bid with');
 });
+
+test('bots bid on what they hold and call long bids', () => {
+  const t = setup(game, 2, { spotOn: false });
+  const g = t.room.game;
+  t.room.hostId = 'nobody';
+  rig(t, [[2, 2, 3, 3, 4], [5, 5, 5, 5, 5]]);
+  assert.strictEqual(t.bot(1, 1), null, 'not its turn');
+  t.act(0, 'bid', { qty: 2, face: 5 });
+  const raise = t.bot(1, 1);
+  assert.strictEqual(raise.type, 'bid', 'holding five 5s, two 5s is no lie');
+  assert.ok(game.validBid(raise, g.bid, 10, true));
+  t.act(1, 'bid', { qty: 10, face: 6 });
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'liar' }, 'no 6s or 1s in hand: ten 6s is a lie');
+  t.act(0, 'liar');
+  assert.strictEqual(g.nextStarter, 'p1');
+  assert.strictEqual(t.bot(0), null, 'the loser starts the next round');
+  assert.deepStrictEqual(t.bot(1), { type: 'next' });
+});

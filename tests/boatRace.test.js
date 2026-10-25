@@ -71,3 +71,27 @@ test('who goes twice: anyone on the short team picks, and moving players clears 
   assert.deepStrictEqual(g.twice, {});
   assert.deepStrictEqual(t.view(0).short, [1]);
 });
+
+test('bots sit the boat race out: they are never dealt onto a team', () => {
+  const t = setup(game, 2, { teams: 2 });
+  t.room.players.push({ id: 'b0', name: 'Booler', bot: 'booler', drinks: 0, connected: true });
+  t.act(0, 'shuffle');
+  assert.deepStrictEqual(t.room.game.teams.flat().sort(), ['p0', 'p1']);
+  game.onJoin(t.room, t.room.players[2]);
+  assert.deepStrictEqual(t.room.game.teams.flat().sort(), ['p0', 'p1']);
+});
+
+test('bots cheer from the side while the race is on, a couple of times each', () => {
+  const t = setup(game, 2, { teams: 2 });
+  t.room.players.push({ id: 'b0', name: 'Booler', bot: 'booler', drinks: 0, connected: true });
+  assert.strictEqual(t.bot(2), null, 'nothing to cheer yet');
+  t.act(0, 'go');
+  for (let i = 0; i < 5; i++) {
+    const move = t.bot(2);
+    if (move) t.act(2, move.type);
+  }
+  assert.strictEqual(t.room.feed.filter((f) => /Booler:/.test(f.text ?? f)).length, 2);
+  assert.strictEqual(t.bot(2), null);
+  t.act(0, 'cheer');
+  assert.strictEqual(t.room.feed.filter((f) => /Booler:/.test(f.text ?? f)).length, 2, 'only bots cheer');
+});

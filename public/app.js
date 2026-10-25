@@ -411,6 +411,16 @@ function renderHome() {
   if (!seat) (urlRoom && !savedName ? $name : urlRoom ? $code : $name).focus();
 }
 
+// Bots the host can add (lib/bots.js), up to three.
+const BOT_LEVELS = { booler: { name: 'Booler', tag: 'great' }, baller: { name: 'Baller', tag: 'medium' }, npc: { name: 'NPC', tag: 'bad' } };
+function botRow(s) {
+  if (!s.isHost) return '';
+  const count = s.players.filter((p) => p.bot).length;
+  if (count >= 3) return '<p class="muted bot-row">🤖 Three bots is the most a room can have.</p>';
+  return `<div class="bot-row"><span class="muted">Add a bot</span><div class="segmented">${Object.entries(BOT_LEVELS).map(([level, b]) => `
+    <button class="secondary" data-cmd="addBot" data-level="${level}">${b.name}<small>${b.tag}</small></button>`).join('')}</div></div>`;
+}
+
 function playerList({ showKick }) {
   const s = PB.state;
   return `<ul class="players">${s.players.map((p) => `
@@ -418,6 +428,7 @@ function playerList({ showKick }) {
       ${p.id === s.me ? `<button class="av-btn" data-look aria-label="Change your avatar">${PB.avatar(p.id)}</button>` : PB.avatar(p.id)}
       <span class="name">${PB.esc(p.name)}${p.id === s.me ? ' (you) <small class="muted">tap your avatar to change it</small>' : ''}</span>
       ${p.id === s.hostId ? '<span class="tag">👑 host</span>' : ''}
+      ${p.bot ? `<span class="tag bot">🤖 ${PB.esc(BOT_LEVELS[p.bot]?.tag || 'bot')}</span>` : ''}
       ${!p.connected ? '<span class="tag">offline</span>' : ''}
       ${showKick && p.id !== s.me ? `<button class="kick" data-cmd="kick" data-player-id="${PB.esc(p.id)}" data-confirm="Remove ${PB.esc(p.name)}?">✕</button>` : ''}
     </li>`).join('')}</ul>`;
@@ -491,6 +502,7 @@ function renderLobby() {
     <div class="card ls-l">
       <h2 class="players-head">Players (${s.players.length})${PB.tvBadge()}</h2>
       ${playerList({ showKick: host })}
+      ${botRow(s)}
     </div>
     <div class="card">
       ${host ? Trip.toggle() : ''}

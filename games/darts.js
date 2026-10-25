@@ -226,6 +226,61 @@ function apply(room, ctx, me, seg) {
   return '';
 }
 
+// Bots. A bot's flick goes wrong like a person's: it leans off straight and comes out too hard or
+// too soft, by less the better the bot (at 0.9 about 2° and 4%, at 0.25 about 9° and 23%).
+function flick(skill) {
+  return {
+    angle: gauss() * (1 + 11 * Math.pow(1 - skill, 1.2)),
+    speed: 1 + gauss() * (0.02 + 0.3 * Math.pow(1 - skill, 1.3)),
+  };
+}
+
+// The middle of a segment to aim at: number n (or 25 for the bull) times m.
+function spotFor(n, m) {
+  if (n === 25) return m === 2 ? { x: 0, y: 0 } : { x: 0, y: -(RINGS.bull + RINGS.outerBull) / 2 };
+  // Singles: the inner single, well away from the edge of the board (a miss is a sip).
+  const r = m === 3 ? (RINGS.tripleIn + RINGS.tripleOut) / 2 : m === 2 ? (RINGS.doubleIn + 1) / 2 : (RINGS.outerBull + RINGS.tripleIn) / 2;
+  const a = (SECTORS.indexOf(n) * 18 * Math.PI) / 180;
+  return { x: Math.sin(a) * r, y: -Math.cos(a) * r };
+}
+
+// x01: what to go for with `left` to go. Out of range, the big scores (treble 20, or the single
+// for a bot that can't hit trebles); close in, the finish, or a single that leaves one.
+function x01Target(left, doubleOut, good) {
+  const big = good ? [20, 3] : [20, 1];
+  if (left === 50) return [25, 2];
+  if (left <= 40 && left % 2 === 0) return [left / 2, 2];
+  if (!doubleOut) {
+    if (left <= 20) return [left, 1];
+    if (left === 25) return [25, 1];
+    if (left <= 60 && left % 3 === 0) return [left / 3, 3];
+    if (left <= 60) return [Math.min(20, left - 20), 1];
+    return big;
+  }
+  // Double out: an odd number leaves an even one (32 is a nice double to be on).
+  if (left <= 40) return [1, 1];
+  if (left <= 52) return [left - 32, 1];
+  if (left <= 60) return [left - 40, 1];
+  return big;
+}
+
+// Cricket: the highest number still worth hitting. First the ones I haven't closed; then ones I
+// have that someone else hasn't (they score).
+function cricketTarget(room, ctx, g, me) {
+  const mine = g.marks[me];
+  const open = CRICKET.find((n) => mine[n] < 3);
+  if (open) return open;
+  return CRICKET.find((n) => others(room, ctx, g, me).some((id) => g.marks[id][n] < 3)) || 20;
+}
+
+// Who a bot hands sips to: someone at random, a human if there is one.
+function pickTarget(room, ctx, me) {
+  const pool = ctx.connectedPlayers(room).filter((p) => p.id !== me);
+  const humans = pool.filter((p) => !p.bot);
+  const from = humans.length ? humans : pool;
+  return from.length ? from[Math.floor(Math.random() * from.length)].id : null;
+}
+
 module.exports = {
   id: 'darts',
   name: 'Darts',
@@ -335,6 +390,27 @@ module.exports = {
     } else if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) {
       afterTurn(room, ctx);
     }
+  },
+
+  // A bot throws on its turn at what's worth going for in this mode (good ones go for trebles,
+  // bad ones the bigger singles), and hands out its sips when it's won some.
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    if (g.phase === 'give' && g.give?.from === me.id) {
+      const targetId = pickTarget(room, ctx, me.id);
+      return targetId ? { type: 'give', targetId } : null;
+    }
+    if (g.phase !== 'throwing' || thrower(g) !== me.id) return null;
+    const good = skill >= 0.5;
+    let target = good ? [20, 3] : [20, 1];
+    if (g.mode === 'x01') target = x01Target(g.left[me.id], g.doubleOut, good);
+    // Around the clock any of the number counts: the treble ring is the middle of its wedge.
+    else if (g.mode === 'clock') target = g.target[me.id] > 20 ? [25, 2] : [g.target[me.id], 3];
+    else if (g.mode === 'cricket') {
+      const n = cricketTarget(room, ctx, g, me.id);
+      target = n === 25 ? [25, 2] : [n, good ? 3 : 1];
+    }
+    return { type: 'throw', ...spotFor(...target), ...flick(skill) };
   },
 
   // A thrower or giver who leaves doesn't hold up the game.

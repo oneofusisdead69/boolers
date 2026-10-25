@@ -127,6 +127,115 @@ function busType(g) {
   return g.busGuess;
 }
 
+// ---------- Bots ----------
+
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+
+// Someone else at random to give sips to, a human when there is one.
+function pickTarget(room, meId) {
+  const others = room.players.filter((p) => p.id !== meId);
+  const humans = others.filter((p) => !p.bot);
+  return pickOne(humans.length ? humans : others)?.id || null;
+}
+
+const decksFor = (g) => (g.order.length > 8 ? 2 : 1);
+const sameCard = (a, b) => a.rank === b.rank && a.suit === b.suit;
+
+// What's still unseen from bot `meId`'s seat: the deck(s) less its own hand, the flipped pyramid
+// cards, the bus cards turned up and any played card it was shown.
+function unseen(g, meId) {
+  const seen = [...(g.hands[meId] || [])];
+  if (g.pyramid) {
+    for (let n = 0; n < g.pyramid.flipped; n++) seen.push(pyramidSpot(g, n).card);
+    for (const p of g.pyramid.plays) if (!g.bluff || p.by === meId || p.status === 'honest' || p.status === 'bluff') seen.push(p.card);
+  }
+  if (g.bus) seen.push(g.bus.start, ...g.bus.row.slice(0, g.bus.pos));
+  const left = newDeck({ decks: decksFor(g) });
+  for (const c of seen) {
+    const i = left.findIndex((x) => sameCard(x, c));
+    if (i >= 0) left.splice(i, 1);
+  }
+  return left;
+}
+
+// The guess most likely to be right for the next card against `refs`, or a random one, by skill.
+function guessFor(g, meId, type, refs, skill) {
+  if (Math.random() >= skill) return pickOne(GUESSES[type]);
+  const left = unseen(g, meId);
+  const odds = GUESSES[type].map((guess) => ({ guess, n: left.filter((c) => guessRight(type, guess, c, refs)).length }));
+  return odds.reduce((best, o) => (o.n > best.n ? o : best)).guess;
+}
+
+// How likely the player behind a pyramid play really holds the rank: the copies this bot hasn't
+// seen, spread at random over the unseen cards, and the player had `hand` of them.
+function honestOdds(g, meId, play) {
+  const rank = pyramidSpot(g, play.flip - 1).card.rank;
+  const left = unseen(g, meId);
+  const copies = left.filter((c) => c.rank === rank).length;
+  const hand = g.hands[play.by].length + 1;
+  let none = 1;
+  for (let k = 0; k < hand; k++) none *= Math.max(0, left.length - copies - k) / Math.max(1, left.length - k);
+  return 1 - none;
+}
+
+// A steady coin for a bot's choice about one flip: the same each time it's asked, so a bot that
+// "didn't notice" its match goes on not noticing (and the host bot then turns the next card).
+function steady(text) {
+  let h = 2166136261;
+  for (const ch of text) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) / 2 ** 32;
+}
+
+function bot(room, me, ctx, skill) {
+  const g = room.game;
+  const id = me.id;
+
+  if (g.phase === 'guess' && id === g.order[g.turnIdx]) {
+    return { type: 'guess', guess: guessFor(g, id, ROUND_TYPES[g.round], g.hands[id], skill) };
+  }
+  if (g.phase === 'give' && id === g.give.from) {
+    const targetId = pickTarget(room, id);
+    return targetId ? { type: 'give', targetId } : null;
+  }
+  if (g.phase === 'bus' && id === g.bus.riderId) {
+    const b = g.bus;
+    return { type: 'busGuess', guess: guessFor(g, id, busType(g), [b.start, ...b.row.slice(0, b.pos)], skill) };
+  }
+  if (g.phase !== 'pyramid') return null;
+
+  // Bluffs aimed at this bot: call when it's more likely a bluff than not (calling wrong costs
+  // double, accepting costs single, so it's a call below even odds). A bad bot guesses.
+  const claim = g.pyramid.plays.find((p) => p.status === 'pending' && p.targetId === id);
+  if (claim) {
+    const call = Math.random() < skill ? honestOdds(g, id, claim) < 0.5 : Math.random() < 0.5;
+    return { type: call ? 'callBluff' : 'accept', playId: claim.id };
+  }
+
+  const spot = currentSpot(g);
+  const hand = g.hands[id];
+  // Every card dumped is one fewer for the bus. A bad bot sometimes doesn't notice its match.
+  const noticed = steady(`${id}:${g.pyramid.flipped}`) < 0.5 + skill / 2;
+  if (spot) {
+    const match = hand.findIndex((c) => c.rank === spot.card.rank);
+    const targetId = pickTarget(room, id);
+    if (match >= 0 && targetId && noticed) return { type: 'play', cardIdx: match, targetId };
+    // Bluffing: once a flip at most, and a good bot keeps it to the cheap rows near the bottom.
+    const bluffed = g.pyramid.plays.some((p) => p.by === id && p.flip === g.pyramid.flipped);
+    const asked = match < 0 && g.bluff && hand.length && !bluffed && targetId;
+    if (asked && spot.sips <= (skill > 0.5 ? 2 : g.rows) && Math.random() < 0.25) {
+      return { type: 'play', cardIdx: Math.floor(Math.random() * hand.length), targetId };
+    }
+  }
+
+  // The host turns the next card once nobody's waiting on a bot to answer a bluff (and this bot
+  // has nothing more to play).
+  if (room.hostId === id) {
+    const waiting = g.pyramid.plays.some((p) => p.status === 'pending' && room.players.find((x) => x.id === p.targetId)?.bot);
+    if (!waiting && !(spot && noticed && hand.some((c) => c.rank === spot.card.rank))) return { type: 'flip' };
+  }
+  return null;
+}
+
 // ---------- Module ----------
 
 module.exports = {
@@ -330,6 +439,8 @@ module.exports = {
       busGuess: g.busGuess,
     };
   },
+
+  bot,
 
   guessRight,
 };

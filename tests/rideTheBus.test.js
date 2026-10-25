@@ -209,3 +209,45 @@ test('a random full game always reaches the end', () => {
     t.cleanup();
   }
 });
+
+test('bots: a sharp bot guesses the odds on its turn only and gives sips to a human', () => {
+  const t = setup(game, 3);
+  const g = t.room.game;
+  t.player(0).bot = 'booler';
+  t.player(2).bot = 'npv';
+  assert.strictEqual(t.bot(1, 1), null, 'not its turn');
+  g.hands.p0.push(c(5, 'H'), c(3, 'S'));
+  g.round = 1;
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'guess', guess: 'higher' }, 'higher than a 3');
+  g.hands.p0[1] = c(13, 'S');
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'guess', guess: 'lower' }, 'lower than a king');
+  g.round = 2; // 5 and king: more ranks inside than out
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'guess', guess: 'inside' });
+  g.hands.p0[1] = c(6, 'S'); // 5 and 6: nothing inside
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'guess', guess: 'outside' });
+
+  g.round = 0;
+  deal(t, c(9, 'D'));
+  t.act(0, 'guess', { guess: 'red' });
+  assert.strictEqual(g.phase, 'give');
+  for (let n = 0; n < 10; n++) assert.deepStrictEqual(t.bot(0, 0.25), { type: 'give', targetId: 'p1' });
+  t.cleanup();
+});
+
+test('bots: in the pyramid a bot plays its match, and calls a bluff that cannot be true', () => {
+  const t = setup(game, 2, { bluff: true });
+  const g = t.room.game;
+  g.order.forEach((id, i) => { g.hands[id] = i ? [c(2, 'C')] : [c(7, 'H'), c(9, 'S')]; });
+  g.round = 4;
+  g.pyramid = { rows: [[c(9, 'D'), c(4, 'D')], [c(5, 'D')]], flipped: 1, plays: [] };
+  g.phase = 'pyramid';
+  for (let n = 0; n < 10; n++) {
+    const a = t.bot(0, 1);
+    assert.ok(a.type === 'play' && a.cardIdx === 1 && a.targetId === 'p1', 'plays the 9');
+  }
+  // p1 plays a "9" to p0, who holds the other three 9s (the fourth is the pyramid card): a bluff.
+  g.hands.p0.push(c(9, 'H'), c(9, 'C'));
+  t.act(1, 'play', { cardIdx: 0, targetId: 'p0' });
+  assert.deepStrictEqual(t.bot(0, 1), { type: 'callBluff', playId: 0 });
+  t.cleanup();
+});

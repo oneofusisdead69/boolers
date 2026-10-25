@@ -229,6 +229,47 @@ const unpaid = (room, ctx) => Object.entries(room.game.debts)
   .filter(([id, d]) => !d.paid && ctx.turns.isActive(room, id))
   .map(([id]) => id);
 
+// ---------- Bots ----------
+
+// A bot's rough read of its hand: the chance it beats one random hand, from its own two cards and
+// the board (never the deck, so no peeking at what's to come). Played out deals would be truer
+// but far too slow to run on every turn; this is close enough to bet on.
+function headsUp(hole, board) {
+  const [hi, lo] = hole.map((c) => c.rank).sort((a, b) => b - a);
+  if (!board.length) {
+    if (hi === lo) return 0.47 + ((hi - 2) / 12) * 0.38; // 2s ~ even, Aces ~ 85%
+    const suited = hole[0].suit === hole[1].suit ? 0.03 : 0;
+    const connected = hi - lo <= 2 ? 0.02 : 0;
+    return 0.3 + ((hi - 2) / 12) * 0.25 + ((lo - 2) / 12) * 0.1 + suited + connected;
+  }
+  const [cat, top] = bestHand([...hole, ...board]).score;
+  // What the board makes on its own counts for everyone: only what the bot's cards add is its edge.
+  const boardCat = board.length === 5 ? score5(board)[0] : boardGroups(board);
+  const made = cat > boardCat ? cat : 0;
+  let p = [0.3, 0.55, 0.8, 0.88, 0.92, 0.94, 0.97, 0.99, 0.995][made];
+  if (made === 1) p += ((top - 2) / 12) * 0.2; // a pair of Aces beats a pair of 3s
+  if (made === 0) p += ((hi - 2) / 12) * 0.12;
+  // Draws are worth something while cards are still to come.
+  const left = 5 - board.length;
+  if (left && made < 4) {
+    const all = [...hole, ...board];
+    const flushDraw = hole.some((h) => all.filter((c) => c.suit === h.suit).length === 4);
+    const ranks = new Set(all.map((c) => c.rank));
+    if (ranks.has(14)) ranks.add(1);
+    const straightDraw = [...ranks].some((r) => [1, 2, 3].every((k) => ranks.has(r + k)));
+    p += (flushDraw ? 0.08 : 0) * left + (straightDraw ? 0.05 : 0) * left;
+  }
+  return Math.min(0.995, p);
+}
+
+// The best category the board's own ranks make before it has five cards: trips, two pair, a pair.
+function boardGroups(board) {
+  const counts = Object.values(board.reduce((m, c) => ({ ...m, [c.rank]: (m[c.rank] || 0) + 1 }), {})).sort((a, b) => b - a);
+  if (counts[0] >= 3) return 3;
+  if (counts[0] === 2) return counts[1] === 2 ? 2 : 1;
+  return 0;
+}
+
 // ---------- Module ----------
 
 module.exports = {
@@ -323,6 +364,49 @@ module.exports = {
   // Late joiners sit out until the next hand.
   onJoin(room, player) {
     room.game.order.push(player.id);
+  },
+
+  // A bot weighs its chance of winning against what calling costs: folding drinks what it's in
+  // for, calling and losing drinks that plus the call. Skill is how well it reads its hand, how
+  // tight it plays and how often it bluffs; a bad bot calls too much and now and then does
+  // something at random.
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    const id = me.id;
+    // Tabs are paid straight away, and the next dealer deals once everyone's settled.
+    if (g.debts?.[id] && !g.debts[id].paid) return { type: 'paid' };
+    if (g.phase === 'showdown') {
+      const dealer = id === room.hostId || id === ctx.turns.next(room, g.order, g.dealerId);
+      return dealer && !unpaid(room, ctx).length && ctx.connectedPlayers(room).length >= 2 ? { type: 'deal' } : null;
+    }
+    if (g.phase !== 'betting' || id !== g.turnId) return null;
+
+    const toCall = g.currentBet - g.roundBet[id];
+    const most = g.roundBet[id] + (g.cap - g.committed[id]);
+    const canRaise = most > g.currentBet;
+    const opponents = alive(g).length - 1;
+    const sloppy = 1 - skill;
+    // To win it has to beat everyone still in; a bad bot's read of that is way off.
+    const read = Math.min(1, Math.max(0, headsUp(g.hands[id], g.community) + (Math.random() - 0.5) * sloppy * 0.4));
+    const win = read ** opponents;
+    // 1 is an average hand at this table; 2 wins twice its share.
+    const strength = win * (opponents + 1);
+    const raise = () => {
+      const size = Math.max(1, Math.round((strength - 1) * g.perShot * Math.random() + Math.random() * 2));
+      return { type: 'raise', to: Math.min(most, g.currentBet + size) };
+    };
+    const stay = toCall ? { type: 'call' } : { type: 'check' };
+
+    // A bad bot plays on a whim now and then (but never folds when it could check).
+    if (Math.random() < sloppy * 0.3) {
+      const moves = [stay, ...(canRaise ? [raise()] : []), ...(toCall ? [{ type: 'fold' }] : [])];
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    if (canRaise && (strength > 1.6 - 0.3 * skill || (Math.random() < 0.12 * skill && !toCall))) return raise();
+    if (!toCall) return stay;
+    // Break even: calling and losing costs (in + call), folding costs in.
+    const breakEven = toCall / (g.committed[id] + toCall);
+    return win > breakEven - sloppy * 0.25 ? stay : { type: 'fold' };
   },
 
   view(room, player, ctx) {

@@ -62,6 +62,31 @@ function finish(room, ctx, suit) {
   betting.settle(room, ctx, suit, (s) => SUIT_NAMES[s]);
 }
 
+// ---------- Bots ----------
+
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+
+// A bot's bet: good bots keep it modest (a sip or two), bad ones go big. The track cards are face
+// down and the deck is shuffled, so no suit is a better bet than another: everyone picks at random.
+function botSips(maxBet, skill) {
+  const cap = Math.min(maxBet, Math.max(1, Math.round(maxBet * (1.1 - skill))));
+  const floor = Math.max(1, Math.round(cap * (1 - skill)));
+  return floor + Math.floor(Math.random() * (cap - floor + 1));
+}
+
+// A winning bot's sips, each to someone at random: a human here when there is one.
+function botAlloc(room, me, total) {
+  const others = room.players.filter((p) => p.id !== me.id && p.connected);
+  const pool = others.some((p) => !p.bot) ? others.filter((p) => !p.bot) : others;
+  if (!pool.length) return null;
+  const alloc = {};
+  for (let i = 0; i < total; i++) {
+    const to = pickOne(pool).id;
+    alloc[to] = (alloc[to] || 0) + 1;
+  }
+  return JSON.stringify(alloc);
+}
+
 module.exports = {
   id: 'aceRace',
   name: 'Ace Race',
@@ -115,6 +140,24 @@ module.exports = {
     } else if (action.type === 'nextRace' && (g.phase === 'results' || g.phase === 'payout') && host) {
       newRace(room, ctx);
     }
+  },
+
+  bot(room, me, ctx, skill) {
+    const g = room.game;
+    const host = room.hostId === me.id;
+    if (g.phase === 'betting') {
+      if (!g.bets[me.id]) return { type: 'bet', suit: pickOne(SUITS), sips: botSips(g.maxBet, skill) };
+      // The host's bot starts once everyone here has bet.
+      if (host && ctx.connectedPlayers(room).every((p) => g.bets[p.id])) return { type: 'startRace' };
+      return null;
+    }
+    if (g.phase === 'race' && g.speed === 'manual' && host) return { type: 'flip' };
+    if (g.phase === 'payout' && g.payout[me.id] && !g.payout[me.id].done) {
+      const alloc = botAlloc(room, me, g.payout[me.id].total);
+      return alloc && { type: 'give', alloc };
+    }
+    if (g.phase === 'results' && host) return { type: 'nextRace' };
+    return null;
   },
 
   // A winner who leaves doesn't hold up the payout.

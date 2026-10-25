@@ -54,6 +54,8 @@ function setup(game, count, options = {}) {
       return t;
     },
     drinks: () => room.players.map((p) => p.drinks),
+    // What player i would do as a bot at this skill (see games/README.md, Bots).
+    bot: (i, skill = 0.6) => game.bot?.(room, room.players[i], ctx, skill) ?? null,
     cleanup: () => ctx.clearTimer(room),
   };
   return t;

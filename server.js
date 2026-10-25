@@ -13,6 +13,7 @@ const { createTrips } = require('./lib/trip');
 const { waterLine } = require('./lib/water');
 const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
+const { createBots, isBot } = require('./lib/bots');
 const { createRoomStore } = require('./lib/roomStore');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
@@ -126,8 +127,7 @@ function forgetAbsent(room) {
     if (rooms.get(room.code) !== room || room.game) return;
     const gone = room.players.filter((p) => !p.connected);
     if (!gone.length) return;
-    room.away ||= {};
-    for (const p of gone) room.away[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
+    for (const p of gone) stashAway(room, p);
     room.players = room.players.filter((p) => p.connected);
     ensureHost(room);
     broadcast(room);
@@ -174,7 +174,8 @@ function ensureHost(room) {
     room.hostTimer.unref?.();
     return;
   }
-  const next = ctx.connectedPlayers(room)[0];
+  // (Never a bot: it has no phone to host from.)
+  const next = ctx.connectedPlayers(room).find((p) => !isBot(p));
   if (next) room.hostId = next.id;
 }
 
@@ -199,7 +200,7 @@ function viewFor(room, player) {
     recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color, drink = null }) => ({ id, name, connected, drinks, total, finished, avatar, color, drink })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color, drink = null, bot = null }) => ({ id, name, connected, drinks, total, finished, avatar, color, drink, bot })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     gameNo: room.gameNo || 0, // changes with every new game (screens forget the last one)
@@ -298,6 +299,7 @@ function broadcast(room) {
     const view = tvView(room);
     for (const id of room.tvs) io.to(id).emit('state', view);
   }
+  bots.schedule(room);
 }
 
 function emit(room, playerId, event, data) {
@@ -346,10 +348,7 @@ function startGame(room, gameId, mine = {}) {
   const game = GAMES[gameId];
   room.selectedGame = gameId;
   // Disconnected players don't carry into a new game, but their tab is kept for when they're back.
-  room.away ||= {};
-  for (const p of room.players.filter((x) => !x.connected)) {
-    room.away[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
-  }
+  for (const p of room.players.filter((x) => !x.connected)) stashAway(room, p);
   room.players = room.players.filter((p) => p.connected);
   for (const p of room.players) p.drinks = 0;
   room.feed = [];
@@ -379,6 +378,9 @@ const trips = createTrips({
   finish: (room) => { room.recap = true; },
 });
 
+// Bots the host adds (lib/bots.js): they play whenever the room changes (see broadcast).
+const bots = createBots({ games: GAMES, ctx, broadcast, trips });
+
 // Logs how a game went when it stops: the host ended it (or started another), or everyone left.
 function gameEnded(room, how) {
   if (room.game && how !== 'abandoned') night.gamePlayed(room, room.game.type, GAMES[room.game.type].name);
@@ -391,6 +393,12 @@ function gameEnded(room, how) {
     how,
   });
   room.gameStartedAt = null;
+}
+
+// Someone off the list keeps tonight's tab, for when they're back.
+function stashAway(room, p) {
+  if (p.bot) return;
+  (room.away ||= {})[p.id] = { key: p.key, name: p.name, total: p.total || 0, finished: p.finished || 0, avatar: p.avatar, color: p.color };
 }
 
 function removePlayer(room, playerId) {
@@ -627,14 +635,33 @@ io.on('connection', (socket) => {
     const target = room.players.find((p) => p.id === playerId);
     if (!target) return;
     if (target.socketId) io.to(target.socketId).emit('kicked');
+    if (isBot(target)) bots.forget(room, target.id);
     removePlayer(room, playerId);
     broadcast(room);
   });
 
+  // The host adds a bot (Booler, Baller or NPC), up to three.
+  on('addBot', ({ level } = {}) => {
+    if (!hostOnly() || room.players.length >= MAX_PLAYERS) return;
+    if (bots.add(room, String(level), (wanted, taken) => LOOKS.choose(wanted, taken))) broadcast(room);
+  });
+
+  // Leaving mid-game is like going quiet: the game passes them by, but their cards and place stay
+  // theirs in case they're back (the code gets them in again). In the lobby they're off the list,
+  // their tab kept.
   on('leave', () => {
     if (!room || !player) return;
     const r = room;
-    removePlayer(r, player.id);
+    const p = player;
+    if (r.game) {
+      // (Gone on purpose: no grace before the host's role passes on.)
+      Object.assign(p, { connected: false, socketId: null, leftAt: Date.now() - HOST_GRACE_MS });
+      ensureHost(r);
+      GAMES[r.game.type].check?.(r, ctx);
+    } else {
+      stashAway(r, p);
+      removePlayer(r, p.id);
+    }
     room = player = null;
     broadcast(r);
   });
@@ -691,7 +718,9 @@ io.on('connection', (socket) => {
 setInterval(() => {
   const now = Date.now();
   for (const [code, r] of rooms) {
-    if (ctx.connectedPlayers(r).length === 0 && now - r.updatedAt > ROOM_IDLE_MS) {
+    // (Bots alone don't keep a room going.)
+    if (!ctx.connectedPlayers(r).some((p) => !isBot(p)) && now - r.updatedAt > ROOM_IDLE_MS) {
+      bots.forget(r);
       gameEnded(r, 'abandoned');
       ctx.clearTimer(r);
       trips.end(r);

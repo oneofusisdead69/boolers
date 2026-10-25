@@ -159,3 +159,53 @@ test('backers can rename and recolour their horse; colours stay unique', () => {
   assert.ok(t.room.feed.some((f) => f.text.includes('Seabiscuit wins')));
   t.cleanup();
 });
+
+test('bots bet once (good ones modestly), start the race as host, and hand out to humans', () => {
+  const t = setup(game, 3, { maxBet: 10 });
+  const g = t.room.game;
+  t.player(1).bot = 'booler';
+  t.player(2).bot = 'npv';
+  assert.strictEqual(t.bot(0, 0.9).type, 'bet');
+  const good = t.bot(1, 0.9);
+  const bad = t.bot(2, 0.25);
+  assert.ok(good.type === 'bet' && good.sips >= 1 && good.sips <= 2, `good bot bets ${good.sips}`);
+  assert.ok(bad.sips >= 6 && bad.sips <= 10, `bad bot bets ${bad.sips}`);
+  t.act(1, 'bet', good).act(2, 'bet', bad);
+  assert.strictEqual(t.bot(1, 0.9), null, 'once a race');
+  assert.strictEqual(t.bot(1, 0.9), null);
+  t.act(0, 'bet', { horse: good.horse, sips: 1 });
+  assert.strictEqual(t.bot(0, 0.9).type, 'startRace', 'the host starts once everyone has bet');
+  t.act(0, 'startRace');
+  assert.strictEqual(t.bot(1, 0.9), null, 'nobody rides without jockey mode');
+  while (g.phase === 'race') t.fireTimer();
+  if (g.payout.p1) {
+    const give = t.bot(1, 0.9);
+    assert.deepStrictEqual(Object.keys(JSON.parse(give.alloc)), ['p0'], 'the only human gets them');
+    t.act(1, 'give', give);
+    assert.ok(g.payout.p1.done);
+  }
+  t.cleanup();
+});
+
+test('jockey bots take a free horse and ride it: good ones hit green more', () => {
+  const t = setup(game, 2, { jockey: true });
+  const g = t.room.game;
+  t.act(0, 'bet', { horse: '1', sips: 1 });
+  for (let i = 0; i < 20; i++) assert.notStrictEqual(t.bot(1, 0.9).horse, '1');
+  t.act(1, 'bet', t.bot(1, 0.9)).act(0, 'startRace');
+  const greens = (skill) => {
+    let n = 0;
+    for (let i = 0; i < 400; i++) {
+      const a = t.bot(1, skill);
+      assert.strictEqual(a.type, 'ride');
+      assert.ok(a.delay >= 250, 'never faster than the dial allows');
+      if (a.hit === 'green') n++;
+    }
+    return n;
+  };
+  assert.ok(greens(0.9) > greens(0.25) + 60);
+  const before = g.mult[g.bets.p1.pick];
+  t.act(1, 'ride', { hit: 'green' });
+  assert.ok(g.mult[g.bets.p1.pick] > before);
+  t.cleanup();
+});

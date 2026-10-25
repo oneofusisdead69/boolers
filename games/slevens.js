@@ -91,6 +91,60 @@ function openWindow(room, ctx) {
   });
 }
 
+// ---------- Bots ----------
+
+// A number in [0, 1) that stays the same for the same roll. The server asks a bot twice before it
+// acts (once to schedule, once to act), so a flinch or a pass has to be decided once per roll, not
+// re-rolled each time it's asked.
+function steady(...parts) {
+  let h = 2166136261;
+  for (const ch of parts.join(':')) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) / 2 ** 32;
+}
+
+// Someone at random, a human when there is one.
+function pickPlayer(ids, room) {
+  const humans = ids.filter((id) => !room.players.find((p) => p.id === id)?.bot);
+  const pool = humans.length ? humans : ids;
+  return pool[Math.floor(Math.random() * pool.length)] || null;
+}
+
+// How long a bot takes to trace this roll's dots (ms): a good one is quick and steady.
+const traceMs = (g, skill) => (250 + 300 * g.dots.length) * (1.7 - skill) + Math.random() * 200;
+
+function bot(room, me, ctx, skill) {
+  const g = room.game;
+  if (me.id !== g.rollerId || g.phase === 'spinning') return null;
+  const seed = (tag) => steady(me.id, g.rollNo, g.dots[0]?.x, g.dots[0]?.y, tag);
+
+  // A REVERSE: hand the dice to someone else.
+  if (g.phase === 'reverse') {
+    const others = g.order.filter((id) => id !== me.id && ctx.turns.isActive(room, id));
+    const targetId = pickPlayer(others, room);
+    return targetId ? { type: 'pick', targetId } : null;
+  }
+
+  // A miss after a streak: the drinker may have finished by now, so sometimes pass the dice on.
+  const missed = g.dice && (g.phase === 'window' ? !hits(g) : !g.hit);
+  if (missed && g.hits > 0 && seed('pass') < 0.3) return { type: 'pass', delay: 600 + Math.random() * 600 };
+
+  if (g.phase === 'window') {
+    if (hits(g)) {
+      // Hands off! A bad bot sometimes touches the dot anyway before the time's up: a REVERSE.
+      if (seed('flinch') < (1 - skill) * 0.4) return { type: 'press', delay: 200 + seed('when') * g.windowMs * 0.8 };
+      return null;
+    }
+    // Not a hit: a good bot reads the dice and rolls again at once. A bad one sometimes doesn't
+    // trust it and waits the hands-off time out first.
+    if (seed('slow') < (1 - skill) * 0.5) return null;
+    return { type: 'roll', delay: 300 * (1.5 - skill) + traceMs(g, skill) };
+  }
+
+  // Ready: trace the dots and roll. Right after a hit it's a race against the drinker.
+  if (g.phase === 'ready') return { type: 'roll', delay: traceMs(g, skill) };
+  return null;
+}
+
 module.exports = {
   id: 'slevens',
   name: 'Slevens',
@@ -192,6 +246,8 @@ module.exports = {
       dice: g.phase === 'spinning' ? null : g.dice, // keep the result secret while spinning
     };
   },
+
+  bot,
 
   isHit,
   inDiceZone,

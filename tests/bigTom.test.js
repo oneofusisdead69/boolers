@@ -195,3 +195,53 @@ test('final: the host can move on; anyone who did not draw drinks double', () =>
   assert.ok(t.drinks()[2] >= before[2] + 6);
   t.cleanup();
 });
+
+test('bots write, answer, vote (never on their own), draw a real PNG and hand out to humans', () => {
+  const zlib = require('node:zlib');
+  const t = setup(game, 4);
+  const g = t.room.game;
+  for (const p of t.room.players.slice(1)) p.bot = 'baller';
+  // Player 0 is a human host; the bots do everything else.
+  const step = (skill) => {
+    for (let i = 1; i < 4; i++) {
+      const a = t.bot(i, skill);
+      if (a) t.act(i, a.type, a);
+    }
+  };
+  for (let n = 0; n < 5; n++) step(0.9);
+  assert.strictEqual(Object.keys(g.questions).length, 3, 'every bot wrote a question');
+  t.act(0, 'question', { text: 'Why?' });
+  assert.strictEqual(g.phase, 'answer');
+  for (let n = 0; n < 3; n++) step(0.9);
+  for (const m of g.matchups) for (const id of [m.a, m.b]) if (id !== 'p0') assert.ok(m.answers[id], 'bots answer');
+  for (const task of t.view(0).myTasks) t.act(0, 'answer', { m: task.m, text: 'Mine' });
+  assert.strictEqual(g.phase, 'vote');
+  const m = g.matchups[g.current];
+  for (const id of [m.a, m.b]) if (id !== 'p0') assert.strictEqual(t.bot(idx(id), 0.9), null, 'no vote on your own matchup');
+  step(0.25);
+  if (g.phase === 'vote') t.act(0, 'vote', { side: 'a' });
+  assert.strictEqual(g.phase, 'reveal');
+  if (g.give && g.give.from !== 'p0') {
+    assert.deepStrictEqual(t.bot(idx(g.give.from), 0.6), { type: 'give', targetId: 'p0' }, 'sips go to the human');
+  }
+  // The final: the drawing is a valid PNG the game accepts.
+  t.room.hostId = 'p1';
+  g.round = game.ROUNDS;
+  g.phase = 'summary';
+  assert.strictEqual(t.bot(1, 0.9).type, 'nextRound', 'the host moves on');
+  t.act(1, 'nextRound');
+  assert.strictEqual(g.phase, 'draw');
+  const draw = t.bot(2, 0.9);
+  const png = Buffer.from(draw.image.split(',')[1], 'base64');
+  assert.strictEqual(png.readUInt32BE(16), 96);
+  const idat = png.indexOf('IDAT');
+  assert.ok(zlib.inflateSync(png.subarray(idat + 4, idat + 4 + png.readUInt32BE(idat - 4))).length > 0);
+  for (let i = 1; i < 4; i++) t.act(i, 'drawing', t.bot(i, 0.6));
+  t.act(0, 'drawing', { image: draw.image });
+  assert.strictEqual(g.phase, 'finalVote');
+  for (let i = 1; i < 4; i++) {
+    const v = t.bot(i, 0.6);
+    assert.notStrictEqual(g.finalOrder[v.i], `p${i}`, 'never its own drawing');
+  }
+  t.cleanup();
+});
