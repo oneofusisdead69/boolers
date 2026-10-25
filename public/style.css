@@ -1045,7 +1045,7 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 /* ---------- Around the World (public/trip.js) ---------- */
 .trip { display: flex; flex-direction: column; gap: 14px; }
 .trip-head { display: flex; align-items: center; gap: 12px; }
-.trip-globe { font-size: 2.4rem; animation: spin 8s linear infinite; }
+.trip-globe { font-size: 2.4rem; animation: br-go 0.8s ease-out; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .trip-head small { display: block; color: var(--muted); }
 .trip-head b { font-size: 1.3rem; }
@@ -1441,6 +1441,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-banner.ship { --banner-font: "Orbitron"; color: #eef6ff; text-shadow: 0 0 14px #7cf0ff, 0 0 40px #2a8ab0; }
 .sc-banner.ship b { font-size: clamp(32px, 4vw, 56px); font-weight: 700; }
 .sc-quote.punchit b { font-family: "Orbitron", system-ui; font-size: 56px; font-style: normal; color: #7cf0ff; text-shadow: 0 0 20px #2a8ab0; }
+.sc-banner.champ { --banner-font: "Bungee"; color: #fff; text-shadow: 0 4px 0 #d62828, 0 0 24px rgba(0, 0, 0, 0.8); }
+.sc-banner.champ b { font-size: clamp(30px, 4vw, 56px); }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
@@ -1485,3 +1487,28 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .sc-crater { width: 9vw; height: 6vh; margin: -3vh 0 0 -4.5vw; border-radius: 50%; background: radial-gradient(#ffe27a, rgba(255, 106, 26, 0.7) 40%, transparent 70%); filter: blur(4px); opacity: 0; animation: sc-flare 6.8s ease-out forwards; }
 @keyframes sc-flare { 0% { opacity: 0; } 18% { opacity: 0.6; } 22% { opacity: 1; transform: scale(1.8); } 60% { opacity: 0.8; transform: scale(1.4); } 100% { opacity: 0; transform: scale(1); } }
 .sc-plume { width: 8vw; height: 8vw; border-radius: 50%; background: radial-gradient(rgba(90, 70, 80, 0.7), rgba(90, 70, 80, 0) 70%); filter: blur(6px); }
+
+/* Beer Pong: the table from above (a pong table's green with its lines), red cups, the ball. */
+.bp-table-wrap { display: flex; justify-content: center; }
+.bp-board { width: min(100%, 340px); aspect-ratio: 100 / 240; background: var(--felt, #1f6a3a); border: 5px solid var(--rim, #f4f4f4); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 2px rgba(255, 255, 255, 0.15); overflow: hidden; }
+.bp-table { width: 100%; height: 100%; display: block; }
+.bp-line { stroke: rgba(255, 255, 255, 0.7); stroke-width: 0.8; fill: none; }
+.bp-label { font: 700 7px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: rgba(0, 0, 0, 0.5); stroke-width: 1.5px; }
+.bp-close { display: flex; justify-content: center; margin: 6px 0; }
+.bp-rack { position: relative; width: min(100%, 360px); aspect-ratio: 360 / 300; border-radius: 14px; overflow: hidden; background: color-mix(in srgb, var(--bg) 70%, #000); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.bp-rack svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bp-felt { position: absolute; inset: 0; background: var(--felt, #1f6a3a); }
+.bp-edge { stroke: var(--rim, #f4f4f4); stroke-width: 7; fill: none; stroke-linecap: round; }
+.bp-aim circle { fill: none; stroke: #ffd23f; stroke-width: 0.8; }
+.bp-aim path { stroke: #ffd23f; stroke-width: 0.8; }
+.bp-aim.big circle, .bp-aim.big path { stroke-width: 3; }
+.bp-fly.fresh { animation: bp-fly 0.7s cubic-bezier(0.3, 0.1, 0.4, 1) both; }
+@keyframes bp-fly { 0% { translate: var(--fx) var(--fy); scale: 1.4; } 55% { scale: 2.2; } 100% { translate: 0 0; scale: 1; } }
+.bp-ball.in .bp-fly { opacity: 0.85; }
+.bp-splash { fill: rgba(255, 240, 200, 0.6); opacity: 0; }
+.bp-splash.fresh { animation: bp-splash 0.8s ease-out 0.65s both; }
+@keyframes bp-splash { 0% { opacity: 0.9; scale: 0.4; } 100% { opacity: 0; scale: 1.6; } }
+.bp-last { text-align: center; margin: 6px 0; font-weight: 600; }
+.bp-last.hit { color: var(--ok); }
+.br-team.up { box-shadow: 0 0 0 2px var(--team); }
+.bp-pad .dt-held { width: 44px; height: 44px; }
