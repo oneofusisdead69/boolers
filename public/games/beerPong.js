@@ -104,9 +104,20 @@
     const svg = document.querySelector('.bp-rack svg');
     if (!svg) return null;
     const r = svg.getBoundingClientRect();
-    const e = view(L.x, L.y);
-    const y = L.cup ? e.y + ry3(e.f) * 0.2 : e.y + H * e.f;
+    // (In: it lands in the middle of the cup, where it floats.)
+    const e = L.cup ? view(L.cup.x, L.cup.y) : view(L.x, L.y);
+    const y = L.cup ? e.y + ry3(e.f) * 0.12 : e.y + H * e.f;
     return { x: r.left + (e.x / 360) * r.width, y: r.top + ((y - TOP) / (300 - TOP)) * r.height, f: e.f };
+  }
+
+  // Beer thrown up out of the cup as the ball goes in: drops flying up and out, falling back.
+  function splash(rx, f) {
+    return `<g class="bp-drops">${Array.from({ length: 9 }, (_, i) => {
+      const a = (i / 9) * Math.PI * 2 + Math.random() * 0.5;
+      const dx = Math.cos(a) * rx * (0.6 + Math.random() * 0.7);
+      const dy = -(30 + Math.random() * 30) * f;
+      return `<circle r="${((2.4 + Math.random() * 2) * f).toFixed(1)}" style="--dx:${dx.toFixed(1)}px;--dy:${dy.toFixed(1)}px;--dd:${(Math.random() * 0.08).toFixed(2)}s"/>`;
+    }).join('')}</g>`;
   }
 
   function closeUp(s) {
@@ -131,10 +142,30 @@
     if (s.phase === 'landing' && last && last.target === target) {
       const e = view(last.x, last.y);
       const end = { x: e.x, y: last.cup ? e.y + ry3(e.f) * 0.2 : e.y + H * e.f };
-      ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})">
-        ${last.cup ? `<ellipse class="bp-splash3d" rx="${(RIM * e.f).toFixed(1)}" ry="${ry3(e.f).toFixed(1)}"/>` : ''}
-        <g class="bp-fly3d ${last.cup ? 'in' : last.rim ? 'rim' : 'out'} ${last.by === s.me && !PB.isTV ? 'handoff' : ''}" style="--sx:${(180 - end.x).toFixed(1)}px;--sy:${(320 - end.y).toFixed(1)}px">
-          <circle r="${(8 * e.f).toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g>`;
+      const handoff = last.by === s.me && !PB.isTV; // your own ball flies in from the pad first
+      const land = handoff ? 1.4 : 1.1; // (s: when it lands; see style.css)
+      const r = 8 * e.f;
+      if (last.cup) {
+        // In: it drops into the cup and floats there, bobbing on the beer (cut off by the cup's
+        // rim, so it sits inside it), with a splash.
+        const c = view(last.cup.x, last.cup.y);
+        const rx = RIM * c.f;
+        const ry = ry3(c.f);
+        const sy = c.y + ry * 0.12; // the beer's surface
+        ball = `<g class="bp-landed" style="--land:${land}s">
+          <clipPath id="bp-in-cup"><rect x="0" y="0" width="360" height="${sy.toFixed(1)}"/><ellipse cx="${c.x.toFixed(1)}" cy="${sy.toFixed(1)}" rx="${(rx * 0.86).toFixed(1)}" ry="${(ry * 0.78).toFixed(1)}"/></clipPath>
+          <g transform="translate(${c.x.toFixed(1)} ${sy.toFixed(1)})">
+            <ellipse class="bp-ripple" rx="${(rx * 0.8).toFixed(1)}" ry="${(ry * 0.72).toFixed(1)}"/>
+            <g clip-path="url(#bp-in-cup)" transform="translate(${(-c.x).toFixed(1)} ${(-sy).toFixed(1)})"><g transform="translate(${c.x.toFixed(1)} ${sy.toFixed(1)})">
+              <g class="bp-fly3d in ${handoff ? 'handoff' : ''}" style="--sx:${(180 - c.x).toFixed(1)}px;--sy:${(320 - sy).toFixed(1)}px">
+                <g class="bp-float"><circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g></g></g>
+            ${splash(rx, c.f)}
+          </g></g>`;
+      } else {
+        ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})">
+          <g class="bp-fly3d ${last.rim ? 'rim' : 'out'} ${handoff ? 'handoff' : ''}" style="--sx:${(180 - end.x).toFixed(1)}px;--sy:${(320 - end.y).toFixed(1)}px">
+            <circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g>`;
+      }
     }
     return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 ${TOP} 360 ${300 - TOP}" aria-label="Their cups">
       <defs>${shades}</defs>
