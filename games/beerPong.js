@@ -3,7 +3,7 @@
 // up to throw, as in Darts. Each team's cups are dealt round its players (each cup in its
 // player's colour): a ball in your cup takes it off the table, and you drink.
 // Both balls in: balls back, go again. Down to 6 cups, then 3, a team's rack is tidied back into a
-// triangle. Sink the other team's last cup to win; the losers finish their drinks.
+// triangle; at 2, into the gentleman's (two in a line, one behind the other). Sink the other team's last cup to win; the losers finish their drinks.
 //
 // The rack is drawn in its own units: x across (-0.5 to 0.5), y back from the front row (0 to
 // about 0.6), cups CUP_R across. The server works out where each ball lands from the throw.
@@ -35,8 +35,10 @@ function deal(cups, ids) {
   return cups.map((c, i) => ({ ...c, owner: ids.length ? ids[i % ids.length] : null }));
 }
 
-// A full triangle of n cups (10, 6, 3 or 1), its point towards the throwers.
+// A full triangle of n cups (10, 6, 3 or 1), its point towards the throwers; 2 is the gentleman's,
+// two cups in a line down the middle.
 function rack(n) {
+  if (n === 2) return [{ x: 0, y: 0.05 }, { x: 0, y: +(0.05 + GAP).toFixed(3) }];
   const rows = { 10: 4, 6: 3, 3: 2, 1: 1 }[n] || 4;
   const cups = [];
   for (let k = 0; k < rows; k++) {
@@ -91,7 +93,7 @@ module.exports = {
   rules: [
     'Drag to aim at the other team’s cups, then flick up to throw. Too hard goes long; too soft falls short.',
     'Each of you throws a ball on your team’s turn. Your team’s cups are in your colours: sink one and its owner drinks.',
-    'Both balls in: balls back, go again. At 6 cups and at 3, the rack is tidied up.',
+    'Both balls in: balls back, go again. At 6 cups and at 3 the rack is tidied up; at 2, the gentleman’s: two in a line.',
     'Sink their last cup to win. The losers finish their drinks.',
   ],
   bestWithTv: true,
@@ -105,7 +107,7 @@ module.exports = {
       default: 'normal',
       choices: [{ value: 'steady', label: 'Steady' }, { value: 'normal', label: 'Normal' }, { value: 'wobbly', label: 'Wobbly' }],
     },
-    { id: 'rerack', label: 'Re-racks', default: true, choices: [{ value: true, label: 'At 6 and 3' }, { value: false, label: 'Off' }] },
+    { id: 'rerack', label: 'Re-racks', default: true, choices: [{ value: true, label: 'At 6, 3 and 2' }, { value: false, label: 'Off' }] },
   ],
 
   start(room, ctx, options = {}) {
@@ -178,9 +180,9 @@ module.exports = {
         for (const id of g.teams[target]) ctx.drink(room, id, g.sips, 'lost beer pong', null, { title: 'Finish your drink!' });
         return;
       }
-      if (g.rerack && (cups.length === 6 || cups.length === 3)) {
+      if (g.rerack && [6, 3, 2].includes(cups.length)) {
         g.cups[target] = deal(rack(cups.length), g.teams[target]);
-        ctx.log(room, `🔺 Re-rack: Team ${TEAMS[target].name}'s ${cups.length} cups`);
+        ctx.log(room, cups.length === 2 ? `🎩 The gentleman's: Team ${TEAMS[target].name}'s last 2 cups, in a line` : `🔺 Re-rack: Team ${TEAMS[target].name}'s ${cups.length} cups`);
       }
     } else if (rim) {
       ctx.log(room, `😩 ${player.name} rims out`);
