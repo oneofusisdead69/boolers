@@ -22,6 +22,7 @@
   const LEGS = [[-8, 'b far'], [7, 'f far'], [-10, 'b'], [5, 'f']];
   function horseSvg(h) {
     const [coat, mane] = COATS[h.coat] || COATS.bay;
+    if (PB.state?.look === 'castleTournament') return knightSvg(h, coat, mane);
     const leg = ([x, cls]) => `<g transform="translate(${x} 2)"><g class="hz-leg ${cls}">
       <path d="M -2 0 L 2 0 L 1.3 5.5 L 1 11 L -0.9 11 L -1.2 5.5 Z" fill="${cls.includes('far') ? mane : coat}"/><rect x="-1.3" y="10.3" width="2.8" height="1.8" rx="0.6" fill="#1a1a1a"/></g></g>`;
     return `<g class="hz-rh">
@@ -41,6 +42,30 @@
       <path d="M 1.4 -1.6 L 0.6 -0.2" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
       <circle cx="6.4" cy="-11.6" r="2.1" fill="${h.color}"/>
       <path d="M 7.2 -10.4 Q 8.4 -10.6 8.6 -11.6" fill="none" stroke="#f1c6a0" stroke-width="1.1" stroke-linecap="round"/>
+    </g>`;
+  }
+  // At the castle's tournament (an easter egg: Horse Race in the Castle), the same horse in a
+  // caparison in its rider's colours, ridden by a knight in armour with a lance and a shield.
+  function knightSvg(h, coat, mane) {
+    const leg = ([x, cls]) => `<g transform="translate(${x} 2)"><g class="hz-leg ${cls}">
+      <path d="M -2 0 L 2 0 L 1.3 5.5 L 1 11 L -0.9 11 L -1.2 5.5 Z" fill="${cls.includes('far') ? mane : coat}"/><rect x="-1.3" y="10.3" width="2.8" height="1.8" rx="0.6" fill="#1a1a1a"/></g></g>`;
+    const steel = '#c4cad2';
+    return `<g class="hz-rh">
+      ${LEGS.slice(0, 2).map(leg).join('')}
+      <path d="M -11.5 -2 Q -18 -1 -19 7 Q -15.5 3 -12 1 Z" fill="${mane}"/>
+      <ellipse cx="0" cy="0" rx="12" ry="5.8" fill="${coat}"/>
+      <path d="M 6 -3.8 Q 8.5 -10 12.6 -13.4 L 16.8 -11.6 Q 13.2 -6.4 11.4 1.6 Z" fill="${coat}"/>
+      <path d="M 12.2 -13.6 Q 15.5 -14.2 20.4 -9.4 Q 21.4 -8.2 20.2 -7.4 Q 18.6 -6.8 16.2 -8.4 L 13.8 -9.8 Z" fill="${steel}"/>
+      <path d="M 13 -13.2 L 13.6 -16.4 L 15 -13.4 Z" fill="${steel}"/><path d="M 13.6 -16 l -1 -3 l 2.4 2" fill="${h.color}"/>
+      ${LEGS.slice(2).map(leg).join('')}
+      <path d="M -12.5 -3.5 Q 0 -7.5 10.5 -4.5 L 12 5 L 8 3.6 L 4 6 L 0 4 L -4 6 L -8 4 L -12.5 6 Z" fill="${h.color}" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
+      <path d="M -12 1.4 H 11" stroke="#f4e7c2" stroke-width="0.9" stroke-dasharray="2 1.4"/>
+      <path d="M -3 -6.4 L -3.4 0" stroke="${steel}" stroke-width="2.6" stroke-linecap="round"/>
+      <rect x="-5" y="-12.6" width="7" height="8" rx="1.6" fill="${steel}"/><rect x="-4.2" y="-12" width="5.4" height="7" rx="1" fill="${h.color}"/><path d="M -1.5 -11.4 V -5.8 M -3.8 -9 H 0.8" stroke="#f4f4f4" stroke-width="0.9"/>
+      <circle cx="-1.5" cy="-15" r="2.6" fill="${steel}"/><path d="M -0.6 -15.6 H 1.2" stroke="#222" stroke-width="0.7"/><path d="M -2.6 -17.2 Q -6 -20 -8.6 -17.4 Q -5.6 -17.8 -3.4 -16" fill="${h.color}"/>
+      <path d="M 0.5 -8.5 L 26 -14" stroke="#6b4524" stroke-width="1.5" stroke-linecap="round"/><path d="M 4 -9.2 L 26 -14" stroke="${h.color}" stroke-width="0.8" stroke-dasharray="1.6 1.6"/>
+      <path d="M 2 -11.2 L 5.4 -9.4 L 2.6 -6.4 Z" fill="${steel}"/>
+      <path d="M -8.4 -10.4 h 5 v 4 q -2.5 3.6 -5 0 Z" fill="${h.color}" stroke="${steel}" stroke-width="0.6"/>
     </g>`;
   }
   let draft = null;

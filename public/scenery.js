@@ -948,6 +948,188 @@
     ],
   };
 
+  // Darts in the dive bar: the Darts Palace. The lights sweep, the crowd holds up signs and sings,
+  // pyro goes off; and every ton gets the caller (a 180 gets the full works).
+  const SIGNS = ['180!', 'BOOL ARMY', 'ONE MORE DART', 'MUM I’M ON TV', 'OI OI OI', 'GAME ON', 'TREBLE 20!'];
+  const pyro = () => { for (const x of [4, 22, 60, 72]) burst(['🔥'], { x, y: 86, n: 5, spread: 2, size: [30, 50], rise: [-26, -14], fall: [0, 10] }); cue('boom'); };
+  let lastCall = null;
+  SCENES.diveChampionship = {
+    gap: [8, 18],
+    decor() {
+      lastCall = null;
+      for (let i = 0; i < 4; i++) el('', { left: `${10 + i * 26}vw`, top: '-5vh', animationDelay: `-${i * 1.7}s` }).classList.add('sc-stagebeam');
+      banner('Welcome to the Darts Palace', 'Game on!', 'palace');
+      cue('cheer', 400);
+    },
+    update(s) {
+      const t = s?.game?.lastTurn;
+      if (!t || s.gameType !== 'darts') return;
+      const key = `${t.id}:${t.darts?.length}:${t.total}:${s.game.total ? Object.values(s.game.total).join(',') : ''}`;
+      if (key === lastCall) return;
+      lastCall = key;
+      if (t.total === 180) {
+        inFront('<b>ONE HUNDRED<br>AND EIGHTY!</b>', { left: '0', right: '26vw', top: '30vh' }, 4200).classList.add('sc-oneeighty');
+        pyro();
+        later(() => burst(['✨', '🎉', '🎯'], { x: 40, y: 40, n: 30, spread: 40 }), 300);
+        window.Ambience?.say?.('One hundred and eightyyy!');
+        cue('cheer', 600);
+      } else if (t.total >= 100) {
+        inFront(`<b>${t.total}!</b>`, { left: '0', right: '26vw', top: '34vh' }, 3000).classList.add('sc-oneeighty', 'ton');
+        window.Ambience?.say?.(t.total === 100 ? 'Ton!' : `${t.total}!`);
+        cue('cheer', 300);
+      }
+    },
+    moments: [
+      () => { const sign = inFront(`<b>${pick(SIGNS)}</b>`, { left: `${rand(2, 14)}vw`, bottom: `${rand(4, 12)}vh` }, 4200); sign.classList.add('sc-sign-up'); sign.style.rotate = `${rand(-8, 8)}deg`; },
+      () => { cue('chant'); for (let i = 0; i < 3; i++) later(() => { const s = inFront('<b>OI!</b>', { left: `${rand(2, 16)}vw`, bottom: `${rand(6, 16)}vh` }, 1200); s.classList.add('sc-sign-up', 'oi'); }, i * 700); },
+      pyro,
+      () => fall(['🎊', '✨'], 4, 0.3, 0.8),
+      () => { for (let i = 0; i < 12; i++) el('', { left: `${rand(0, 100)}vw`, top: `${rand(20, 70)}vh`, animationDelay: `${rand(0, 1)}s` }, 2200).classList.add('sc-flash'); },
+    ],
+  };
+
+  // Big Tom in the jazz club: open mic night. A mic stand and a stool in the spotlight, the OPEN
+  // MIC sign; after each vote the room gives it a rimshot, or crickets.
+  const MIC_STAND = `<svg viewBox="0 0 60 200" width="0.3em" height="1em"><path d="M30 40 V188" stroke="#1a1a1a" stroke-width="4"/><path d="M14 196 L30 186 L46 196" stroke="#1a1a1a" stroke-width="5" fill="none"/>
+    <rect x="22" y="10" width="16" height="30" rx="8" fill="#6a6a72"/><path d="M24 18 h12 M24 24 h12 M24 30 h12" stroke="#3a3a40" stroke-width="1.5"/><rect x="26" y="38" width="8" height="8" fill="#2a2a2e"/></svg>`;
+  const STOOL = `<svg viewBox="0 0 80 140" width="0.57em" height="1em"><ellipse cx="40" cy="12" rx="30" ry="9" fill="#8a1a2a"/><path d="M18 18 L10 136 M62 18 L70 136 M40 20 V136" stroke="#2a2a2e" stroke-width="5"/><path d="M14 90 H66" stroke="#2a2a2e" stroke-width="4"/></svg>`;
+  let lastPhase = null;
+  const crickets = () => { popup('🦗', { x: 4, bottom: 3, size: 54, life: 4000 }); inFront('<b>…</b>', { left: '0', right: '26vw', top: '36vh' }, 2600).classList.add('sc-quote'); cue('crickets'); };
+  const rimshot = () => { popup('🥁', { x: 4, bottom: 3, size: 60, life: 3000 }); inFront('<b>Ba-dum-tss!</b>', { left: '0', right: '26vw', top: '20vh' }, 2600).classList.add('sc-quote'); cue('rimshot'); };
+  SCENES.jazzOpenMic = {
+    decor() {
+      lastPhase = null;
+      el(STOOL, { left: '3vw', bottom: '6vh', fontSize: '150px' }).classList.add('blk');
+      el(MIC_STAND, { left: '9vw', bottom: '4vh', fontSize: '220px' }).classList.add('blk');
+      el('<span>OPEN MIC</span>', { left: '2vw', top: '15vh' }).classList.add('sc-sign', 'mic');
+      banner('Open mic night', 'Be funny. Or be quiet.', 'openmic');
+    },
+    update(s) {
+      if (s?.gameType !== 'bigTom' || s.phase === lastPhase) return;
+      const was = lastPhase;
+      lastPhase = s.phase;
+      if (was && s.phase === 'reveal') later(Math.random() < 0.7 ? rimshot : crickets, 900);
+    },
+    moments: [
+      crickets,
+      rimshot,
+      () => { cue('snaps'); for (let i = 0; i < 4; i++) later(() => popup('🫰', { x: rand(2, 14), bottom: rand(4, 20), size: 40, life: 1600 }), i * 400); },
+      () => { const x = rand(2, 10); drift('🍅', { from: [-6, 60], to: [x, 72], dur: 0.9, size: 40, spin: 360 }); later(() => popup('💥', { x, bottom: 24, size: 50, life: 900 }), 900); cue('thud', 900); },
+      () => layer.querySelector('.sc-sign.mic')?.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1200, easing: 'steps(1)' }),
+    ],
+  };
+
+  // Ace Race in the beer hall: Oktoberfest. The waitresses carry armfuls of steins, couples dance,
+  // someone yodels, and every race ends with "Prost!"
+  let lastWinner = null;
+  SCENES.beerhallOktoberfest = {
+    decor() {
+      lastWinner = null;
+      banner('O’zapft is!', 'The keg is tapped', 'okto');
+      cue('clink', 600);
+    },
+    update(s) {
+      const w = s?.gameType === 'aceRace' ? s.game?.winner || null : null;
+      if (w && w !== lastWinner) {
+        inFront('<b>Prost!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'prost');
+        burst(['🍺', '🍻', '🥨'], { x: 36, y: 40, n: 20, spread: 30 });
+        cue('clink');
+        cue('cheer', 300);
+      }
+      lastWinner = w;
+    },
+    moments: [
+      () => crossing('💁‍♀️🍺🍺🍺', { y: 91, dur: 12, size: 46 }),
+      () => { crossing('💃🕺', { y: 91, dur: 14, size: 54 }); },
+      () => { cue('yodel'); notes(5, 80, '#2a6fdb'); },
+      () => { burst(['🥨', '🍺', '🌭'], { x: 6, y: 80, n: 14, spread: 10, size: [20, 30] }); cue('clink'); },
+      () => crossing('🍻', { y: 92, dur: 6, size: 50, bob: false }),
+    ],
+  };
+
+  // Mad Max in the saloon: the wasteland. The dust blows through; a war rig thunders past with a
+  // bike gang behind it; vultures circle; an oil drum goes up.
+  SCENES.saloonWasteland = {
+    decor() {
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-dust');
+      banner('Welcome to the Wasteland', 'Fuel’s low. Drinks are lower.', 'waste');
+      cue('riff', 400);
+    },
+    moments: [
+      () => { crossing('🔥🚚', { y: 90, dur: 5, size: 70, bob: false }); cue('rumble'); },
+      () => { for (let i = 0; i < pick([3, 4, 5]); i++) later(() => crossing('🏍️', { y: rand(88, 94), dur: 3.2, size: 50, bob: false }), i * 300); cue('vroom'); },
+      () => { for (let i = 0; i < 3; i++) drift('🦅', { from: [-10, rand(4, 14)], to: [110, rand(4, 16)], dur: rand(14, 18), size: 40, extra: { animationDelay: `${i * 1.2}s` } }); },
+      () => { cue('boom'); burst(['🔥', '💥', '🔥'], { x: rand(4, 12), y: 80, n: 12, spread: 6, size: [30, 50], rise: [-24, -10], fall: [0, 10] }); },
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 6000).classList.add('sc-duststorm'); cue('wind'); },
+      () => drift(TUMBLEWEED, { from: [-12, 88], to: [112, 88], dur: 7, size: 64, spin: 1080 }).classList.add('sc-tumble'),
+      () => cue('riff'),
+    ],
+  };
+
+  // The mechanic's garage: the radio on, a tyre rolling across, sparks off the welder.
+  SCENES.garage = {
+    decor() { el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open'); },
+    moments: [
+      () => crossing('🛞', { y: 92, dur: 4, size: 54, cls: ['roll'], bob: false }),
+      () => { burst(['✦', '•', '✧'], { x: rand(30, 60), y: 60, n: 26, spread: 8, size: [6, 12], colors: ['#ffd23f', '#ff9a2a', '#ffffff'], rise: [-14, -4], fall: [10, 30] }); cue('weld'); },
+      () => cue('wrench'),
+      () => { crossing('🐈', { y: 93, dur: 9, size: 44 }); },
+      () => { popup('📻', { x: 3, bottom: 3, size: 56, life: 4000 }); cue('riff'); },
+      () => cue('horn'),
+    ],
+  };
+
+  // Ride the Bus in the garage: the party bus. The city goes by outside the windows, the lights
+  // pulse; when someone has to ride the bus, the horn goes and everyone lurches.
+  let busPhase = null;
+  const lurch = () => { document.body.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-14px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 700, easing: 'ease-out' }); cue('brakes'); };
+  SCENES.garageParty = {
+    gap: [8, 16],
+    decor() {
+      busPhase = null;
+      el('<div class="sc-city"></div><div class="sc-city far"></div>', { left: '0', top: '19vh', width: '100vw', height: '30vh' }).classList.add('sc-windows');
+      el('', { left: '0', top: '19vh', width: '100vw', height: '30vh' }).classList.add('sc-frames');
+      banner('All aboard the party bus!', 'Hold on to something', 'party');
+      cue('horn', 300);
+    },
+    update(s) {
+      if (s?.gameType !== 'rideTheBus' || s.phase === busPhase) return;
+      const was = busPhase;
+      busPhase = s.phase;
+      if (was && s.phase === 'bus') {
+        cue('horn');
+        inFront('<b>Ride the bus!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'busride');
+        later(lurch, 600);
+      }
+    },
+    moments: [
+      lurch,
+      () => { for (let i = 0; i < 8; i++) el('', { left: `${rand(5, 95)}vw`, top: `${rand(50, 95)}vh`, background: pick(['#ff2bd6', '#29f0ff', '#ffd23f', '#9b5cff']), animation: `sc-spot ${rand(2, 4)}s ease-in-out infinite alternate, sc-fade-out 1s 7s forwards`, '--sx': `${rand(-30, 30)}vw`, '--sy': `${rand(-20, 20)}vh` }, 8200).classList.add('sc-spot'); },
+      () => fall(['🎊', '✨', '🎉'], 4, 0.25, 0.9),
+      () => { cue('horn'); popup('🚌', { x: 3, bottom: 3, size: 60, life: 3000 }); },
+      () => crossing('🕺', { y: 90, dur: 10, size: 56 }),
+    ],
+  };
+
+  // Horse Race at the castle: the tournament field. Pennants fly; a herald sounds the start, the
+  // crowd cheers, roses are thrown, a falcon goes over and the jester does his act.
+  const PENNANT = (c) => `<svg viewBox="0 0 20 80" width="0.25em" height="1em"><rect x="0" y="0" width="2" height="80" fill="#5a3a1e"/><g class="sc-flag"><path d="M2 4 L20 12 L2 22Z" fill="${c}"/></g></svg>`;
+  SCENES.castleTournament = {
+    decor() {
+      ['#8e1b1b', '#1b3f8e', '#d4af37', '#2a6a3a'].forEach((c, i) => el(PENNANT(c), { left: `${3 + i * 4}vw`, top: '16vh', fontSize: '90px', animationDelay: `-${i * 0.4}s` }).classList.add('sc-jolly'));
+      banner('Let the tournament begin!', 'Riders, to the lists', 'tourney');
+      cue('fanfare', 300);
+    },
+    moments: [
+      () => { el('📯', { left: '2vw', top: '30vh', fontSize: '70px', animation: 'sc-herald 4s ease-in-out forwards' }, 4200); cue('fanfare', 400); },
+      () => { cue('cheer'); burst(['🌹', '🌸', '🌹'], { x: 6, y: 70, n: 14, spread: 12, size: [20, 30] }); },
+      () => drift('🦅', { from: [-10, rand(4, 12)], to: [110, rand(2, 14)], dur: rand(8, 11), size: 54 }),
+      () => { for (let i = 0; i < 3; i++) toss(pick(['🔴', '🟡', '🔵']), { x: 4 + i * 1.6, y: 80, size: 22, height: 16, spins: 1, delay: i * 0.43 }); el('<span>🤹</span>', { left: '3vw', bottom: '2vh', fontSize: '64px' }, 4200); },
+      () => crossing('🐕', { y: 93, dur: 7, size: 46 }),
+      () => { burst(['🎉', '✨', '🏆'], { x: 8, y: 60, n: 14, spread: 10 }); cue('cheer'); },
+    ],
+  };
+
   // Boat Race at the lighthouse: regatta day. Boats of every kind go by all the time, near and
   // far (the near ones lower and bigger), on top of the clear day's gulls and dolphins.
   const BOATS = ['⛵', '⛵', '🚤', '🛶', '🚣', '🛥️', '⛴️', '🚢', '🏄', '🚤'];
