@@ -228,7 +228,10 @@
     const L = g.last;
     if (!L) return '<p class="bp-last muted">First ball coming up…</p>';
     const who = esc(name(L.by));
-    const text = L.cup ? `🎯 ${who} sinks one! Team ${esc(g.teams[L.target].name)} drinks` : L.rim ? `😩 ${who} rims out` : `💨 ${who} misses`;
+    const you = L.by === s.me && !PB.passAndPlay; // "You miss", not "You misses"
+    const owner = L.cup?.owner && s.players.some((p) => p.id === L.cup.owner) ? L.cup.owner : null;
+    const drinks = owner ? `${esc(name(owner))} ${owner === s.me && !PB.passAndPlay ? 'drink' : 'drinks'}` : `Team ${esc(g.teams[L.target].name)} drinks`;
+    const text = L.cup ? `🎯 ${who} ${you ? 'sink' : 'sinks'} one! ${drinks}` : L.rim ? `😩 ${who} ${you ? 'rim' : 'rims'} out` : `💨 ${who} ${you ? 'miss' : 'misses'}`;
     return `<p class="bp-last ${L.cup ? 'hit' : ''}">${text}${g.ballsBack === L.n ? '<b> · 🔥 Balls back!</b>' : ''}</p>`;
   }
 

@@ -764,6 +764,17 @@
       now(30, (t) => CUES.chant(out, t)),
       now(18, (t) => CUES.pop(out, t)),
     ],
+    // The roller rink: synth-pop, four on the floor, with an arpeggio over it.
+    dinerRink: (out) => [
+      sequencer(118, (t, n) => {
+        const s = n % 8;
+        if (s % 2 === 0) note(out, t, { freq: 130, to: 48, len: 0.25, gain: 0.25, type: 'sine' });
+        if (s === 2 || s === 6) hit(out, t, { type: 'bandpass', freq: 1600, q: 0.8, gain: 0.05, len: 0.12, attack: 0.001 });
+        const chord = [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]][Math.floor(n / 16) % 4];
+        note(out, t, { freq: hz(chord[s % 3] + 12), len: 0.18, gain: 0.02, type: 'square', attack: 0.005 });
+        if (s === 0) note(out, t, { freq: hz(chord[0] - 12), len: 0.9, gain: 0.07, type: 'sawtooth' });
+      }, { div: 2 }),
+    ],
     // The championship: the party, louder, the crowd chanting more often.
     fratChampionship: (out) => [...ROOMS.frat(out), now(20, (t) => CUES.chant(out, t))],
     // The garage: the radio playing rock, low; the impact wrench now and then.
