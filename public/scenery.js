@@ -89,6 +89,18 @@
     <path d="M4 46 L56 46 L50 54 L10 54Z" fill="#b3392f"/><path d="M10 54 L50 54" stroke="#7a2620" stroke-width="1.5"/></svg>`;
   const DOLPHIN = `<svg viewBox="0 0 70 34" width="1em" height="0.49em"><path d="M2 22 Q16 4 40 6 Q56 7 66 16 Q58 14 54 16 Q60 20 62 26 Q52 20 44 20 Q38 26 30 26 L33 20 Q18 20 8 26 Q10 22 2 22Z" fill="#5b7f9c"/>
     <path d="M30 8 Q32 0 40 2 Q36 4 36 7Z" fill="#4c6d87"/><circle cx="58" cy="15" r="1.2" fill="#10202c"/></svg>`;
+  // The pirate ship's: the Jolly Roger, a lantern, a kraken's tentacle, a whale's tail.
+  const JOLLY_ROGER = `<svg viewBox="0 0 90 60" width="1em" height="0.67em"><rect x="0" y="0" width="3" height="60" fill="#2a1a0e"/>
+    <path class="sc-flag" d="M3 4 Q30 0 46 6 Q64 12 88 6 L88 40 Q64 46 46 40 Q30 34 3 38Z" fill="#0d0d10"/>
+    <g fill="#f2efe6"><circle cx="45" cy="19" r="7"/><rect x="41" y="24" width="8" height="5" rx="1.5"/>
+    <path d="M30 28 L60 36 M60 28 L30 36" stroke="#f2efe6" stroke-width="3" stroke-linecap="round"/></g>
+    <circle cx="42.5" cy="18.5" r="1.8" fill="#0d0d10"/><circle cx="47.5" cy="18.5" r="1.8" fill="#0d0d10"/></svg>`;
+  const LANTERN = `<svg viewBox="0 0 30 64" width="0.47em" height="1em"><path d="M15 0 V14" stroke="#2a1a0e" stroke-width="1.5"/>
+    <path d="M7 16 H23 L21 22 H9Z" fill="#2a1a0e"/><rect x="8" y="22" width="14" height="26" rx="3" fill="rgba(255,200,110,0.85)" stroke="#2a1a0e" stroke-width="2"/>
+    <path d="M15 22 V48 M8 35 H22" stroke="#2a1a0e" stroke-width="1.2"/><path d="M8 48 H22 L19 54 H11Z" fill="#2a1a0e"/></svg>`;
+  const TENTACLE = `<svg viewBox="0 0 60 160" width="0.375em" height="1em"><path d="M30 160 Q8 120 26 86 Q44 52 22 24 Q14 10 26 4 Q38 0 36 14 Q34 24 40 34 Q56 64 40 96 Q30 124 44 160Z" fill="#7a3b6e"/>
+    <g fill="#d99bc6">${[30, 50, 72, 96, 120, 142].map((y, i) => `<circle cx="${i % 2 ? 36 : 30}" cy="${y}" r="${3.5 - i * 0.2}"/>`).join('')}</g></svg>`;
+  const FLUKE = `<svg viewBox="0 0 120 60" width="1em" height="0.5em"><path d="M60 60 Q56 36 60 26 Q40 30 6 8 Q30 4 52 16 Q60 20 60 24 Q60 20 68 16 Q90 4 114 8 Q80 30 60 26 Q64 36 60 60Z" fill="#0b1014" stroke="#e98a52" stroke-width="1.2"/></svg>`;
   const TUMBLEWEED = `<svg viewBox="0 0 40 40" width="1em" height="1em"><g fill="none" stroke="#a07b45" stroke-width="2">
     <circle cx="20" cy="20" r="17"/><path d="M5 15 Q20 30 35 12 M8 28 Q22 8 33 30 M14 5 Q12 22 26 36 M30 6 Q16 18 10 34"/></g></svg>`;
 
@@ -305,11 +317,50 @@
     speakeasy: { moments: [() => smoke(), () => bubbles([])] },
     beerhall: { moments: [() => bubbles(['beer'])] },
     casino: { moments: [() => fall(['🪙', '💰', '🎲', '♠️', '♥️'], 7, 0.6)] },
+    // On deck at sunset: the Jolly Roger flying, a lantern swinging, and out at sea gulls, ships,
+    // dolphins, a whale, spray over the rail, and now and then the kraken.
     pirate: {
-      moments: [() => {
-        const right = Math.random() < 0.5;
-        drift(GULL, { from: [right ? -10 : 110, rand(5, 30)], to: [right ? 110 : -10, rand(5, 30)], dur: rand(9, 13), size: rand(40, 60), opacity: 0.8 });
-      }],
+      decor() {
+        el(JOLLY_ROGER, { left: '12vw', top: '13vh', fontSize: '110px' }).classList.add('sc-jolly');
+        el(LANTERN, { left: '2.5vw', top: '16vh', fontSize: '80px' }).classList.add('sc-lantern');
+      },
+      moments: [
+        () => {
+          const right = Math.random() < 0.5;
+          const y = rand(9, 20);
+          for (let i = 0; i < pick([2, 3, 4]); i++) {
+            drift(GULL, { from: [right ? -10 : 110, y + rand(-3, 3)], to: [right ? 110 : -10, y + rand(-4, 8)], dur: rand(10, 14), size: rand(34, 54), extra: { animationDelay: `${i * rand(0.3, 0.9)}s` } });
+          }
+          later(() => window.Ambience?.cue('gulls'), 1500);
+        },
+        () => across(SHIP, { y: 41, dur: rand(30, 40), size: rand(60, 90), cls: ['sc-pitch'] }),
+        () => {
+          el('<i></i><i></i><i></i><i></i><i></i>', { left: `${rand(25, 75)}vw`, bottom: '8vh' }, 3200).classList.add('sc-crash');
+          window.Ambience?.cue('crash');
+        },
+        () => {
+          for (let i = 0; i < pick([2, 3]); i++) {
+            el(DOLPHIN, { left: `${rand(2, 6) + i * 4}vw`, top: `${rand(50, 58)}vh`, fontSize: `${rand(50, 66)}px`, animationDelay: `${i * 0.5}s` }, 4000).classList.add('sc-dolphin');
+          }
+          later(() => window.Ambience?.cue('splash'), 1500);
+        },
+        // A whale: a spout, then its tail lifting and slipping back under.
+        () => {
+          const x = rand(3, 8);
+          el('<i></i><i></i><i></i>', { left: `${x}vw`, top: '45vh' }, 3000).classList.add('sc-spout');
+          later(() => el(FLUKE, { left: `${x - 2}vw`, top: 'calc(46vh - 52px)', fontSize: '104px' }, 4200).classList.add('sc-fluke'), 1800);
+          later(() => window.Ambience?.cue('splash'), 4800);
+        },
+        // The kraken: a tentacle comes up over the rail, feels about, and slides back down.
+        () => {
+          const left = Math.random() < 0.5;
+          for (let i = 0; i < pick([1, 2]); i++) {
+            el(TENTACLE, { [left ? 'left' : 'right']: `${rand(1, 9)}vw`, bottom: '0', fontSize: `${rand(220, 300)}px`, animationDelay: `${i * 0.7}s` }, 8000).classList.add('sc-tentacle');
+          }
+          window.Ambience?.cue('splash');
+          later(() => window.Ambience?.cue('creak'), 1200);
+        },
+      ],
     },
     tiki: {
       moments: [() => {

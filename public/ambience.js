@@ -634,6 +634,15 @@
     crash(out, t) {
       play(out, ['cue-wave-1', 'cue-wave-2', 'cue-wave-3'], t, { gain: 0.9 });
     },
+    // Gulls going over.
+    gulls(out, t) {
+      play(out, ['cue-gull-1', 'cue-gull-2'], t, { gain: 0.4 });
+      play(out, ['cue-gull-1', 'cue-gull-2'], t + 0.8, { gain: 0.25, rate: 1.08 });
+    },
+    // The ship's timbers groaning (the kraken's got hold of her).
+    creak(out, t) {
+      play(out, 'cue-creak-2', t, { gain: 0.7 });
+    },
     // A splash (the mermaid diving).
     splash(out, t) {
       play(out, 'cue-splash-2', t, { gain: 0.8 });

@@ -1188,6 +1188,18 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-rain { to { background-position: -40px 200px; } }
 @keyframes sc-fogbank { 0% { transform: translateX(0); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }
 /* St Patrick's in the rain: lightning far off, flickering in the windows. */
+/* The pirate ship: the flag streaming, the lantern swinging, the kraken, a whale. */
+.sc-jolly .sc-flag { transform-origin: 3px 20px; animation: sc-flagwave 1.4s ease-in-out infinite alternate; }
+@keyframes sc-flagwave { from { transform: skewY(-3deg) scaleX(0.96); } to { transform: skewY(3deg) scaleX(1); } }
+.sc-lantern { transform-origin: 50% 0; animation: sc-swing 3.2s ease-in-out infinite alternate; filter: drop-shadow(0 0 14px rgba(255, 190, 90, 0.8)); }
+@keyframes sc-swing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.sc-tentacle { transform-origin: 50% 100%; opacity: 0; animation: sc-tentacle 7.5s ease-in-out forwards; }
+@keyframes sc-tentacle { 0% { opacity: 1; transform: translateY(100%) rotate(0); } 25% { transform: translateY(8%) rotate(-8deg); } 45% { transform: translateY(4%) rotate(9deg); } 65% { transform: translateY(6%) rotate(-5deg); } 100% { opacity: 1; transform: translateY(100%) rotate(4deg); } }
+.sc-spout i { position: absolute; width: 1.8vw; height: 1.8vw; border-radius: 50%; background: rgba(230, 240, 250, 0.8); filter: blur(1px); animation: sc-spout 2.6s ease-out forwards; }
+.sc-spout i:nth-child(2) { --x: -1.2vw; animation-delay: 0.1s; } .sc-spout i:nth-child(3) { --x: 1.2vw; animation-delay: 0.2s; }
+@keyframes sc-spout { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(var(--x, 0), -9vh) scale(1.4); } 100% { transform: translate(calc(var(--x, 0) * 2), -5vh) scale(2); opacity: 0; } }
+.sc-fluke { opacity: 0; transform-origin: 50% 100%; animation: sc-fluke 4s ease-in-out forwards; }
+@keyframes sc-fluke { 0% { opacity: 0; transform: translateY(40%) rotate(-10deg); } 25% { opacity: 1; } 50% { transform: translateY(0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(50%) rotate(12deg); } }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
