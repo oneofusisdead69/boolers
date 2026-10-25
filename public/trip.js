@@ -48,19 +48,18 @@
       ${s.isHost && !PB.isTV && t.moving ? '<button class="link" data-cmd="nextStop">Go now ➜</button>' : ''}</div>`;
   }
 
-  // The host's lobby card. Choices stay on the phone until they start the trip.
-  const draft = { stops: 5, mode: 'vote' };
+  // The host's lobby: a switch at the top of the game card between one game and Around the
+  // World; in Around the World the card holds the trip's settings, and the lobby's main button
+  // starts the trip (app.js). Choices stay on the phone until they start it.
+  const draft = { on: false, stops: 5, mode: 'vote' };
+  const seg = (key, choices) => `<div class="segmented">${choices.map(([v, label]) =>
+    `<button class="${draft[key] === v ? 'selected' : ''}" data-trip-${key}="${v}">${label}</button>`).join('')}</div>`;
+  const toggle = () => `<div class="play-mode">${seg('on', [[false, '🎮 One game'], [true, '🌍 Around the World']])}</div>`;
   function setup(s) {
     if (!s.isHost) return '';
-    const seg = (key, choices) => `<div class="segmented">${choices.map(([v, label]) =>
-      `<button class="${draft[key] === v ? 'selected' : ''}" data-trip-${key}="${v}">${label}</button>`).join('')}</div>`;
-    return `<div class="card trip-card">
-      <h2>🌍 Around the World</h2>
-      <p class="muted">Play a run of games back to back. Each one moves on by itself, and the night's recap comes up at the end.</p>
+    return `<p class="muted">Play a run of games back to back. Each one moves on by itself, and the night's recap comes up at the end.</p>
       <div class="option"><span class="muted">Stops</span>${seg('stops', [[3, '3 games'], [5, '5 games'], [8, '8 games']])}</div>
-      <div class="option"><span class="muted">Next game</span>${seg('mode', [['vote', 'Everyone votes'], ['random', 'Surprise me']])}</div>
-      <button id="trip-start">🌍 Start the trip</button>
-    </div>`;
+      <div class="option"><span class="muted">Next game</span>${seg('mode', [['vote', 'Everyone votes'], ['random', 'Surprise me']])}</div>`;
   }
 
   // Wires up the buttons the screens above draw. `send(event, data)` talks to the server.
@@ -68,6 +67,7 @@
     root.querySelectorAll('[data-trip-vote]').forEach((b) => (b.onclick = () => send('tripVote', { gameId: b.dataset.tripVote })));
     root.querySelectorAll('[data-trip-stops]').forEach((b) => (b.onclick = () => { draft.stops = Number(b.dataset.tripStops); redraw(); }));
     root.querySelectorAll('[data-trip-mode]').forEach((b) => (b.onclick = () => { draft.mode = b.dataset.tripMode; redraw(); }));
+    root.querySelectorAll('[data-trip-on]').forEach((b) => (b.onclick = () => { draft.on = b.dataset.tripOn === 'true'; redraw(); }));
     const start = root.querySelector('#trip-start');
     if (start) start.onclick = () => send('startTrip', { ...draft });
   }
@@ -79,5 +79,5 @@
     document.querySelectorAll('[data-trip-clock]').forEach((el) => (el.textContent = `${left(t)}s`));
   }, 250);
 
-  window.Trip = { html, chip, setup, bind };
+  window.Trip = { html, chip, setup, toggle, bind, isOn: () => draft.on };
 })();

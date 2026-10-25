@@ -752,6 +752,18 @@
       now(16, (t) => play(out, ['cue-creak-1', 'cue-creak-2'], t, { gain: 0.6 })),
       now(50, (t) => CUES.toll(out, t)),
     ],
+    // The frat house: a party beat through someone's speaker, and the room chanting now and then.
+    frat: (out) => [
+      sequencer(96, (t, n) => {
+        const s = n % 8;
+        if (s === 0 || s === 3 || s === 5) note(out, t, { freq: 120, to: 42, len: 0.32, gain: 0.3, type: 'sine' });
+        if (s === 2 || s === 6) hit(out, t, { type: 'bandpass', freq: 1700, q: 0.8, gain: 0.07, len: 0.14, attack: 0.001 });
+        hit(out, t, { freq: 9000, gain: 0.015, len: 0.04 });
+        if (s === 0) note(out, t, { freq: hz([45, 43, 41, 40][Math.floor(n / 8) % 4]), len: 0.9, gain: 0.08, type: 'sawtooth' });
+      }, { div: 2 }),
+      now(30, (t) => CUES.chant(out, t)),
+      now(18, (t) => CUES.pop(out, t)),
+    ],
     // The garage: the radio playing rock, low; the impact wrench now and then.
     garage: (out) => [
       sequencer(112, (t, n) => {

@@ -1066,6 +1066,25 @@
     ],
   };
 
+  // The frat house: a ping-pong ball sinks a cup, the room chants CHUG, a pizza box flies, someone
+  // crowd-surfs across, the string lights flicker, and a toga goes by.
+  const RED_CUP = `<svg viewBox="0 0 40 46" width="0.87em" height="1em"><path d="M4 4 h32 l-5 40 h-22Z" fill="#d62828"/><rect x="4" y="4" width="32" height="6" fill="#f4f4f4"/><path d="M8 18 h24 M9 26 h22" stroke="#b01e1e" stroke-width="1.5"/></svg>`;
+  SCENES.frat = {
+    decor() {
+      for (let i = 0; i < 3; i++) el(RED_CUP, { left: `${2 + i * 2.6}vw`, bottom: '3vh', fontSize: '46px' }).classList.add('blk');
+      el(RED_CUP, { left: '3.3vw', bottom: 'calc(3vh + 40px)', fontSize: '46px' }).classList.add('blk');
+    },
+    moments: [
+      () => { toss('⚪', { x: 30, y: 82, size: 18, height: 30, spins: 0, delay: 0 }); later(() => { burst(['💦'], { x: 4, y: 88, n: 6, spread: 3, size: [14, 20] }); cue('splash'); cue('cheer', 300); }, 1100); },
+      () => { cue('chant'); for (let i = 0; i < 3; i++) later(() => inFront('<b>CHUG!</b>', { left: `${rand(2, 14)}vw`, bottom: `${rand(8, 18)}vh` }, 1300).classList.add('sc-sign-up', 'oi'), i * 650); },
+      () => drift('🍕', { from: [-8, 70], to: [108, 40], dur: 2.4, size: 54, spin: 720 }),
+      () => crossing('🏄', { y: 70, dur: 8, size: 60, bob: true }),
+      () => crossing('🧖', { y: 91, dur: 12, size: 54 }),
+      () => { burst(['🥤', '🎉', '✨'], { x: 6, y: 80, n: 14, spread: 10, size: [20, 28] }); cue('pop'); },
+      () => document.querySelectorAll('#scenery .sc, body').length && document.body.animate([{ filter: 'none' }, { filter: 'brightness(0.6)' }, { filter: 'none' }, { filter: 'brightness(0.7)' }, { filter: 'none' }], { duration: 900, easing: 'steps(1)' }),
+    ],
+  };
+
   // The mechanic's garage: the radio on, a tyre rolling across, sparks off the welder.
   SCENES.garage = {
     decor() { el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open'); },
