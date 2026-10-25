@@ -1086,7 +1086,90 @@
     ],
   };
 
-  // Slevens in the tavern: the mead hall. Embers fly up from the fire pit, ravens wheel through
+  // Noir: rain running down the window, the neon sign stuttering, headlights sweeping through the
+  // blinds, a siren going by, a silhouette at the door, smoke curling up. On every hit a press
+  // camera's flash bulb pops and the red neon floods the room.
+  let lastNoirRoll = null;
+  const flashBulb = () => {
+    cue('flashbulb');
+    el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 1600).classList.add('sc-flashbulb');
+    later(() => el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 2600).classList.add('sc-redflood'), 300);
+  };
+  SCENES.speakeasyNoir = {
+    decor() {
+      lastNoirRoll = null;
+      el('', { right: '0', top: '0', width: '40vw', height: '80vh' }).classList.add('sc-rainglass');
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-noirflicker');
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 2500).classList.add('sc-fadein');
+      later(() => banner('This is serious business', '', 'noir'), 900);
+    },
+    update(s) {
+      const g = s?.gameType === 'slevens' ? s.game : null;
+      if (!g || !g.hit || g.rollNo === lastNoirRoll) return;
+      const first = lastNoirRoll === null;
+      lastNoirRoll = g.rollNo;
+      if (first) return;
+      flashBulb();
+      cue('sting', 300);
+    },
+    moments: [
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 4000).classList.add('sc-headlights'); cue('car', 400); },
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 5000).classList.add('sc-siren'); cue('siren'); },
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 1400).classList.add('sc-lightning'); cue('thunder', 700); },
+      () => { const s = el('🕴️', { left: '2vw', bottom: '20vh', fontSize: '120px' }, 6000); s.classList.add('sc-silhouette'); },
+      () => { for (let i = 0; i < 5; i++) later(() => drift('', { from: [rand(40, 50), 70], to: [rand(36, 56), 20], dur: 6, size: 10 }).classList.add('sc-plume', 'smoke'), i * 500); },
+    ],
+  };
+
+  // The riverboat: the big red paddle wheel turning at the stern (faster on a hit), smoke from the
+  // twin stacks, the steam whistle; a heron, a fish jumping, another steamer going by downriver.
+  const PADDLE = (() => {
+    const spokes = Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2; return `<path d="M50 50 L${(50 + 46 * Math.cos(a)).toFixed(1)} ${(50 + 46 * Math.sin(a)).toFixed(1)}" stroke="#7a1a14" stroke-width="3"/><rect x="${(50 + 40 * Math.cos(a) - 5).toFixed(1)}" y="${(50 + 40 * Math.sin(a) - 9).toFixed(1)}" width="10" height="18" fill="#c0392b" transform="rotate(${(a * 180) / Math.PI} ${(50 + 40 * Math.cos(a)).toFixed(1)} ${(50 + 40 * Math.sin(a)).toFixed(1)})"/>`; }).join('');
+    return `<svg viewBox="0 0 100 100" width="1em" height="1em"><g class="sc-paddle"><circle cx="50" cy="50" r="46" fill="none" stroke="#c0392b" stroke-width="4"/><circle cx="50" cy="50" r="30" fill="none" stroke="#c0392b" stroke-width="3"/>${spokes}<circle cx="50" cy="50" r="7" fill="#2a2a2a"/></g></svg>`;
+  })();
+  const STACKS = `<svg viewBox="0 0 60 120" width="0.5em" height="1em"><rect x="6" y="20" width="14" height="100" fill="#1a1a1a"/><rect x="38" y="20" width="14" height="100" fill="#1a1a1a"/>
+    <path d="M2 20 l4 -10 l3 6 l4 -8 l3 6 l4 -8 l4 12Z M34 20 l4 -10 l3 6 l4 -8 l3 6 l4 -8 l4 12Z" fill="#c8a85a"/></svg>`;
+  const STEAMER = `<svg viewBox="0 0 120 50" width="1em" height="0.42em"><path d="M4 36 h112 l-8 10 h-96Z" fill="#f4efe4"/><rect x="18" y="24" width="80" height="12" fill="#f4efe4"/><rect x="30" y="14" width="56" height="10" fill="#f4efe4"/>
+    <rect x="44" y="0" width="5" height="14" fill="#1a1a1a"/><rect x="64" y="0" width="5" height="14" fill="#1a1a1a"/><circle cx="108" cy="36" r="10" fill="none" stroke="#c0392b" stroke-width="3"/>
+    ${[24, 34, 44, 54, 64, 74, 84].map((x) => `<rect x="${x}" y="27" width="5" height="5" fill="#ffd88a"/>`).join('')}</svg>`;
+  let lastRiverRoll = null;
+  const whistle = () => {
+    cue('whistle');
+    for (let i = 0; i < 4; i++) later(() => drift('', { from: [rand(4, 8), 8], to: [rand(0, 10), -10], dur: 3, size: 10 }).classList.add('sc-plume', 'steam'), i * 180);
+  };
+  SCENES.saloonRiverboat = {
+    decor() {
+      lastRiverRoll = null;
+      el(PADDLE, { right: '-6vw', bottom: '-10vh', fontSize: '46vh' }).classList.add('sc-wheel', 'blk');
+      el(STACKS, { left: '3vw', top: '-4vh', fontSize: '26vh' }).classList.add('blk');
+      const smoke = () => later(() => { drift('', { from: [rand(4, 9), 0], to: [rand(-4, 6), -20], dur: 6, size: 10 }).classList.add('sc-plume'); smoke(); }, rand(900, 1600));
+      smoke();
+      banner('All aboard the Delta Belle', 'Place your bets, gentlemen', 'river');
+      later(whistle, 600);
+    },
+    update(s) {
+      const g = s?.gameType === 'slevens' ? s.game : null;
+      if (!g || !g.hit || g.rollNo === lastRiverRoll) return;
+      const first = lastRiverRoll === null;
+      lastRiverRoll = g.rollNo;
+      if (first) return;
+      // A hit: full steam ahead.
+      layer.querySelector('.sc-wheel')?.classList.add('fast');
+      later(() => layer.querySelector('.sc-wheel')?.classList.remove('fast'), 4000);
+      whistle();
+      later(() => { inFront('<b>FULL STEAM!</b>', { left: '0', right: '26vw', top: '26vh' }, 2400).classList.add('sc-oneeighty', 'ton', 'steam'); cue('cheer'); }, 500);
+    },
+    moments: [
+      whistle,
+      () => across(STEAMER, { y: 44, dur: rand(30, 40), size: rand(70, 100), cls: ['sc-pitch'] }),
+      () => drift('🦩', { from: [-8, rand(20, 30)], to: [108, rand(16, 28)], dur: 12, size: 46 }),
+      () => { const x = rand(20, 70); el('🐟', { left: `${x}vw`, top: '62vh', fontSize: '40px' }, 2000).classList.add('sc-dolphin'); cue('splash', 900); },
+      () => notes(4, 80, '#e8b84a'),
+      () => crossing('🎩', { y: 92, dur: 10, size: 50 }),
+    ],
+  };
+
+  // The mead hall (saved for an easter egg). Embers fly up from the fire pit, ravens wheel through
   // the smoke, a horn sounds; on every hit the hall pounds the tables and roars SKÅL!
   let lastRoll = null;
   const pound = () => {
