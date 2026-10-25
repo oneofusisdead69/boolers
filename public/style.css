@@ -1408,6 +1408,41 @@ main#app, #tv { position: relative; z-index: 1; }
 /* "Best with a TV", on the games that are. */
 .tv-best { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 0.72em; font-weight: 600; vertical-align: 0.12em; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
 .sc-banner.regatta { --banner-font: "Cormorant SC"; color: #fff; text-shadow: 0 2px 0 #13304d, 0 0 24px rgba(19, 48, 77, 0.8); }
+.sc-banner.tourney { --banner-font: "Cinzel"; color: #ffe39a; text-shadow: 0 3px 0 #5a1010, 0 0 24px rgba(0, 0, 0, 0.8); }
+.sc-banner.tourney b { font-size: clamp(36px, 4.6vw, 64px); font-weight: 700; }
+.sc-banner.palace { --banner-font: "Special Elite"; color: #ffd23f; text-shadow: 0 0 14px #ff2a8a, 0 0 40px #ff2a8a, 0 3px 0 #000; }
+.sc-banner.palace b { font-size: clamp(34px, 4.4vw, 62px); }
+.sc-stagebeam { width: 22vw; height: 110vh; background: linear-gradient(rgba(255, 255, 255, 0.22), transparent 85%); clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%); transform-origin: 50% 0; animation: sc-spotsweep 7s ease-in-out infinite alternate; mix-blend-mode: screen; }
+@keyframes sc-spotsweep { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+.sc-oneeighty b { display: block; text-align: center; font: 900 clamp(44px, 6.4vw, 92px)/1 "Special Elite", system-ui, sans-serif; color: #ffd23f; text-shadow: 0 0 20px #ff2a8a, 0 0 50px #ff2a8a, 0 4px 0 #000; animation: sc-orderup 4s ease-out forwards; }
+.sc-oneeighty.ton b { font-size: clamp(40px, 5vw, 72px); color: #fff; text-shadow: 0 0 20px #3de0ff, 0 4px 0 #000; animation-duration: 2.8s; }
+.sc-sign-up b { display: block; padding: 8px 14px; background: #fff; color: #1a1530; font: 900 26px/1 system-ui, sans-serif; box-shadow: 0 4px 0 #b0a6d0; animation: sc-signup 4s ease-out forwards; }
+.sc-sign-up.oi b { background: #ffd23f; font-size: 34px; animation-duration: 1.1s; }
+@keyframes sc-signup { 0% { transform: translateY(60px); opacity: 0; } 12% { transform: translateY(-6px); opacity: 1; } 20%, 30%, 40%, 50% { transform: translateY(0); } 25%, 35%, 45% { transform: translateY(-10px); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(30px); } }
+.sc-flash { width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px 6px rgba(255, 255, 255, 0.8); opacity: 0; animation: sc-camflash 0.3s ease-out 3; }
+@keyframes sc-camflash { 0%, 100% { opacity: 0; } 30% { opacity: 1; } }
+.sc-banner.openmic { --banner-font: "Limelight"; color: #fff; text-shadow: 0 0 16px #ff4d6d, 0 3px 0 #000; }
+.sc-banner.okto { --banner-font: "UnifrakturMaguntia"; color: #fff; text-shadow: 0 3px 0 #2a6fdb, 0 0 24px rgba(0, 0, 0, 0.7); }
+.sc-banner.waste { --banner-font: "Rye"; color: #ffb060; text-shadow: 0 3px 0 #3a0e00, 0 0 30px #ff5a14; }
+.sc-banner.waste b { font-size: clamp(36px, 4.6vw, 64px); }
+.sc-banner.party { --banner-font: "Monoton"; color: #fff; text-shadow: 0 0 12px #ff2bd6, 0 0 30px #29f0ff; }
+.sc-banner.party b { font-size: clamp(32px, 4vw, 56px); }
+.sc-sign.mic { color: #ff4d6d; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); }
+.sc-quote.prost b { font-family: "UnifrakturMaguntia", serif; font-size: 72px; font-style: normal; color: #fff; text-shadow: 0 4px 0 #2a6fdb; }
+.sc-quote.busride b { font-family: "Monoton", system-ui; font-size: 56px; font-style: normal; color: #ffd23f; text-shadow: 0 0 20px #ff2bd6; }
+.sc-dust { background: linear-gradient(transparent 50%, rgba(220, 140, 70, 0.25)); animation: sc-fogdrift 8s ease-in-out infinite alternate; }
+.sc-duststorm { background: linear-gradient(90deg, transparent, rgba(200, 120, 60, 0.55) 40%, rgba(200, 120, 60, 0.55) 60%, transparent); animation: sc-storm 6s ease-in-out forwards; }
+@keyframes sc-storm { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.sc-windows { overflow: hidden; }
+.sc-city { position: absolute; inset: 0; width: 300vw; background:
+  repeating-linear-gradient(90deg, transparent 0 3px, rgba(0, 0, 0, 0) 3px 9px),
+  radial-gradient(circle at 10% 40%, #ffd23f 0 2px, transparent 3px) 0 0 / 60px 40px,
+  linear-gradient(transparent 30%, #1a1430 30% 38%, transparent 38%) 0 0 / 220px 100%,
+  linear-gradient(90deg, #0c0818 0 70px, #140e28 70px 120px, #0a0614 120px 190px, #1a1232 190px 230px, transparent 230px) 0 100% / 240px 70% repeat-x;
+  animation: sc-citypass 6s linear infinite; }
+.sc-city.far { opacity: 0.5; filter: blur(1px); background-size: 40px 30px, 40px 30px, 160px 100%, 180px 55%; animation-duration: 14s; }
+@keyframes sc-citypass { from { transform: translateX(0); } to { transform: translateX(-240px); } }
+.sc-frames { background: repeating-linear-gradient(90deg, #140a24 0 18px, transparent 18px 200px); }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
@@ -1438,3 +1473,12 @@ button.br-player { cursor: pointer; }
 .br-twice h3 { margin: 0 0 8px; font-size: 1em; color: var(--team); }
 .br-twice-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 .br-twice-pick button { width: auto; flex: 1 1 40%; display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
+
+/* Horse Race at the castle's tournament: a sand track round the green lists, in the castle's colours. */
+html[data-room="castleTournament"] .hz-wrap { background: #4f8a3a; box-shadow: inset 0 0 0 4px #d4af37; }
+html[data-room="castleTournament"] .hz-dirt { stroke: #d8bf86; }
+html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
+
+/* The host's switch between one game and Around the World, at the top of the game card. */
+.play-mode { margin: -4px 0 12px; }
+.play-mode .segmented button { font-weight: 700; }

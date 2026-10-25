@@ -491,6 +491,8 @@ function renderLobby() {
       ${playerList({ showKick: host })}
     </div>
     <div class="card">
+      ${host ? Trip.toggle() : ''}
+      ${host && Trip.isOn() ? Trip.setup(s) : `
       <h2>Game</h2>
       ${host
         ? `<div class="games">${s.games.map((g) => `
@@ -504,9 +506,8 @@ function renderLobby() {
         <div class="custom-row">
           <small>${PB.hasCustom(game.id) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
           <button class="secondary" id="customize">✏️ Customize</button>
-        </div>` : ''}
+        </div>` : ''}`}
     </div>
-    ${Trip.setup(s)}
     ${roomStyleCard(s)}
     <div class="card tv-card">
       ${s.tv
@@ -516,7 +517,9 @@ function renderLobby() {
     ${s.players.some((p) => p.total || p.finished) ? PB.tab() : ''}
     ${host && s.players.some((p) => p.total || p.finished)
       ? '<button class="secondary" data-cmd="recap" data-open="true">🏁 Wrap up the night</button>' : ''}
-    ${host
+    ${host && Trip.isOn()
+      ? '<button id="trip-start">🌍 Start the trip</button>'
+      : host
       ? `<button id="start" ${canStart ? '' : 'disabled'}>${canStart ? 'Start game' : `Need ${PB.plural(game.minPlayers - online, 'more player')}`}</button>`
       : `<p class="center muted">Waiting for ${PB.esc(PB.name(s.hostId))} to start…</p>`}
     ${fullscreenButtons()}

@@ -752,6 +752,54 @@
       now(16, (t) => play(out, ['cue-creak-1', 'cue-creak-2'], t, { gain: 0.6 })),
       now(50, (t) => CUES.toll(out, t)),
     ],
+    // The frat house: a party beat through someone's speaker, and the room chanting now and then.
+    frat: (out) => [
+      sequencer(96, (t, n) => {
+        const s = n % 8;
+        if (s === 0 || s === 3 || s === 5) note(out, t, { freq: 120, to: 42, len: 0.32, gain: 0.3, type: 'sine' });
+        if (s === 2 || s === 6) hit(out, t, { type: 'bandpass', freq: 1700, q: 0.8, gain: 0.07, len: 0.14, attack: 0.001 });
+        hit(out, t, { freq: 9000, gain: 0.015, len: 0.04 });
+        if (s === 0) note(out, t, { freq: hz([45, 43, 41, 40][Math.floor(n / 8) % 4]), len: 0.9, gain: 0.08, type: 'sawtooth' });
+      }, { div: 2 }),
+      now(30, (t) => CUES.chant(out, t)),
+      now(18, (t) => CUES.pop(out, t)),
+    ],
+    // The garage: the radio playing rock, low; the impact wrench now and then.
+    garage: (out) => [
+      sequencer(112, (t, n) => {
+        const s = n % 8;
+        if (s === 0 || s === 4 || s === 5) note(out, t, { freq: 110, to: 45, len: 0.25, gain: 0.18, type: 'sine' });
+        if (s === 2 || s === 6) hit(out, t, { type: 'bandpass', freq: 1800, q: 0.7, gain: 0.05, len: 0.14, attack: 0.001 });
+        if (s % 2 === 0) CUES.chord(out, t, [40, 47, 52][Math.floor(n / 16) % 3], 0.22);
+      }, { div: 2 }),
+      now(26, (t) => CUES.wrench(out, t)),
+    ],
+    // The party bus: a club beat, and the horn.
+    garageParty: (out) => [...ROOMS.club(out), now(30, (t) => CUES.horn(out, t))],
+    // Open mic night: the jazz trio, low, between the acts.
+    jazzOpenMic: (out) => ROOMS.jazz(out),
+    // Oktoberfest: the oompah band, and someone yodelling.
+    beerhallOktoberfest: (out) => [...ROOMS.beerhall(out), now(40, (t) => CUES.yodel(out, t))],
+    // The wasteland: the wind, war drums, and the guitar now and then.
+    saloonWasteland: (out) => [
+      background(out, 'bed-castle-1', { gain: 0.35, lowpass: 1200 }),
+      sequencer(96, (t, n) => {
+        const s = n % 8;
+        if (s === 0 || s === 3 || s === 4 || s === 6) note(out, t, { freq: s === 0 ? 70 : 95, to: 45, len: 0.4, gain: 0.16, type: 'sine' });
+      }, { div: 2 }),
+      now(32, (t) => CUES.riff(out, t)),
+    ],
+    // The Darts Palace: a big crowd humming under it all, and singing now and then.
+    diveChampionship: (out) => [
+      now(9, (t) => hit(out, t, { type: 'bandpass', freq: 600, q: 0.5, gain: 0.025, len: 4, attack: 1.5 })),
+      now(28, (t) => CUES.chant(out, t)),
+    ],
+    // The tournament: a crowd out of doors, a lute playing the hall tune, and the herald now and then.
+    castleTournament: (out) => [
+      tune(out, { bpm: 84, notes: SONGS.hall, voice: VOICES.pluck, gain: 0.05, chords: [[50, 57], [48, 55], [53, 60], [50, 57]], every: 8, comp: strum(0.025) }),
+      now(12, (t) => birdsong(out, t)),
+      now(40, (t) => CUES.fanfare?.(out, t)),
+    ],
     // Monte Carlo: the Blue Danube on the piano, and the chips.
     casinoMonteCarlo: (out) => [
       tune(out, { bpm: 132, notes: SONGS.danube, voice: VOICES.piano, gain: 0.04, chords: DANUBE_CHORDS, every: 6, comp: waltz(0.03) }),
@@ -920,6 +968,52 @@
       // A drum roll under the last note.
       for (let k = 0; k < 14; k++) hit(out, at - 2.5 * q + k * 0.05, { type: 'bandpass', freq: 1900, q: 0.7, gain: 0.03, len: 0.08, attack: 0.001 });
       hit(out, at - 2.5 * q, { type: 'lowpass', freq: 120, gain: 0.25, len: 1, attack: 0.002 });
+    },
+    // A power chord (root, fifth, octave) through a crunchy, filtered saw: the garage radio, the wasteland.
+    chord(out, t, root, len = 0.3, gain = 0.02) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 1400;
+      f.connect(out);
+      for (const m of [0, 7, 12]) note(f, t, { freq: hz(root + m), len, gain, type: 'sawtooth', attack: 0.005 });
+    },
+    // A guitar riff: four power chords.
+    riff(out, t) {
+      [[40, 0.4], [43, 0.2], [45, 0.4], [40, 0.8]].reduce((at, [m, len]) => { CUES.chord(out, at, m, len, 0.035); return at + len; }, t);
+    },
+    rumble(out, t) { note(out, t, { freq: 60, to: 40, len: 2.5, gain: 0.12, type: 'sawtooth', attack: 0.6 }); },
+    wind(out, t) { hit(out, t, { type: 'bandpass', freq: 500, q: 0.4, gain: 0.08, len: 5, attack: 2 }); },
+    // An impact wrench: zzt-zzt.
+    wrench(out, t) {
+      for (const d of [0, 0.35]) for (let k = 0; k < 10; k++) hit(out, t + d + k * 0.018, { type: 'bandpass', freq: 2400, q: 2, gain: 0.04, len: 0.02, attack: 0.001 });
+    },
+    weld(out, t) { for (let k = 0; k < 12; k++) hit(out, t + k * 0.06 + Math.random() * 0.04, { freq: 5000, gain: 0.03, len: 0.04, attack: 0.001 }); },
+    // Air brakes: a hiss.
+    brakes(out, t) { hit(out, t + 0.2, { freq: 3000, gain: 0.08, len: 1, attack: 0.02 }); note(out, t, { freq: 300, to: 180, len: 0.4, gain: 0.03, type: 'square' }); },
+    // A rimshot: ba-dum... tss.
+    rimshot(out, t) {
+      note(out, t, { freq: 180, to: 120, len: 0.2, gain: 0.15, type: 'sine' });
+      note(out, t + 0.18, { freq: 140, to: 90, len: 0.25, gain: 0.15, type: 'sine' });
+      hit(out, t + 0.42, { freq: 6000, gain: 0.09, len: 0.9, attack: 0.002 });
+    },
+    // Crickets: chirp chirp, in the silence.
+    crickets(out, t) {
+      for (let c = 0; c < 4; c++) for (let k = 0; k < 3; k++) note(out, t + c * 0.7 + k * 0.05, { freq: 4400, len: 0.03, gain: 0.02, type: 'sine', attack: 0.002 });
+    },
+    snaps(out, t) { for (let k = 0; k < 6; k++) hit(out, t + k * 0.4 + Math.random() * 0.05, { type: 'bandpass', freq: 2600, q: 3, gain: 0.08, len: 0.05, attack: 0.001 }); },
+    // A yodel: leaping up and down between the chest voice and the falsetto.
+    yodel(out, t) {
+      [[67, 0.2], [79, 0.2], [72, 0.2], [84, 0.3], [76, 0.2], [79, 0.5]].reduce((at, [m, len]) => {
+        note(out, at, { freq: hz(m), len: len * 1.1, gain: 0.03, type: 'triangle', attack: 0.02 });
+        return at + len;
+      }, t);
+    },
+    // The crowd singing: 'Oi! Oi! Oi!', three shouts on a beat.
+    chant(out, t) {
+      for (let k = 0; k < 3; k++) {
+        hit(out, t + k * 0.55, { type: 'bandpass', freq: 700, q: 1.4, gain: 0.07, len: 0.35, attack: 0.03 });
+        for (const f of [196, 247, 294]) note(out, t + k * 0.55, { freq: f, to: f * 0.8, len: 0.35, gain: 0.012, type: 'sawtooth', attack: 0.03 });
+      }
     },
     // The mob: a roar that swells and fades, and a cheer in it.
     mob(out, t) {
@@ -1245,5 +1339,21 @@
     current = { style: want, stop: () => { stops.forEach((s) => s()); out.disconnect(); } };
   }
 
-  window.Ambience = { set, cue, styles: Object.keys(ROOMS) };
+  // The caller's voice (the Darts Palace calls every ton): the browser's own speech, at the room's
+  // volume, and only while the sound's on.
+  function say(text) {
+    if (!current || !level || !window.speechSynthesis) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.78;
+      u.pitch = 0.7;
+      u.volume = Math.min(1, level * 1.6);
+      const voices = speechSynthesis.getVoices();
+      u.voice = voices.find((v) => /en-GB/i.test(v.lang) && /male|daniel|arthur|george/i.test(v.name)) || voices.find((v) => /en-GB/i.test(v.lang)) || null;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch {}
+  }
+
+  window.Ambience = { set, cue, say, styles: Object.keys(ROOMS) };
 })();
