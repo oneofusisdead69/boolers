@@ -484,7 +484,7 @@ function renderLobby() {
       <button id="share" class="secondary">Share invite link</button>
     </div>
     <div class="card ls-l">
-      <h2>Players (${s.players.length})</h2>
+      <h2 class="players-head">Players (${s.players.length})${PB.tvBadge()}</h2>
       ${playerList({ showKick: host })}
     </div>
     <div class="card">
@@ -582,7 +582,7 @@ function renderGame() {
     ${html}
     <div class="spacer"></div>
     ${Trip.chip(s)}
-    <div class="game-foot">${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
+    <div class="game-foot">${PB.tvBadge()}${PB.tabButton()}${Prefs.button()}${PB.endButton()}</div>
   `;
   if (!screens.fullscreen) PB.layout($app, screens.stage);
   screens.afterRender?.(s);
