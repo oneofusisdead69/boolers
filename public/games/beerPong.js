@@ -95,7 +95,7 @@
       <ellipse cx="${x - rx * 0.12}" cy="${y}" rx="${rx * 0.5}" ry="${ry * 0.4}" fill="#fff5d6" opacity="0.55"/>
     </g>`;
   }
-  const FLIGHT_MS = 1400; // your ball's flight from the pad (style.css .bp-fly3d.handoff waits as long)
+  const FLIGHT_MS = 1100; // your ball's flight from the pad (style.css .bp-fly3d.handoff waits as long)
   let launch = null; // where your ball left the pad (for its flight across the screen)
   let flown = 0; // the last throw flown
 
@@ -143,28 +143,33 @@
       const e = view(last.x, last.y);
       const end = { x: e.x, y: last.cup ? e.y + ry3(e.f) * 0.2 : e.y + H * e.f };
       const handoff = last.by === s.me && !PB.isTV; // your own ball flies in from the pad first
-      const land = handoff ? 1.4 : 1.1; // (s: when it lands; see style.css)
+      const land = FLIGHT_MS / 1000; // (s: when it lands; see style.css)
       const r = 8 * e.f;
       if (last.cup) {
-        // In: it drops into the cup and floats there, bobbing on the beer (cut off by the cup's
-        // rim, so it sits inside it), with a splash.
+        // In: it drops into the cup and floats there half under, bobbing on the beer, with a
+        // splash.
         const c = view(last.cup.x, last.cup.y);
         const rx = RIM * c.f;
         const ry = ry3(c.f);
         const sy = c.y + ry * 0.12; // the beer's surface
         ball = `<g class="bp-landed" style="--land:${land}s">
-          <clipPath id="bp-in-cup"><rect x="0" y="0" width="360" height="${sy.toFixed(1)}"/><ellipse cx="${c.x.toFixed(1)}" cy="${sy.toFixed(1)}" rx="${(rx * 0.86).toFixed(1)}" ry="${(ry * 0.78).toFixed(1)}"/></clipPath>
+          <clipPath id="bp-in-cup"><rect x="0" y="0" width="360" height="${sy.toFixed(1)}"/></clipPath>
           <g transform="translate(${c.x.toFixed(1)} ${sy.toFixed(1)})">
             <ellipse class="bp-ripple" rx="${(rx * 0.8).toFixed(1)}" ry="${(ry * 0.72).toFixed(1)}"/>
             <g clip-path="url(#bp-in-cup)" transform="translate(${(-c.x).toFixed(1)} ${(-sy).toFixed(1)})"><g transform="translate(${c.x.toFixed(1)} ${sy.toFixed(1)})">
               <g class="bp-fly3d in ${handoff ? 'handoff' : ''}" style="--sx:${(180 - c.x).toFixed(1)}px;--sy:${(320 - sy).toFixed(1)}px">
                 <g class="bp-float"><circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g></g></g>
+            <ellipse class="bp-wet" rx="${(r * 1.12).toFixed(1)}" ry="${(r * 0.3).toFixed(1)}"/>
             ${splash(rx, c.f)}
           </g></g>`;
       } else {
-        ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})">
+        // Out: it hits the table and bounces away, on into the room (a rim-out spins off the
+        // cup first). Its shadow stays on the table under it.
+        const side = Math.max(-1, Math.min(1, (last.x - (g.aim?.x ?? last.x)) * 4)) * 40 + (Math.random() - 0.5) * 20;
+        ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})" style="--land:${land}s;--bx:${side.toFixed(1)}px">
           <g class="bp-fly3d ${last.rim ? 'rim' : 'out'} ${handoff ? 'handoff' : ''}" style="--sx:${(180 - end.x).toFixed(1)}px;--sy:${(320 - end.y).toFixed(1)}px">
-            <circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g>`;
+            <g class="bp-bounce"><ellipse class="bp-bounce-shadow" cy="${(r * 0.9).toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r * 0.35).toFixed(1)}"/>
+              <g class="bp-hop"><circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g></g></g>`;
       }
     }
     return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 ${TOP} 360 ${300 - TOP}" aria-label="Their cups">
