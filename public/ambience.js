@@ -720,6 +720,67 @@
       o.start(t); lfo.start(t);
       o.stop(t + 5.1); lfo.stop(t + 5.1);
     },
+    // A glass sliding down the bar, then stopping.
+    slide(out, t) {
+      for (let k = 0; k < 12; k++) hit(out, t + k * 0.12, { type: 'bandpass', freq: 900 + k * 30, q: 3, gain: 0.012 * (1 - k / 12), len: 0.08 });
+      note(out, t + 1.5, { freq: 1320, len: 0.4, gain: 0.02, type: 'triangle' });
+    },
+    // Dice rattling across the table.
+    dice(out, t) {
+      for (let k = 0; k < 7; k++) hit(out, t + k * 0.09 + Math.random() * 0.04, { type: 'bandpass', freq: 2200 + Math.random() * 800, q: 4, gain: 0.05, len: 0.03, attack: 0.001 });
+    },
+    // A cork popping.
+    pop(out, t) {
+      note(out, t, { freq: 600, to: 180, len: 0.12, gain: 0.12, type: 'sine', attack: 0.002 });
+      hit(out, t, { type: 'bandpass', freq: 1500, q: 1, gain: 0.08, len: 0.05, attack: 0.001 });
+    },
+    // The herald's fanfare.
+    fanfare(out, t) {
+      [[67, 0.2], [72, 0.2], [76, 0.2], [79, 0.7]].reduce((at, [m, len]) => { note(out, t + at, { freq: hz(m), len, gain: 0.04, type: 'sawtooth', attack: 0.02 }); return at + len; }, 0);
+    },
+    // A patty hitting the grill.
+    sizzle(out, t) {
+      for (let k = 0; k < 20; k++) hit(out, t + k * 0.05 + Math.random() * 0.03, { type: 'bandpass', freq: 3000 + Math.random() * 2000, q: 2, gain: 0.008, len: 0.04, attack: 0.002 });
+    },
+    // A tiki drum: two low beats.
+    drum(out, t) {
+      for (const at of [0, 0.35]) note(out, t + at, { freq: 140, to: 70, len: 0.35, gain: 0.14, type: 'sine', attack: 0.003 });
+    },
+    // A cocktail shaker going.
+    shaker(out, t) {
+      for (let k = 0; k < 24; k++) hit(out, t + k * 0.12, { type: 'bandpass', freq: 2600, q: 2, gain: 0.02, len: 0.06, attack: 0.002 });
+    },
+    // A rattlesnake's rattle.
+    rattle(out, t) {
+      for (let k = 0; k < 30; k++) hit(out, t + k * 0.035, { type: 'bandpass', freq: 4000, q: 3, gain: 0.012, len: 0.02, attack: 0.001 });
+    },
+    // A bell buoy out in the fog.
+    buoy(out, t) {
+      note(out, t, { freq: 740, len: 2.6, gain: 0.03, type: 'sine' });
+      note(out, t, { freq: 1850, len: 1.2, gain: 0.01, type: 'sine' });
+    },
+    // A sheep out on the hill.
+    baa(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = 380;
+      const vib = ac.createOscillator();
+      vib.frequency.value = 18;
+      const vd = ac.createGain();
+      vd.gain.value = 18;
+      vib.connect(vd).connect(o.frequency);
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 900;
+      f.Q.value = 1.5;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.035, t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      o.connect(f).connect(g).connect(out);
+      o.start(t); vib.start(t);
+      o.stop(t + 0.85); vib.stop(t + 0.85);
+    },
     // Knock, knock (on the speakeasy's door).
     knock(out, t) {
       for (const at of [0, 0.22, 0.6]) hit(out, t + at, { type: 'lowpass', freq: 260, gain: 0.3, len: 0.1, attack: 0.002 });

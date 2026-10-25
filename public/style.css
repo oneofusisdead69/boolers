@@ -1292,6 +1292,52 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-circle { 0% { transform: translate(-20vw, 0) scale(0.7); opacity: 0; } 10% { opacity: 1; } 30% { transform: translate(10vw, 3vh) scale(1); } 55% { transform: translate(30vw, -1vh) scale(0.8); } 80% { transform: translate(8vw, 2vh) scale(1); } 100% { transform: translate(-25vw, 0) scale(0.7); opacity: 0; } }
 /* Tiki: the torches. */
 .sc-tikitorch { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)); }
+/* The kinds of moment (scenery.js): crossings, pop-ups, slides, bursts, tosses. */
+.sc-walker span { display: inline-block; }
+.sc-walker.flip span { transform: scaleX(-1); }
+.sc-walker.bob > span { animation: sc-bob 0.3s ease-in-out infinite alternate; }
+.sc-walker.flip.bob > span { animation-name: sc-bob-flip; }
+@keyframes sc-bob-flip { from { transform: scaleX(-1) translateY(0); } to { transform: scaleX(-1) translateY(-4px); } }
+.sc-pop span { display: inline-block; transform-origin: 50% 100%; animation: sc-wave-hello 0.6s ease-in-out 0.8s 5 alternate; }
+@keyframes sc-popup { 0% { transform: translateY(110%); } 18%, 82% { transform: translateY(0); } 100% { transform: translateY(110%); } }
+@keyframes sc-wave-hello { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes sc-slide { 0% { transform: translateX(0); opacity: 1; } 75% { transform: translateX(var(--dx)); opacity: 1; } 100% { transform: translateX(var(--dx)); opacity: 0; } }
+@keyframes sc-burst { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 40% { transform: translate(var(--bx), var(--by)) rotate(calc(var(--spin) * 0.5)); } 100% { transform: translate(calc(var(--bx) * 1.3), var(--fall)) rotate(var(--spin)); opacity: 0; } }
+@keyframes sc-toss { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(var(--h)) rotate(var(--spin)); } }
+/* Rolling things (balls, dice, pretzels) turn as they go. */
+.sc-walker.roll > span { animation: sc-spin 0.6s linear infinite; }
+/* The tavern dog, asleep: z z z. */
+.sc-sleeper b { position: absolute; font: 700 20px/1 system-ui, sans-serif; color: rgba(255, 240, 210, 0.8); opacity: 0; animation: sc-zzz 3s ease-out infinite; }
+.sc-sleeper b:nth-of-type(1) { left: 44px; } .sc-sleeper b:nth-of-type(2) { left: 52px; animation-delay: 1s; } .sc-sleeper b:nth-of-type(3) { left: 60px; animation-delay: 2s; }
+@keyframes sc-zzz { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
+/* Club: glowsticks thrown up. */
+.sc-glowstick { width: 34px; height: 6px; border-radius: 3px; }
+.sc-glowstick.g { background: #3dff7a; box-shadow: 0 0 12px #3dff7a; } .sc-glowstick.p { background: #ff2bd6; box-shadow: 0 0 12px #ff2bd6; } .sc-glowstick.b { background: #29f0ff; box-shadow: 0 0 12px #29f0ff; }
+/* Castle: the herald's horn. */
+@keyframes sc-herald { 0% { transform: translateX(-12vw) rotate(-10deg); } 20%, 80% { transform: translateX(0) rotate(-20deg); } 30%, 50%, 70% { transform: translateX(0) rotate(-26deg) scale(1.08); } 100% { transform: translateX(-12vw) rotate(-10deg); } }
+/* Jazz: the sax swaying. */
+.sc-sway span { display: inline-block; transform-origin: 50% 100%; animation: sc-wave-hello 1.1s ease-in-out infinite alternate; }
+/* Diner: "Order up!" */
+.sc-orderup { display: flex; align-items: center; gap: 8px; animation: sc-orderup 3.4s ease-out forwards; }
+.sc-orderup b { font: 800 22px/1 system-ui, sans-serif; color: #fff; background: #e63946; padding: 6px 10px; border-radius: 10px; }
+@keyframes sc-orderup { 0% { transform: scale(0.4); opacity: 0; } 12% { transform: scale(1.1); opacity: 1; } 20% { transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+/* Tiki: a gecko darting up the wall, the tiki mask's eyes lighting up. */
+@keyframes sc-gecko { 0% { transform: translateY(20vh) rotate(-90deg); opacity: 0; } 10% { opacity: 1; } 30% { transform: translateY(6vh) rotate(-90deg); } 60% { transform: translateY(6vh) rotate(-80deg); } 90% { opacity: 1; } 100% { transform: translateY(-12vh) rotate(-90deg); opacity: 0; } }
+.sc-glowmask { animation: sc-mask 4.4s ease-in-out forwards; }
+@keyframes sc-mask { 0%, 100% { opacity: 0; filter: none; } 20%, 80% { opacity: 1; } 40%, 60% { filter: drop-shadow(0 0 16px #ff8a1a) brightness(1.3); } }
+/* Speakeasy: the cocktail shaker going. */
+.sc-shaker span { display: inline-block; animation: sc-shake 0.12s linear 24 alternate, sc-fade-out 0.4s 3.5s forwards; }
+@keyframes sc-shake { from { transform: translate(-4px, -3px) rotate(-12deg); } to { transform: translate(4px, 3px) rotate(12deg); } }
+/* Casino: the roulette wheel spinning down. */
+.sc-roulette span { display: inline-block; animation: sc-spin 0.5s linear 6, sc-spin 1.2s ease-out 3s 1, sc-fade-out 0.5s 4.4s forwards; }
+/* Space: a rocket going up, flame and all. */
+.sc-rocket { filter: drop-shadow(0 0 12px rgba(255, 160, 60, 0.8)); rotate: 45deg; }
+/* Christmas: a present wobbling before it pops. */
+.sc-present { animation: sc-shake 0.1s linear 12 alternate 1s, sc-fade-out 0.3s 2.2s forwards; }
+/* Lighthouse: the bottle bobbing far out. */
+.sc-walker.bottle { opacity: 0.85; }
+/* St Patrick's: a rainbow over the glen. */
+@keyframes sc-rainbow { 0%, 100% { opacity: 0; transform: scale(0.9); } 20%, 80% { opacity: 0.85; transform: scale(1); } }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */
