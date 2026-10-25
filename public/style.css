@@ -1480,3 +1480,8 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 /* The host's switch between one game and Around the World, at the top of the game card. */
 .play-mode { margin: -4px 0 12px; }
 .play-mode .segmented button { font-weight: 700; }
+
+/* The tiki bar's volcano going off: the crater flares, and smoke billows up. */
+.sc-crater { width: 9vw; height: 6vh; margin: -3vh 0 0 -4.5vw; border-radius: 50%; background: radial-gradient(#ffe27a, rgba(255, 106, 26, 0.7) 40%, transparent 70%); filter: blur(4px); opacity: 0; animation: sc-flare 6.8s ease-out forwards; }
+@keyframes sc-flare { 0% { opacity: 0; } 18% { opacity: 0.6; } 22% { opacity: 1; transform: scale(1.8); } 60% { opacity: 0.8; transform: scale(1.4); } 100% { opacity: 0; transform: scale(1); } }
+.sc-plume { width: 8vw; height: 8vw; border-radius: 50%; background: radial-gradient(rgba(90, 70, 80, 0.7), rgba(90, 70, 80, 0) 70%); filter: blur(6px); }
