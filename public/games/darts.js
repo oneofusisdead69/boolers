@@ -309,6 +309,12 @@
   }
 
   PB.register('darts', {
+    reset() {
+      shownDarts = { key: '', count: 0 };
+      aimState = { key: '', x: 0, y: 0 };
+      feedback = '';
+      lastKey = '';
+    },
     // Sideways: the board on the left.
     stage: '.dt-board',
     // On the TV: no table, just a big board with the scores down the left.
@@ -341,6 +347,17 @@
       if (key === lastKey && document.getElementById('dt-pad')) return null;
       lastKey = key;
       return render(s);
+    },
+    // Where the thrower is aiming, sent several times a second (see games/darts.js).
+    onAim(aim) {
+      const s = PB.state;
+      if (!s?.game || s.phase !== 'throwing' || s.game.hard) return;
+      s.game.aim = aim;
+      if (s.game.throwerId === s.me && !PB.isTV) return; // the thrower's own crosshair is local
+      const mark = document.getElementById('dt-aim');
+      if (!mark) return;
+      mark.style.display = '';
+      mark.setAttribute('transform', `translate(${aim.x} ${aim.y})`);
     },
     afterRender(s) {
       if (s.game.throwerId === s.me && s.phase === 'throwing' && !PB.isTV) setupPad();

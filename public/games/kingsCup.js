@@ -116,8 +116,8 @@
 
   function render(s) {
     const g = s.game;
-    // Don't redraw over a rule being typed.
-    if (document.activeElement?.id === 'kc-rule') return null;
+    // Don't redraw over a rule being typed (but do once it's been added).
+    if (document.activeElement?.id === 'kc-rule' && s.phase === 'card' && !g.resolved) return null;
     const mine = g.turnId === s.me;
 
     if (s.phase === 'over') {
@@ -168,6 +168,11 @@
   }
 
   PB.register('kingsCup', {
+    reset() {
+      picked = null;
+      pickedFor = null;
+      dealt = false;
+    },
     // Sideways: these go on the left.
     stage: '.kc-ring, .kc-card, .kc-cup',
     // On the TV, the tap race is a big call to action.
@@ -214,7 +219,9 @@
       const input = document.getElementById('kc-rule');
       const add = () => {
         const text = input.value.trim();
-        if (text) PB.act('rule', { text });
+        if (!text) return;
+        input.blur();
+        PB.act('rule', { text });
       };
       document.getElementById('kc-add-rule')?.addEventListener('click', add);
       input?.addEventListener('keydown', (e) => e.key === 'Enter' && add());

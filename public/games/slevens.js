@@ -189,6 +189,10 @@
   }
 
   PB.register('slevens', {
+    reset() {
+      lastKey = null;
+      tracing = false;
+    },
     fullscreen: true,
     // On the TV: the dice pad, big.
     tvStage: '.pad',

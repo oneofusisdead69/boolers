@@ -309,6 +309,9 @@ module.exports = {
 
     if (action.type === 'aim' && g.phase === 'throwing' && me === thrower(g)) {
       g.aim = { x: clamp(Number(action.x), -1.4, 1.4), y: clamp(Number(action.y), -1.4, 1.4) };
+      // Aiming moves several times a second: everyone gets just the crosshair, not the whole game.
+      ctx.signal(room, 'aim', g.aim);
+      return 'quiet';
     } else if (action.type === 'throw' && g.phase === 'throwing' && me === thrower(g)) {
       const aim = { x: clamp(Number(action.x), -1.4, 1.4), y: clamp(Number(action.y), -1.4, 1.4) };
       const angle = clamp(Number(action.angle), -45, 45);
@@ -339,6 +342,8 @@ module.exports = {
       g.lastTurn = null;
       nextThrower(room, ctx);
     } else if (g.phase === 'give' && !ctx.turns.isActive(room, g.give.from)) {
+      afterTurn(room, ctx);
+    } else if (g.phase === 'turnEnd' && !room.timer) {
       afterTurn(room, ctx);
     }
   },

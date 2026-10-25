@@ -313,7 +313,7 @@ module.exports = {
   // Whoever's turn it is drops out: they fold.
   check(room, ctx) {
     const g = room.game;
-    if (g.phase === 'betting' && g.turnId && !ctx.turns.isActive(room, g.turnId)) {
+    for (let i = 0; i < g.order.length && g.phase === 'betting' && g.turnId && !ctx.turns.isActive(room, g.turnId); i++) {
       const id = g.turnId;
       fold(room, ctx, id);
       advance(room, ctx, id);

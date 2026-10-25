@@ -169,7 +169,11 @@ test('final: drawings are checked, voted on anonymously; fewest votes drink doub
   t.act(1, 'give', { targetId: 'p3' });
   assert.strictEqual(t.drinks()[3], before[3] + 4);
   assert.strictEqual(g.points.p1, (pointsBefore.p1 || 0) + 2, 'final votes are points');
-  assert.strictEqual(t.view(2).drawings.find((d) => d.by === 'p1').image, PNG);
+  // Drawings are linked, not sent: the link points at p1's drawing.
+  const link = t.view(2).drawings.find((d) => d.by === 'p1').image;
+  const [, , , key, i] = link.split('/');
+  assert.strictEqual(key, t.room.game.drawingKey);
+  assert.strictEqual(t.room.game.drawings[t.room.game.finalOrder[Number(i)]], PNG);
   t.act(0, 'playAgain');
   assert.strictEqual(g.phase, 'write');
   assert.strictEqual(g.round, 1);

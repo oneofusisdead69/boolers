@@ -78,3 +78,31 @@ test('water lines change, some in the room style\'s voice', () => {
   assert.ok(lines.size > 3);
   assert.ok(lines.has(BY_STYLE.pirate[0]));
 });
+
+test('the host skipping during the reveal starts the game (once)', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { room, trips, log } = setup();
+  trips.start(room, { stops: 3, mode: 'random' });
+  trips.skip(room);
+  assert.strictEqual(log.started.length, 1);
+  t.mock.timers.tick(5000);
+  assert.strictEqual(log.started.length, 1, 'the reveal timer was cancelled');
+  trips.end(room);
+});
+
+test("a stop isn't started for players who've all gone", (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { room, trips, log } = setup();
+  trips.start(room, { stops: 3, mode: 'random' });
+  for (const p of room.players) p.connected = false;
+  t.mock.timers.tick(4000);
+  assert.strictEqual(log.started.length, 0);
+  assert.strictEqual(room.trip, null);
+});
+
+test('players who leave never hold up a trip', () => {
+  const away = () => false;
+  assert.strictEqual(isDone({ type: 'shotPoker', phase: 'showdown', hand: 5, debts: { p0: { paid: false } } }, away), true);
+  assert.strictEqual(isDone({ type: 'bigTom', phase: 'final', give: { from: 'p0' } }, away), true);
+  assert.strictEqual(isDone({ type: 'liarsDice', phase: 'reveal', round: 10, loseDice: false }), true);
+});

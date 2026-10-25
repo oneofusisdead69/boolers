@@ -36,7 +36,8 @@ const cardName = (c) => `${RANKS[c.rank] || c.rank}${SUIT_SYMBOLS[c.suit]}`;
 
 // ---------- Helpers ----------
 
-const count = (g, id) => g.hands[id]?.length || 0;
+// Only real hands count (not "constructor" and other built-in names a phone could send).
+const count = (g, id) => (Object.hasOwn(g.hands, id) ? g.hands[id].length : 0);
 const top = (g, back = 0) => g.run[g.run.length - 1 - back] || null;
 
 // Players still holding cards, in seat order.
@@ -420,6 +421,21 @@ module.exports = {
   // war chance.
   check(room, ctx) {
     const g = room.game;
+    const w = g.war;
+    const away = (id) => !ctx.turns.isActive(room, id);
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+    // Whoever has to decide something in a war has gone: it's decided for them.
+    if (g.phase === 'pick' && away(g.lastFlip.by)) {
+      const targets = holders(room, g).filter((id) => id !== g.lastFlip.by && !away(id));
+      if (targets.length) startWar(room, ctx, [g.lastFlip.by], pick(targets));
+      else startPile(room, ctx);
+    } else if (g.phase === 'terms' && away(w.challengers[0])) {
+      setTerms(room, ctx, 'high');
+    } else if (g.phase === 'war' && away(w.callerId)) {
+      playRound(room, ctx, pick(w.terms === 'color' ? ['same', 'different'] : ['high', 'low']));
+    } else if (g.phase === 'warResult' && away(w.winnerId)) {
+      startPile(room, ctx);
+    }
     if (g.phase === 'challenge') checkChallenge(room, ctx);
     if (g.phase === 'call' && !ctx.turns.isActive(room, g.turnId)) {
       const next = nextTurn(room, ctx, g, g.turnId);

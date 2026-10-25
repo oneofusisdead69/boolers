@@ -133,6 +133,8 @@ function startFinalVote(room, ctx) {
   if (g.phase !== 'draw') return;
   // Drawings are shown in a random order, without names, until the reveal.
   g.finalOrder = shuffle(Object.keys(g.drawings));
+  // Drawings are fetched once as images (server.js /drawing/…) rather than sent with every update.
+  g.drawingKey = Math.random().toString(36).slice(2, 10);
   g.phase = 'finalVote';
   if (g.finalOrder.length < 2) return finalReveal(room, ctx);
   ctx.setTimer(room, FINAL_VOTE_MS, () => finalReveal(room, ctx));
@@ -270,6 +272,7 @@ module.exports = {
   // Nobody who has left holds up a phase.
   check(room, ctx) {
     const g = room.game;
+    if (g.give && !ctx.turns.isActive(room, g.give.from)) g.give = null;
     const here = ctx.connectedPlayers(room);
     if (g.phase === 'write' && here.length >= 3 && here.every((p) => g.questions[p.id])) startAnswering(room, ctx);
     else if (g.phase === 'answer' && answerersDone(room, ctx)) startVoting(room, ctx);
@@ -323,7 +326,7 @@ module.exports = {
       finalQuestion: g.finalQuestion || null,
       drew: g.drawings ? Object.keys(g.drawings) : [],
       drawings: (g.phase === 'finalVote' || g.phase === 'final')
-        ? g.finalOrder.map((id, i) => ({ i, image: g.drawings[id], mine: id === me, by: g.phase === 'final' ? id : null }))
+        ? g.finalOrder.map((id, i) => ({ i, image: `/drawing/${room.code}/${g.drawingKey}/${i}`, mine: id === me, by: g.phase === 'final' ? id : null }))
         : [],
       myFinalVote: g.phase === 'finalVote' && g.finalVotes[me] ? g.finalOrder.indexOf(g.finalVotes[me]) : null,
       finalVoted: g.phase === 'finalVote' ? Object.keys(g.finalVotes).length : 0,

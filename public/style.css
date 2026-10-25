@@ -1054,3 +1054,123 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .trip-host { display: flex; flex-direction: column; gap: 8px; }
 .trip-chip { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; }
 .trip-chip .link { width: auto; padding: 4px 8px; }
+
+/* ---------- Moving scenery for room styles (public/scenery.js) ---------- */
+#scenery { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+main#app, #tv { position: relative; z-index: 1; }
+.sc { position: absolute; line-height: 1; will-change: transform; }
+@keyframes sc-drift { to { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); } }
+.sc-face-l svg { transform: scaleX(-1); }
+.sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
+@keyframes sc-flap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
+.sc-fog { background: radial-gradient(ellipse at 50% 60%, rgba(190, 160, 220, 0.22), transparent 70%); filter: blur(8px); }
+@keyframes sc-fog { from { transform: translateX(-6vw); } to { transform: translateX(6vw); } }
+/* The disco ball drops from the ceiling, bounces, and spins. */
+.sc-disco { width: 80px; animation: sc-drop 1.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+@keyframes sc-drop { from { transform: translateY(-160px); } to { transform: translateY(0); } }
+.sc-ball-string { width: 2px; height: 70px; margin: 0 auto; background: #888; }
+.sc-ball {
+  width: 80px; height: 80px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), transparent 25%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 10px),
+    radial-gradient(circle at 50% 50%, #dfe6f0, #7a8496 70%, #3c4250);
+  background-size: auto, 200% 100%, auto, auto;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.35);
+  animation: sc-ball-spin 3s linear infinite;
+}
+@keyframes sc-ball-spin { to { background-position: 0 0, -80px 0, 0 0, 0 0; } }
+.sc-spot { width: 14px; height: 14px; border-radius: 50%; filter: blur(2px); opacity: 0.55; box-shadow: 0 0 12px currentColor; }
+@keyframes sc-spot { to { transform: translate(var(--sx), var(--sy)); } }
+.sc-star { width: 120px; height: 2px; background: linear-gradient(90deg, transparent, #fff); border-radius: 2px; transform-origin: right center; transform: rotate(-25deg); }
+@keyframes sc-shoot { from { opacity: 0; translate: 0 0; } 15% { opacity: 1; } to { opacity: 0; translate: 220px 100px; } }
+.sc-ember { width: 4px; height: 4px; border-radius: 50%; background: #ffb347; box-shadow: 0 0 6px #ff8a1a; }
+.sc-smoke { width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle, rgba(220, 210, 200, 0.12), transparent 70%); filter: blur(6px); }
+.sc-bubble { width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.45); }
+.sc-bubble.beer { border-color: rgba(255, 210, 90, 0.6); background: rgba(255, 210, 90, 0.15); }
+.sc-firefly { width: 5px; height: 5px; border-radius: 50%; background: #ffe58a; box-shadow: 0 0 10px #ffd23f; animation-name: sc-fly; }
+@keyframes sc-fly { 0% { transform: translate(0, 0); opacity: 0.2; } 50% { opacity: 1; } 100% { transform: translate(var(--sx), var(--sy)); opacity: 0.3; } }
+.sc-torch { width: 26px; height: 40px; }
+.sc-flame { width: 26px; height: 40px; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; background: radial-gradient(circle at 50% 70%, #fff3b0, #ffb347 40%, #ff5a1a 70%, transparent 72%); filter: blur(1px); animation: sc-flicker 0.15s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+@keyframes sc-flicker { from { transform: scale(1, 1) skewX(-2deg); opacity: 0.85; } to { transform: scale(0.92, 1.08) skewX(3deg); opacity: 1; } }
+.sc-neon { width: 50vw; height: 40vh; background: radial-gradient(ellipse, rgba(255, 70, 40, 0.35), transparent 65%); animation: sc-neon 7s steps(1) infinite; }
+@keyframes sc-neon { 0%, 70%, 74%, 78%, 100% { opacity: 1; } 72%, 76% { opacity: 0.25; } }
+/* Halloween extras */
+.sc-ghost svg { animation: sc-ghost 10s ease-in-out forwards; }
+@keyframes sc-ghost { 0% { opacity: 0; transform: translateX(0); } 15% { opacity: 0.85; } 30% { transform: translateX(14px); } 50% { transform: translateX(-12px); } 70% { opacity: 0.7; transform: translateX(10px); } 100% { opacity: 0; transform: translateX(0); } }
+.sc-witch { filter: drop-shadow(0 0 6px rgba(255, 220, 150, 0.25)); }
+.sc-witch svg { animation: sc-bob 1.4s ease-in-out infinite alternate; }
+@keyframes sc-bob { from { transform: translateY(-6px) rotate(-3deg); } to { transform: translateY(6px) rotate(3deg); } }
+.sc-face-l.sc-witch svg { scale: -1 1; }
+.sc-spider { display: flex; flex-direction: column; align-items: center; animation: sc-dangle 9s ease-in-out forwards; transform-origin: 50% 0; }
+.sc-thread { width: 1px; height: 45vh; background: linear-gradient(rgba(220, 210, 235, 0.15), rgba(220, 210, 235, 0.6)); }
+@keyframes sc-dangle { 0% { transform: translateY(-100%); } 25% { transform: translateY(0) rotate(0); } 35% { transform: translateY(-2vh) rotate(4deg); } 45% { transform: translateY(0) rotate(-4deg); } 60% { transform: translateY(-1vh) rotate(2deg); } 75% { transform: translateY(0) rotate(0); } 100% { transform: translateY(-100%); } }
+.sc-legs { animation: sc-wiggle 0.4s ease-in-out infinite alternate; transform-origin: 20px 18px; }
+@keyframes sc-wiggle { to { transform: scaleY(0.85); } }
+.sc-eyes { opacity: 0; animation: sc-eyes 4s ease-in-out forwards; filter: drop-shadow(0 0 6px #ffb300); }
+@keyframes sc-eyes { 0% { opacity: 0; } 15%, 85% { opacity: 0.9; } 100% { opacity: 0; } }
+.sc-blink { transform-box: fill-box; transform-origin: center; animation: sc-blink 4s linear forwards; }
+@keyframes sc-blink { 0%, 38%, 46%, 70%, 76%, 100% { transform: scaleY(1); } 42%, 73% { transform: scaleY(0.1); } }
+.sc-lightning { position: absolute; background: rgba(230, 225, 255, 0.55); animation: sc-flash 1.3s ease-out forwards; }
+@keyframes sc-flash { 0% { opacity: 0; } 5% { opacity: 1; } 12% { opacity: 0.1; } 18% { opacity: 0.8; } 100% { opacity: 0; } }
+.sc-pumpkin { filter: drop-shadow(0 0 14px rgba(255, 140, 30, 0.6)); opacity: 0.9; }
+.sc-candle { animation: sc-candle 0.18s ease-in-out infinite alternate; }
+.sc-pumpkin.late .sc-candle { animation-duration: 0.23s; }
+@keyframes sc-candle { from { opacity: 0.75; } to { opacity: 1; } }
+/* Clouds over the moon (Halloween), which part now and then. */
+.sc-clouds { width: 0; height: 0; z-index: 1; }
+.sc-cloud { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #3a3346 0%, #251f30 55%, rgba(26, 20, 34, 0) 72%); transition: transform 3.5s ease-in-out, opacity 3.5s; animation: sc-cloud-drift 14s ease-in-out infinite alternate; }
+.sc-cloud.a { width: 26vw; height: 11vh; left: -22vw; top: -7vh; }
+.sc-cloud.b { width: 24vw; height: 10vh; left: -4vw; top: -2vh; animation-delay: -5s; }
+.sc-cloud.c { width: 18vw; height: 8vh; left: -12vw; top: 2vh; animation-delay: -9s; }
+@keyframes sc-cloud-drift { from { translate: -1.5vw 0; } to { translate: 1.5vw 0; } }
+.sc-clouds.parted .sc-cloud.a { transform: translateX(-16vw); opacity: 0.4; }
+.sc-clouds.parted .sc-cloud.b { transform: translateX(16vw); opacity: 0.4; }
+.sc-clouds.parted .sc-cloud.c { transform: translateY(10vh); opacity: 0.2; }
+/* The headless horseman */
+.sc-horseman { filter: drop-shadow(0 0 10px rgba(255, 138, 26, 0.35)); }
+.sc-face-l.sc-horseman svg { scale: -1 1; }
+.sc-horseman svg { overflow: visible; animation: sc-bob 0.42s ease-in-out infinite alternate; }
+.sc-legs-f, .sc-legs-b { transform-box: fill-box; transform-origin: 50% 0; animation: sc-stride 0.42s ease-in-out infinite alternate; }
+.sc-legs-b { animation-delay: -0.21s; }
+@keyframes sc-stride { from { transform: rotate(18deg); } to { transform: rotate(-18deg); } }
+.sc-flames { transform-box: fill-box; transform-origin: 50% 100%; animation: sc-flicker 0.12s ease-in-out infinite alternate; }
+
+/* Club: the disco ball comes down, spins for a while, and goes back up. */
+.sc-disco { animation: sc-drop 1.6s cubic-bezier(0.3, 1.4, 0.5, 1) both, sc-rise 1.2s ease-in 12.6s forwards; }
+@keyframes sc-rise { to { transform: translateY(-180px); } }
+@keyframes sc-fade-out { to { opacity: 0; } }
+/* Lighthouse: the beam from the lamp behind you, sweeping out over the sea. */
+.sc-beam {
+  width: 120vw; height: 60vh; margin-left: -60vw; transform-origin: 50% 100%;
+  background: radial-gradient(ellipse 30% 100% at 50% 100%, rgba(255, 244, 200, 0.5), rgba(255, 244, 200, 0.12) 60%, transparent 75%);
+  clip-path: polygon(46% 100%, 30% 0, 70% 0, 54% 100%);
+  animation: sc-sweep 7s ease-in-out forwards;
+}
+@keyframes sc-sweep { 0% { transform: rotate(-70deg); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: rotate(70deg); opacity: 0; } }
+/* A wave breaking: spray bursting up and falling away. */
+.sc-crash { width: 0; height: 0; }
+.sc-crash i { position: absolute; width: 14vw; height: 14vw; max-width: 160px; max-height: 160px; margin-left: -7vw; border-radius: 50%;
+  background: radial-gradient(circle, rgba(235, 245, 255, 0.85), rgba(200, 225, 245, 0.35) 45%, transparent 70%); filter: blur(2px);
+  animation: sc-spray 2.8s ease-out forwards; }
+.sc-crash i:nth-child(2) { --x: -6vw; animation-delay: 0.1s; } .sc-crash i:nth-child(3) { --x: 6vw; animation-delay: 0.15s; }
+.sc-crash i:nth-child(4) { --x: -12vw; animation-delay: 0.25s; } .sc-crash i:nth-child(5) { --x: 11vw; animation-delay: 0.3s; }
+@keyframes sc-spray { 0% { transform: translate(var(--x, 0), 0) scale(0.3); opacity: 0; } 20% { opacity: 1; } 45% { transform: translate(var(--x, 0), -22vh) scale(1.1); } 100% { transform: translate(calc(var(--x, 0) * 1.4), -8vh) scale(1.6); opacity: 0; } }
+/* Ships */
+.sc-pitch svg { animation: sc-bob 2.2s ease-in-out infinite alternate; }
+.sc-ghostship { filter: drop-shadow(0 0 10px rgba(120, 255, 200, 0.7)); animation-name: sc-drift, sc-ghostfade; animation-duration: inherit, 20s; }
+.sc-ghostship svg { animation: sc-ghostship 20s ease-in-out forwards; }
+@keyframes sc-ghostship { 0% { opacity: 0; } 15% { opacity: 0.9; } 50% { opacity: 0.5; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
+/* The mermaid: up out of the water, a wave, back down, then her tail flicks up and away. */
+.sc-mermaid { width: 1em; height: 1.2em; overflow: hidden; translate: 0 -1.2em; }
+.sc-mer-in { animation: sc-mer 4.6s ease-in-out forwards; transform: translateY(110%); }
+@keyframes sc-mer { 0% { transform: translateY(110%); } 18% { transform: translateY(8%); } 80% { transform: translateY(8%); } 100% { transform: translateY(110%); } }
+.sc-wave-arm { transform-origin: 40px 46px; animation: sc-wave 0.5s ease-in-out 1s 6 alternate; }
+@keyframes sc-wave { to { transform: rotate(-25deg); } }
+.sc-mer-tail { position: absolute; left: 0; top: 0; transform: translateY(110%); animation: sc-tail 1.6s ease-in-out 4.8s forwards; }
+@keyframes sc-tail { 0% { transform: translateY(110%) rotate(0); } 45% { transform: translateY(20%) rotate(-10deg); } 100% { transform: translateY(110%) rotate(15deg); } }
+/* Rain on the glass (the storm). */
+.sc-rain { background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(200, 220, 240, 0.18) 22px 23px, transparent 23px 47px); background-size: 200px 200px; animation: sc-rain 0.5s linear infinite; }
+@keyframes sc-rain { to { background-position: -40px 200px; } }
+@keyframes sc-fogbank { 0% { transform: translateX(0); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }

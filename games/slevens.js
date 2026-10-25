@@ -154,7 +154,7 @@ module.exports = {
       ctx.setTimer(room, g.spinMs, () => openWindow(room, ctx));
     } else if (action.type === 'pick' && g.phase === 'reverse') {
       const target = ctx.player(room, action.targetId);
-      if (!target || target.id === player.id) return;
+      if (!target || target.id === player.id || !ctx.turns.isActive(room, target.id)) return;
       ctx.log(room, `🎲 ${player.name} picked ${target.name} to roll`);
       newTurn(room, ctx, target.id);
     } else if (action.type === 'pass' && g.phase !== 'spinning') {
