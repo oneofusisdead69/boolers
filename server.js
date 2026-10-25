@@ -709,24 +709,33 @@ process.on('uncaughtException', (err) => console.error('Uncaught error', err));
 // close everyone's connection so their phones and TVs reconnect straight away, to the new one.
 // (Otherwise a phone can stay on this one for a minute or more, in a copy of the room that people
 // joining the new server can't see.)
-process.on('SIGTERM', () => retire('shutting down'));
+process.on('SIGTERM', () => retire('shutting down', { exit: true }));
 
 // A newer server is up (see announce in lib/roomStore.js), or this one's being stopped: save every
 // room and send everyone off, so they reconnect to the new one. A moment first, for the front end
 // to start sending connections there. Anyone who still reaches this one is turned away (and tries
-// again: see app.js and tv.js).
+// again: see app.js and tv.js). Handing over, it stays up (idle) rather than exiting: Cloud Run
+// would start it again while its revision still has traffic. It's stopped (SIGTERM) when it's done.
+// Being stopped, it exits.
 const SERVER_ID = `${process.env.K_REVISION || 'local'}-${Math.random().toString(36).slice(2, 10)}`;
+// The deploy's number, from Cloud Run's revision name (boolers-00016-qfv): later deploys are newer.
+const REVISION = Number(String(process.env.K_REVISION || '').match(/-(\d+)-/)?.[1] || 0);
 const HANDOVER_MS = 2500;
 let retired = false;
 io.use((socket, next) => (retired ? next(new Error('moving')) : next()));
-async function retire(why, delay = 0) {
-  if (retired) return;
-  retired = true;
-  console.log(`Handing over (${why}): saving ${rooms.size} room(s)`);
-  await new Promise((r) => setTimeout(r, delay));
-  await roomStore.flush();
-  io.engine.close();
-  setTimeout(() => process.exit(0), 1000);
+async function retire(why, { delay = 0, exit = false } = {}) {
+  if (!retired) {
+    retired = true;
+    console.log(`Handing over (${why}): saving ${rooms.size} room(s)`);
+    await new Promise((r) => setTimeout(r, delay));
+    await roomStore.flush();
+    // Tell every phone and TV to go (they reconnect at once, see app.js), then drop what's left.
+    io.disconnectSockets(true);
+    io.engine.close();
+    // And close every open connection, so a browser can't reuse one to come back here.
+    setTimeout(() => server.closeAllConnections?.(), 200);
+  }
+  if (exit) setTimeout(() => process.exit(0), 1000);
 }
 
 roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
@@ -739,7 +748,7 @@ roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
   if (roomStore.enabled) console.log(`Room store on (${process.env.ROOM_STORE}): ${saved.length} room(s) restored`);
   server.listen(PORT, () => {
     listening();
-    roomStore.announce(SERVER_ID, () => retire('a newer server took over', HANDOVER_MS));
+    roomStore.announce(SERVER_ID, REVISION, () => retire('a newer server took over', { delay: HANDOVER_MS }));
   });
 });
 
