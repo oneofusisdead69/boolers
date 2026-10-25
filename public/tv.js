@@ -49,6 +49,15 @@ function watch(c) {
 }
 
 socket.on('connect', () => (code ? watch(code) : render()));
+socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
+// Back from being hidden (a laptop asleep, another tab): catch up with the room.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return void (hiddenAt = Date.now());
+  if (Date.now() - hiddenAt < 3000) return;
+  if (!socket.connected) socket.connect();
+  else if (code) watch(code);
+});
 
 // The list of games comes once, when we connect (see server.js); every state gets it added.
 let gameList = [];

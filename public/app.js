@@ -169,6 +169,20 @@ $app.addEventListener('click', (e) => {
 
 // ---------- Connection ----------
 
+// The server closing the connection itself (a deploy) means: reconnect now.
+socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
+
+// A phone that's been locked or in another app can hold a dead connection for a while without
+// noticing: when you come back to it, ask the room for where things are now.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return void (hiddenAt = Date.now());
+  if (Date.now() - hiddenAt < 3000) return;
+  if (!socket.connected) return void socket.connect();
+  const room = store.get('room');
+  if (room) socket.emit('join', { code: room, playerId, key: playerKey, name: store.get('name'), ...lookToSend() }, () => {});
+});
+
 socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
