@@ -720,6 +720,10 @@
       o.start(t); lfo.start(t);
       o.stop(t + 5.1); lfo.stop(t + 5.1);
     },
+    // Knock, knock (on the speakeasy's door).
+    knock(out, t) {
+      for (const at of [0, 0.22, 0.6]) hit(out, t + at, { type: 'lowpass', freq: 260, gain: 0.3, len: 0.1, attack: 0.002 });
+    },
     // Two steins meeting.
     clink(out, t) {
       note(out, t, { freq: 1180, len: 0.5, gain: 0.05, type: 'triangle' });

@@ -1215,7 +1215,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-cat .sc-tail { transform-origin: 14px 24px; animation: sc-swish 1.2s ease-in-out infinite alternate; }
 @keyframes sc-swish { from { transform: rotate(-12deg); } to { transform: rotate(10deg); } }
 /* The diner: the fan turning, headlights sweeping past the window. */
-.sc-fan .sc-blades { transform-origin: 60px 60px; animation: sc-spin 2.4s linear infinite; }
+.sc-fan .sc-blades { transform-origin: 0 0; animation: sc-spin 2.4s linear infinite; }
+.sc-fan { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25)); }
 @keyframes sc-spin { to { transform: rotate(360deg); } }
 .sc-headlights { width: 40vw; height: 60vh; background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 245, 210, 0.22), transparent 70%); filter: blur(10px); }
 /* Space: the planet turning slowly, the saucer wobbling with its lights going round, a comet. */
@@ -1257,6 +1258,15 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-spot-sweep { 0% { opacity: 0; transform: rotate(30deg); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: rotate(-30deg); } }
 /* Speakeasy: the bulb swinging, the police lights going by outside. */
 .sc-bulb { transform-origin: 50% 0; animation: sc-swing 4s ease-in-out infinite alternate; filter: drop-shadow(0 0 22px rgba(255, 196, 100, 0.85)); }
+/* The speakeasy: lit bottles on the shelf, the gramophone's record turning, and the peephole. */
+.sc-shelf { filter: drop-shadow(0 0 16px rgba(255, 190, 110, 0.35)); }
+.sc-record { transform-origin: 50px 72px; animation: sc-wobble 1.8s linear infinite; }
+.sc-door .sc-slit-cover { transition: transform 0.35s ease; transform-origin: 22px 39px; }
+.sc-door .sc-peep-eyes { opacity: 0; transition: opacity 0.3s 0.3s; }
+.sc-door.peek .sc-slit-cover { transform: translateX(46px) scaleX(0.02); }
+.sc-door.peek .sc-peep-eyes { opacity: 1; }
+.sc-door.peek .sc-pupil { animation: sc-lookabout 4s ease-in-out 0.6s; }
+@keyframes sc-lookabout { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2.5px); } 50% { transform: translateX(2.5px); } 75% { transform: translateX(-1px); } }
 .sc-police { opacity: 0; animation: sc-police 5.5s linear forwards; background: linear-gradient(90deg, rgba(255, 40, 60, 0.45), transparent 35%, transparent 65%, rgba(40, 90, 255, 0.45)); }
 @keyframes sc-police { 0%, 100% { opacity: 0; } 10%, 30%, 50%, 70% { opacity: 1; background-position: 0 0; } 20%, 40%, 60%, 80% { opacity: 0.2; } }
 /* Beer hall: bunting, and two steins meeting in the middle with a clink. */

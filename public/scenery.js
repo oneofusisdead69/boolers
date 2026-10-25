@@ -117,9 +117,13 @@
     <path d="M26 21 Q28 26 26 31 M34 20 Q36 26 34 32 M42 21 Q44 26 42 31" stroke="#6f675e" stroke-width="2.4" fill="none"/>
     <circle cx="63" cy="21" r="1.6" fill="#3d8f3a"/><path d="M53 16 L55 8 L58 14Z" fill="#e4a6a0"/></svg>`;
   // The diner's ceiling fan; space's ringed planet, flying saucer and astronaut; Santa's sleigh.
-  const FAN = `<svg viewBox="0 0 120 120" width="1em" height="1em"><rect x="58" y="0" width="4" height="44" fill="#8a8f96"/>
-    <g class="sc-blades" fill="#7a5a40" stroke="#4e3826" stroke-width="1.5">${[0, 90, 180, 270].map((a) => `<rect transform="rotate(${a} 60 60)" x="68" y="53" width="48" height="14" rx="7"/>`).join('')}</g>
-    <circle cx="60" cy="60" r="13" fill="#c9ccd1" stroke="#8a8f96" stroke-width="2"/><circle cx="60" cy="60" r="4" fill="#8a8f96"/></svg>`;
+  // A ceiling fan seen from across the room: the rod down from the ceiling, the motor, and the
+  // blades turning in a flattened circle, with a light globe under it.
+  const FAN = `<svg viewBox="0 0 220 100" width="1em" height="0.45em">
+    <rect x="107" y="0" width="6" height="30" fill="#8a8f96"/><path d="M96 0 H124 L120 6 H100Z" fill="#c9ccd1"/>
+    <g transform="translate(110 44) scale(1 0.22)"><g class="sc-blades">${[0, 72, 144, 216, 288].map((a) => `<path transform="rotate(${a})" d="M10 -8 L100 -14 Q106 0 100 14 L10 8Z" fill="#8a6446" stroke="#4e3826" stroke-width="5"/>`).join('')}</g></g>
+    <rect x="96" y="28" width="28" height="16" rx="6" fill="#c9ccd1" stroke="#8a8f96" stroke-width="1.5"/><rect x="94" y="40" width="32" height="6" rx="3" fill="#a9adb3"/>
+    <path d="M102 48 H118 L116 54 H104Z" fill="#a9adb3"/><circle cx="110" cy="64" r="11" fill="rgba(255,236,190,0.95)"/></svg>`;
   const PLANET = `<svg viewBox="0 0 140 90" width="1em" height="0.64em"><defs><radialGradient id="pl" cx="40%" cy="35%"><stop offset="0" stop-color="#f6c48a"/><stop offset="1" stop-color="#9c4f2f"/></radialGradient></defs>
     <ellipse cx="70" cy="45" rx="66" ry="14" fill="none" stroke="rgba(240,210,170,0.55)" stroke-width="5"/><circle cx="70" cy="45" r="30" fill="url(#pl)"/>
     <path d="M4 45 A66 14 0 0 0 136 45" fill="none" stroke="rgba(240,210,170,0.8)" stroke-width="5"/>
@@ -163,6 +167,17 @@
   const COCONUT = `<svg viewBox="0 0 30 30" width="1em" height="1em"><circle cx="15" cy="15" r="13" fill="#6b4524"/><circle cx="11" cy="11" r="1.8" fill="#3b2512"/><circle cx="17" cy="10" r="1.8" fill="#3b2512"/><circle cx="14" cy="16" r="1.8" fill="#3b2512"/></svg>`;
   const BULB = `<svg viewBox="0 0 30 90" width="0.33em" height="1em"><path d="M15 0 V52" stroke="#2a2420" stroke-width="1.5"/><rect x="11" y="50" width="8" height="8" fill="#7a6a4a"/>
     <path d="M15 58 Q2 66 6 78 Q15 92 24 78 Q28 66 15 58Z" fill="rgba(255,206,120,0.92)"/><path d="M12 66 Q15 74 18 66" stroke="#ff9a2a" stroke-width="1.2" fill="none"/></svg>`;
+  // The speakeasy: the back-bar shelf, the door with its peephole, the gramophone.
+  const SHELF = `<svg viewBox="0 0 220 90" width="1em" height="0.41em"><rect x="0" y="70" width="220" height="8" fill="#5a3418"/><rect x="0" y="78" width="220" height="4" fill="#3a2010"/>
+    ${[[10, '#2f6b3a', 46], [32, '#8a4a1a', 54], [56, '#d9c8a0', 40], [76, '#6b1a1a', 58], [100, '#2f5a6b', 44], [122, '#8a6a1a', 50], [146, '#3a2a1a', 60], [172, '#2f6b3a', 42], [194, '#a0521a', 52]].map(([x, c, h]) => `<rect x="${x}" y="${70 - h}" width="14" height="${h}" rx="3" fill="${c}"/><rect x="${x + 4}" y="${70 - h - 12}" width="6" height="14" fill="${c}"/><rect x="${x + 2}" y="${70 - h * 0.6}" width="10" height="10" fill="#e8dcc0" opacity="0.8"/><rect x="${x + 2}" y="${70 - h + 4}" width="3" height="${h - 10}" fill="#fff" opacity="0.18"/>`).join('')}</svg>`;
+  const DOOR = `<svg viewBox="0 0 90 170" width="0.53em" height="1em"><rect x="0" y="0" width="90" height="170" fill="#2a140c"/><rect x="6" y="6" width="78" height="164" fill="#4a2814"/>
+    <rect x="14" y="70" width="62" height="40" fill="none" stroke="#2a140c" stroke-width="3"/><rect x="14" y="120" width="62" height="40" fill="none" stroke="#2a140c" stroke-width="3"/>
+    <rect x="22" y="30" width="46" height="18" rx="2" fill="#120804"/><g class="sc-slit-cover"><rect x="22" y="30" width="46" height="18" rx="2" fill="#6b3a1c" stroke="#b08d45" stroke-width="1.5"/></g>
+    <g class="sc-peep-eyes"><ellipse cx="36" cy="39" rx="5" ry="3.4" fill="#f2efe6"/><ellipse cx="54" cy="39" rx="5" ry="3.4" fill="#f2efe6"/><circle class="sc-pupil" cx="36" cy="39" r="2" fill="#111"/><circle class="sc-pupil" cx="54" cy="39" r="2" fill="#111"/></g>
+    <circle cx="72" cy="100" r="4" fill="#b08d45"/></svg>`;
+  const GRAMOPHONE = `<svg viewBox="0 0 120 110" width="1em" height="0.92em"><rect x="10" y="74" width="80" height="30" rx="3" fill="#4a2814" stroke="#2a140c" stroke-width="2"/>
+    <g class="sc-record"><ellipse cx="50" cy="72" rx="34" ry="7" fill="#111"/><ellipse cx="50" cy="72" rx="8" ry="2" fill="#c0392b"/></g>
+    <path d="M72 70 L88 40" stroke="#b08d45" stroke-width="4"/><path d="M84 46 Q90 20 118 4 Q110 30 112 52 Q100 44 84 46Z" fill="#d9ad52" stroke="#9a7430" stroke-width="2"/></svg>`;
   const POSTER = `<svg viewBox="0 0 60 80" width="0.75em" height="1em"><rect x="2" y="2" width="56" height="76" fill="#e7d3a6" stroke="#a8875a" stroke-width="2"/>
     <text x="30" y="18" font-size="11" font-family="serif" font-weight="700" text-anchor="middle" fill="#3b2512">WANTED</text>
     <circle cx="30" cy="40" r="12" fill="#a8875a"/><path d="M18 34 H42 L38 28 H22Z" fill="#3b2512"/>
@@ -475,11 +490,23 @@
     // (everyone goes quiet).
     speakeasy: {
       decor() {
-        el(BULB, { left: '10vw', top: '-2vh', fontSize: '150px' }).classList.add('sc-bulb');
+        el(SHELF, { left: '1vw', top: '9vh', fontSize: '220px' }).classList.add('sc-shelf', 'blk');
+        el(BULB, { left: '22vw', top: '-2vh', fontSize: '150px' }).classList.add('sc-bulb');
+        el(DOOR, { right: '3vw', bottom: '-2vh', fontSize: '190px' }).classList.add('sc-door', 'blk');
+        el(GRAMOPHONE, { left: '1vw', bottom: '9vh', fontSize: '130px' }).classList.add('sc-gramophone', 'blk');
       },
       moments: [
         () => smoke(),
-        () => bubbles([]),
+        // Knock knock: the peephole slides open, a pair of eyes looks the room over, and it shuts.
+        () => {
+          window.Ambience?.cue('knock');
+          later(() => {
+            const door = layer.querySelector('.sc-door');
+            if (!door) return;
+            door.classList.add('peek');
+            later(() => door.classList.remove('peek'), 5200);
+          }, 900);
+        },
         () => { el('', { inset: '0' }, 6000).classList.add('sc-police'); window.Ambience?.cue('siren'); },
       ],
     },
@@ -587,7 +614,7 @@
     diner: {
       decor() {
         el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open');
-        el(FAN, { left: '17vw', top: '-4vh', fontSize: '170px' }).classList.add('sc-fan');
+        el(FAN, { left: '14vw', top: '0', fontSize: '230px' }).classList.add('sc-fan', 'blk');
       },
       moments: [
         () => shower(6, 1, () => drift(pick(['♪', '♫', '♬']), { from: [rand(5, 95), 100], to: [rand(5, 95), rand(45, 70)], dur: rand(5, 8), size: rand(18, 30), spin: rand(-30, 30), opacity: 0.5, extra: { color: '#e63946' } })),
