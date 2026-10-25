@@ -260,3 +260,31 @@ test('the red arrow clears snake eyes mode', () => {
   assert.ok(!t.room.game.snakeEyes);
   t.cleanup();
 });
+
+test('bots: a sharp bot keeps its hands off a hit, rolls again on a miss, and only rolls its own dice', () => {
+  const t = setup(game, 3);
+  t.player(1).bot = 'booler';
+  assert.strictEqual(t.bot(1, 1), null, 'not its roll');
+  assert.strictEqual(t.bot(0, 1).type, 'roll');
+  rollAs(t, 0, [3, 4]);
+  assert.strictEqual(t.bot(0, 1), null, 'hands off a 7');
+  t.fireTimer();
+  const race = t.bot(0, 1);
+  assert.strictEqual(race.type, 'roll', 'straight back to rolling after the hit');
+  assert.ok(race.delay < 2000, 'and quickly');
+  rollAs(t, 0, [1, 2]);
+  const again = t.bot(0, 1);
+  assert.ok(['roll', 'pass'].includes(again.type), 'a miss: roll again (or pass the dice on)');
+  t.cleanup();
+});
+
+test('bots: on a REVERSE the bot picks someone else to roll, a human when there is one', () => {
+  const t = setup(game, 3);
+  t.player(0).bot = 'npv';
+  t.player(2).bot = 'baller';
+  rollAs(t, 0, [2, 2]);
+  t.act(0, 'press');
+  assert.strictEqual(t.room.game.phase, 'reverse');
+  for (let n = 0; n < 10; n++) assert.deepStrictEqual(t.bot(0, 0.25), { type: 'pick', targetId: 'p1' });
+  t.cleanup();
+});
