@@ -379,6 +379,10 @@
       o.start(t); vib.start(t);
       o.stop(t + len + 0.15); vib.stop(t + len + 0.15);
     },
+    // A mandolin: the note picked fast and over, the way a mandolin holds a long note.
+    mandolin(out, t, f, len, gain) {
+      for (let at = 0; at < len; at += 0.075) note(out, t + at, { freq: f, len: 0.12, gain: gain * (1 - (at / len) * 0.3), type: 'triangle', attack: 0.002 });
+    },
     // A plucked harp or lute.
     pluck(out, t, f, len, gain) {
       note(out, t, { freq: f, len: Math.max(0.8, len * 2), gain, type: 'triangle', attack: 0.003 });
@@ -424,6 +428,20 @@
       [62, 2], [65, 2], [69, 2], [74, 4], [72, 2], [69, 4], [67, 2], [65, 2], [64, 4], [62, 8],
       [69, 2], [72, 2], [74, 2], [77, 4], [76, 2], [74, 4], [72, 2], [69, 2], [67, 2], [65, 2], [62, 8],
     ],
+    // A serenade under the vines, in D, in waltz time.
+    serenade: [
+      [66, 4], [69, 2], [74, 4], [73, 2], [71, 3], [69, 1], [67, 2], [66, 6],
+      [64, 4], [66, 2], [67, 4], [71, 2], [69, 3], [67, 1], [64, 2], [62, 6],
+      [66, 4], [69, 2], [74, 4], [76, 2], [78, 3], [76, 1], [74, 2], [71, 6],
+      [69, 2], [71, 2], [69, 2], [67, 2], [66, 2], [64, 2], [62, 6], [null, 6],
+    ],
+    // A bal-musette waltz for the château, in G.
+    musette: [
+      [71, 2], [74, 2], [71, 2], [69, 4], [67, 2], [66, 2], [67, 2], [69, 2], [71, 6],
+      [72, 2], [71, 2], [69, 2], [67, 4], [64, 2], [66, 2], [64, 2], [62, 2], [67, 6],
+      [74, 2], [76, 2], [74, 2], [72, 4], [71, 2], [69, 2], [71, 2], [72, 2], [74, 6],
+      [76, 2], [74, 2], [72, 2], [71, 3], [69, 1], [67, 2], [66, 2], [69, 2], [66, 2], [67, 6],
+    ],
     // The opening of Bach's Toccata in D minor on the organ, then a long hush.
     toccata: [
       [81, 1], [79, 1], [81, 6], [79, 1], [77, 1], [76, 1], [74, 1], [73, 4], [74, 8], [null, 8],
@@ -432,6 +450,17 @@
   };
 
   // ---------- The rooms ----------
+
+  // Birds singing in the vines or the garden: a few quick rising chirps.
+  function birdsong(out, t) {
+    const base = 2600 + Math.random() * 900;
+    for (let k = 0; k < pick([2, 3, 4]); k++) note(out, t + k * 0.16, { freq: base * (0.9 + Math.random() * 0.2), to: base * 1.3, len: 0.09, gain: 0.012, type: 'sine', attack: 0.004 });
+  }
+  // A bar each: D, G, A, D... under the serenade; G, C, D... under the musette.
+  const VINE_CHORDS = [[50, 57, 62], [50, 57, 62], [43, 50, 59], [50, 57, 62], [45, 52, 61], [43, 50, 59], [45, 52, 61], [50, 57, 62],
+    [50, 57, 62], [47, 54, 62], [43, 50, 59], [50, 57, 62], [45, 52, 61], [45, 52, 61], [50, 57, 62], [50, 57, 62]];
+  const MUSETTE_CHORDS = [[43, 50, 59], [43, 50, 59], [50, 57, 62], [43, 50, 59], [48, 52, 60], [43, 50, 59], [50, 57, 62], [43, 50, 59],
+    [43, 50, 59], [48, 52, 60], [50, 57, 62], [43, 50, 59], [48, 52, 60], [43, 50, 59], [50, 57, 62], [43, 50, 59]];
 
   // Every room is three layers at most: one background (a recording, where there's a good one),
   // a few sounds now and then, and a tune. Never a wash of noise under everything.
@@ -613,6 +642,28 @@
         now(30, (t) => play(out, 'cue-creak-1', t, { gain: 0.5 })),
       ];
     },
+    // Under the pergola in Tuscany: a mandolin serenade over a guitar, birds in the vines (crickets
+    // and an owl once the sun's going down).
+    vineyard: (out) => [
+      tune(out, { bpm: 92, notes: SONGS.serenade, voice: VOICES.mandolin, gain: 0.03, chords: VINE_CHORDS, every: 6, comp: strum(0.03) }),
+      now(9, (t) => birdsong(out, t)),
+    ],
+    vineyardSunset: (out) => [
+      background(out, 'bed-crickets-1', { gain: 0.12, lowpass: 5000 }),
+      tune(out, { bpm: 80, notes: SONGS.serenade, voice: VOICES.mandolin, gain: 0.028, chords: VINE_CHORDS, every: 6, comp: strum(0.028) }),
+      now(26, (t) => { note(out, t, { freq: 440, to: 400, len: 0.35, gain: 0.03, type: 'sine', attack: 0.05 }); note(out, t + 0.5, { freq: 430, to: 380, len: 0.6, gain: 0.03, type: 'sine', attack: 0.05 }); }),
+    ],
+    // The château's terrace: an accordion playing a musette waltz, birds in the garden, the church
+    // bell in the village now and then (at night, the waltz on a piano inside, and crickets).
+    chateau: (out) => [
+      tune(out, { bpm: 96, notes: SONGS.musette, voice: VOICES.squeeze, gain: 0.03, chords: MUSETTE_CHORDS, every: 6, comp: strum(0.025) }),
+      now(10, (t) => birdsong(out, t)),
+      now(45, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 1.6, { freq: 523, len: 3, gain: 0.02, type: 'sine' }); }),
+    ],
+    chateauNight: (out) => [
+      background(out, 'bed-crickets-1', { gain: 0.12, lowpass: 5000 }),
+      tune(out, { bpm: 84, notes: SONGS.musette, voice: VOICES.piano, gain: 0.045, chords: MUSETTE_CHORDS, every: 6, comp: strum(0.025) }),
+    ],
     stpatricks: (out) => session(out),
     // The rain outside the windows, with thunder far off (the windows flicker first, on screen).
     stpatricksRain: (out) => [...session(out, 0.8, 'bed-rain-1')],
@@ -780,6 +831,33 @@
       o.connect(f).connect(g).connect(out);
       o.start(t); vib.start(t);
       o.stop(t + 0.85); vib.stop(t + 0.85);
+    },
+    // A Vespa buzzing past on the road.
+    vespa(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(110, t);
+      o.frequency.linearRampToValueAtTime(150, t + 1.6);
+      o.frequency.linearRampToValueAtTime(95, t + 3.6);
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 600;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.04, t + 1.6);
+      g.gain.linearRampToValueAtTime(0.0001, t + 3.8);
+      o.connect(f).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 3.9);
+    },
+    // A peacock's call across the garden.
+    peacock(out, t) {
+      for (const at of [0, 0.7]) note(out, t + at, { freq: 700, to: 1100, len: 0.45, gain: 0.035, type: 'sawtooth', attack: 0.04 });
+    },
+    // A firework going off over the château: a thump and a crackle.
+    boom(out, t) {
+      note(out, t, { freq: 90, to: 40, len: 0.7, gain: 0.18, type: 'sine', attack: 0.005 });
+      for (let k = 0; k < 14; k++) hit(out, t + 0.3 + k * 0.06 + Math.random() * 0.04, { type: 'bandpass', freq: 2500 + Math.random() * 2000, q: 2, gain: 0.015, len: 0.04, attack: 0.002 });
     },
     // Knock, knock (on the speakeasy's door).
     knock(out, t) {
