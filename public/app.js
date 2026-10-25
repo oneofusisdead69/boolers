@@ -171,6 +171,8 @@ $app.addEventListener('click', (e) => {
 
 // The server closing the connection itself (a deploy) means: reconnect now.
 socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
+// Turned away by a server that's handing over to a new one: try again in a moment (it won't on its own).
+socket.on('connect_error', () => { if (!socket.active) setTimeout(() => socket.connect(), 800 + Math.random() * 800); });
 
 // A phone that's been locked or in another app can hold a dead connection for a while without
 // noticing: when you come back to it, ask the room for where things are now.
@@ -575,8 +577,15 @@ function renderGame() {
     $app.innerHTML = '<p class="center muted">Loading…</p>';
     return loadGame(s.gameType);
   }
-  // A screen returns null to keep what's showing (e.g. while a finger is mid-gesture).
-  const html = screens.render(s);
+  // A screen returns null to keep what's showing (e.g. while a finger is mid-gesture). One that
+  // can't draw (a bug, or a game saved by an older version) still leaves a way out: End game, Leave.
+  let html;
+  try {
+    html = screens.render(s);
+  } catch (err) {
+    console.error(err);
+    html = '<p class="center muted">Something went wrong showing this game.</p>';
+  }
   if (html === null) return;
   // Full-screen games place PB.endButton() themselves.
   $app.innerHTML = screens.fullscreen ? html : `

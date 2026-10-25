@@ -42,6 +42,7 @@ const shortTeams = (g) => {
 };
 // Forgets picks that no longer apply (the team's not short now, or the player's moved).
 function tidyTwice(g) {
+  g.twice ||= {}; // (a race saved before there was a choice)
   const short = shortTeams(g);
   for (const i of Object.keys(g.twice)) {
     if (!short.includes(Number(i)) || !g.teams[i].includes(g.twice[i])) delete g.twice[i];
@@ -80,6 +81,7 @@ module.exports = {
 
   handle(room, player, action, ctx) {
     const g = room.game;
+    tidyTwice(g);
     // Who goes twice: the host, or anyone on that team, picks one of the team.
     if (action.type === 'twice' && g.phase === 'teams') {
       const team = Number(action.team);
@@ -136,7 +138,7 @@ module.exports = {
     return {
       teams: g.teams.map((ids, i) => ({ ...TEAMS[i], ids })),
       wins: g.wins,
-      twice: g.twice,
+      twice: g.twice || {},
       short: shortTeams(g),
       winner: g.winner,
       race: g.race,
