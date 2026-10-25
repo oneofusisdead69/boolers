@@ -1086,6 +1086,32 @@
     ],
   };
 
+  // Quarters in the diner: the roller rink. Skaters go round, a couples skate, someone wipes out,
+  // the disco ball throws spots everywhere; every quarter in gets the crowd.
+  let lastCoin = null;
+  SCENES.dinerRink = {
+    gap: [8, 16],
+    decor() {
+      lastCoin = null;
+      banner('Couples skate!', 'Quarters at the snack bar', 'rink');
+    },
+    update(s) {
+      const L = s?.gameType === 'quarters' ? s.game?.last : null;
+      if (!L || L.n === lastCoin) return;
+      const first = lastCoin === null;
+      lastCoin = L.n;
+      if (first) return;
+      if (L.hit) { inFront('<b>IN!</b>', { left: '0', right: '26vw', top: '26vh' }, 2000).classList.add('sc-oneeighty', 'ton'); cue('cheer', 200); }
+    },
+    moments: [
+      () => { for (let i = 0; i < pick([3, 4, 5]); i++) later(() => crossing('🛼', { y: rand(86, 94), dur: rand(5, 8), size: rand(40, 56), bob: false }), i * 600); },
+      () => { crossing('💃🕺', { y: 90, dur: 9, size: 56 }); },
+      () => { crossing('⛸️', { y: 92, dur: 4, size: 46, bob: false }); later(() => { popup('💫', { x: rand(20, 60), bottom: 6, size: 50, life: 1600 }); cue('thud'); }, 2000); },
+      () => { for (let i = 0; i < 10; i++) el('', { left: `${rand(5, 95)}vw`, top: `${rand(10, 90)}vh`, background: pick(['#ff2bd6', '#29f0ff', '#ffffff', '#ffd23f']), animation: `sc-spot ${rand(3, 6)}s ease-in-out infinite alternate, sc-fade-out 1s 8s forwards`, '--sx': `${rand(-30, 30)}vw`, '--sy': `${rand(-25, 25)}vh` }, 9200).classList.add('sc-spot'); },
+      () => fall(['✨', '💜', '💙'], 4, 0.3, 0.8),
+    ],
+  };
+
   // Beer Pong at the frat house: the championship. The crowd goes off for every cup (SPLASH!), for
   // balls back, and for the winners; the lights strobe; someone's on the air horn.
   let lastBall = null;

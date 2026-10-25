@@ -1443,6 +1443,8 @@ main#app, #tv { position: relative; z-index: 1; }
 .sc-quote.punchit b { font-family: "Orbitron", system-ui; font-size: 56px; font-style: normal; color: #7cf0ff; text-shadow: 0 0 20px #2a8ab0; }
 .sc-banner.champ { --banner-font: "Bungee"; color: #fff; text-shadow: 0 4px 0 #d62828, 0 0 24px rgba(0, 0, 0, 0.8); }
 .sc-banner.champ b { font-size: clamp(30px, 4vw, 56px); }
+.sc-banner.rink { --banner-font: "Monoton"; color: #fff; text-shadow: 0 0 12px #ff2bd6, 0 0 30px #29f0ff; }
+.sc-banner.rink b { font-size: clamp(30px, 4vw, 56px); }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
 
 /* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
@@ -1512,3 +1514,19 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-last.hit { color: var(--ok); }
 .br-team.up { box-shadow: 0 0 0 2px var(--team); }
 .bp-pad .dt-held { width: 44px; height: 44px; }
+
+/* Quarters: the table and the glass in 3D, the quarter flying in and bouncing. */
+.qt-view { position: relative; width: min(100%, 380px); margin: 6px auto; aspect-ratio: 360 / 260; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, 0.25); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.qt-view svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.qt-felt { position: absolute; inset: 0; background: var(--felt, #1f6a3a); }
+.qt-aim { stroke: #ffd23f; stroke-width: 2; stroke-dasharray: 5 5; fill: none; opacity: 0.8; }
+.qt-coin.fresh { animation: qt-fly 0.9s cubic-bezier(0.3, 0.2, 0.4, 1) both; }
+@keyframes qt-fly { 0% { translate: var(--sx) var(--sy); scale: 2.4; } 45% { translate: var(--bx) var(--by); scale: 1.2; } 60% { translate: calc(var(--bx) * 0.6) calc(var(--by) * 0.6 - 30px); scale: 1.4; } 100% { translate: 0 0; scale: 1; } }
+.qt-coin.in.fresh { animation-name: qt-fly, qt-sink; animation-duration: 0.9s, 0.4s; animation-delay: 0s, 0.9s; animation-fill-mode: both, forwards; }
+@keyframes qt-sink { to { opacity: 0.35; } }
+.qt-last { text-align: center; margin: 6px 0; font-weight: 600; }
+.qt-last.hit { color: var(--ok); }
+.qt-score { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; }
+.qt-name { flex: 1; }
+.qt-score.up { background: var(--card-2); outline: 2px solid var(--accent); }
+.qt-pad .dt-held { width: 54px; height: 54px; }
