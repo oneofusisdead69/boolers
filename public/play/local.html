@@ -64,6 +64,14 @@
           return false;
         },
       },
+      darts: {
+        locked: {},
+        // The thrower (games/darts.js keeps their place in the order), or whoever's handing out sips.
+        actor(room) {
+          const g = room.game;
+          return g.phase === 'give' && g.give ? g.give.from : g.order[g.turnIdx];
+        },
+      },
       kingsCup: {
         locked: { reactions: false },
         actor: (room) => room.game.turnId,
@@ -127,7 +135,9 @@
     const howToPlay = (rules = []) => (rules.length
       ? `<details class="how-to"><summary>📖 How to play</summary><ul>${rules.map((r) => `<li>${PB.esc(r)}</li>`).join('')}</ul></details>` : '');
 
-    const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.hostId };
+    // Otherwise: whoever's turn the game says it is (games name it turnId, or rollerId for the
+    // dice), or the host.
+    const local = LOCAL[gameId] || { locked: {}, actor: (room) => room.game.turnId || room.game.rollerId || room.hostId };
     const options = (game.options || []).filter((o) => !(o.id in local.locked));
 
     const storeKey = `local-${gameId}`;
@@ -285,6 +295,7 @@
       }
       window.Analytics?.event('local_game_started', { game: gameId, players: names.length });
       render();
+      window.scrollTo(0, 0); // (the setup screen was scrolled down to its Start button)
     }
 
     // ---------- Game ----------
