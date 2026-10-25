@@ -184,7 +184,7 @@ function viewFor(room, player) {
     recap: room.recap ? night.summary(room, room.venue || ROOM_STYLES.STYLES[room.style]?.label, !!room.venue) : null,
     options: (selected.options || []).map((o) => ({ ...o, value: room.options[selected.id][o.id] })),
     custom: room.hostId === player.id ? selected.custom || [] : [],
-    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color }) => ({ id, name, connected, drinks, total, finished, avatar, color })),
+    players: room.players.map(({ id, name, connected, drinks, total = 0, finished = 0, avatar, color, drink = null }) => ({ id, name, connected, drinks, total, finished, avatar, color, drink })),
     phase: room.game ? room.game.phase : 'lobby',
     gameType: room.game ? room.game.type : null,
     gameNo: room.gameNo || 0, // changes with every new game (screens forget the last one)
@@ -423,7 +423,7 @@ io.on('connection', (socket) => {
     ensureHost(r);
   }
 
-  on('create', ({ name, playerId, key, avatar, color } = {}, ack = () => {}) => {
+  on('create', ({ name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
     name = cleanName(name);
     if (!name) return ack({ error: 'Enter your name' });
     if (!validId(playerId)) return ack({ error: 'Missing player id' });
@@ -431,14 +431,14 @@ io.on('connection', (socket) => {
     const r = newRoom(playerId);
     const { code } = r;
     analytics.track('room_created');
-    const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }) };
+    const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }) };
     r.players.push(p);
     attach(r, p);
     ack({ ok: true, code });
     broadcast(r);
   });
 
-  on('join', async ({ code, name, playerId, key, avatar, color } = {}, ack = () => {}) => {
+  on('join', async ({ code, name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
     code = String(code || '').toUpperCase().trim().slice(0, 4);
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
     const r = await findRoom(code);
@@ -458,7 +458,7 @@ io.on('connection', (socket) => {
       if (r.players.some((x) => x.name.toLowerCase() === name.toLowerCase())) {
         return ack({ error: 'That name is taken in this room' });
       }
-      p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color }, r.players) };
+      p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }, r.players) };
       // Back after missing a game: tonight's tab is still theirs.
       const back = r.away?.[playerId];
       if (back && (!back.key || back.key === key)) {
@@ -485,10 +485,13 @@ io.on('connection', (socket) => {
   }
 
   // Change your avatar or colour, any time.
-  on('setLook', ({ avatar, color } = {}) => {
+  on('setLook', ({ avatar, color, drink } = {}) => {
     if (!room || !player) return;
     if (LOOKS.AVATARS.includes(avatar)) player.avatar = avatar;
     if (LOOKS.COLORS.includes(color)) player.color = color;
+    // No drink (or an unknown one) is the house drink.
+    if (LOOKS.DRINKS.includes(drink)) player.drink = drink;
+    else delete player.drink;
     broadcast(room);
   });
 

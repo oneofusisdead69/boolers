@@ -218,12 +218,12 @@ function seats(s) {
   const turn = g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
   // A game can put things on the table in front of each player (their dice, their cards).
   const front = PB.screens[s.gameType]?.tvFront;
-  // Everyone's drink sits on the rail beside them, whatever the room drinks.
+  // Everyone's drink sits on the rail beside them: what they picked, or whatever the room drinks.
   const drink = ROOM_STYLES.STYLES[s.look || s.style]?.drink || '🍺';
   return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
       ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>
     <div class="tv-front">${front?.(s, p.id) || ''}</div>
-    <div class="tv-glass ${sipping.has(p.id) ? 'sip' : ''}" data-player="${esc(p.id)}">${drink}</div>`).join('');
+    <div class="tv-glass ${sipping.has(p.id) ? 'sip' : ''}" data-player="${esc(p.id)}">${esc(p.drink || drink)}</div>`).join('');
 }
 
 // Everyone sits just outside the table's edge (never on it), whatever the screen's shape: each

@@ -636,6 +636,10 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .look-avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .look-avatars button { aspect-ratio: 1; padding: 0; font-size: 1.6rem; background: var(--card); border: 2px solid transparent; border-radius: 50%; }
 .look-avatars button.on { background: color-mix(in srgb, var(--pc) 30%, transparent); border-color: var(--pc); }
+.look-panel h3 { margin: 4px 0 0; font-size: 1rem; display: flex; gap: 8px; align-items: baseline; }
+.look-panel h3 small { font-size: 0.8rem; font-weight: 500; }
+.look-drinks .house { position: relative; }
+.look-drinks .house small { position: absolute; left: 0; right: 0; bottom: -0.15rem; font-size: 0.55rem; font-weight: 700; color: var(--muted); }
 .look-panel > button[data-look-done] { background: var(--accent); color: var(--accent-text); padding: 14px; font-weight: 700; font-size: 1.05rem; }
 .players .name small { display: block; font-weight: 400; font-size: 0.78rem; }
 
