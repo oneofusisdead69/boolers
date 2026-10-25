@@ -297,6 +297,24 @@
         now(8, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 0.12, { freq: hz(pick([84, 88, 91, 95])), len: 0.1, gain: 0.025, type: 'sine' }); }),
       ];
     },
+    storm(out) {
+      // A gale howling, rain lashing the glass, and a heavy sea. Thunder and the big waves come with
+      // what's on screen.
+      return [
+        bed(out, { type: 'bandpass', freq: 500, q: 1.5, gain: 0.2, wobble: 0.9, rate: 0.12, sweep: 350 }),
+        bed(out, { type: 'highpass', freq: 3000, gain: 0.08, wobble: 0.2, rate: 0.3 }),
+        bed(out, { freq: 300, gain: 0.25, wobble: 0.95, rate: 0.1, sweep: 150 }),
+      ];
+    },
+    lighthouse(out) {
+      // Waves breaking on the rocks, wind, and a buoy bell out at sea.
+      return [
+        bed(out, { freq: 600, gain: 0.22, wobble: 0.95, rate: 0.08, sweep: 350 }),
+        bed(out, { type: 'bandpass', freq: 1200, q: 2, gain: 0.05, wobble: 0.7, rate: 0.05, sweep: 300 }),
+        now(16, (t) => { note(out, t, { freq: 740, len: 2.4, gain: 0.04, type: 'sine' }); note(out, t, { freq: 1850, len: 1.2, gain: 0.012, type: 'sine' }); }),
+        now(22, (t) => { for (let k = 0; k < 3; k++) note(out, t + k * 0.25, { freq: 1400, to: 900, len: 0.22, gain: 0.02, type: 'sine' }); }),
+      ];
+    },
     christmas(out) {
       // A crackling fire, sleigh bells and a music box.
       const scale = [72, 74, 76, 79, 81, 84];
@@ -310,7 +328,8 @@
       ];
     },
     halloween(out) {
-      // Howling wind, a low organ, distant thunder, an owl and a creaking door.
+      // Howling wind, a low organ, an owl and a creaking door. Thunder, the wolf and the horseman's
+      // hooves come with what's on screen (cue(), from public/scenery.js).
       const organ = [hz(38), hz(45), hz(50), hz(53)].map((freq) => { const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = freq; return o; });
       const g = ac.createGain();
       g.gain.value = 0.02;
@@ -319,7 +338,6 @@
       return [
         () => organ.forEach((o) => o.stop()),
         bed(out, { type: 'bandpass', freq: 700, q: 3, gain: 0.12, wobble: 0.8, rate: 0.07, sweep: 400 }),
-        now(20, (t) => { hit(out, t, { type: 'lowpass', freq: 200, gain: 0.5, len: 2.5 }); hit(out, t + 0.3, { type: 'lowpass', freq: 120, gain: 0.4, len: 3 }); }),
         now(14, (t) => { note(out, t, { freq: 440, to: 400, len: 0.35, gain: 0.04, type: 'sine', attack: 0.05 }); note(out, t + 0.5, { freq: 430, to: 380, len: 0.6, gain: 0.04, type: 'sine', attack: 0.05 }); }),
         now(25, (t) => note(out, t, { freq: 220, to: 600, len: 1.6, gain: 0.03, type: 'sawtooth', attack: 0.3 })),
       ];
@@ -339,6 +357,109 @@
       ];
     },
   };
+
+  // ---------- One-off sounds, in time with the scenery ----------
+
+  const CUES = {
+    // Rolling thunder after the lightning.
+    thunder(out, t) {
+      hit(out, t, { type: 'lowpass', freq: 260, gain: 0.6, len: 2.2 });
+      hit(out, t + 0.25, { type: 'lowpass', freq: 140, gain: 0.5, len: 3.2 });
+      hit(out, t + 0.9, { type: 'lowpass', freq: 90, gain: 0.35, len: 3.5 });
+    },
+    // A big wave breaking on the rocks below.
+    crash(out, t) {
+      hit(out, t, { type: 'lowpass', freq: 500, gain: 0.5, len: 1.6 });
+      hit(out, t + 0.2, { type: 'bandpass', freq: 1800, q: 0.6, gain: 0.35, len: 2.2 });
+      hit(out, t + 0.6, { type: 'highpass', freq: 3500, gain: 0.15, len: 2 });
+    },
+    // A splash (the mermaid diving).
+    splash(out, t) {
+      hit(out, t, { type: 'bandpass', freq: 1200, q: 0.8, gain: 0.3, len: 0.5 });
+      hit(out, t + 0.12, { type: 'highpass', freq: 3000, gain: 0.12, len: 0.7 });
+    },
+    // The foghorn: two long low blasts.
+    foghorn(out, t) {
+      for (const at of [0, 3.2]) {
+        for (const [freq, gain, type] of [[110, 0.14, 'sawtooth'], [111.5, 0.08, 'square'], [220, 0.03, 'sine']]) {
+          const o = ac.createOscillator();
+          o.type = type;
+          o.frequency.value = freq;
+          const f = ac.createBiquadFilter();
+          f.type = 'lowpass';
+          f.frequency.value = 500;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t + at);
+          g.gain.exponentialRampToValueAtTime(gain, t + at + 0.3);
+          g.gain.setValueAtTime(gain, t + at + 2);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + at + 2.6);
+          o.connect(f).connect(g).connect(out);
+          o.start(t + at);
+          o.stop(t + at + 2.7);
+        }
+      }
+    },
+    // A wolf howls at the moon, and another answers in the distance.
+    howl(out, t) {
+      const wolf = (at, base, gain, len) => {
+        const o = ac.createOscillator();
+        o.type = 'sawtooth';
+        const f = ac.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.value = 1400;
+        const g = ac.createGain();
+        const vib = ac.createOscillator();
+        vib.frequency.value = 5.5;
+        const vibDepth = ac.createGain();
+        vibDepth.gain.value = 0;
+        vibDepth.gain.setValueAtTime(0, at + 0.9);
+        vibDepth.gain.linearRampToValueAtTime(base * 0.025, at + 1.6);
+        vib.connect(vibDepth).connect(o.frequency);
+        o.frequency.setValueAtTime(base * 0.6, at);
+        o.frequency.exponentialRampToValueAtTime(base, at + 0.8);
+        o.frequency.setValueAtTime(base, at + len * 0.6);
+        o.frequency.exponentialRampToValueAtTime(base * 0.7, at + len);
+        g.gain.setValueAtTime(0.0001, at);
+        g.gain.exponentialRampToValueAtTime(gain, at + 0.5);
+        g.gain.setValueAtTime(gain, at + len * 0.7);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+        o.connect(f).connect(g).connect(out);
+        o.start(at);
+        vib.start(at);
+        o.stop(at + len + 0.1);
+        vib.stop(at + len + 0.1);
+      };
+      wolf(t, 560, 0.09, 3.4);
+      wolf(t + 2.2, 500, 0.035, 2.8);
+    },
+    // Hooves galloping past, loud in the middle.
+    gallop(out, t) {
+      const len = 6;
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0.0001, t);
+      env.gain.exponentialRampToValueAtTime(1, t + len / 2);
+      env.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      env.connect(out);
+      for (let at = 0; at < len; at += 0.42) {
+        for (const [d, gain] of [[0, 0.5], [0.09, 0.35], [0.19, 0.6]]) {
+          hit(env, t + at + d, { type: 'lowpass', freq: 380, q: 2, gain, len: 0.07 });
+        }
+      }
+      // A horse's whinny on the way through.
+      note(env, t + 2.6, { freq: 900, to: 600, len: 0.9, gain: 0.05, type: 'sawtooth', attack: 0.05 });
+    },
+  };
+
+  function cue(name) {
+    if (!current || !level || !CUES[name] || !ac) return;
+    try {
+      const out = ac.createGain();
+      out.gain.value = 1;
+      out.connect(master);
+      CUES[name](out, ac.currentTime + 0.05);
+      setTimeout(() => out.disconnect(), 9000);
+    } catch {}
+  }
 
   function set(style, newLevel) {
     level = newLevel;
@@ -362,5 +483,5 @@
     current = { style: want, stop: () => { stops.forEach((s) => s()); out.disconnect(); } };
   }
 
-  window.Ambience = { set, styles: Object.keys(ROOMS) };
+  window.Ambience = { set, cue, styles: Object.keys(ROOMS) };
 })();

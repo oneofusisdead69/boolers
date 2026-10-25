@@ -563,7 +563,6 @@ function renderGame() {
 
 function render() {
   ROOM_STYLES.apply(PB.state?.style);
-  Scenery.set(PB.state?.style);
   if (!PB.state) return renderHome();
   if (PB.state.phase === 'lobby' && PB.state.trip) return renderTrip();
   if (PB.state.phase === 'lobby' && PB.state.recap) return renderRecap();
