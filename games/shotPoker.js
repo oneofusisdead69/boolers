@@ -243,8 +243,6 @@ module.exports = {
     "A shot is a set number of sips, and there's a max per hand.",
     "All debts must be paid before the next round.",
   ],
-  // Best played with a TV in the room (the board, the table), so the game list says so.
-  bestWithTv: true,
   minPlayers: 2,
   order: 7,
   options: [
