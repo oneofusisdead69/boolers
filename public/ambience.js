@@ -510,6 +510,8 @@
     VOICES.piano(out, t, hz(bass), len / 3, gain * 1.4);
     for (const k of [1, 2]) chord.forEach((m) => VOICES.piano(out, t + (k * len) / 3, hz(m), len / 4, gain * 0.5));
   };
+  // Noir: a slow line in A minor, like a sax in an empty bar.
+  SONGS.noir = [[69, 6], [72, 2], [71, 4], [69, 4], [67, 6], [64, 2], [65, 8], [null, 4], [64, 2], [65, 2], [67, 4], [69, 2], [71, 2], [72, 6], [71, 2], [69, 8], [null, 8]];
   // A slow dirge in D minor on the Dutchman's organ, with the chords held under it.
   SONGS.dirge = [[62, 4], [65, 2], [69, 2], [70, 4], [69, 4], [67, 2], [65, 2], [64, 2], [65, 2], [62, 8],
     [69, 4], [72, 2], [70, 2], [69, 4], [65, 4], [67, 2], [69, 2], [64, 4], [61, 4], [62, 8]];
@@ -763,6 +765,12 @@
       }, { div: 2 }),
       now(30, (t) => CUES.chant(out, t)),
       now(18, (t) => CUES.pop(out, t)),
+    ],
+    // Noir: rain against the glass, a slow, smoky tune in a minor key, thunder now and then.
+    speakeasyNoir: (out) => [
+      background(out, 'bed-rain-1', { gain: 0.25, lowpass: 2500 }),
+      tune(out, { bpm: 56, notes: SONGS.noir, voice: VOICES.squeeze, gain: 0.03, chords: [[45, 52, 60], [45, 52, 60], [50, 57, 65], [52, 59, 64]], every: 8, comp: held(0.008) }),
+      now(50, (t) => play(out, ['cue-thunder-1', 'cue-thunder-2'], t, { gain: 0.3 })),
     ],
     // The riverboat: the river lapping, a ragtime piano, the paddles churning and the whistle.
     saloonRiverboat: (out) => [
@@ -1081,6 +1089,14 @@
       }
       hit(out, at + 0.1, { type: 'bandpass', freq: 1800, gain: 0.08, len: 0.12, attack: 0.001 });
     },
+    // A flash bulb going off: a pop and a fizz.
+    flashbulb(out, t) { hit(out, t, { type: 'highpass', freq: 2000, gain: 0.12, len: 0.12, attack: 0.001 }); hit(out, t + 0.05, { freq: 6000, gain: 0.03, len: 0.6, attack: 0.01 }); },
+    // A stab of brass.
+    sting(out, t) { for (const m of [57, 60, 64, 68]) brass(out, t, hz(m), 0.9, 0.018); },
+    // A car going by in the rain.
+    car(out, t) { hit(out, t, { type: 'bandpass', freq: 700, q: 0.5, gain: 0.06, len: 2.5, attack: 1 }); },
+    // A police siren, far off, wailing past.
+    siren(out, t) { for (let k = 0; k < 3; k++) note(out, t + k * 1.2, { freq: 600, to: 900, len: 1.1, gain: 0.012, type: 'sine', attack: 0.3 }); },
     // A steamboat's whistle: a chord, breathy, long then short.
     whistle(out, t) {
       for (const [d, len] of [[0, 1.4], [1.6, 0.6]]) {

@@ -1086,6 +1086,40 @@
     ],
   };
 
+  // Noir: rain running down the window, the neon sign stuttering, headlights sweeping through the
+  // blinds, a siren going by, a silhouette at the door, smoke curling up. On every hit a press
+  // camera's flash bulb pops and the red neon floods the room.
+  let lastNoirRoll = null;
+  const flashBulb = () => {
+    cue('flashbulb');
+    el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 1600).classList.add('sc-flashbulb');
+    later(() => el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 2600).classList.add('sc-redflood'), 300);
+  };
+  SCENES.speakeasyNoir = {
+    decor() {
+      lastNoirRoll = null;
+      el('', { right: '0', top: '0', width: '40vw', height: '80vh' }).classList.add('sc-rainglass');
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-noirflicker');
+      el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 2500).classList.add('sc-fadein');
+    },
+    update(s) {
+      const g = s?.gameType === 'slevens' ? s.game : null;
+      if (!g || !g.hit || g.rollNo === lastNoirRoll) return;
+      const first = lastNoirRoll === null;
+      lastNoirRoll = g.rollNo;
+      if (first) return;
+      flashBulb();
+      cue('sting', 300);
+    },
+    moments: [
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 4000).classList.add('sc-headlights'); cue('car', 400); },
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 5000).classList.add('sc-siren'); cue('siren'); },
+      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 1400).classList.add('sc-lightning'); cue('thunder', 700); },
+      () => { const s = el('🕴️', { left: '2vw', bottom: '20vh', fontSize: '120px' }, 6000); s.classList.add('sc-silhouette'); },
+      () => { for (let i = 0; i < 5; i++) later(() => drift('', { from: [rand(40, 50), 70], to: [rand(36, 56), 20], dur: 6, size: 10 }).classList.add('sc-plume', 'smoke'), i * 500); },
+    ],
+  };
+
   // The riverboat: the big red paddle wheel turning at the stern (faster on a hit), smoke from the
   // twin stacks, the steam whistle; a heron, a fish jumping, another steamer going by downriver.
   const PADDLE = (() => {
