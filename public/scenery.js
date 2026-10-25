@@ -1355,7 +1355,8 @@
       for (let i = 0; i < 5; i++) later(() => drift('', { from: [x - 1, y - 2], to: [x - 6 + i * 2, y - 26], dur: 6, size: 10 }).classList.add('sc-plume'), i * 300);
     }, 1400);
   }
-  MORE.tiki = [...(MORE.tiki || []), eruption, eruption];
+  // Peaceful most of the time: one moment in about fifteen.
+  MORE.tiki = [...(MORE.tiki || []), () => (Math.random() < 0.5 ? eruption() : flock(SWALLOW))];
 
   for (const [id, list] of Object.entries(MORE)) SCENES[id]?.moments.push(...list);
 
