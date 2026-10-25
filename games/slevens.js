@@ -103,6 +103,8 @@ module.exports = {
     "Snake eyes first? Only another snake eyes hits until it comes up.",
     "The arrow passes the dice on.",
   ],
+  // Best played with a TV in the room (the dots), so the game list says so.
+  bestWithTv: true,
   minPlayers: 2,
   order: 2,
   options: [
