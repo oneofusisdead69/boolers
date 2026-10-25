@@ -430,7 +430,7 @@
     ];
   }
 
-  const hearth = () => [() => embers(6, () => [rand(25, 75), 102]), () => embers(5, () => [rand(25, 75), 102]), () => fall(['☘️'], 5, 1.2, 0.45)];
+  const hearth = () => [() => embers(6, () => [rand(25, 75), 102]), () => embers(5, () => [rand(25, 75), 102]), () => { crossing('🐂', { y: 93, dur: 16, size: 60 }); cue('moo', 3000); }];
 
   const SCENES = {
     halloween: {
@@ -1115,12 +1115,12 @@
       () => drift('☂️', { from: [-10, rand(8, 20)], to: [110, rand(10, 30)], dur: 4, size: 60, spin: 720 }),
     ],
     stpatricks: [
-      () => popup('🍀', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => popup('🥃', { x: 2, bottom: 2, size: 64, life: 5000 }),
       () => el('🌈', { left: '4vw', top: '16vh', fontSize: '120px', animation: 'sc-rainbow 9s ease-in-out forwards' }, 9200),
       () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
     ],
     stpatricksFog: [
-      () => popup('🍀', { x: 2, bottom: 2, size: 64, life: 5000 }),
+      () => popup('🥃', { x: 2, bottom: 2, size: 64, life: 5000 }),
       () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
     ],
     stpatricksRain: [

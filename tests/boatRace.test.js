@@ -22,6 +22,13 @@ test('the host moves players, starts the race and calls the winner; losers drink
   assert.deepStrictEqual(g.teams, [['p0', 'p1'], ['p2', 'p3']]);
   t.act(0, 'move', { targetId: 'p1' });
   assert.deepStrictEqual(g.teams, [['p0'], ['p2', 'p3', 'p1']]);
+  assert.deepStrictEqual(t.view(0).short, [0]);
+  t.act(0, 'go');
+  assert.strictEqual(g.phase, 'teams', 'not until the short team says who goes twice');
+  t.act(2, 'twice', { team: '0', targetId: 'p0' }); // not on that team
+  t.act(0, 'twice', { team: '0', targetId: 'p2' }); // not one of them
+  assert.deepStrictEqual(g.twice, {});
+  t.act(0, 'twice', { team: '0', targetId: 'p0' });
   t.act(0, 'go');
   assert.strictEqual(g.phase, 'racing');
   t.act(2, 'win', { team: '1' }); // only the host calls it
@@ -49,6 +56,18 @@ test('no race with an empty team; a latecomer joins the smallest team', () => {
   t.room.players.push({ id: 'p3', name: 'Late', drinks: 0, connected: true });
   game.onJoin(t.room, t.room.players[3]);
   assert.deepStrictEqual(g.teams[1], ['p3']);
+  t.act(0, 'twice', { team: '1', targetId: 'p3' });
   t.act(0, 'go');
   assert.strictEqual(g.phase, 'racing');
+});
+
+test('who goes twice: anyone on the short team picks, and moving players clears it', () => {
+  const t = setup(game, 5, { teams: 2 });
+  const g = t.room.game;
+  g.teams = [['p0', 'p1', 'p2'], ['p3', 'p4']];
+  t.act(4, 'twice', { team: '1', targetId: 'p3' });
+  assert.deepStrictEqual(g.twice, { 1: 'p3' });
+  t.act(0, 'move', { targetId: 'p3' }); // p3 moves away: Blue has to pick again
+  assert.deepStrictEqual(g.twice, {});
+  assert.deepStrictEqual(t.view(0).short, [1]);
 });

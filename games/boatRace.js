@@ -1,7 +1,9 @@
 // Boat Race: a relay of drinks between teams. Everyone lines up along the table; on "go" the first
 // on each team drinks (and flips their cup, if you play it that way), then the next, down the
 // line. The app splits the room into teams and sets each team's order, starts the race, and the
-// host taps the team that finished first. A team a player short has its first drinker go again.
+// host taps the team that finished first. A team a player short picks who goes twice (at the end).
+//
+//   g.twice: { [team index]: playerId } for the short teams that have picked.
 
 const TEAMS = [
   { name: 'Red', color: '#e5484d' },
@@ -27,11 +29,24 @@ function deal(room, ctx) {
   g.teams = Array.from({ length: count }, () => []);
   here.forEach((id, i) => g.teams[i % count].push(id));
   g.wins = g.teams.map(() => 0);
+  g.twice = {};
   g.winner = null;
   g.phase = 'teams';
 }
 
 const teamOf = (g, id) => g.teams.findIndex((t) => t.includes(id));
+// The teams a player short, which need someone to go twice.
+const shortTeams = (g) => {
+  const longest = Math.max(...g.teams.map((t) => t.length));
+  return g.teams.map((t, i) => i).filter((i) => g.teams[i].length && g.teams[i].length < longest);
+};
+// Forgets picks that no longer apply (the team's not short now, or the player's moved).
+function tidyTwice(g) {
+  const short = shortTeams(g);
+  for (const i of Object.keys(g.twice)) {
+    if (!short.includes(Number(i)) || !g.teams[i].includes(g.twice[i])) delete g.twice[i];
+  }
+}
 
 module.exports = {
   id: 'boatRace',
@@ -65,6 +80,14 @@ module.exports = {
 
   handle(room, player, action, ctx) {
     const g = room.game;
+    // Who goes twice: the host, or anyone on that team, picks one of the team.
+    if (action.type === 'twice' && g.phase === 'teams') {
+      const team = Number(action.team);
+      if (!shortTeams(g).includes(team) || !g.teams[team].includes(action.targetId)) return;
+      if (player.id !== room.hostId && teamOf(g, player.id) !== team) return;
+      g.twice[team] = action.targetId;
+      return;
+    }
     if (player.id !== room.hostId) return;
     if (action.type === 'shuffle' && (g.phase === 'teams' || g.phase === 'results')) {
       deal(room, ctx);
@@ -74,7 +97,8 @@ module.exports = {
       if (from < 0) return;
       g.teams[from] = g.teams[from].filter((id) => id !== action.targetId);
       g.teams[(from + 1) % g.teams.length].push(action.targetId);
-    } else if (action.type === 'go' && g.phase === 'teams' && g.teams.every((t) => t.length)) {
+      tidyTwice(g);
+    } else if (action.type === 'go' && g.phase === 'teams' && g.teams.every((t) => t.length) && shortTeams(g).every((i) => g.twice[i])) {
       g.race += 1;
       g.winner = null;
       g.startedAt = Date.now();
@@ -104,6 +128,7 @@ module.exports = {
     if (teamOf(g, player.id) >= 0) return;
     const smallest = g.teams.reduce((best, t, i) => (t.length < g.teams[best].length ? i : best), 0);
     g.teams[smallest].push(player.id);
+    tidyTwice(g);
   },
 
   view(room) {
@@ -111,6 +136,8 @@ module.exports = {
     return {
       teams: g.teams.map((ids, i) => ({ ...TEAMS[i], ids })),
       wins: g.wins,
+      twice: g.twice,
+      short: shortTeams(g),
       winner: g.winner,
       race: g.race,
       startedAt: g.startedAt || null,
