@@ -275,6 +275,10 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .fs-header { display: flex; gap: 8px; align-items: stretch; }
 .fs-header .turn { flex: 1; font-size: 1.05rem; padding: 8px 12px; }
 .fs-header .turn span { font-size: 0.85rem; }
+.exit-menu { position: relative; display: flex; }
+.exit-menu summary { list-style: none; display: flex; align-items: center; border-radius: 12px; cursor: pointer; }
+.exit-menu summary::-webkit-details-marker { display: none; }
+.exit-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: flex; flex-direction: column; gap: 8px; padding: 10px; min-width: 190px; background: var(--card); border-radius: 14px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45); }
 .end-mini {
   width: auto;
   padding: 0 12px;

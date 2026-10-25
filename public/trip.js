@@ -45,7 +45,7 @@
     const t = s.trip;
     if (!t) return '';
     return `<div class="trip-chip">🌍 ${stopText(t)}${t.moving ? ` · next stop in <span data-trip-clock>${left(t)}s</span>` : ''}
-      ${s.isHost && !PB.isTV ? '<button class="link" data-cmd="nextStop">Next stop ➜</button>' : ''}</div>`;
+      ${s.isHost && !PB.isTV && t.moving ? '<button class="link" data-cmd="nextStop">Go now ➜</button>' : ''}</div>`;
   }
 
   // The host's lobby card. Choices stay on the phone until they start the trip.

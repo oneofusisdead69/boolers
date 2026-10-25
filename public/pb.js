@@ -123,9 +123,24 @@
       return '<span class="timer" id="timer"></span>';
     },
 
-    // The host's "End game" button (empty for everyone else).
+    // The ways out of a game. The host can end it (on Around the World: skip it, or end the whole
+    // trip), and everyone can leave the room. Pass and play only has "End game"; the TV has none.
     endButton(className = 'link') {
-      return PB.state.isHost ? `<button class="${className}" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>` : '';
+      const s = PB.state;
+      const host = !s.isHost ? ''
+        : s.trip ? `<button class="${className}" data-cmd="endGame" data-confirm="Skip the rest of this game and go to the next stop?">Skip this game</button>
+          <button class="${className}" data-cmd="endTrip" data-confirm="End Around the World for everyone?">End trip</button>`
+        : `<button class="${className}" data-cmd="endGame" data-confirm="End the game for everyone?">End game</button>`;
+      const all = `${host}${PB.leaveButton(className)}`;
+      // In a tight header (Slevens) they fold into one small "Exit" menu.
+      if (className !== 'end-mini' || !all.trim()) return all;
+      return `<details class="exit-menu"><summary class="end-mini">Exit</summary><div class="exit-pop">${all.replaceAll('class="end-mini"', 'class="secondary"')}</div></details>`;
+    },
+
+    // Leave the room (you can come back with the code). Not in pass and play or on the TV.
+    leaveButton(className = 'link') {
+      if (PB.passAndPlay || PB.isTV || !PB.state?.code) return '';
+      return `<button class="${className}" data-cmd="leaveRoom" data-confirm="Leave the room? You can come back with the code ${PB.esc(PB.state.code)}.">Leave</button>`;
     },
 
     // Redraws the current screen, for local-only changes like selecting a card.
