@@ -95,6 +95,7 @@
       <ellipse cx="${x - rx * 0.12}" cy="${y}" rx="${rx * 0.5}" ry="${ry * 0.4}" fill="#fff5d6" opacity="0.55"/>
     </g>`;
   }
+  const FLIGHT_MS = 1400; // your ball's flight from the pad (style.css .bp-fly3d.handoff waits as long)
   let launch = null; // where your ball left the pad (for its flight across the screen)
   let flown = 0; // the last throw flown
 
@@ -337,8 +338,8 @@
         flown = L.n;
         const to = onPage(L);
         const from = launch || { x: innerWidth / 2, y: innerHeight - 80 };
-        if (to) PB.fly('<div class="pb-ball"></div>', from, to, { ms: 900, lift: 0.45, scale: [1.3, Math.max(0.25, to.f * 0.5)] });
-        if (L.cup) setTimeout(() => PB.buzz('hit'), 1000);
+        if (to) PB.fly('<div class="pb-ball"></div>', from, to, { ms: FLIGHT_MS, lift: 0.8, scale: [1.4, Math.max(0.35, to.f * 0.6)], shadow: true });
+        if (L.cup) setTimeout(() => PB.buzz('hit'), FLIGHT_MS + 100);
         launch = null;
       }
       // Once a ball's been drawn landing, it isn't animated again.
