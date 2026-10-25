@@ -144,6 +144,31 @@
     return () => { flames(); pops(); };
   }
 
+  // A pub session up in the hills: the crowd, the peat fire, a bodhrán and a jig on the fiddle
+  // (filtered, so it's a fiddle across the room and not a buzzer). `level` turns the band down.
+  function session(out, level = 1) {
+    const scale = [62, 64, 66, 67, 69, 71, 73, 74, 76, 78];
+    let i = 4;
+    const band = ac.createBiquadFilter();
+    band.type = 'lowpass';
+    band.frequency.value = 2200;
+    const bandGain = ac.createGain();
+    bandGain.gain.value = level;
+    band.connect(bandGain).connect(out);
+    return [
+      bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.09, wobble: 0.4, rate: 0.15 }),
+      crackles(out, 0.08),
+      sequencer(118, (t, n, dur) => {
+        // Jigs go in threes.
+        if (n % 3 === 0) hit(band, t, { type: 'lowpass', freq: 160, gain: 0.22, len: 0.2 });
+        i = Math.max(0, Math.min(scale.length - 1, i + pick([-1, -1, 1, 1, 2, -2])));
+        note(band, t, { freq: hz(scale[i]), len: dur * 0.95, gain: 0.04, type: 'sawtooth', attack: 0.025 });
+        note(band, t, { freq: hz(scale[i]) * 1.003, len: dur * 0.95, gain: 0.025, type: 'triangle', attack: 0.025 });
+      }, { div: 3 }),
+      () => bandGain.disconnect(),
+    ];
+  }
+
   // ---------- The rooms ----------
 
   const ROOMS = {
@@ -372,20 +397,14 @@
         now(25, (t) => note(out, t, { freq: 220, to: 600, len: 1.6, gain: 0.03, type: 'sawtooth', attack: 0.3 })),
       ];
     },
-    stpatricks(out) {
-      // A pub session: a jig on the fiddle, a bodhrán and the crowd.
-      const scale = [62, 64, 66, 67, 69, 71, 73, 74, 76, 78];
-      let i = 4;
-      return [
-        bed(out, { type: 'bandpass', freq: 700, q: 0.6, gain: 0.1, wobble: 0.4, rate: 0.15 }),
-        sequencer(118, (t, n, dur) => {
-          // Jigs go in threes.
-          if (n % 3 === 0) hit(out, t, { type: 'lowpass', freq: 180, gain: 0.25, len: 0.18 });
-          i = Math.max(0, Math.min(scale.length - 1, i + pick([-1, -1, 1, 1, 2, -2])));
-          note(out, t, { freq: hz(scale[i]), len: dur * 0.95, gain: 0.05, type: 'sawtooth', attack: 0.02 });
-        }, { div: 3 }),
-      ];
-    },
+    stpatricks: (out) => session(out),
+    // The rain outside, on the windows, with thunder far off (the windows flicker first, on screen).
+    stpatricksRain: (out) => [
+      ...session(out, 0.8),
+      bed(out, { type: 'highpass', freq: 2500, gain: 0.05, wobble: 0.3, rate: 0.2 }),
+      bed(out, { type: 'bandpass', freq: 1200, q: 0.5, gain: 0.04, wobble: 0.4, rate: 0.13 }),
+    ],
+    stpatricksFog: (out) => session(out, 0.8),
   };
 
   // ---------- One-off sounds, in time with the scenery ----------
@@ -396,6 +415,11 @@
       hit(out, t, { type: 'lowpass', freq: 260, gain: 0.6, len: 2.2 });
       hit(out, t + 0.25, { type: 'lowpass', freq: 140, gain: 0.5, len: 3.2 });
       hit(out, t + 0.9, { type: 'lowpass', freq: 90, gain: 0.35, len: 3.5 });
+    },
+    // Thunder a long way off: a low rumble that rolls on.
+    thunderFar(out, t) {
+      hit(out, t, { type: 'lowpass', freq: 120, gain: 0.3, len: 3.5, attack: 0.4 });
+      hit(out, t + 0.6, { type: 'lowpass', freq: 80, gain: 0.25, len: 4, attack: 0.5 });
     },
     // A big wave breaking on the rocks below.
     crash(out, t) {

@@ -207,6 +207,8 @@
     ];
   }
 
+  const hearth = () => [() => embers(6, () => [rand(25, 75), 102]), () => embers(5, () => [rand(25, 75), 102]), () => fall(['☘️'], 5, 1.2, 0.45)];
+
   const SCENES = {
     halloween: {
       decor() {
@@ -271,7 +273,18 @@
       gap: [20, 40],
     },
     christmas: { moments: [() => shower(12, 0.3, () => drift('❄', { from: [rand(0, 100), -5], to: [rand(0, 100), 105], dur: rand(9, 16), size: rand(10, 22), spin: rand(-180, 180), opacity: rand(0.4, 0.9) }))] },
-    stpatricks: { moments: [() => fall(['☘️'], 8, 0.8, 0.55)] },
+    // Sparks off the peat fire, and now and then a few shamrocks.
+    stpatricks: { moments: hearth() },
+    stpatricksFog: { moments: hearth() },
+    // In the rain, lightning flickers in the windows now and then and thunder rolls in later.
+    stpatricksRain: {
+      moments: [...hearth(), () => {
+        for (const [left, top] of [['calc(3vw + 13px)', 'calc(11vh + 13px)'], ['calc(97vw - 187px)', 'calc(64vh + 13px)']]) {
+          el('', { left, top, width: '174px', height: '148px' }, 1600).classList.add('sc-winflash');
+        }
+        later(() => window.Ambience?.cue('thunderFar'), rand(1500, 3500));
+      }],
+    },
     saloon: { moments: [() => drift(TUMBLEWEED, { from: [-12, rand(70, 85)], to: [112, rand(70, 85)], dur: rand(7, 10), size: rand(50, 80), spin: 720, opacity: 0.85 })] },
     space: {
       moments: [() => {
