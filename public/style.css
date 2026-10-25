@@ -1407,4 +1407,30 @@ main#app, #tv { position: relative; z-index: 1; }
 
 /* "Best with a TV", on the games that are. */
 .tv-best { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 0.72em; font-weight: 600; vertical-align: 0.12em; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--text); }
+.sc-banner.regatta { --banner-font: "Cormorant SC"; color: #fff; text-shadow: 0 2px 0 #13304d, 0 0 24px rgba(19, 48, 77, 0.8); }
 .sc-banner.gold b { font-size: clamp(36px, 4.6vw, 66px); }
+
+/* Boat Race: the teams side by side, each in its colour; GO! and the race clock. */
+.br-teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 10px 0; }
+.br-team { background: var(--card); border-radius: 14px; padding: 10px; border-top: 5px solid var(--team); }
+.br-team.won { box-shadow: 0 0 0 3px var(--team), 0 0 24px color-mix(in srgb, var(--team) 60%, transparent); }
+.br-team h3 { margin: 0 0 8px; color: var(--team); font-size: 1.05em; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.br-team h3 small { color: var(--muted); font-weight: 600; font-size: 0.75em; }
+.br-player { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 6px; margin: 0 0 4px; border-radius: 10px; background: var(--card-2); color: var(--text); font: inherit; text-align: left; border: 0; }
+button.br-player { cursor: pointer; }
+.br-player.me { outline: 2px solid var(--team); }
+.br-player.again { opacity: 0.6; font-style: italic; }
+.br-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-n { width: 1.4em; text-align: center; font-weight: 800; color: var(--muted); }
+.br-move { color: var(--muted); }
+.br-go { text-align: center; margin: 6px 0 12px; padding: 10px; border-radius: 16px; background: var(--card); }
+.br-hint { text-align: center; margin: 8px 0; padding: 6px 10px; border-radius: 10px; background: color-mix(in srgb, var(--card) 80%, transparent); color: var(--muted); font-size: 0.9em; }
+.br-go b { display: block; font: 900 72px/1 system-ui, sans-serif; color: var(--accent); animation: br-go 0.8s ease-out; }
+.br-go .br-clock { display: block; font: 700 32px/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.br-go small { color: var(--muted); }
+@keyframes br-go { from { transform: scale(2.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.br-pick { display: grid; gap: 8px; }
+.br-pick button { background: var(--team); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.br-score { display: flex; justify-content: center; gap: 16px; margin: 8px auto; padding: 6px 14px; width: max-content; border-radius: 999px; background: var(--card); font-weight: 700; }
+.br-score span { color: var(--team); }
+.br-score b { color: var(--text); font-size: 1.3em; margin-left: 4px; }

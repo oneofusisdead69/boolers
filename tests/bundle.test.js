@@ -11,7 +11,7 @@ test('the browser bundle runs every game with the shared toolkit', () => {
   const sandbox = { console, setTimeout, clearTimeout };
   vm.runInNewContext(`${buildBundle()}\nthis.__req = __req;`, sandbox);
   const { createContext } = sandbox.__req('context');
-  for (const id of ['slevens', 'madMax', 'rideTheBus', 'kingsCup', 'liarsDice', 'shotPoker', 'aceRace', 'horseRace', 'bigTom', 'darts']) {
+  for (const id of ['slevens', 'madMax', 'rideTheBus', 'kingsCup', 'liarsDice', 'shotPoker', 'aceRace', 'horseRace', 'bigTom', 'darts', 'boatRace']) {
     const game = sandbox.__req(id);
     const room = { players: [0, 1, 2].map((i) => ({ id: `p${i}`, name: `P${i}`, connected: true, drinks: 0 })), feed: [], game: { type: id } };
     const ctx = createContext({ emit: () => {}, broadcast: () => {} });
