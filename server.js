@@ -156,9 +156,24 @@ function cleanName(name) {
   return String(name || '').replace(/\s+/g, ' ').trim().slice(0, 16);
 }
 
+// The host stays host through a reload or a moment's lost signal (or a server restart): someone
+// else takes over only once they've been gone a little while.
+const HOST_GRACE_MS = 20 * 1000;
 function ensureHost(room) {
   const host = room.players.find((p) => p.id === room.hostId);
   if (host && host.connected) return;
+  const away = host ? Date.now() - (host.leftAt || 0) : Infinity;
+  if (away < HOST_GRACE_MS) {
+    clearTimeout(room.hostTimer);
+    room.hostTimer = setTimeout(() => {
+      if (rooms.get(room.code) !== room) return;
+      const before = room.hostId;
+      ensureHost(room);
+      if (room.hostId !== before) broadcast(room);
+    }, HOST_GRACE_MS - away + 50);
+    room.hostTimer.unref?.();
+    return;
+  }
   const next = ctx.connectedPlayers(room)[0];
   if (next) room.hostId = next.id;
 }
@@ -412,6 +427,7 @@ io.on('connection', (socket) => {
     const r = room;
     player.connected = false;
     player.socketId = null;
+    player.leftAt = Date.now();
     ensureHost(r);
     if (r.game) GAMES[r.game.type].check?.(r, ctx);
     broadcast(r);
@@ -638,6 +654,14 @@ io.on('connection', (socket) => {
     broadcast(r);
   });
 
+  // The TV leaves the room (its Leave button).
+  on('unwatch', () => {
+    if (!watching) return;
+    watching.tvs?.delete(socket.id);
+    broadcast(watching);
+    watching = null;
+  });
+
   socket.on('disconnect', () => {
     if (watching) {
       watching.tvs?.delete(socket.id);
@@ -649,6 +673,7 @@ io.on('connection', (socket) => {
     const p = player;
     p.connected = false;
     p.socketId = null;
+    p.leftAt = Date.now();
     ensureHost(r);
     if (r.game) GAMES[r.game.type].check?.(r, ctx);
     // In the lobby, people who close the page drop off the list after a short grace period.
@@ -684,11 +709,25 @@ process.on('uncaughtException', (err) => console.error('Uncaught error', err));
 // close everyone's connection so their phones and TVs reconnect straight away, to the new one.
 // (Otherwise a phone can stay on this one for a minute or more, in a copy of the room that people
 // joining the new server can't see.)
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => retire('shutting down'));
+
+// A newer server is up (see announce in lib/roomStore.js), or this one's being stopped: save every
+// room and send everyone off, so they reconnect to the new one. A moment first, for the front end
+// to start sending connections there. Anyone who still reaches this one is turned away (and tries
+// again: see app.js and tv.js).
+const SERVER_ID = `${process.env.K_REVISION || 'local'}-${Math.random().toString(36).slice(2, 10)}`;
+const HANDOVER_MS = 2500;
+let retired = false;
+io.use((socket, next) => (retired ? next(new Error('moving')) : next()));
+async function retire(why, delay = 0) {
+  if (retired) return;
+  retired = true;
+  console.log(`Handing over (${why}): saving ${rooms.size} room(s)`);
+  await new Promise((r) => setTimeout(r, delay));
   await roomStore.flush();
   io.engine.close();
-  setTimeout(() => process.exit(0), 300);
-});
+  setTimeout(() => process.exit(0), 1000);
+}
 
 roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
   // Everyone gets the usual idle window to reconnect, counted from now.
@@ -698,7 +737,10 @@ roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
     forgetAbsent(rooms.get(r.code));
   }
   if (roomStore.enabled) console.log(`Room store on (${process.env.ROOM_STORE}): ${saved.length} room(s) restored`);
-  server.listen(PORT, listening);
+  server.listen(PORT, () => {
+    listening();
+    roomStore.announce(SERVER_ID, () => retire('a newer server took over', HANDOVER_MS));
+  });
 });
 
 function listening() {

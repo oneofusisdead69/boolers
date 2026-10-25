@@ -199,6 +199,10 @@ body:has(.tv-wide) .tv-drinks { left: 50%; transform: translateX(-50%); align-it
 .tv-music:hover { opacity: 1; }
 .tv-full { position: fixed; left: 2vw; bottom: 2vh; width: auto; padding: 0.4rem 0.9rem; font-size: 0.85rem; opacity: 0.6; z-index: 5; background: var(--card-2); color: var(--text); }
 .tv-full:hover, .tv-full:focus-visible { opacity: 1; }
+/* Leave sits beside Full screen (or in its place, where there's no full screen). */
+.tv-leave { left: calc(2vw + 8.4rem); }
+.tv-leave.alone { left: 2vw; }
+.tv-leave[hidden] { display: none; }
 /* Shot Poker's debts across the TV. */
 .tv-banner .sp-takeover { position: fixed; inset: 0; }
 .tv-banner .sp-takeover span { font-size: 5rem; }

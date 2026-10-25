@@ -15,6 +15,7 @@ const params = new URLSearchParams(location.search);
 const store = {
   get: () => { try { return localStorage.getItem('tv-room'); } catch { return null; } },
   set: (code) => { try { localStorage.setItem('tv-room', code); } catch {} },
+  del: () => { try { localStorage.removeItem('tv-room'); } catch {} },
 };
 let code = (params.get('room') || store.get() || '').toUpperCase();
 const preview = params.has('preview');
@@ -50,6 +51,8 @@ function watch(c) {
 
 socket.on('connect', () => (code ? watch(code) : render()));
 socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
+// Turned away by a server that's handing over to a new one: try again in a moment (it won't on its own).
+socket.on('connect_error', () => { if (!socket.active) setTimeout(() => socket.connect(), 800 + Math.random() * 800); });
 // Back from being hidden (a laptop asleep, another tab): catch up with the room.
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
@@ -159,6 +162,25 @@ if (document.documentElement.requestFullscreen || document.documentElement.webki
     if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) toggleFullscreen();
   });
 }
+
+// ---------- Leave ----------
+// A button beside it takes the TV out of the room, back to entering a code (for another room, or
+// to hand the TV back). The room carries on without it.
+const leaveBtn = document.createElement('button');
+leaveBtn.id = 'tv-leave';
+leaveBtn.className = 'tv-full tv-leave';
+leaveBtn.textContent = '✕ Leave room';
+leaveBtn.onclick = () => {
+  if (!confirm('Take the TV out of this room?')) return;
+  socket.emit('unwatch');
+  code = '';
+  store.del();
+  PB.state = null;
+  if (!preview) history.replaceState(null, '', '/tv');
+  render();
+};
+if (!document.getElementById('tv-full')) leaveBtn.classList.add('alone');
+document.body.appendChild(leaveBtn);
 
 function playSounds(prev, s) {
   if (!prev || !s.game || prev.gameType !== s.gameType) return;
@@ -386,6 +408,7 @@ function render() {
   // /preview?moment=N: play that scenery moment as soon as the room is up.
   if (preview && s && params.has('moment') && !render.played) render.played = Scenery.play(Number(params.get('moment')));
   music();
+  leaveBtn.hidden = !s;
   if (!s) return joinScreen();
   if (s.trip && s.phase === 'lobby') {
     delete $tv.dataset.game;
