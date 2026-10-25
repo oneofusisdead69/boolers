@@ -1188,6 +1188,100 @@ main#app, #tv { position: relative; z-index: 1; }
 @keyframes sc-rain { to { background-position: -40px 200px; } }
 @keyframes sc-fogbank { 0% { transform: translateX(0); opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }
 /* St Patrick's in the rain: lightning far off, flickering in the windows. */
+/* The pirate ship: the flag streaming, the lantern swinging, the kraken, a whale. */
+.sc-jolly .sc-flag { transform-origin: 3px 20px; animation: sc-flagwave 1.4s ease-in-out infinite alternate; }
+@keyframes sc-flagwave { from { transform: skewY(-3deg) scaleX(0.96); } to { transform: skewY(3deg) scaleX(1); } }
+.sc-lantern { transform-origin: 50% 0; animation: sc-swing 3.2s ease-in-out infinite alternate; filter: drop-shadow(0 0 14px rgba(255, 190, 90, 0.8)); }
+@keyframes sc-swing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+.sc-tentacle { transform-origin: 50% 100%; opacity: 0; animation: sc-tentacle 7.5s ease-in-out forwards; }
+@keyframes sc-tentacle { 0% { opacity: 1; transform: translateY(100%) rotate(0); } 25% { transform: translateY(8%) rotate(-8deg); } 45% { transform: translateY(4%) rotate(9deg); } 65% { transform: translateY(6%) rotate(-5deg); } 100% { opacity: 1; transform: translateY(100%) rotate(4deg); } }
+.sc-spout i { position: absolute; width: 1.8vw; height: 1.8vw; border-radius: 50%; background: rgba(230, 240, 250, 0.8); filter: blur(1px); animation: sc-spout 2.6s ease-out forwards; }
+.sc-spout i:nth-child(2) { --x: -1.2vw; animation-delay: 0.1s; } .sc-spout i:nth-child(3) { --x: 1.2vw; animation-delay: 0.2s; }
+@keyframes sc-spout { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(var(--x, 0), -9vh) scale(1.4); } 100% { transform: translate(calc(var(--x, 0) * 2), -5vh) scale(2); opacity: 0; } }
+.sc-fluke { opacity: 0; transform-origin: 50% 100%; animation: sc-fluke 4s ease-in-out forwards; }
+@keyframes sc-fluke { 0% { opacity: 0; transform: translateY(40%) rotate(-10deg); } 25% { opacity: 1; } 50% { transform: translateY(0) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(50%) rotate(12deg); } }
+/* Signs in neon tube: the dive bar's BEER (amber) and the diner's OPEN (red). */
+.sc-sign span { display: block; font: 700 46px/1 "Arial Rounded MT Bold", system-ui, sans-serif; letter-spacing: 0.08em; padding: 6px 14px; border: 3px solid currentColor; border-radius: 14px; }
+.sc-sign.beer { color: #ffb347; text-shadow: 0 0 6px #ff8a1a, 0 0 18px #ff8a1a; filter: drop-shadow(0 0 10px rgba(255, 138, 26, 0.7)); }
+.sc-sign.open { color: #ff4d5e; text-shadow: 0 0 6px #ff1f3d, 0 0 18px #ff1f3d; filter: drop-shadow(0 0 10px rgba(255, 31, 61, 0.7)); animation: sc-open 6s steps(1) infinite; }
+@keyframes sc-open { 0%, 88%, 92%, 100% { opacity: 1; } 90% { opacity: 0.25; } }
+.sc-board { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.6)); }
+/* A fly buzzing about. */
+.sc-fly { animation: sc-flyabout 9s ease-in-out forwards; }
+@keyframes sc-flyabout { 0% { transform: translate(0, 0); opacity: 0; } 5% { opacity: 1; } 20% { transform: translate(6vw, -3vh); } 35% { transform: translate(2vw, 4vh); } 50% { transform: translate(10vw, 1vh); } 65% { transform: translate(5vw, -4vh); } 80% { transform: translate(14vw, 3vh); } 95% { opacity: 1; } 100% { transform: translate(24vw, -6vh); opacity: 0; } }
+.sc-buzz { animation: sc-flap 0.05s linear infinite alternate; transform-origin: 10px 7px; }
+.sc-mouse svg { animation: sc-bob 0.18s ease-in-out infinite alternate; }
+/* The tavern cat: legs going, tail swishing. */
+.sc-cat .sc-tail { transform-origin: 14px 24px; animation: sc-swish 1.2s ease-in-out infinite alternate; }
+@keyframes sc-swish { from { transform: rotate(-12deg); } to { transform: rotate(10deg); } }
+/* The diner: the fan turning, headlights sweeping past the window. */
+.sc-fan .sc-blades { transform-origin: 60px 60px; animation: sc-spin 2.4s linear infinite; }
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+.sc-headlights { width: 40vw; height: 60vh; background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255, 245, 210, 0.22), transparent 70%); filter: blur(10px); }
+/* Space: the planet turning slowly, the saucer wobbling with its lights going round, a comet. */
+.sc-planet { animation: sc-planet 30s ease-in-out infinite alternate; filter: drop-shadow(0 0 20px rgba(246, 196, 138, 0.35)); }
+@keyframes sc-planet { from { transform: rotate(-6deg) translateY(0); } to { transform: rotate(4deg) translateY(1.5vh); } }
+.sc-ufo svg { animation: sc-wobble 0.9s ease-in-out infinite alternate; filter: drop-shadow(0 0 12px rgba(160, 230, 255, 0.6)); }
+@keyframes sc-wobble { from { transform: rotate(-5deg) translateY(-3px); } to { transform: rotate(5deg) translateY(3px); } }
+.sc-ufolights circle { animation: sc-blinkon 0.6s steps(1) infinite; } .sc-ufolights circle:nth-child(2n) { animation-delay: 0.3s; }
+@keyframes sc-blinkon { 50% { fill: #ff5cc8; } }
+.sc-comet { width: 26vw; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #fff, rgba(160, 220, 255, 0.6) 15%, transparent); transform-origin: left center; box-shadow: 0 0 10px #bfe4ff; rotate: -10deg; }
+/* Santa's sleigh: the reindeer's legs going. */
+.sc-sleigh { filter: drop-shadow(0 0 8px rgba(255, 240, 200, 0.7)); }
+.sc-sleigh svg { display: block; } /* at the top of its box, not on the text baseline 1em down */
+.sc-sleigh::after { content: ''; position: absolute; right: 100%; top: 40%; width: 30vw; height: 3px; background: linear-gradient(90deg, transparent, rgba(255, 230, 150, 0.7)); border-radius: 3px; filter: blur(1px); }
+/* Wide drawings sit at the top of their box (not on the text baseline, 1em down). */
+.sc.blk svg { display: block; }
+/* Club: lasers fanning out from the corners, the strobe, hands in the air. */
+.sc-laser { width: 3px; height: 130vh; transform-origin: 50% 100%; opacity: 0; box-shadow: 0 0 12px currentColor; animation: sc-laser 5.5s ease-in-out forwards; }
+.sc-laser.l { transform: rotate(var(--from)); } .sc-laser.r { transform: rotate(var(--from)); }
+@keyframes sc-laser { 0% { opacity: 0; transform: rotate(var(--from)); } 10% { opacity: 0.7; } 50% { transform: rotate(var(--to)); } 90% { opacity: 0.7; } 100% { opacity: 0; transform: rotate(var(--from)); } }
+.sc-strobe { background: #fff; opacity: 0; animation: sc-strobe 1.2s steps(1) forwards; }
+@keyframes sc-strobe { 0%, 20%, 40% { opacity: 0.55; } 10%, 30%, 50%, 100% { opacity: 0; } }
+.sc-hands { animation: sc-handsup 6.5s ease-in-out forwards; }
+@keyframes sc-handsup { 0% { transform: translateY(100%); } 15%, 85% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+.sc-hand { animation: sc-bounce 0.5s ease-in-out infinite alternate; }
+@keyframes sc-bounce { to { transform: translateY(-10px); } }
+/* Castle: banners stirring, the dragon's wings and fire, the knight. */
+.sc-banner .sc-cloth { transform-origin: 25px 6px; animation: sc-banner 4s ease-in-out infinite alternate; }
+@keyframes sc-banner { from { transform: skewX(-3deg); } to { transform: skewX(3deg); } }
+.sc-dragon .sc-dwing { transform-origin: 100px 48px; animation: sc-dflap 0.6s ease-in-out infinite alternate; }
+@keyframes sc-dflap { from { transform: scaleY(1); } to { transform: scaleY(-0.5); } }
+.sc-dragon .sc-fire { transform-origin: 202px 38px; animation: sc-breathe 1.6s ease-in-out infinite; }
+@keyframes sc-breathe { 0%, 60% { transform: scaleX(0); opacity: 0; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1.6); opacity: 0; } }
+.sc-dragon { filter: drop-shadow(0 0 12px rgba(255, 150, 60, 0.6)); }
+.sc-knight svg { animation: sc-bob 0.42s ease-in-out infinite alternate; }
+/* Jazz: the mic stand, the spotlight sweeping. */
+.sc-mic { filter: drop-shadow(0 0 10px rgba(255, 220, 160, 0.25)); }
+.sc-spotlight { width: 30vw; height: 120vh; transform-origin: 50% 0; background: linear-gradient(rgba(255, 236, 190, 0.28), rgba(255, 236, 190, 0.05) 80%, transparent); clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%); filter: blur(6px); animation: sc-spot-sweep 7.5s ease-in-out forwards; }
+@keyframes sc-spot-sweep { 0% { opacity: 0; transform: rotate(30deg); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: rotate(-30deg); } }
+/* Speakeasy: the bulb swinging, the police lights going by outside. */
+.sc-bulb { transform-origin: 50% 0; animation: sc-swing 4s ease-in-out infinite alternate; filter: drop-shadow(0 0 22px rgba(255, 196, 100, 0.85)); }
+.sc-police { opacity: 0; animation: sc-police 5.5s linear forwards; background: linear-gradient(90deg, rgba(255, 40, 60, 0.45), transparent 35%, transparent 65%, rgba(40, 90, 255, 0.45)); }
+@keyframes sc-police { 0%, 100% { opacity: 0; } 10%, 30%, 50%, 70% { opacity: 1; background-position: 0 0; } 20%, 40%, 60%, 80% { opacity: 0.2; } }
+/* Beer hall: bunting, and two steins meeting in the middle with a clink. */
+.sc-bunting { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='40'%3E%3Cpath d='M0 4 Q40 14 80 4' stroke='%23e8e3d6' stroke-width='1.5' fill='none'/%3E%3Cpath d='M6 7 L22 9 L13 30Z' fill='%23ffffff'/%3E%3Cpath d='M30 10 L50 10 L40 34Z' fill='%232f6fd0'/%3E%3Cpath d='M58 9 L74 7 L67 30Z' fill='%23ffffff'/%3E%3C/svg%3E") 0 0 / 80px 40px repeat-x; animation: sc-banner 5s ease-in-out infinite alternate; transform-origin: 50% 0; }
+.sc-stein.l { animation: sc-cheers-l 3s ease-in-out forwards; } .sc-stein.r { animation: sc-cheers-r 3s ease-in-out forwards; }
+.sc-stein.r svg { transform: scaleX(-1); }
+@keyframes sc-cheers-l { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(22vw) rotate(10deg); } 40% { transform: translateX(21vw) rotate(4deg); } 70% { transform: translateX(21vw) rotate(4deg); } 100% { transform: translateX(0) rotate(0); } }
+@keyframes sc-cheers-r { 0% { transform: translateX(0) rotate(0); } 35% { transform: translateX(-22vw) rotate(-10deg); } 40% { transform: translateX(-21vw) rotate(-4deg); } 70% { transform: translateX(-21vw) rotate(-4deg); } 100% { transform: translateX(0) rotate(0); } }
+/* Casino: the marquee's bulbs chasing round, and the slot machine. */
+.sc-marquee { background: radial-gradient(circle, #ffe27a 0 30%, rgba(255, 200, 80, 0.4) 45%, transparent 60%) 0 50% / 32px 100% repeat-x; animation: sc-chase 0.8s steps(2) infinite; }
+@keyframes sc-chase { to { background-position: 32px 50%; } }
+.sc-slots { display: flex; gap: 6px; padding: 10px; background: #2a0d12; border: 4px solid #e3b23c; border-radius: 14px; box-shadow: 0 0 20px rgba(227, 178, 60, 0.5); }
+.sc-reel { width: 56px; height: 56px; overflow: hidden; background: #fff8e8; border-radius: 6px; }
+.sc-reel b { display: flex; flex-direction: column; font-size: 44px; line-height: 56px; text-align: center; animation: sc-reel 0.25s linear infinite; }
+.sc-reel:nth-child(2) b { animation-duration: 0.3s; } .sc-reel:nth-child(3) b { animation-duration: 0.22s; }
+@keyframes sc-reel { from { transform: translateY(0); } to { transform: translateY(-224px); } }
+.sc-slots.win .sc-reel b { animation: none; transform: translateY(-224px); }
+.sc-slots.win { animation: sc-jackpot 0.25s steps(1) 8; }
+@keyframes sc-jackpot { 50% { box-shadow: 0 0 40px #ffd23f, 0 0 80px #ffd23f; border-color: #fff; } }
+/* Saloon: the poster, a hawk circling. */
+.sc-poster { transform: rotate(-4deg); filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
+.sc-hawk { animation: sc-circle 11s linear forwards; }
+@keyframes sc-circle { 0% { transform: translate(-20vw, 0) scale(0.7); opacity: 0; } 10% { opacity: 1; } 30% { transform: translate(10vw, 3vh) scale(1); } 55% { transform: translate(30vw, -1vh) scale(0.8); } 80% { transform: translate(8vw, 2vh) scale(1); } 100% { transform: translate(-25vw, 0) scale(0.7); opacity: 0; } }
+/* Tiki: the torches. */
+.sc-tikitorch { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)); }
 .sc-winflash { background: rgba(230, 235, 255, 0.7); border-radius: 4px; opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 @keyframes sc-winflash { 0% { opacity: 0; } 8% { opacity: 0.8; } 14% { opacity: 0.1; } 22% { opacity: 0.6; } 40% { opacity: 0; } 100% { opacity: 0; } }
 /* Fog: drifting banks, the beam glowing in the murk, ships half lost in it. */

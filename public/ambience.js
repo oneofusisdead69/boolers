@@ -634,6 +634,132 @@
     crash(out, t) {
       play(out, ['cue-wave-1', 'cue-wave-2', 'cue-wave-3'], t, { gain: 0.9 });
     },
+    // Santa's sleigh bells going over.
+    sleighbells(out, t) {
+      for (let k = 0; k < 30; k++) note(out, t + k * 0.07 + Math.random() * 0.03, { freq: 2637 + Math.random() * 600, len: 0.12, gain: 0.012 + 0.012 * Math.sin((k / 30) * Math.PI), type: 'sine' });
+    },
+    // A flying saucer: a wobbling whine that rises and falls away.
+    ufo(out, t) {
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(500, t);
+      o.frequency.linearRampToValueAtTime(900, t + 1);
+      o.frequency.linearRampToValueAtTime(600, t + 2.2);
+      const vib = ac.createOscillator();
+      vib.frequency.value = 9;
+      const vd = ac.createGain();
+      vd.gain.value = 40;
+      vib.connect(vd).connect(o.frequency);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.02, t + 0.4);
+      g.gain.linearRampToValueAtTime(0.0001, t + 2.2);
+      o.connect(g).connect(out);
+      o.start(t); vib.start(t);
+      o.stop(t + 2.3); vib.stop(t + 2.3);
+    },
+    // The tavern cat.
+    meow(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(480, t);
+      o.frequency.linearRampToValueAtTime(760, t + 0.2);
+      o.frequency.linearRampToValueAtTime(420, t + 0.7);
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1100;
+      f.Q.value = 2;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.05, t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+      o.connect(f).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 0.8);
+    },
+    // A dart into the board.
+    thud(out, t) {
+      hit(out, t, { type: 'lowpass', freq: 400, gain: 0.25, len: 0.12, attack: 0.002 });
+    },
+    // A dragon going over: a low growl that swells.
+    roar(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(90, t);
+      o.frequency.linearRampToValueAtTime(140, t + 0.6);
+      o.frequency.linearRampToValueAtTime(70, t + 1.8);
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 700;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.08, t + 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
+      o.connect(f).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 2);
+    },
+    // A knight's armour clinking along.
+    clank(out, t) {
+      for (let k = 0; k < 10; k++) note(out, t + k * 0.42 + Math.random() * 0.05, { freq: 1500 + Math.random() * 500, len: 0.12, gain: 0.015, type: 'triangle' });
+    },
+    // The cops going past outside: a siren far off, rising and falling.
+    siren(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'triangle';
+      const lfo = ac.createOscillator();
+      lfo.frequency.value = 0.7;
+      const d = ac.createGain();
+      d.gain.value = 140;
+      o.frequency.value = 760;
+      lfo.connect(d).connect(o.frequency);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.02, t + 1.5);
+      g.gain.linearRampToValueAtTime(0.0001, t + 5);
+      o.connect(g).connect(out);
+      o.start(t); lfo.start(t);
+      o.stop(t + 5.1); lfo.stop(t + 5.1);
+    },
+    // Two steins meeting.
+    clink(out, t) {
+      note(out, t, { freq: 1180, len: 0.5, gain: 0.05, type: 'triangle' });
+      note(out, t + 0.01, { freq: 1730, len: 0.35, gain: 0.03, type: 'sine' });
+    },
+    // A slot machine paying out.
+    jackpot(out, t) {
+      [72, 76, 79, 84, 79, 84, 88].forEach((m, k) => note(out, t + k * 0.11, { freq: hz(m), len: 0.25, gain: 0.03, type: 'triangle' }));
+    },
+    // A hawk's cry, far overhead.
+    hawk(out, t) {
+      note(out, t, { freq: 2400, to: 1500, len: 0.9, gain: 0.02, type: 'sine', attack: 0.05 });
+    },
+    // A parrot.
+    squawk(out, t) {
+      const o = ac.createOscillator();
+      o.type = 'square';
+      o.frequency.setValueAtTime(900, t);
+      o.frequency.linearRampToValueAtTime(1400, t + 0.08);
+      o.frequency.linearRampToValueAtTime(800, t + 0.25);
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1500;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.03, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+      o.connect(f).connect(g).connect(out);
+      o.start(t);
+      o.stop(t + 0.3);
+    },
+    // Gulls going over.
+    gulls(out, t) {
+      play(out, ['cue-gull-1', 'cue-gull-2'], t, { gain: 0.4 });
+      play(out, ['cue-gull-1', 'cue-gull-2'], t + 0.8, { gain: 0.25, rate: 1.08 });
+    },
+    // The ship's timbers groaning (the kraken's got hold of her).
+    creak(out, t) {
+      play(out, 'cue-creak-2', t, { gain: 0.7 });
+    },
     // A splash (the mermaid diving).
     splash(out, t) {
       play(out, 'cue-splash-2', t, { gain: 0.8 });
