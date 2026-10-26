@@ -666,6 +666,16 @@ io.on('connection', (socket) => {
     broadcast(room);
   });
 
+  // The host hands the job to someone else here (not a bot: it has no phone to host from).
+  on('makeHost', ({ playerId } = {}) => {
+    if (!hostOnly()) return;
+    const target = room.players.find((p) => p.id === playerId);
+    if (!target || isBot(target) || !target.connected || target.id === player.id) return;
+    room.hostId = target.id;
+    ctx.log(room, `👑 ${target.name} is the host now`);
+    broadcast(room);
+  });
+
   // The host adds a bot (Booler, Baller or NPC), up to three.
   on('addBot', ({ level } = {}) => {
     if (!hostOnly() || room.players.length >= MAX_PLAYERS) return;
