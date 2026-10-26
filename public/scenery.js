@@ -43,11 +43,16 @@
   }
 
   // ---------- The character kit: everyone in the scenery drawn one way ----------
-  // The look is the Fury Road war boys': flat colour (no gradients), one warm ink outline of the
-  // same weight round everything, a big round head (a fifth of the height), chunky limbs with
-  // round ends, dot eyes and a line for a mouth. The only shading: the far arm and leg a shade
-  // darker, and a soft band down the back of the body. Props (a pint, a guitar) are drawn the
-  // same way, in the same ink.
+  // The look is flat modern, pure silhouette: long elegant proportions (about ten heads tall, long
+  // limbs, a small oval head, no face), no outlines, every part one near-black fill, the arms and
+  // legs separate pieces so they read against the body, and a crisp rim of light along each part's
+  // edge on the side the room's light comes from (one or two lights per look: LIGHTS below). The
+  // rim is the part's own shape drawn again underneath it in the light's colour, shifted a little
+  // towards the light (and a wider, fainter copy for the glow): no filters, so it costs nothing to
+  // animate. Only drinks and things that glow (a lamp, a torch's flame, a lit jack-o'-lantern, a
+  // muzzle flash) keep their colours. With no colour to go on, clothes, hats and props read by
+  // their outline: a top hat, a crown's points, a skirt's flare, the fringe on a flapper's dress.
+  // The options below that are colours (skin, top, hatColor...) are still taken, and ignored.
   //
   //   figure(opts)              a person: an <svg> 0.5em wide and 1em tall (1em is the whole
   //                             figure, feet on the bottom edge), facing right like every drawing
@@ -65,10 +70,16 @@
   //                             big it is within its box), still (legs, tail and wings don't move:
   //                             they do by default, using the scenery's sc-legs-f/b, sc-tail,
   //                             sc-wing and sc-buzz).
-  //   SKIN, SKINS, skinFor(i), HAIR, INK, LW: the palettes and the ink, for anything drawn by hand
-  //                             to match (the art in lib/roomArt.js can't call the kit: draw it
-  //                             with these numbers, or paste what figure() gives, as the dive
-  //                             bar's regular does).
+  //   SKIN, SKINS, skinFor(i), HAIR, INK, LW: the old palettes and ink (still taken, for the
+  //                             few things drawn in colour by hand).
+  //   LIGHTS, lightUp(el, look): each look's silhouette colour and rim lights, and putting them
+  //                             on an element (Scenery.set() does it for the scenery layers).
+  //   bake(look, idPrefix, whole), bakedStyle(look): for the art in lib/roomArt.js, which can't
+  //                             call the kit: bake a look's light into what figure() and critter()
+  //                             give, paste it (classes and styles stripped) with the look's
+  //                             bakedStyle() once, as the dive bar's regular does. whole: each
+  //                             figure lit as one shape (crowds: smaller).
+  //   silhouette(svg, w):       anything else drawn to go with the kit, silhouetted and lit.
   //
   // figure() options, all optional:
   //   skin       'chalk' (war-boy white), 'pale' 'light' 'tan' 'brown' 'deep', or a colour;
@@ -137,6 +148,12 @@
   // Movement is in CSS, transforms only (see "The character kit" in scenery.css): the <svg> gets
   // `fg fg-<pose>`, and .fg-walk strides, .fg-wave waves, .fg-cheer pumps its fists, .fg-dance
   // bounces, .fg-drum drums. There are no ids or gradients in it, so any number can be on screen.
+  // The light: on the TV each part's copies are classed fg-r0 (the glow), fg-r1, fg-r2 (the two
+  // lights' rims) and fg-k (the silhouette), coloured and shifted from CSS variables that
+  // Scenery.set() puts on the scenery layers from LIGHTS[look] (kit.lightUp(el, look) does the
+  // same for any element). For drawings that leave the page (the venue art in lib/roomArt.js is a
+  // data URL, so no CSS reaches it), kit.bake(look) bakes that look's light into the markup of
+  // everything drawn until kit.bake(null).
   const INK = '#1c1410';
   const LW = 1.6;
   const SKIN = { chalk: '#ece6dc', pale: '#f3d6bd', light: '#e4b58e', tan: '#c68c60', brown: '#94603e', deep: '#5e3a24' };
@@ -162,14 +179,174 @@
   const inked = (d, color, w) => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${n1(w + 2 * LW)}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
   const pivot = ([x, y]) => `style="transform-box:view-box;transform-origin:${n1(x)}px ${n1(y)}px"`;
 
+  // ----- The silhouette and the rim light -----
+  // Each look's light: sil (the silhouette's colour: near-black at night and indoors, a deep tone
+  // in daylight so it isn't a hole in a sunny picture) and up to two lights, each { x, y } the
+  // direction it comes from (screen y down: { x: 0, y: -1 } is overhead), c its colour, o how
+  // strong (opacity). w: how far the rim reaches (figure units; a figure is 120 tall).
+  const NIGHT = '#0b0807';
+  const LIGHTS = {
+    default: { sil: NIGHT, rims: [{ x: 0.2, y: -1, c: '#ffb25a' }, { x: 1, y: -0.3, c: '#ff4a2e', o: 0.85 }] },
+    // The dive: the amber of the back shelf from above, the red BAR neon from the right.
+    dive: { sil: NIGHT, rims: [{ x: 0.15, y: -1, c: '#ffb05a' }, { x: 1, y: -0.25, c: '#ff4a2e', o: 0.9 }] },
+    diveChampionship: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#fff2d8' }, { x: 1, y: -0.25, c: '#ff4a2e', o: 0.9 }] },
+    // The tavern: the hearth low on the left, candles overhead.
+    tavern: { sil: NIGHT, rims: [{ x: -1, y: -0.35, c: '#ff9a3a' }, { x: 0.3, y: -1, c: '#ffd890', o: 0.7 }] },
+    tavernMeadhall: { sil: NIGHT, rims: [{ x: -0.8, y: -0.6, c: '#ff8a2a' }, { x: 1, y: -0.3, c: '#ffc060', o: 0.6 }] },
+    // The club: magenta and cyan lasers either side.
+    club: { sil: '#07060c', rims: [{ x: -1, y: -0.5, c: '#ff3cc8' }, { x: 1, y: -0.5, c: '#3ce0ff' }] },
+    // The castle: torches on the left, cold moonlight from the windows on the right.
+    castle: { sil: NIGHT, rims: [{ x: -1, y: -0.45, c: '#ffa848' }, { x: 1, y: -0.6, c: '#a8c0ff', o: 0.8 }] },
+    // The tournament is out in the day: a deep slate silhouette, the sun overhead and the sky's blue.
+    castleTournament: { sil: '#262c38', rims: [{ x: 0.35, y: -1, c: '#fff4d6' }, { x: -1, y: -0.2, c: '#a8d0ff', o: 0.6 }] },
+    // The jazz club: the warm stage spot overhead, the red velvet's glow from the side.
+    jazz: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#ffd890' }, { x: -1, y: -0.2, c: '#ff5a4a', o: 0.75 }] },
+    jazzOpenMic: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#fff0c8' }, { x: 1, y: -0.3, c: '#6a8cff', o: 0.75 }] },
+    // The diner, all chrome and white tiles: a deep plum silhouette, pink and turquoise neon.
+    diner: { sil: '#24202c', rims: [{ x: -1, y: -0.4, c: '#ff5a9a' }, { x: 1, y: -0.5, c: '#6ae8ff', o: 0.85 }] },
+    dinerRink: { sil: '#0a0812', rims: [{ x: -1, y: -0.4, c: '#d05aff' }, { x: 1, y: -0.5, c: '#5affe0', o: 0.85 }] },
+    // The tiki bar: the sunset low on the right, the torches on the left.
+    tiki: { sil: '#100806', rims: [{ x: 1, y: -0.3, c: '#ff8a3a' }, { x: -1, y: -0.4, c: '#ffc860', o: 0.7 }] },
+    // The speakeasy: amber lamps overhead, the green of the bar's glass.
+    speakeasy: { sil: NIGHT, rims: [{ x: 0.2, y: -1, c: '#ffb860' }, { x: -1, y: -0.3, c: '#8ad8a8', o: 0.55 }] },
+    // Noir: one hard white light through the blinds.
+    speakeasyNoir: { sil: '#050505', rims: [{ x: 1, y: -0.45, c: '#eef2f6' }] },
+    casino: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#ffd060' }, { x: 1, y: -0.3, c: '#ff4060', o: 0.8 }] },
+    // Monte Carlo's gilded salon: a deep brown silhouette, the chandeliers' gold.
+    casinoMonteCarlo: { sil: '#23190f', rims: [{ x: 0, y: -1, c: '#ffe2a0' }, { x: -1, y: -0.3, c: '#ffb060', o: 0.6 }] },
+    // The saloon: the lanterns overhead, the dusty daylight through the doors on the right.
+    saloon: { sil: NIGHT, rims: [{ x: 0.2, y: -1, c: '#ffb860' }, { x: 1, y: -0.2, c: '#ffe8b0', o: 0.75 }] },
+    saloonRiverboat: { sil: '#120a08', rims: [{ x: 1, y: -0.4, c: '#ff9a50' }, { x: -0.4, y: -1, c: '#ffd890', o: 0.6 }] },
+    // On deck at sunset: the sun low on the right, the lanterns.
+    pirate: { sil: '#120808', rims: [{ x: 1, y: -0.35, c: '#ff9a4a' }, { x: -0.5, y: -1, c: '#ffc870', o: 0.6 }] },
+    pirateDutchman: { sil: '#050a08', rims: [{ x: 0.3, y: -1, c: '#7cf0b0' }, { x: -1, y: -0.3, c: '#5ac8a0', o: 0.6 }] },
+    // The beer hall, bright and whitewashed: a deep brown silhouette, warm lamps overhead, the
+    // windows' light.
+    beerhall: { sil: '#2a2018', rims: [{ x: 0.2, y: -1, c: '#ffc870' }, { x: -1, y: -0.3, c: '#ffe0a8', o: 0.6 }] },
+    beerhallOktoberfest: { sil: '#2a1e16', rims: [{ x: 0, y: -1, c: '#ffd890' }, { x: 1, y: -0.3, c: '#a8c8ff', o: 0.5 }] },
+    // Space: the cyan of the windows, magenta panel light.
+    space: { sil: '#05070c', rims: [{ x: 1, y: -0.4, c: '#5ae0ff' }, { x: -1, y: -0.4, c: '#ff6ad8', o: 0.7 }] },
+    spaceStarship: { sil: '#05070c', rims: [{ x: 0.3, y: -1, c: '#e8f6ff' }, { x: 1, y: -0.3, c: '#5ae0ff' }] },
+    // The lighthouse at night: its lamp overhead, the moon off the sea.
+    lighthouse: { sil: '#06080e', rims: [{ x: 0.2, y: -1, c: '#ffe8a0' }, { x: -1, y: -0.3, c: '#9ab8ff', o: 0.7 }] },
+    // In daylight a slate-blue silhouette, the sun's white edge, the sky's blue.
+    lighthouseDay: { sil: '#243040', rims: [{ x: 0.4, y: -1, c: '#fff8e4' }, { x: -1, y: -0.2, c: '#a8d4ff', o: 0.55 }] },
+    lighthouseFog: { sil: '#2a3238', rims: [{ x: 0, y: -1, c: '#e8eef2', o: 0.75 }] },
+    storm: { sil: '#06080c', rims: [{ x: 0.3, y: -1, c: '#c8e0ff' }, { x: -1, y: -0.3, c: '#ffe0a0', o: 0.6 }] },
+    lighthouseRegatta: { sil: '#243040', rims: [{ x: 0.4, y: -1, c: '#fff8e4' }, { x: -1, y: -0.2, c: '#a8d4ff', o: 0.55 }] },
+    // The vineyard by day: a deep warm brown, the sun from above right; at sunset, low and orange.
+    vineyard: { sil: '#2e2418', rims: [{ x: 0.45, y: -1, c: '#fff0c0' }, { x: -1, y: -0.2, c: '#c8e0a0', o: 0.5 }] },
+    vineyardSunset: { sil: '#160c08', rims: [{ x: 1, y: -0.3, c: '#ff9a50' }, { x: -0.5, y: -1, c: '#ff8aa0', o: 0.55 }] },
+    // The frat house: string lights overhead, the blue of the TV.
+    frat: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#ffd080' }, { x: 1, y: -0.3, c: '#6aa8ff', o: 0.7 }] },
+    fratChampionship: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#ffffff' }, { x: -1, y: -0.3, c: '#ff4a4a', o: 0.7 }] },
+    // The garage: the strip light overhead, the red OPEN sign.
+    garage: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#e8f4ff' }, { x: -1, y: -0.3, c: '#ff4d5e', o: 0.7 }] },
+    garageWasteland: { sil: '#120806', rims: [{ x: 0.3, y: -1, c: '#ffd890' }, { x: -1, y: -0.3, c: '#ff6a2a' }] },
+    // The château by day: a deep slate-blue silhouette, soft daylight from above left, the lawn's
+    // green bounced up from the side. By night, the lanterns and the moon.
+    chateau: { sil: '#283040', rims: [{ x: -0.4, y: -1, c: '#fff6e0' }, { x: 1, y: -0.2, c: '#d8f0c0', o: 0.45 }] },
+    chateauNight: { sil: '#07080e', rims: [{ x: -0.3, y: -1, c: '#ffd890' }, { x: 1, y: -0.4, c: '#a8c0ff', o: 0.75 }] },
+    chateauRevolution: { sil: '#0c0604', rims: [{ x: 0, y: -1, c: '#ff8a2a' }, { x: -1, y: -0.3, c: '#ffc860', o: 0.7 }] },
+    // Christmas: the fire's warm glow, the snowy window's blue.
+    christmas: { sil: NIGHT, rims: [{ x: -1, y: -0.45, c: '#ffa040' }, { x: 1, y: -0.5, c: '#b8d4ff', o: 0.7 }] },
+    // Halloween: graveyard green from one side, pumpkin orange from the other.
+    halloween: { sil: '#05030a', rims: [{ x: 1, y: -0.5, c: '#7cff9a' }, { x: -1, y: -0.4, c: '#ff8a1a' }] },
+    // The Highlands pub: the peat fire, and the sky at the window (evening, rain, fog).
+    stpatricks: { sil: NIGHT, rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#f0c0a0', o: 0.6 }] },
+    stpatricksRain: { sil: NIGHT, rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#a8b8c8', o: 0.6 }] },
+    stpatricksFog: { sil: '#141414', rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#d0d8dc', o: 0.55 }] },
+  };
+  const RIM_W = 0.9;
+  const CRIT_W = 1.1;
+  const unit = ({ x, y }) => { const d = Math.hypot(x, y) || 1; return [x / d, y / d]; };
+  // Puts a look's light on an element (the scenery layers) as the variables the kit's CSS reads.
+  const lightUp = (el, look) => {
+    const L = LIGHTS[look] || LIGHTS.default;
+    el.style.setProperty('--fg-sil', L.sil);
+    [0, 1].forEach((i) => {
+      const r = L.rims[i];
+      const [x, y] = r ? unit(r) : [0, 0];
+      el.style.setProperty(`--fg-c${i + 1}`, r ? r.c : 'transparent');
+      el.style.setProperty(`--fg-x${i + 1}`, n1(x * 100) / 100);
+      el.style.setProperty(`--fg-y${i + 1}`, n1(y * 100) / 100);
+      el.style.setProperty(`--fg-o${i + 1}`, r ? r.o ?? 1 : 0);
+      el.style.setProperty(`--fg-v${i + 1}`, r ? 'visible' : 'hidden');
+    });
+  };
+  // A baked light (kit.bake): drawings carry their light in their own attributes.
+  let BAKED = null;
+  // (Baked, each part's shape is drawn once, in <defs> under an id starting `id`, and its rims and
+  // silhouette are <use>s of it: the art goes in a stylesheet, so it has to be small.)
+  // whole: each figure lit as one shape, not part by part (for small people in a crowd: smaller).
+  const bake = (look, id = 'k', whole = false) => { BAKED = look == null ? null : { ...(typeof look === 'string' ? LIGHTS[look] || LIGHTS.default : look), id, n: 0, whole }; };
+  const wholeLit = (svg) => { if (!BAKED?.whole) return svg; BAKED.now = true; const r = lighted(svg); BAKED.now = false; return r; };
+  // The baked light's colours, as the <style> a drawing using baked figures needs once (
+  // r1 and r2 the rims, rk the silhouette).
+  const bakedStyle = (look) => {
+    const L = typeof look === 'string' ? LIGHTS[look] || LIGHTS.default : look;
+    const op = (v) => (v < 1 ? `;opacity:${n1(v * 100) / 100}` : '');
+    return `<style>${L.rims.map((r, i) => `.r${i + 1}{color:${r.c}${op(r.o ?? 1)}}`).join('')}.rk{color:${L.sil}}</style>`;
+  };
+  // (Every kit drawing's root: its parts fill and stroke in currentColor, strokes only where a
+  // width is given, round ends.)
+  const ROOT = 'fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"';
+  // Glowing bits (drinks, flames) are marked lit(...) and keep their colours; everything else in a
+  // part turns to the silhouette's colour (currentColor), and the rims are its shape without them.
+  const LIT0 = '\u0001';
+  const LIT1 = '\u0002';
+  const lit = (s) => `${LIT0}${String(s).replace(/[\u0001\u0002]/g, '')}${LIT1}`;
+  // (Recoloured by taking the colours off: the kit's root fills and strokes in currentColor.)
+  const recolor = (s) => s.replace(/ (fill|stroke)="(?!none")[^"]*"| stroke-line(cap|join)="round"/g, '');
+  // Just the lit bits of a part, with the groups (and so the transforms) they sit in.
+  const litOnly = (s) => {
+    let r = s.split(/(\u0001[^\u0002]*\u0002)/).map((seg) => (seg[0] === LIT0 ? seg.slice(1, -1) : seg.replace(/<(?!\/?g\b)[a-z]+\b[^>]*\/>/g, ''))).join('');
+    for (let k = 0; k < 6; k++) r = r.replace(/<g\b[^>]*><\/g>/g, '');
+    return r;
+  };
+  const shapeOf = (s) => { let r = recolor(s.replace(/\u0001[^\u0002]*\u0002/g, '')); for (let k = 0; k < 4; k++) r = r.replace(/<g\b[^>]*><\/g>/g, ''); return r; };
+  const inkOf = (s) => s.split(/(\u0001[^\u0002]*\u0002)/).map((seg) => (seg[0] === LIT0 ? seg.slice(1, -1) : recolor(seg))).join('');
+  // A part drawn lit: its rims (underneath, shifted towards the lights), then its silhouette. fr:
+  // the frame it's drawn in ({ flip, rot }), so the shift can be undone into the screen's.
+  const frameOf = ({ flip, rot } = {}) => [flip ? 'scale(-1 1)' : '', rot ? `rotate(${n1(rot)})` : ''].filter(Boolean).join(' ');
+  const unframe = ({ flip, rot } = {}) => [rot ? `rotate(${n1(-rot)})` : '', flip ? 'scale(-1 1)' : ''].filter(Boolean).join(' ');
+  function lighted(inner, fr = {}, w = RIM_W) {
+    // (Baked whole: the parts go as they are, and the figure is lit as one; see figureAt.)
+    if (BAKED?.whole && !BAKED.now) return inner;
+    const shape = shapeOf(inner);
+    const f = frameOf(fr);
+    const inF = (s) => (f ? `<g transform="${f}">${s}</g>` : s);
+    let rims;
+    if (BAKED) {
+      // (The shift worked out in the part's own frame, so no wrappers: a turned-round frame turns
+      // it back, a tipped one tips it back.)
+      const id = `${BAKED.id}${(++BAKED.n).toString(36)}`;
+      const local = ([x, y]) => {
+        if (fr.flip) x = -x;
+        if (fr.rot) { const c = Math.cos(-fr.rot * DEG); const sn = Math.sin(-fr.rot * DEG); [x, y] = [x * c - y * sn, x * sn + y * c]; }
+        return [x, y];
+      };
+      // (No glow copy: the art is small, and every copy costs.)
+      rims = BAKED.rims.map((r, i) => {
+        const [x, y] = local(unit(r).map((v) => v * (BAKED.w || w)));
+        return `<use href="#${id}" class="r${i + 1}"${n1(x) ? ` x="${n1(x)}"` : ''}${n1(y) ? ` y="${n1(y)}"` : ''}/>`;
+      }).join('');
+      const plain = !inner.includes(LIT0);
+      // (The silhouette is the shape again, the lit bits over it.)
+      return `<defs><g id="${id}">${shape}</g></defs>${rims}<use href="#${id}" class="rk"/>${plain ? '' : litOnly(inner)}`;
+    }
+    rims = ['fg-r0', 'fg-r1', 'fg-r2'].map((c) => `<g class="${c}">${inF(shape)}</g>`).join('');
+    return `${f ? `<g transform="${unframe(fr)}">${rims}</g>` : rims}<g class="fg-k">${inkOf(inner)}</g>`;
+  }
+
   // Arms: [shoulder, elbow] and legs: [hip, knee], in degrees from straight down, + forwards.
   const ARM_POSES = {
     down: [6, 8], back: [-16, 4], swingF: [26, 18], swingB: [-24, 8], hold: [14, 76], carry: [10, 64],
     tray: [40, 100], polish: [34, 102], toast: [150, 10], drink: [62, 118], wave: [150, 26], up: [148, 10],
     upBack: [-148, -10], fist: [-152, -18], point: [92, 0], strum: [24, 66], fret: [72, 34], sax: [20, 66], saxHigh: [46, 96],
-    drum: [48, 44], ride: [74, 12], fold: [135, 25], hip: [-34, 64],
+    drum: [48, 44], ride: [74, 12], fold: [95, 52], hip: [-34, 64],
   };
-  const LEG_POSES = { stand: [2, -2], walkF: [22, 4], walkB: [-20, 12], sit: [84, -84], kick: [48, -18], wide: [10, -6] };
+  const LEG_POSES = { stand: [2, -2], walkF: [22, 4], walkB: [-20, 12], sit: [86, -92], kick: [48, -18], wide: [10, -6] };
   const POSES = {
     stand: { arms: ['down', 'down'], legs: ['stand', 'stand'] },
     walk: { arms: ['down', 'down'], legs: ['stand', 'stand'] },
@@ -183,7 +360,7 @@
     dance: { arms: ['upBack', 'wave'], legs: ['stand', 'kick'] },
     sit: { arms: ['hold', 'hold'], legs: ['sit', 'sit'] },
     ride: { arms: ['ride', 'ride'], legs: ['sit', 'sit'] },
-    slump: { arms: ['fold', 'fold'], legs: ['sit', 'sit'], lean: 60, face: 'sleep' },
+    slump: { arms: ['fold', 'fold'], legs: ['sit', 'sit'], lean: 55, droop: 38, face: 'sleep' },
     play: { arms: ['fret', 'strum'], legs: ['stand', 'stand'] },
     sax: { arms: ['saxHigh', 'sax'], legs: ['stand', 'stand'] },
     drum: { arms: ['drum', 'drum'], legs: ['sit', 'sit'] },
@@ -192,25 +369,38 @@
     polish: { arms: ['hold', 'polish'], legs: ['stand', 'stand'] },
     point: { arms: ['down', 'point'], legs: ['stand', 'stand'] },
   };
-  const ARM = [16, 15];
-  const LEG = [21, 20];
-  const HEAD_R = 11;
+  // Ten heads tall: the head's middle at 15 (an oval 9 by 11.6), the shoulders at 26, the hips at
+  // 64 (half way), knees at 90, the soles on 118.5; the hands come to mid-thigh.
+  const ARM = [19.5, 18.5];
+  const LEG = [26, 25.5];
+  const HEAD = { rx: 4.6, ry: 5.8 };
+  // (The old kit's hats, hair and torso details were drawn for an 11-unit round head at 22 and a
+  // body from 34 to 76: they're drawn as they were and fitted on with these.)
+  const HAT_K = 0.62;
+  const HAIR_K = [0.44, 0.54];
+  // Sitting (both thighs out level-ish: sit, ride, slump, drum): the hips go where the old kit's
+  // were, 74, so seats, saddles and stools in the scenes still meet them.
+  const SEAT_DROP = 12;
   // Where everything goes, in the figure's 60 x 120 box (before any lean).
   function layout(o) {
     const P = POSES[o.pose] || POSES.stand;
     const side = o.facing !== 'front' && o.facing !== 'back';
     const b = { slim: 0.88, broad: 1.16, stout: 1.08 }[o.build] || 1;
+    // (sw, hw: the old kit's half-widths, for the details drawn to it.)
     const sw = 13 * b;
     const hw = (o.build === 'stout' ? 12.5 : 10.5) * b;
-    const cx = side ? 31.5 : 30;
-    const sh = side ? [[27.5, 39], [33.5, 39]] : [[30 - sw + 3, 39], [30 + sw - 3, 39]];
-    const hp = side ? [[27.5, 74], [32.5, 74]] : [[24.5, 74], [35.5, 74]];
+    const cx = side ? 31 : 30;
+    const pose = (list, table, i) => { const v = list[i]; return typeof v === 'string' ? table[v] : v; };
+    const legP = [0, 1].map((i) => pose(o.legs || P.legs, LEG_POSES, i));
+    const seated = o.crop !== 'waist' && legP.every(([a]) => Math.abs(a) >= 55);
+    const dy = seated ? SEAT_DROP : 0;
+    const sh = side ? [[29.6, 26 + dy], [32.4, 26 + dy]] : [[30 - 6.4 * b, 26 + dy], [30 + 6.4 * b, 26 + dy]];
+    const hp = side ? [[30, 64 + dy], [32, 64 + dy]] : [[30 - 3.1 * b, 64 + dy], [30 + 3.1 * b, 64 + dy]];
     // In a front or back view the left (back) arm and leg go out to the left: mirrored.
     const mir = (i) => (!side && i === 0 ? -1 : 1);
-    const pose = (list, table, i) => { const v = list[i]; return typeof v === 'string' ? table[v] : v; };
     const arms = [0, 1].map((i) => { const [a, e] = pose(o.arms || P.arms, ARM_POSES, i); const A = a * mir(i); const s = sh[i]; const k = along(s, A, ARM[0]); return { s, k, h: along(k, A + e * mir(i), ARM[1]), ang: A + e * mir(i) }; });
-    const legs = [0, 1].map((i) => { const [a, e] = pose(o.legs || P.legs, LEG_POSES, i); const A = a * mir(i); const s = hp[i]; const k = along(s, A, LEG[0]); return { s, k, h: along(k, A + e * mir(i), LEG[1]), ang: A + e * mir(i) }; });
-    return { P, side, sw, hw, cx, arms, legs, head: [side ? 31 : 30, 22], lean: o.lean ?? P.lean ?? 0 };
+    const legs = [0, 1].map((i) => { const [a, e] = legP[i]; const A = a * mir(i); const s = hp[i]; const k = along(s, A, LEG[0]); return { s, k, h: along(k, A + e * mir(i), LEG[1]), ang: A + e * mir(i) }; });
+    return { P, side, b, sw, hw, cx, dy, seated, arms, legs, hip: [31, 64 + dy], head: [side ? 31.6 : 30, 15 + dy], lean: o.lean ?? P.lean ?? 0 };
   }
 
   // The body's half-width at height y (the shoulders at 41, the hips at 76).
@@ -237,7 +427,7 @@
     redcup: (c = '#d62828') => `<path d="M-4.4 -12 L-3.2 2 H3.2 L4.4 -12Z" fill="${c}" ${ink}/><path d="M-4.4 -12 H4.4 L4.2 -10 H-4.2Z" fill="#f4f4f4"/>`,
     mic: (c = '#3a3a40') => `${inked('M0 1 V-7', '#1a1a1e', 2.4)}<circle cx="0" cy="-9.5" r="3" fill="${c}" ${ink}/><path d="M-1.6 -10.6 h3.2" stroke="#9a9aa2" stroke-width="1"/>`,
     wrench: (c = '#b8c0c8') => `${inked('M0 4 V-14', c, 2.6)}<path d="M-3.6 -14 A3.6 3.6 0 1 1 3.6 -14 L1.6 -15.5 H-1.6Z" fill="${c}" ${ink}/>`,
-    torch: (c = '#6a4424') => `${inked('M0 6 V-12', c, 2.6)}<path class="fg-flame" d="M0 -12 Q-5 -16 -2 -22 Q-1 -19 0 -20 Q1 -26 4 -22 Q5 -16 0 -12Z" fill="#ff9a2a" ${ink}/>`,
+    torch: (c = '#6a4424') => `${inked('M0 6 V-12', c, 2.6)}${lit(`<path class="fg-flame" d="M0 -12 Q-5 -16 -2 -22 Q-1 -19 0 -20 Q1 -26 4 -22 Q5 -16 0 -12Z" fill="#ff9a2a"/>`)}`,
     cloth: (c = '#f4f0e8') => `${PROPS.pint(GLASS)}<path d="M-6 -4 Q0 2 7 -5 L6 1 Q0 5 -5 1Z" fill="${c}" ${ink}/>`,
     tray: (c = '#c9ccd1', on = ['martini', 'martini', 'martini']) => `${on.map((p, i) => `<g transform="translate(${n1(-9 + (i * 18) / Math.max(1, on.length - 1))} -1.5) scale(0.8)">${(PROPS[p] || PROPS.pint)()}</g>`).join('')}<ellipse cx="0" cy="-1" rx="12.5" ry="2.4" fill="${c}" ${ink}/>`,
   };
@@ -374,7 +564,7 @@
   // for a pose of one (critter('cat', { pose: 'sleep' })). T has the drawing helpers.
   const CRITTERS = {
     // An owl, sitting, from the front (its eyes blink: class fg-blink).
-    owl: { color: '#5a4434', draw: (c, o, T) => ({ vb: '0 0 60 76', h: 1.27, body: `${T.p('M10 72 Q2 46 10 26 L8 10 L18 18 Q30 12 42 18 L52 10 L50 26 Q58 46 50 72Z')}<path d="M18 46 Q30 40 42 46 Q44 62 30 70 Q16 62 18 46Z" fill="${shade(c, -0.35)}"/>${[50, 56, 62].map((y) => `<path d="M24 ${y} l3 2 l3 -2 l3 2 l3 -2" stroke="${shade(c, 0.2)}" stroke-width="1" fill="none"/>`).join('')}<g class="fg-blink">${[20, 40].map((x) => `<circle cx="${x}" cy="30" r="8" fill="${o.eye || '#ffd23f'}" ${ink}/><circle cx="${x}" cy="30" r="3" fill="${INK}"/>`).join('')}</g><path d="M27 37 L30 44 L33 37Z" fill="#c8902a" ${ink}/>${T.p('M22 72 v4 M38 72 v4', 'none')}` }) },
+    owl: { color: '#5a4434', draw: (c, o, T) => ({ vb: '0 0 60 76', h: 1.27, body: `${T.p('M10 72 Q2 46 10 26 L8 10 L18 18 Q30 12 42 18 L52 10 L50 26 Q58 46 50 72Z')}<path d="M18 46 Q30 40 42 46 Q44 62 30 70 Q16 62 18 46Z" fill="${shade(c, -0.35)}"/>${[50, 56, 62].map((y) => `<path d="M24 ${y} l3 2 l3 -2 l3 2 l3 -2" stroke="${shade(c, 0.2)}" stroke-width="1" fill="none"/>`).join('')}${lit(`<g class="fg-blink">${[20, 40].map((x) => `<circle cx="${x}" cy="30" r="8" fill="${o.eye || '#ffd23f'}" ${ink}/><circle cx="${x}" cy="30" r="3" fill="${INK}"/>`).join('')}</g>`)}<path d="M27 37 L30 44 L33 37Z" fill="#c8902a" ${ink}/>${T.p('M22 72 v4 M38 72 v4', 'none')}` }) },
     // A dachshund trotting (coat: a little jacket on it).
     dachshund: { color: '#8a4a20', draw: (c, o, T) => ({ vb: '0 0 100 46', h: 0.46, body: `<g class="sc-tail" ${pivot([16, 23])}>${inked('M16 23 Q6 19 4 10', c, 3.6)}</g>${T.legs([22, 28, 66, 72], 31, 11, 4.6, c)}${T.p('M14 26 Q14 16 30 16 H68 Q79 16 81 24 Q81 34 70 34 H22 Q14 34 14 26Z')}${o.coat ? `<path d="M38 16.6 H60 V33.4 H38Z" fill="${o.coat}" ${ink}/><path d="M38 17 L49 25 L60 17 M38 33 L49 25 L60 33" stroke="#fff" stroke-width="1.3" fill="none"/>` : ''}<circle cx="84" cy="18" r="8.5" fill="${c}" ${ink}/>${T.p('M88 14 H96 Q100 14 100 18.5 Q100 23 96 23 H88Z')}${T.p('M79 11 Q74 18 78 28 Q83 27 84 14Z', shade(c, 0.28))}<ellipse cx="99" cy="17" rx="1.9" ry="1.6" fill="${INK}"/>${T.eye(88, 14.5, 9)}` }) },
     // A cricket, chirping (its wings rub: sc-buzz).
@@ -413,9 +603,9 @@
     lamp: (c = '#ffd27a') => `<circle cx="0" cy="15" r="12" fill="${c}" opacity="0.25"/><path d="M-4 6 Q0 -1 4 6" fill="none" stroke="${INK}" stroke-width="1.4"/><path d="M-5 6 h10 l-1.5 3 h-7Z" fill="#2a2a2a" ${ink}/><rect x="-4.5" y="9" width="9" height="11" rx="1.5" fill="${c}" ${ink}/><path d="M0 9 V20" stroke="${INK}" stroke-width="0.9"/><path d="M-5 20 h10 l-1 2.5 h-8Z" fill="#2a2a2a" ${ink}/>`,
     // A revolver, barrel down along the hand (raise the arm to aim it); its flash, class
     // fg-muzzle, is hidden till the scene shows it.
-    gun: (c = '#3a3a40') => `<path d="M-1.2 -3.5 L3.4 -2.4 L2.8 3 L-1.6 3Z" fill="#6a4424" ${ink}/><path d="M-2.2 2 H3.2 V6.5 H1.8 V15 H-0.6 V6.5 H-2.2Z" fill="${c}" ${ink}/><g class="fg-muzzle"><path d="M0.6 16 l-5 7 l4 -2 l1 6 l2 -6 l4 2Z" fill="#ffd23f" ${ink}/></g>`,
+    gun: (c = '#3a3a40') => `<path d="M-1.2 -3.5 L3.4 -2.4 L2.8 3 L-1.6 3Z" fill="#6a4424" ${ink}/><path d="M-2.2 2 H3.2 V6.5 H1.8 V15 H-0.6 V6.5 H-2.2Z" fill="${c}" ${ink}/>${lit('<g class="fg-muzzle"><path d="M0.6 16 l-5 7 l4 -2 l1 6 l2 -6 l4 2Z" fill="#ffd23f"/></g>')}`,
     // A welding torch, pointing forward, its flame blue.
-    blowtorch: (c = '#c0392b') => `${inked('M2 -1 H14', '#9aa4ae', 2)}<rect x="-2.6" y="-4.5" width="5.6" height="9" rx="1.8" fill="${c}" ${ink}/><path class="fg-flame" d="M14 -1 L22 -3.4 L19.5 -1 L22 1.4Z" fill="#9ad0ff" ${ink}/>`,
+    blowtorch: (c = '#c0392b') => `${inked('M2 -1 H14', '#9aa4ae', 2)}<rect x="-2.6" y="-4.5" width="5.6" height="9" rx="1.8" fill="${c}" ${ink}/>${lit('<path class="fg-flame" d="M14 -1 L22 -3.4 L19.5 -1 L22 1.4Z" fill="#9ad0ff"/>')}`,
     // A canoe paddle held by the shaft, its blade down.
     paddle: (c = '#8a5a2a') => `${inked('M0 -12 V26', '#6a4424', 2.2)}<path d="M-3.4 24 h6.8 v12 q-3.4 4.5 -6.8 0Z" fill="${c}" ${ink}/>`,
   });
@@ -444,7 +634,7 @@
     if (o.mask) s += side ? `<path d="M${x - 3} ${y + 1} L${x + 12} ${y + 0.5} Q${x + 12.5} ${y + 9} ${x + 4} ${y + 12} Q${x - 3} ${y + 11.5} ${x - 7} ${y + 6}Z" fill="${o.mask}" ${ink}/><path d="M${x - 6} ${y + 5} l-6 3 l3 3Z" fill="${o.mask}" ${ink}/>` : `<path d="M${x - 11} ${y + 1} H${x + 11} Q${x + 9} ${y + 13} ${x} ${y + 14.5} Q${x - 9} ${y + 13} ${x - 11} ${y + 1}Z" fill="${o.mask}" ${ink}/>`;
     if (o.inMouth === 'pipe') {
       const m = side ? [x + 6.4, y + 5.6] : [x + 1, y + 5.6];
-      s += `${inked(`M${pt(m)} L${pt([m[0] + 7, m[1] + 1.5])}`, '#3a2414', 1.6)}<path d="M${n1(m[0] + 6)} ${n1(m[1] - 3)} h5 v4.5 q-2.5 2 -5 0Z" fill="#5a3a1e" ${ink}/><g class="fg-smoke">${[[9, -7, 2.2], [11, -13, 3], [9, -20, 3.8]].map(([dx, dy, r]) => `<circle cx="${n1(m[0] + dx)}" cy="${n1(m[1] + dy)}" r="${r}" fill="#dfe6ec" opacity="0.55"/>`).join('')}</g>`;
+      s += `${inked(`M${pt(m)} L${pt([m[0] + 7, m[1] + 1.5])}`, '#3a2414', 1.6)}<path d="M${n1(m[0] + 6)} ${n1(m[1] - 3)} h5 v4.5 q-2.5 2 -5 0Z" fill="#5a3a1e" ${ink}/>${lit(`<g class="fg-smoke">${[[9, -7, 2.2], [11, -13, 3], [9, -20, 3.8]].map(([dx, dy, r]) => `<circle cx="${n1(m[0] + dx)}" cy="${n1(m[1] + dy)}" r="${r}" fill="#dfe6ec" opacity="0.55"/>`).join('')}</g>`)}`;
     }
     return s;
   };
@@ -527,7 +717,7 @@
   function dotRim([ex, ey]) { return `<ellipse cx="${n1(ex)}" cy="${ey}" rx="1.5" ry="1.9" fill="${INK}"/><circle cx="${n1(ex)}" cy="${ey - 0.4}" r="3.3" fill="rgba(220,236,246,0.25)" stroke="${INK}" stroke-width="1.1"/>`; }
   Object.assign(PROPS, {
     // A sack of presents (in the far hand, over the shoulder: arms ['sack', ...]).
-    sack: (c = '#8a5a2a') => `<path d="M-3 -1 Q-20 2 -22 22 Q-22 40 -5 42 Q14 42 15 24 Q14 4 3 -1Z" fill="${c}" ${ink}/><path d="M-16 14 Q-8 18 4 12" stroke="${shade(c, 0.3)}" stroke-width="1.4" fill="none"/><path d="M-4 -2 l3 4 l4 -4" stroke="${INK}" stroke-width="2" fill="none"/>`,
+    sack: (c = '#8a5a2a') => `<g transform="scale(0.66)"><path d="M-3 -1 Q-20 2 -22 22 Q-22 40 -5 42 Q14 42 15 24 Q14 4 3 -1Z" fill="${c}" ${ink}/><path d="M-16 14 Q-8 18 4 12" stroke="${shade(c, 0.3)}" stroke-width="1.4" fill="none"/><path d="M-4 -2 l3 4 l4 -4" stroke="${INK}" stroke-width="2" fill="none"/></g>`,
     // A parasol, up.
     parasol: (c = '#f4f0f4') => `${inked('M0 6 V-40', '#5a3a2a', 1.6)}<path d="M-22 -34 Q0 -58 22 -34 Q16.5 -37.5 11 -34 Q5.5 -37.5 0 -34 Q-5.5 -37.5 -11 -34 Q-16.5 -37.5 -22 -34Z" fill="${c}" ${ink}/><path d="M0 -50 Q-6 -42 -11 -34 M0 -50 Q6 -42 11 -34" stroke="${shade(c, 0.18)}" stroke-width="1" fill="none"/><circle cx="0" cy="-49" r="1.6" fill="${INK}"/>`,
     // A basket of grapes, hanging from the hand.
@@ -569,13 +759,18 @@
     // Icing buttons (a gingerbread man).
     buttons: ({ cx }) => [[48, '#d62828'], [57, '#2a8a4a'], [66, '#d62828']].map(([y, c]) => `<circle cx="${cx + 1}" cy="${y}" r="2.2" fill="${c}" ${ink}/>`).join(''),
   });
+  // Drinks and things that glow keep their colours in the silhouettes (see lit()).
+  for (const k of ['pint', 'stein', 'tankard', 'wine', 'coupe', 'martini', 'bottle', 'can', 'redcup', 'sparkler', 'shake', 'goblet', 'horn', 'lamp', 'jack']) {
+    const f = PROPS[k];
+    PROPS[k] = (...a) => lit(f(...a));
+  }
   // A reindeer's body: galloping legs, a tail, a long head.
   const hoofed = (c, o, T, { mane = shade(c, 0.35), extra = '' } = {}) => `<g class="sc-tail" ${pivot([26, 40])}>${inked('M26 40 Q10 40 6 62', mane, 5.4)}</g>${T.legs([34, 41, 80, 87], 54, 30, 6, shade(c, 0.1))}${T.p('M24 46 Q22 31 44 31 H76 Q86 31 90 38 Q94 54 82 58 H36 Q24 58 24 46Z')}${o.belly ? `<path d="M36 56 Q58 60 80 56" stroke="${o.belly}" stroke-width="4" fill="none"/>` : ''}${T.p('M78 36 L92 12 Q96 5 103 7 L116 21 Q119 27 112 29 L102 26 Q96 38 92 48Z')}${T.p('M80 34 Q85 18 95 7 L99 10 Q91 22 89 40Z', mane)}${T.p('M98 8 L98 0 L103 6Z')}${T.eye(103, 13, 9)}<circle cx="114" cy="24.5" r="1.1" fill="${INK}"/>${extra}`;
   // Fluff: circles in one colour, outlined only round the outside (wool, a poodle's pompoms).
   const fluff = (list, c) => `${list.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${n1(r + LW)}" fill="${INK}"/>`).join('')}${list.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('')}`;
   Object.assign(CRITTERS, {
     // A reindeer: antlers, a white ruff; nose: true for Rudolph's (blinking: class xm-nose).
-    reindeer: { color: '#9a6432', draw: (c, o, T) => ({ vb: '0 -14 120 100', h: 0.833, body: hoofed(c, { belly: '#e8d0b0', ...o }, T, { mane: '#e8d0b0', extra: `${inked('M99 7 Q94 -4 86 -10 M95 -1 L88 -1 M90 -6 L86 -12 M101 7 Q106 -4 114 -11 M106 -1 L113 -2 M110 -6 L113 -13', '#5a3a1a', 2)}${o.nose ? `<circle class="xm-nose" cx="116.5" cy="24" r="4.4" fill="#ff3030" ${ink}/>` : ''}${o.collar ? `<path d="M85 40 L95 44" stroke="${INK}" stroke-width="5.4" stroke-linecap="round"/><path d="M85 40 L95 44" stroke="#c0392b" stroke-width="3.4" stroke-linecap="round"/><circle cx="90" cy="45" r="2.6" fill="#d4af37" ${ink}/>` : ''}` }) }) },
+    reindeer: { color: '#9a6432', draw: (c, o, T) => ({ vb: '0 -14 120 100', h: 0.833, body: hoofed(c, { belly: '#e8d0b0', ...o }, T, { mane: '#e8d0b0', extra: `${inked('M99 7 Q94 -4 86 -10 M95 -1 L88 -1 M90 -6 L86 -12 M101 7 Q106 -4 114 -11 M106 -1 L113 -2 M110 -6 L113 -13', '#5a3a1a', 2)}${o.nose ? lit(`<circle class="xm-nose" cx="116.5" cy="24" r="4.4" fill="#ff3030"/>`) : ''}${o.collar ? `<path d="M85 40 L95 44" stroke="${INK}" stroke-width="5.4" stroke-linecap="round"/><path d="M85 40 L95 44" stroke="#c0392b" stroke-width="3.4" stroke-linecap="round"/><circle cx="90" cy="45" r="2.6" fill="#d4af37" ${ink}/>` : ''}` }) }) },
     // A sheep: a woolly body, a black face and legs.
     sheep: { color: '#f4f0e4', draw: (c, o, T) => ({ vb: '0 0 84 62', h: 0.738, body: `${T.legs([22, 28, 56, 62], 40, 20, 4.4, '#2a2624')}${fluff([[18, 30, 12], [30, 22, 13], [44, 20, 13], [58, 26, 12], [26, 38, 11], [42, 38, 12], [56, 38, 11]], c)}<ellipse cx="72" cy="27" rx="8.5" ry="10.5" fill="#2a2624" transform="rotate(24 72 27)" ${ink}/>${T.p('M65 19 l-9 -3 l6 8Z', '#2a2624')}<circle cx="74" cy="24" r="1.6" fill="#f4f0e4"/>` }) },
     // A Highland coo: shaggy and ginger, long horns, a fringe over its eyes.
@@ -592,11 +787,11 @@
     // its head (sc-pir-phead) and wing (sc-pir-pwing) can move. vb 60 x 100: 1em by 1.67em.
     'parrot:perch': { color: '#d82a2a', draw: (c, o, T) => ({ vb: '0 0 60 100', h: 1.667, body: `${T.p('M26 64 L18 98 L26 96 L30 72 L34 96 L42 98 L34 64Z', shade(c, 0.1))}<path d="M24 74 L21.4 94 M36 74 L38.6 94" stroke="#2f7fe0" stroke-width="2.6"/>${T.p('M16 50 Q14 28 30 26 Q46 28 44 50 Q44 70 30 72 Q16 70 16 50Z')}<g class="sc-pir-pwing">${T.p('M20 40 Q13 62 26 77 Q34 60 32 42Z', o.wing || '#2f7fe0')}<path d="M22 54 Q21 64 26 72" stroke="#ffd23f" stroke-width="3" fill="none"/></g><g class="sc-pir-phead">${T.p('M23 26 Q22 13 34 13 Q45 14 45 25 Q42 32 34 34 Q24 34 23 26Z')}${T.p('M38 18 Q46 18 44 29 Q40 26 38 28Z', '#f2efe6')}${T.p('M43 20 Q54 21 52 33 Q48 29 43 29Z', '#2a2a2a')}${T.eye(40, 22, 10)}</g>${inked('M21 72 h18', '#6b6050', 2)}` }) },
     // A bat, wings out (they flap: sc-wing, the right one 'sc-wing r').
-    bat: { color: '#1a1024', draw: (c, o) => ({ vb: '0 0 60 24', h: 0.4, body: `<path class="sc-wing" d="M30 12 Q20 0 2 4 Q10 8 8 14 Q16 10 22 16 Q26 12 30 14Z" fill="${c}" ${ink}/><path class="sc-wing r" d="M30 12 Q40 0 58 4 Q50 8 52 14 Q44 10 38 16 Q34 12 30 14Z" fill="${c}" ${ink}/><path d="M26.5 9 L26 3 L29 7 H31 L34 3 L33.5 9Z" fill="${c}" ${ink}/><ellipse cx="30" cy="13" rx="4.4" ry="5.4" fill="${c}" ${ink}/><circle cx="28.4" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/><circle cx="31.6" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/>` }) },
+    bat: { color: '#1a1024', draw: (c, o) => ({ vb: '0 0 60 24', h: 0.4, body: `<path class="sc-wing" d="M30 12 Q20 0 2 4 Q10 8 8 14 Q16 10 22 16 Q26 12 30 14Z" fill="${c}" ${ink}/><path class="sc-wing r" d="M30 12 Q40 0 58 4 Q50 8 52 14 Q44 10 38 16 Q34 12 30 14Z" fill="${c}" ${ink}/><path d="M26.5 9 L26 3 L29 7 H31 L34 3 L33.5 9Z" fill="${c}" ${ink}/><ellipse cx="30" cy="13" rx="4.4" ry="5.4" fill="${c}" ${ink}/>${lit(`<circle cx="28.4" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/><circle cx="31.6" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/>`)}` }) },
     // A spider (its legs wiggle: sc-legs), red-eyed.
-    spider: { color: '#141018', draw: (c, o) => ({ vb: '0 0 40 36', h: 0.9, body: `<g class="sc-legs">${inked('M14 14 Q4 6 2 14 M14 18 Q4 16 1 24 M16 21 Q8 26 6 34 M26 14 Q36 6 38 14 M26 18 Q36 16 39 24 M24 21 Q32 26 34 34', c, 1.6)}</g><ellipse cx="20" cy="21" rx="8" ry="9" fill="${c}" ${ink}/><circle cx="20" cy="10" r="5" fill="${c}" ${ink}/><circle cx="18" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/><circle cx="22" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/>` }) },
+    spider: { color: '#141018', draw: (c, o) => ({ vb: '0 0 40 36', h: 0.9, body: `<g class="sc-legs">${inked('M14 14 Q4 6 2 14 M14 18 Q4 16 1 24 M16 21 Q8 26 6 34 M26 14 Q36 6 38 14 M26 18 Q36 16 39 24 M24 21 Q32 26 34 34', c, 1.6)}</g><ellipse cx="20" cy="21" rx="8" ry="9" fill="${c}" ${ink}/><circle cx="20" cy="10" r="5" fill="${c}" ${ink}/>${lit(`<circle cx="18" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/><circle cx="22" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/>`)}` }) },
     // A ghost: a sheet with a wavy hem, dot eyes, an O of a mouth.
-    ghost: { color: 'rgba(240,236,255,0.92)', draw: (c) => ({ vb: '0 0 60 70', h: 1.167, body: `<path d="M30 2C14 2 6 16 6 32v32l8-6 8 7 8-7 8 7 8-7 8 6V32C54 16 46 2 30 2Z" fill="${c}" ${ink}/><ellipse cx="23" cy="28" rx="3.4" ry="4.4" fill="${INK}"/><ellipse cx="37" cy="28" rx="3.4" ry="4.4" fill="${INK}"/><ellipse cx="30" cy="42" rx="4" ry="5" fill="${INK}"/><circle cx="18" cy="36" r="3" fill="#e06a8a" opacity="0.3"/><circle cx="42" cy="36" r="3" fill="#e06a8a" opacity="0.3"/>` }) },
+    ghost: { color: 'rgba(240,236,255,0.92)', draw: (c) => ({ vb: '0 0 60 70', h: 1.167, body: lit(`<path d="M30 2C14 2 6 16 6 32v32l8-6 8 7 8-7 8 7 8-7 8 6V32C54 16 46 2 30 2Z" fill="${c}" ${ink}/><ellipse cx="23" cy="28" rx="3.4" ry="4.4" fill="${INK}"/><ellipse cx="37" cy="28" rx="3.4" ry="4.4" fill="${INK}"/><ellipse cx="30" cy="42" rx="4" ry="5" fill="${INK}"/><circle cx="18" cy="36" r="3" fill="#e06a8a" opacity="0.3"/><circle cx="42" cy="36" r="3" fill="#e06a8a" opacity="0.3"/>`) }) },
     // A butterfly (its wings flit: class fg-flit), seen from above.
     butterfly: { color: '#f08a24', draw: (c, o) => ({ vb: '0 0 40 34', h: 0.85, body: `${[-1, 1].map((sx) => `<g class="fg-flit" ${pivot([20, 17])}><path d="M20 15 Q${20 + sx * 8} 0 ${20 + sx * 18} 3 Q${20 + sx * 20} 12 ${20 + sx * 4} 17 Q${20 + sx * 16} 22 ${20 + sx * 12} 31 Q${20 + sx * 4} 32 20 19Z" fill="${c}" ${ink}/><circle cx="${20 + sx * 12}" cy="8" r="2.4" fill="${o.spot || '#fff4d0'}"/></g>`).join('')}<ellipse cx="20" cy="18" rx="1.8" ry="8" fill="${INK}"/>${inked('M19 10 Q16 4 14 3 M21 10 Q24 4 26 3', INK, 0.4)}` }) },
     // A bee: stripes, wings buzzing (sc-buzz).
@@ -662,109 +857,162 @@
     }
   }
 
-  // The figure's parts, in its 60 x 120 box.
+  // The figure's parts, in its 60 x 120 box. Each part (each leg, the far arm, the body, the head,
+  // a two-handed prop, the near arm) is drawn lit: its rims, then its silhouette.
   function figureBody(o = {}) {
     const L = layout(o);
-    const { side, cx } = L;
+    const { side, cx, b, dy } = L;
     const back = o.facing === 'back';
-    const skin = SKIN[o.skin] || o.skin || SKIN.light;
-    const bare = o.topStyle === 'bare' || o.topStyle === 'scars';
-    const top = bare ? skin : o.top || '#3a5a8a';
-    const accent = o.accent || '#1a1a1e';
-    const bottom = o.bottom || '#2a2a3a';
-    const shoes = o.shoes || '#1a1410';
-    const hairC = HAIR[o.hairColor] || o.hairColor || HAIR.brown;
-    const sleeves = o.sleeves || (bare ? 'none' : o.topStyle === 'vest' && !o.top ? 'none' : 'long');
-    const armColor = o.topStyle === 'suit' ? accent : top;
-    const stout = o.build === 'stout';
     const hk = o.hooks || {};
     const head = L.head;
-    L.mouth = side ? [head[0] + 6.4, head[1] + 5.6] : [head[0], head[1] + 5.6];
+    L.mouth = side ? [head[0] + 4.2, head[1] + 2.6] : [head[0], head[1] + 3];
     const two = TWO_HANDED[o.holding] ? TWO_HANDED[o.holding](L, o.propColor) : null;
+    const st = o.topStyle;
+    const bones = st === 'ribs';
+    const cookie = st === 'buttons';
+    const stout = o.build === 'stout';
+    const gown = o.bottomStyle === 'gown' || o.bottomStyle === 'skirt' || o.bottomStyle === 'grass' || st === 'toga';
+    const bareLegs = gown || o.bottomStyle === 'shorts';
+    const bw = { slim: 0.9, broad: 1.15, stout: 1.1 }[o.build] || 1;
+    const W = bones ? { th: 2.2, sh: 2, ua: 1.9, fa: 1.7, hand: 1.7, joint: 1.5 }
+      : cookie ? { th: 8.4, sh: 8, ua: 7.4, fa: 7, hand: 3.8 }
+        : { th: (bareLegs ? 5.4 : 6.4) * bw, sh: (bareLegs ? 4 : 4.7) * bw, ua: 4.3 * bw, fa: 3.3 * bw, hand: 2.2 };
+    const fr = { flip: !!o.flip };
+    const frUp = { flip: !!o.flip, rot: L.lean };
+    // (Round caps and joins come from the figure's root.)
+    const S = (d, w) => `<path d="${d}" fill="none" stroke-width="${n1(w)}"/>`;
+    const joint = (p, r) => `<circle cx="${n1(p[0])}" cy="${n1(p[1])}" r="${r}"/>`;
 
     const leg = (i) => {
       const g = L.legs[i];
-      const dark = side && i === 0 ? 0.2 : 0;
-      const legC = shade(bottom, dark);
-      const sk = shade(skin, dark);
-      const path = `M${pt(g.s)} L${pt(g.k)} L${pt(g.h)}`;
       const d = [Math.sin(g.ang * DEG), Math.cos(g.ang * DEG)];
       const fwd = side ? [d[1], -d[0]] : [1, 0];
-      const toe = side ? 5.6 : 2.6;
-      const heel = side ? -2 : -2.6;
-      const shoe = `M${pt([g.h[0] + fwd[0] * heel + d[0] * 1.4, g.h[1] + fwd[1] * heel + d[1] * 1.4])} L${pt([g.h[0] + fwd[0] * toe + d[0] * 1.4, g.h[1] + fwd[1] * toe + d[1] * 1.4])}`;
-      let body;
-      if (o.bottomStyle === 'gown') body = '';
-      else if (o.bottomStyle === 'skirt' || o.bottomStyle === 'grass') body = inked(path, sk, 6);
-      else if (o.bottomStyle === 'shorts') body = inked(path, sk, 7) + inked(`M${pt(g.s)} L${pt([g.s[0] + (g.k[0] - g.s[0]) * 0.75, g.s[1] + (g.k[1] - g.s[1]) * 0.75])}`, legC, 9.4);
-      else if (o.peg === (i ? 'front' : 'back')) body = inked(`M${pt(g.s)} L${pt(g.k)}`, legC, 9) + inked(`M${pt(g.k)} L${pt(g.h)}`, '#8a5a2e', 4.4);
-      else body = inked(path, legC, 9);
-      return `<g class="fg-leg${i ? 'F' : 'B'}${hk[i ? 'legF' : 'legB'] ? ` ${hk[i ? 'legF' : 'legB']}` : ''}" ${pivot(g.s)}>${body}${o.peg === (i ? 'front' : 'back') ? '' : inked(shoe, shade(shoes, dark), 5)}${o.skates ? skateSvg(g, fwd, d, shade(o.skateColor || '#f4f4f0', dark), o.skates === true ? '#e63946' : o.skates) : ''}</g>`;
+      const toe = side ? 5.4 : 2.2;
+      const at = (t, k) => [g.h[0] + fwd[0] * t + d[0] * k, g.h[1] + fwd[1] * t + d[1] * k];
+      // A shoe: a wedge from the heel to the toe, flat on its sole.
+      const shoe = side ? `<path d="M${pt(at(-1.8, -0.6))} L${pt(at(1.2, -1.2))} Q${pt(at(toe, 0.6))} ${pt(at(toe + 0.4, 2.3))} L${pt(at(-2, 2.4))}Z"/>`
+        : S(`M${pt(at(-1, 1.2))} L${pt(at(toe, 1.4))}`, 3);
+      const peg = o.peg === (i ? 'front' : 'back');
+      let body = '';
+      if (o.bottomStyle !== 'gown') {
+        body = S(`M${pt(g.s)} L${pt(g.k)}`, W.th) + (peg ? S(`M${pt(g.k)} L${pt(g.h)}`, 2) : S(`M${pt(g.k)} L${pt(g.h)}`, W.sh));
+        if (bones) body += joint(g.k, W.joint);
+      }
+      const foot = peg ? '' : bones ? S(`M${pt(at(-1, 1))} L${pt(at(toe, 1.4))}`, 1.8) : shoe;
+      return `<g class="fg-leg${i ? 'F' : 'B'}${hk[i ? 'legF' : 'legB'] ? ` ${hk[i ? 'legF' : 'legB']}` : ''}" ${pivot(g.s)}>${lighted(`${body}${foot}${o.skates ? skateSvg(g, fwd, d, '#000', '#000') : ''}`, fr)}</g>`;
     };
     const arm = (i) => {
       const g = L.arms[i];
-      const dark = side && i === 0 ? 0.2 : 0;
-      const sk = shade(skin, dark);
-      const sl = shade(armColor, dark);
-      const path = `M${pt(g.s)} L${pt(g.k)} L${pt(g.h)}`;
-      let limb;
-      if (sleeves === 'none') limb = inked(path, sk, 6.6);
-      else if (sleeves === 'short') limb = inked(path, sk, 6.6) + `<path d="M${pt(g.s)} L${pt([g.s[0] + (g.k[0] - g.s[0]) * 0.7, g.s[1] + (g.k[1] - g.s[1]) * 0.7])}" stroke="${sl}" stroke-width="7.8" stroke-linecap="round"/>`;
-      else limb = inked(path, sl, 7);
+      let limb = S(`M${pt(g.s)} L${pt(g.k)}`, W.ua) + S(`M${pt(g.k)} L${pt(g.h)}`, W.fa);
+      if (bones) limb += joint(g.k, W.joint);
       const what = i ? o.holding : o.holdingBack;
-      const single = what && PROPS[what] ? `<g transform="translate(${pt([g.h[0] + 1, g.h[1] + 2])}) rotate(${(i ? PROP_TILT[o.pose] : 0) || 0})">${hk[i ? 'propF' : 'propB'] ? `<g class="${hk[i ? 'propF' : 'propB']}" style="transform-box:view-box;transform-origin:0px 0px">` : ''}${what === 'tray' ? PROPS.tray(o.propColor, o.tray) : PROPS[what](o.propColor)}${hk[i ? 'propF' : 'propB'] ? '</g>' : ''}</g>` : '';
+      const ph = hk[i ? 'propF' : 'propB'];
+      const single = what && PROPS[what] ? `<g transform="translate(${pt([g.h[0] + 0.6, g.h[1] + 1.4])}) rotate(${(i ? PROP_TILT[o.pose] : 0) || 0}) scale(0.85)">${ph ? `<g class="${ph}" style="transform-box:view-box;transform-origin:0px 0px">` : ''}${what === 'tray' ? PROPS.tray(o.propColor, o.tray) : PROPS[what](o.propColor)}${ph ? '</g>' : ''}</g>` : '';
       const stick = two?.[i ? 'front' : 'back'] || '';
-      return `<g class="fg-arm${i ? 'F' : 'B'}${hk[i ? 'armF' : 'armB'] ? ` ${hk[i ? 'armF' : 'armB']}` : ''}" ${pivot(g.s)}>${limb}${stick}${single}<circle cx="${n1(g.h[0])}" cy="${n1(g.h[1])}" r="3.5" fill="${sk}" ${ink}/></g>`;
+      const hand = `<ellipse cx="${n1(g.h[0])}" cy="${n1(g.h[1])}" rx="${W.hand}" ry="${n1(W.hand * 1.15)}"/>`;
+      return `<g class="fg-arm${i ? 'F' : 'B'}${hk[i ? 'armF' : 'armB'] ? ` ${hk[i ? 'armF' : 'armB']}` : ''}" ${pivot(g.s)}>${lighted(`${limb}${stick}${single}${hand}`, frUp)}</g>`;
     };
 
-    // The body: shoulders to hips, trousers at the bottom, the shirt's details, the outline last.
-    const hx = (y) => halfAt(L, stout, y);
-    const torsoD = stout
-      ? `M${n1(30 - L.sw)} 41 Q${n1(30 - L.sw)} 34 30 34 Q${n1(30 + L.sw)} 34 ${n1(30 + L.sw)} 41 Q${n1(30 + L.sw + 5)} 60 ${n1(30 + L.hw)} 76 H${n1(30 - L.hw)} Q${n1(30 - L.sw - (side ? 0 : 5))} 60 ${n1(30 - L.sw)} 41Z`
-      : `M${n1(30 - L.sw)} 41 Q${n1(30 - L.sw)} 34 30 34 Q${n1(30 + L.sw)} 34 ${n1(30 + L.sw)} 41 L${n1(30 + L.hw)} 76 H${n1(30 - L.hw)}Z`;
-    const band = (y0, y1, c) => `<path d="M${n1(30 - hx(y0))} ${y0} H${n1(30 + hx(y0))} L${n1(30 + hx(y1))} ${y1} H${n1(30 - hx(y1))}Z" fill="${c}"/>`;
+    // The body: one shape from the shoulders to the hips (a profile from the side: the chest and
+    // the seat; a waist from the front), the stout one with a belly.
+    const y0 = dy;
+    const P = (x, y) => `${n1(x)} ${n1(y + y0)}`;
+    let torsoD;
+    if (side) {
+      const k = cookie ? 1.9 : b;
+      const bx = (v) => cx - v * k;
+      const fx = (v) => cx + v * k;
+      const belly = stout ? 9.5 : 3.5;
+      // (Bent well forward, asleep on the bar: the back rounds.)
+      const hunch = L.lean >= 30 ? 1.6 : 0;
+      torsoD = `M${P(cx - 1.2, 21.4)} C${P(bx(4.2 + hunch), 21.6)} ${P(bx(5 + hunch * 1.6), 23.5)} ${P(bx(4.9 + hunch * 1.4), 28)} C${P(bx(4.7 + hunch), 36)} ${P(bx(2.9), 43)} ${P(bx(3), 50)} C${P(bx(3.1), 55)} ${P(bx(5.6), 58)} ${P(bx(5.2), 64)} C${P(bx(5), 66.5)} ${P(bx(4), 68)} ${P(bx(2.5), 68.2)} L${P(fx(3.2), 68.2)} L${P(fx(3.8), 63)} C${P(fx(4), 57)} ${P(fx(belly), 54)} ${P(fx(belly), 47)} C${P(fx(stout ? 8 : 3.6), 41)} ${P(fx(6), 36)} ${P(fx(5.6), 30)} C${P(fx(5.2), 24.5)} ${P(fx(3.4), 21.8)} ${P(cx + 1.4, 21.4)}Z`;
+    } else {
+      const s0 = (cookie ? 9.5 : 8.2) * b;
+      const w0 = (cookie ? 9 : stout ? 12 : 5) * b;
+      const h0 = (cookie ? 9 : stout ? 7.6 : 6.2) * b;
+      const half = (sgn) => sgn < 0
+        ? `C${P(cx - s0 + 1.2, 21.6)} ${P(cx - s0, 22.6)} ${P(cx - s0, 26)} C${P(cx - s0 + 0.6, 34)} ${P(cx - w0 - 0.2, 40)} ${P(cx - w0, 47)} C${P(cx - w0, 54)} ${P(cx - h0 - 0.3, 58)} ${P(cx - h0, 64)} L${P(cx - h0 + 0.3, 68)}`
+        : `L${P(cx + h0 - 0.3, 68)} L${P(cx + h0, 64)} C${P(cx + h0 + 0.3, 58)} ${P(cx + w0, 54)} ${P(cx + w0, 47)} C${P(cx + w0 + 0.2, 40)} ${P(cx + s0 - 0.6, 34)} ${P(cx + s0, 26)} C${P(cx + s0, 22.6)} ${P(cx + s0 - 1.2, 21.6)} ${P(cx + 2, 21.4)}`;
+      torsoD = `M${P(cx - 2, 21.4)} ${half(-1)} ${half(1)}Z`;
+    }
+    let torso;
+    if (bones) {
+      // A skeleton: a spine, four ribs each side with the gaps between them, the pelvis.
+      torso = S(`M${P(cx, 21)} L${P(cx, 62)}`, 1.8) + [29, 34, 39, 44].map((y, i) => S(`M${P(cx, y)} Q${P(cx - 7 + i * 0.6, y - 1)} ${P(cx - 6 + i * 0.8, y + 3)} M${P(cx, y)} Q${P(cx + 7 - i * 0.6, y - 1)} ${P(cx + 6 - i * 0.8, y + 3)}`, 1.6)).join('') +
+        S(`M${P(cx - 7, 25.5)} L${P(cx + 7, 25.5)}`, 1.8) + `<path d="M${P(cx - 6, 59)} Q${P(cx, 55)} ${P(cx + 6, 59)} L${P(cx + 4, 66)} H${n1(cx - 4)} Z"/>`;
+    } else torso = `<path d="${torsoD}"/>`;
+    // Behind a counter: the body goes on down out of sight (the old kit's hips were lower).
+    if (o.crop === 'waist' && !bones) torso += `<path d="M${P(cx - (side ? 4.3 : 6.2) * b, 66)} L${P(cx - (side ? 4.3 : 6.2) * b, 74)} H${n1(cx + (side ? 3.7 : 6.2) * b)} L${P(cx + (side ? 3.7 : 6.2) * b, 66)}Z"/>`;
+    // The details that change the outline (an apron, a tabard, a dirndl's apron, the flapper's
+    // fringe, a sporran, a scarf's end, an ermine collar, a lei), drawn as the old kit did and
+    // fitted onto this body. (Stripes, buttons, lapels and the like don't show in a silhouette.)
+    const ocx = side ? 31.5 : 30;
+    const fit = (s) => (s ? `<g transform="translate(${cx} ${24 + y0}) scale(${side ? 0.42 : 0.63} 1) translate(${-ocx} -34)">${s}</g>` : '');
+    const band = () => '';
+    const accent = o.accent || '#000';
     let details = '';
-    const st = o.topStyle;
-    if (st === 'vest' || st === 'suit') details += `<path d="${torsoD}" fill="${accent}"/><path d="M${cx - 5} 34.5 L${cx} ${st === 'suit' ? 52 : 58} L${cx + 5} 34.5Z" fill="${o.top || '#f4f0e8'}"/>${st === 'vest' ? [44, 51, 58, 65].map((y) => `<circle cx="${cx + 1.4}" cy="${y}" r="0.9" fill="${shade(accent, -0.5)}"/>`).join('') : `<path d="M${cx - 5} 34.5 L${cx - 1} 46 M${cx + 5} 34.5 L${cx + 1} 46" stroke="${shade(accent, 0.35)}" stroke-width="1.2"/>`}`;
-    if (st === 'stripes') details += [44, 51, 58, 65].map((y) => band(y, y + 3, accent)).join('');
-    if (st === 'plaid') details += [42, 50, 58, 66].map((y) => band(y, y + 2.4, accent)).join('') + [cx - 6, cx, cx + 6].map((x) => `<path d="M${x} 35 V76" stroke="${accent}" stroke-width="2" opacity="0.55"/>`).join('');
-    if (bare) details += `<path d="M${cx - 6} 49 q6 3 12 0 M${cx - 4} 60 q4 2 8 0" stroke="${INK}" stroke-width="1" fill="none" opacity="0.22"/>`;
-    if (TOP_STYLES[st]) details += TOP_STYLES[st]({ L, o, cx, band, torsoD, top, accent, skin });
-    if (st === 'scars') details += `<path d="M${cx - 7} 44 l6 4 M${cx + 1} 47 l7 -3 M${cx - 5} 64 l10 1" stroke="#a89888" stroke-width="1.4" stroke-linecap="round"/>`;
-    const belt = o.belt ? band(70, 74, o.belt) : '';
-    const apron = st === 'apron' ? `<path d="M${cx - 6.5} 45 H${cx + 6.5} L${cx + 9} 100 Q${cx} 103 ${cx - 9} 100Z" fill="${accent}" ${ink}/><path d="M${cx - 6} 45 L${cx - 4} 35.5 M${cx + 6} 45 L${cx + 4} 35.5" stroke="${accent}" stroke-width="1.6"/>` : '';
-    const neckC = o.accent2 || accent;
-    const neck = o.neck === 'tie' ? `<path d="M${cx} 35.5 l-2.2 2.6 l2.2 15 l2.2 -15Z" fill="${neckC}" ${ink}/>`
-      : o.neck === 'bow' ? `<path d="M${cx} 36.5 l-4.4 -2.4 v4.8Z M${cx} 36.5 l4.4 -2.4 v4.8Z" fill="${neckC}" ${ink}/>`
-        : o.neck === 'scarf' ? `${inked(`M${cx - 6} 35.5 Q${cx} 38.5 ${cx + 6} 35.5`, neckC, 3.4)}${inked(`M${cx - 4} 37 L${cx - 7} 47`, neckC, 3)}` : NECKS[o.neck]?.(cx, neckC) || '';
-    const gown = o.bottomStyle === 'gown' || o.bottomStyle === 'skirt' || o.bottomStyle === 'grass';
-    const skirt = o.bottomStyle === 'grass' ? grassSkirt(L, o.bottom) : gown ? `<path d="M${n1(30 - L.hw)} 70 H${n1(30 + L.hw)} L${n1(30 + L.hw + (o.bottomStyle === 'gown' ? 10 : 6))} ${o.bottomStyle === 'gown' ? 115 : 96} Q30 ${o.bottomStyle === 'gown' ? 119 : 99} ${n1(30 - L.hw - (o.bottomStyle === 'gown' ? 10 : 6))} ${o.bottomStyle === 'gown' ? 115 : 96}Z" fill="${bottom}" ${ink}/>` : '';
-    const torso = `<g class="fg-body${hk.body ? ` ${hk.body}` : ''}"><path d="${torsoD}" fill="${top}"/>${gown ? '' : band(66, 76, bottom)}${details}${belt}<path d="M${n1(30 - L.sw + 2)} 39 L${n1(30 - L.hw + 2)} 75" stroke="${INK}" stroke-width="3.4" opacity="0.16" stroke-linecap="round"/><path d="${torsoD}" fill="none" ${ink}/>${neck}</g>`;
-    const headSvg = `<g class="fg-head${hk.head ? ` ${hk.head}` : ''}" ${pivot([head[0], head[1] + 10])}><circle cx="${head[0]}" cy="${head[1]}" r="${HEAD_R}" fill="${skin}" ${ink}/>${back ? '' : faceSvg(o.face || L.P.face || 'smile', head, side, skin, o.blush)}${back ? '' : beardSvg(o.beard, head, HAIR[o.beardColor] || o.beardColor || hairC, side)}${back ? '' : faceExtras(o, head, side)}${hairSvg(o.hair || 'short', head, hairC, side, back)}${o.hat ? (HATS[o.hat] || (() => ''))(head, o.hatColor || HAT_COLOR[o.hat], o.hatAccent, side, back) : ''}</g>`;
-    const neckSkin = `<rect x="${head[0] - 3}" y="29" width="6" height="8" fill="${skin}" ${ink}/>`;
-    // Back to front: the far arm, the neck, the body, the head, a two-handed prop, the near arm.
-    const upper = `${arm(0)}${neckSkin}${torso}${apron}${o.head === false ? '' : headSvg}${two?.svg || ''}${arm(1)}`;
-    // (A skirt goes over both legs; trousers' legs go under the body.)
-    const svg = `${o.crop === 'waist' ? '' : gown ? `${leg(0)}${leg(1)}${hk.skirt ? `<g class="${hk.skirt}" ${pivot([30, 70])}>${skirt}</g>` : skirt}` : `${leg(0)}${leg(1)}`}${L.lean ? `<g transform="rotate(${L.lean} 30 74)">${upper}</g>` : upper}`;
+    if (['tabard', 'flapper'].includes(st)) details += TOP_STYLES[st]({ L, o, cx: ocx, band, torsoD: '', top: '#000', accent, skin: '#000' });
+    // (A dirndl's apron below the bodice; the piper's sporran.)
+    if (st === 'dirndl' && o.crop !== 'waist') details += `<path d="M${ocx - 7} 72 H${ocx + 7} L${ocx + 8} 94 Q${ocx} 96 ${ocx - 8} 94Z"/>`;
+    if (st === 'highland') details += `<path d="M${ocx - 2} 74 h9 l-1 11 q-3.6 3 -7 0Z"/>`;
+    if (st === 'harlequin') details += `<path d="${Array.from({ length: 9 }, (_, i) => `${i ? 'L' : 'M'}${n1(ocx - 16 + i * 4)} ${i % 2 ? 44 : 36}`).join(' ')} L${ocx + 14} 34 Q${ocx} 31 ${ocx - 14} 34Z"/>`;
+    if (st === 'apron') details += `<path d="M${ocx - 6.5} 45 H${ocx + 6.5} L${ocx + 9} 100 Q${ocx} 103 ${ocx - 9} 100Z"/>`;
+    if (o.neck === 'scarf') details += `${S(`M${ocx - 6} 35.5 Q${ocx} 38.5 ${ocx + 6} 35.5`, 5)}${S(`M${ocx - 4} 37 L${ocx - 7} 47`, 4.4)}`;
+    else if (NECKS[o.neck]) details += NECKS[o.neck](ocx, '#000');
+    // Skirts: from the waist, flared; to the knee, to the floor; a flapper's short under her
+    // fringe; a grass skirt in strands; a toga's hem slanting.
+    const hem = (y, wb, wf, top = 48) => `<path d="M${P(cx - (side ? 3.6 : 4.8) * b, top)} H${n1(cx + (side ? 3.8 : 4.8) * b)} L${P(cx + wf, y)} Q${P(cx, y + 2.4)} ${P(cx - wb, y)}Z"/>`;
+    let skirt = '';
+    if (o.bottomStyle === 'grass') skirt = Array.from({ length: 13 }, (_, i) => { const t = i / 12; const x0 = cx - 5 * b + t * 10 * b; return S(`M${P(x0, 50)} L${P(cx + (x0 - cx) * 1.9, 89 + (i % 2) * 1.5)}`, 1.7); }).join('') + `<rect x="${n1(cx - 5.4 * b)}" y="${n1(48 + y0)}" width="${n1(10.8 * b)}" height="4" rx="1.5"/>`;
+    else if (o.bottomStyle === 'gown') skirt = hem(117.8, 13 * b, 13.5 * b);
+    else if (st === 'flapper') skirt = hem(70, 7 * b, 7 * b);
+    else if (st === 'toga') skirt = `<path d="M${P(cx - 5 * b, 46)} H${n1(cx + 5 * b)} L${P(cx + 8.5 * b, 80)} L${P(cx - 8 * b, 87)}Z"/>${S(`M${P(cx - 5, 23)} Q${P(cx + 6, 36)} ${P(cx + 7.5, 50)}`, 4)}`;
+    else if (st === 'fur') skirt = hem(77, (side ? 6.5 : 10) * b, (side ? 9 : 10) * b, 46);
+    else if (gown) skirt = hem(88, (side ? 8 : 9) * b, (side ? 9 : 9) * b);
+    const neck = `<path d="M${P(head[0] - 1.8 - (side ? 0.4 : 0), 18)} L${P(head[0] - 1.9 - (side ? 0.4 : 0), 23)} H${n1(head[0] + 1.9 - (side ? 0.4 : 0))} L${P(head[0] + 1.8 - (side ? 0.4 : 0), 18)}Z"/>`;
+    const body = `<g class="fg-body${hk.body ? ` ${hk.body}` : ''}">${lighted(`${neck}${torso}${fit(details)}`, frUp)}</g>`;
+
+    // The head: an oval (from the side, a nose), the hair, a beard, a mask or pipe, the hat, all
+    // as the old kit drew them on its round head, fitted onto this one.
+    const [hx, hy] = head;
+    const onHead = (s, [kx, ky]) => (s ? `<g transform="translate(${n1(hx)} ${n1(hy)}) scale(${kx} ${ky})">${s}</g>` : '');
+    const skull = cookie ? `<circle cx="${n1(hx)}" cy="${n1(hy + 1)}" r="8"/>`
+      : `<ellipse cx="${n1(hx)}" cy="${n1(hy)}" rx="${HEAD.rx}" ry="${HEAD.ry}"/>${side && !back && o.face !== 'skull' ? `<path d="M${n1(hx + 3.9)} ${n1(hy - 1.4)} L${n1(hx + 5.7)} ${n1(hy + 1.2)} L${n1(hx + 4)} ${n1(hy + 2)}Z"/>` : ''}`;
+    const fullBeard = o.beard === 'beard' && !back ? `<path d="${side ? `M${n1(hx - 1.4)} ${n1(hy + 1)} Q${n1(hx - 1.2)} ${n1(hy + 9)} ${n1(hx + 3.2)} ${n1(hy + 11.5)} Q${n1(hx + 6.6)} ${n1(hy + 6.5)} ${n1(hx + 5.2)} ${n1(hy + 1.6)}Z` : `M${n1(hx - 4.8)} ${n1(hy + 0.5)} Q${n1(hx - 6.2)} ${n1(hy + 10)} ${n1(hx)} ${n1(hy + 14)} Q${n1(hx + 6.2)} ${n1(hy + 10)} ${n1(hx + 4.8)} ${n1(hy + 0.5)}Z`}"/>` : '';
+    const beard = back || !['goatee', 'moustache'].includes(o.beard) ? '' : beardSvg(o.beard, [0, 0], '#000', side);
+    const hat = o.hat ? (HATS[o.hat] || (() => ''))([0, 0], '#000', '#000', side, back) : '';
+    // (Asleep on the bar, the head droops forward onto the arms.)
+    const droop = o.droop ?? L.P.droop ?? 0;
+    const headSvg = `<g class="fg-head${hk.head ? ` ${hk.head}` : ''}" ${pivot([hx, hy + 6])}>${droop ? `<g transform="rotate(${droop} ${n1(hx)} ${n1(hy + 6)})">` : ''}${lighted(`${skull}${fullBeard}${onHead(hairSvg(o.hair || 'short', [0, 0], '#000', side, back), HAIR_K)}${onHead(beard, HAIR_K)}${back ? '' : onHead(faceExtras(o, [0, 0], side), HAIR_K)}${onHead(hat, [HAT_K, HAT_K])}`, { ...frUp, rot: L.lean + droop })}${droop ? '</g>' : ''}</g>`;
+    const apronOver = '';
+    const twoSvg = two?.svg ? lighted(two.svg, frUp) : '';
+    // Back to front: the far arm, the body, the head, a two-handed prop, the near arm.
+    const upper = `${arm(0)}${body}${apronOver}${o.head === false ? '' : headSvg}${twoSvg}${arm(1)}`;
+    // (A skirt goes over both legs.)
+    const skirtSvg = skirt ? (hk.skirt ? `<g class="${hk.skirt}" ${pivot([30, 50 + dy])}>${lighted(skirt, fr)}</g>` : lighted(skirt, fr)) : '';
+    const svg = `${o.crop === 'waist' ? '' : `${leg(0)}${leg(1)}${skirtSvg}`}${L.lean ? `<g transform="rotate(${L.lean} ${L.hip[0]} ${L.hip[1]})">${upper}</g>` : upper}`;
     return { svg, L, two };
   }
 
   function figure(o = {}) {
     const { svg } = figureBody(o);
     const inner = o.flip ? `<g transform="translate(60 0) scale(-1 1)">${svg}</g>` : svg;
-    return `<svg class="fg fg-${o.pose || 'stand'}${o.cls ? ` ${o.cls}` : ''}" viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible">${inner}</svg>`;
+    return `<svg class="fg fg-${o.pose || 'stand'}${o.cls ? ` ${o.cls}` : ''}" viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible" ${ROOT}>${inner}</svg>`;
   }
   const figureAt = (x, y, h, o = {}) => {
     const s = h / 120;
     const { svg } = figureBody(o);
-    const inner = o.flip ? `<g transform="translate(60 0) scale(-1 1)">${svg}</g>` : svg;
+    const inner = wholeLit(o.flip ? `<g transform="translate(60 0) scale(-1 1)">${svg}</g>` : svg);
     // (A <g>, not a nested <svg>: the scenery's `.sc-face-l svg` and the like would turn that too.)
-    return `<g class="fg fg-${o.pose || 'stand'}${o.cls ? ` ${o.cls}` : ''}" transform="translate(${n1(x - 30 * s)} ${n1(y - 118 * s)}) scale(${+s.toFixed(4)})">${inner}</g>`;
+    return `<g class="fg fg-${o.pose || 'stand'}${o.cls ? ` ${o.cls}` : ''}" transform="translate(${n1(x - 30 * s)} ${n1(y - 118 * s)}) scale(${+s.toFixed(4)})" ${ROOT}>${inner}</g>`;
   };
+  // Anything else drawn to go with the kit (a witch's broom, a mermaid's tail) turned into a lit
+  // silhouette the same way: silhouette(svgMarkup, w) (w: how far the rim reaches, in its units).
+  const silhouette = (s, w = RIM_W) => `<g class="fg" ${ROOT}>${lighted(s, {}, w)}</g>`;
   figure.points = (o = {}) => {
     const { L, two } = figureBody(o);
-    const up = (p) => (p && L.lean ? turn(p, [30, 74], L.lean) : p);
-    const single = o.holding === 'torch' ? [L.arms[1].h[0] + 1, L.arms[1].h[1] - 20] : PROP_TIPS[o.holding] ? [L.arms[1].h[0] + 1 + PROP_TIPS[o.holding][0], L.arms[1].h[1] + 2 + PROP_TIPS[o.holding][1]] : null;
+    const up = (p) => (p && L.lean ? turn(p, L.hip, L.lean) : p);
+    const single = o.holding === 'torch' ? [L.arms[1].h[0] + 0.6, L.arms[1].h[1] - 17] : PROP_TIPS[o.holding] ? [L.arms[1].h[0] + 0.6 + PROP_TIPS[o.holding][0] * 0.85, L.arms[1].h[1] + 1.4 + PROP_TIPS[o.holding][1] * 0.85] : null;
     return { handF: up(L.arms[1].h), handB: up(L.arms[0].h), mouth: up(L.mouth), head: up(L.head), tip: up(two?.tip || single || L.arms[1].h) };
   };
 
@@ -774,7 +1022,8 @@
     const reg = CRITTERS[`${kind}:${o.pose}`] || CRITTERS[kind];
     const c = o.color || k[kind] || reg?.color || '#6a5a4a';
     const s = o.size || 1;
-    const eye = (x, y, r) => `<ellipse cx="${n1(x)}" cy="${n1(y)}" rx="${n1(r * 0.16)}" ry="${n1(r * 0.2)}" fill="${o.eye || INK}"/>`;
+    // (Eyes only show if they glow: an eye colour given.)
+    const eye = (x, y, r) => { const e = `<ellipse cx="${n1(x)}" cy="${n1(y)}" rx="${n1(r * 0.16)}" ry="${n1(r * 0.2)}" fill="${o.eye || INK}"/>`; return o.eye ? lit(e) : e; };
     const p = (d, fill = c) => `<path d="${d}" fill="${fill}" ${ink}/>`;
     const legs = (xs, top, len, w, cl) => [0, 1].map((j) => `<g class="${j ? 'sc-legs-f' : 'sc-legs-b'}">${xs.filter((_, i) => i % 2 === j).map((x) => inked(`M${x} ${top} V${top + len}`, j ? cl : shade(cl, 0.2), w)).join('')}</g>`).join('');
     let body = '';
@@ -806,8 +1055,11 @@
     }
     // (Scaled about the middle of its feet, or of its body if it's flying.)
     const fy = h < 0.5 ? 20 : 60;
-    if (o.raw) return { vb, h, body: `<g transform="translate(50 ${fy}) scale(${s}) translate(-50 ${-fy})">${body}</g>` };
-    return `<svg class="fg-crit fg-${kind}${o.still ? ' fg-still' : ''}" viewBox="${vb}" width="1em" height="${h}em" overflow="visible"><g transform="translate(50 ${fy}) scale(${s}) translate(-50 ${-fy})">${body}</g></svg>`;
+    // (Silhouetted and lit like the people; its rim a little wider, an animal's units being smaller.)
+    body = lighted(body, o.raw && o.flip ? { flip: true } : {}, CRIT_W);
+    const g = `<g transform="translate(50 ${fy}) scale(${s}) translate(-50 ${-fy})" ${ROOT}>${body}</g>`;
+    if (o.raw) return { vb, h, body: g };
+    return `<svg class="fg-crit fg-${kind}${o.still ? ' fg-still' : ''}" viewBox="${vb}" width="1em" height="${h}em" overflow="visible">${g}</svg>`;
   }
 
   // Halloween's (the kit's): bats, a ghost, a witch on her broomstick (a silhouette against the
@@ -816,8 +1068,7 @@
   const GHOST = critter('ghost');
   const WITCH_LOOK = { skin: '#07040c', hair: 'long', hairColor: '#07040c', hat: 'witch', hatColor: '#07040c', hatAccent: '#3a1a4a', face: 'none', top: '#07040c', bottom: '#07040c', shoes: '#07040c', pose: 'ride' };
   const WITCH = `<svg viewBox="0 0 120 70" width="1em" height="0.58em" overflow="visible">
-    ${inked('M30 52 L118 44', '#2a1a10', 2.6)}<path d="M30 52 L6 42 L2 50 L4 58 L8 64 L30 56Z" fill="#3a2814" ${ink}/><path d="M8 47 L28 53 M6 56 L28 55" stroke="${INK}" stroke-width="1"/>
-    <path d="M60 18 Q40 20 24 34 Q44 32 58 30Z" fill="#1a0a24" ${ink}/>${figureAt(62, 83, 78, WITCH_LOOK)}</svg>`;
+    ${silhouette(`${inked('M30 52 L118 44', '#2a1a10', 2.6)}<path d="M30 52 L6 42 L2 50 L4 58 L8 64 L30 56Z" fill="#3a2814" ${ink}/><path d="M60 18 Q40 20 24 34 Q44 32 58 30Z" fill="#1a0a24" ${ink}/>`, 0.8)}${figureAt(62, 83, 78, WITCH_LOOK)}</svg>`;
   const SPIDER = critter('spider');
   const EYES = `<svg viewBox="0 0 40 12" width="1em" height="0.3em"><g fill="#ffd23f"><ellipse class="sc-blink" cx="10" cy="6" rx="6" ry="4"/><ellipse class="sc-blink" cx="30" cy="6" rx="6" ry="4"/></g>
     <g fill="#120a00"><ellipse cx="10" cy="6" rx="1.4" ry="3.4"/><ellipse cx="30" cy="6" rx="1.4" ry="3.4"/></g></svg>`;
@@ -831,7 +1082,7 @@
   // (The kit's horse, in black with burning eyes, and a kit rider with no head: head: false.)
   const HORSEMAN = `<svg viewBox="0 0 160 110" width="1em" height="0.69em" overflow="visible">
     ${critter.at('horse', 80, 108, 132, { color: '#0a0610', eye: '#ff7a1a' })}
-    <path d="M76 12 Q50 14 30 44 Q50 36 72 38Z" fill="#2a0a14" ${ink}/>${figureAt(78, 70, 90, { head: false, skin: '#05030a', top: '#05030a', bottom: '#05030a', shoes: '#05030a', neck: 'scarf', accent: '#3a1010', pose: 'ride', arms: ['ride', 'up'], holding: 'jack' })}</svg>`;
+    ${silhouette(`<path d="M76 12 Q50 14 30 44 Q50 36 72 38Z" fill="#2a0a14" ${ink}/>`)}${figureAt(78, 70, 90, { head: false, skin: '#05030a', top: '#05030a', bottom: '#05030a', shoes: '#05030a', neck: 'scarf', accent: '#3a1010', pose: 'ride', arms: ['ride', 'up'], holding: 'jack' })}</svg>`;
   const SHIP = `<svg viewBox="0 0 80 40" width="1em" height="0.5em"><g fill="#0b0f16">
     <path d="M4 26 L76 26 L68 36 L12 36Z"/><rect x="34" y="4" width="2" height="22"/><path d="M36 6 L58 24 L36 24Z" opacity="0.85"/><path d="M34 8 L16 24 L34 24Z" opacity="0.7"/></g>
     <circle cx="20" cy="30" r="1.6" fill="#ffd27a"/><circle cx="40" cy="30" r="1.6" fill="#ffd27a"/><circle cx="58" cy="30" r="1.6" fill="#ffd27a"/><circle cx="35" cy="3" r="1.6" fill="#ff5a4a"/></svg>`;
@@ -842,8 +1093,8 @@
   // The mermaid: the kit's, from the waist up (she waves: pose 'wave'), a band of scales at her
   // waist; her tail, flicked up as she dives, the same way.
   const MERMAID = `<svg viewBox="-5 0 70 80" width="0.875em" height="1em" overflow="visible">${figureAt(30, 118, 120, { skin: 'pale', hair: 'long', hairColor: 'red', top: '#3fb5a8', sleeves: 'none', facing: 'front', crop: 'waist', pose: 'wave', blush: true })}
-    <path d="M${30 - 10.5} 70 H${30 + 10.5} L${30 + 12} 82 H${30 - 12}Z" fill="#3fb5a8" stroke="${INK}" stroke-width="${LW}" stroke-linejoin="round"/><path d="M22 75 q4 -3 8 0 q4 -3 8 0" stroke="#2a8a80" stroke-width="1.4" fill="none"/></svg>`;
-  const TAIL = `<svg viewBox="0 0 60 50" width="1em" height="0.83em" overflow="visible"><path d="M26 50 Q22 30 30 22 Q16 16 6 2 Q24 6 30 14 Q36 6 54 2 Q44 16 30 22 Q38 30 34 50Z" fill="#3fb5a8" stroke="${INK}" stroke-width="${LW}" stroke-linejoin="round"/><path d="M26 38 q4 -3 8 0 M26 30 q4 -3 8 0" stroke="#2a8a80" stroke-width="1.4" fill="none"/></svg>`;
+    ${silhouette('<path d="M23.5 60 H36.5 L38.5 74 H21.5Z"/>')}</svg>`;
+  const TAIL = `<svg viewBox="0 0 60 50" width="1em" height="0.83em" overflow="visible">${silhouette('<path d="M26 50 Q22 30 30 22 Q16 16 6 2 Q24 6 30 14 Q36 6 54 2 Q44 16 30 22 Q38 30 34 50Z"/>', 0.7)}</svg>`;
   const GULL = `<svg viewBox="0 0 60 20" width="1em" height="0.33em"><path class="sc-wing" d="M2 8 Q16 0 30 12 Q44 0 58 8" fill="none" stroke="#e8eef2" stroke-width="3" stroke-linecap="round"/></svg>`;
   const SAILBOAT = `<svg viewBox="0 0 60 60" width="1em" height="1em">
     <path d="M30 4 L30 44 L8 44Z" fill="#fdfcf7"/><path d="M33 10 L33 44 L52 44Z" fill="#f1ede2"/><rect x="29.5" y="2" width="1.6" height="44" fill="#3a3a3a"/>
@@ -890,7 +1141,7 @@
   const SLEIGH = `<svg viewBox="0 0 200 50" width="1em" height="0.25em" overflow="visible">
     ${[18, 52, 86].map((x, i) => critter.at('reindeer', x, 40, 34, { nose: i === 2, collar: true })).join('')}
     <path d="M30 30 L130 26 M64 30 L130 26" stroke="#e8d7a8" stroke-width="1"/>${figureAt(154, 39, 46, { ...SANTA_LOOK, facing: 'front', crop: 'waist', pose: 'wave' })}
-    <path d="M128 18 L176 18 Q186 18 184 30 L130 32 Q124 26 128 18Z" fill="#c0392b" ${ink}/><path d="M132 22 H178" stroke="#e8c15a" stroke-width="1.6"/>${inked('M124 37 L188 37 Q194 35 194 30 M140 32 V37 M172 31 V37', '#e8c15a', 2.2)}</svg>`;
+    ${silhouette(`<path d="M128 18 L176 18 Q186 18 184 30 L130 32 Q124 26 128 18Z" fill="#c0392b" ${ink}/>${inked('M124 37 L188 37 Q194 35 194 30 M140 32 V37 M172 31 V37', '#e8c15a', 2.2)}`, 0.6)}</svg>`;
   // Club: hands in the air. Castle: a banner, a dragon, a knight.
   // Hands in the air in front of the TV: the kit's arms close up (in silhouette, its ink round
   // them, a fist on top), leaning this way and that.
@@ -1599,9 +1850,7 @@
   // out of a grave, a skeleton dances, a black cat stalks along the fence, something's eyes in the
   // crypt. Any game: finishing a drink gets MWAHAHA! (and a bat or three), sips the eyes in the dark,
   // a win the thunder, the howl, and the ghosts.
-  const HW_HAND = `<svg viewBox="0 0 70 90" width="0.78em" height="1em" overflow="visible"><g class="hw-claw">
-    <path d="M26 90 L28 50 Q20 40 22 26 L18 8 Q20 4 24 8 L28 24 L30 4 Q34 0 36 4 L36 24 L42 6 Q46 2 48 8 L44 28 L52 16 Q56 14 56 20 L46 44 Q44 52 42 90Z" fill="#7a9a5a" ${ink}/>
-    <path d="M30 56 Q34 60 38 56 M28 70 h12" stroke="#4a6a3a" stroke-width="2" fill="none"/><path d="M30 60 l6 4 l-2 8" stroke="${INK}" stroke-width="1.4" fill="none"/></g>
+  const HW_HAND = `<svg viewBox="0 0 70 90" width="0.78em" height="1em" overflow="visible"><g class="hw-claw">${silhouette('<path d="M26 90 L28 50 Q20 40 22 26 L18 8 Q20 4 24 8 L28 24 L30 4 Q34 0 36 4 L36 24 L42 6 Q46 2 48 8 L44 28 L52 16 Q56 14 56 20 L46 44 Q44 52 42 90Z"/>', 1)}</g>
     <path d="M0 90 Q10 72 34 74 Q58 72 70 90Z" fill="#1a1020" ${ink}/><circle cx="14" cy="82" r="3" fill="#2a1e30"/><circle cx="56" cy="84" r="2.4" fill="#2a1e30"/></svg>`;
   // A skeleton (the kit's, in bone, from the front) dancing a jig, arms up.
   const HW_SKELETON = figure({ facing: 'front', skin: '#ece6dc', top: '#ece6dc', topStyle: 'ribs', sleeves: 'none', bottom: '#ece6dc', bottomStyle: 'shorts', shoes: '#ece6dc', hair: 'bald', face: 'skull', arms: [[100, 60], [100, 60]], legs: ['wide', 'wide'], hooks: { armB: 'hw-arml', armF: 'hw-armr', legB: 'hw-legl', legF: 'hw-legr', head: 'hw-head' } });
@@ -4464,6 +4713,9 @@
       front.setAttribute('aria-hidden', 'true');
       document.body.appendChild(front);
     }
+    // (The look's light on everyone drawn by the kit: see LIGHTS.)
+    lightUp(layer, want);
+    lightUp(front, want);
     SCENES[want].decor?.();
     schedule(SCENES[want]);
   }
@@ -4477,5 +4729,5 @@
 
   reduce?.addEventListener?.('change', () => { const s = current; current = null; set(reduce.matches ? null : s); });
   // (kit: the character kit, for drawing and checking characters outside a scene.)
-  window.Scenery = { set, play, update, styles: Object.keys(SCENES), kit: { figure, figureAt, critter, SKIN, SKINS, skinFor, HAIR, INK, LW, ARM_POSES, LEG_POSES } };
+  window.Scenery = { set, play, update, styles: Object.keys(SCENES), kit: { figure, figureAt, critter, SKIN, SKINS, skinFor, HAIR, INK, LW, ARM_POSES, LEG_POSES, LIGHTS, lightUp, bake, bakedStyle, silhouette } };
 })();

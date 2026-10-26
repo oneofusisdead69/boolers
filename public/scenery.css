@@ -9,6 +9,18 @@
 /* The character kit (figure() and critter() in scenery.js). Each arm and leg turns about its own
    shoulder or hip (set inline), so these are just rotations; transforms only. The <svg> (or the
    <g>, inside another drawing) says the pose: fg-walk, fg-wave... */
+/* The silhouette and its rim light: each part's copies, coloured and shifted by the look's light
+   (LIGHTS in scenery.js, put on the scenery layers as --fg-* by lightUp). --fg-w: how far the rim
+   reaches, in the drawing's own units; --fg-fx turns the shift round in a drawing turned round. */
+.fg { --fg-w: 0.9; }
+.fg-crit { --fg-w: 1.1; }
+.sc-face-l, .sc-face-l.sc-witch, .sc-face-l.sc-horseman { --fg-fx: -1; }
+.fg-k { color: var(--fg-sil, #0b0807); }
+.fg-r0, .fg-r1 { color: var(--fg-c1, #ffb25a); visibility: var(--fg-v1, visible); }
+.fg-r2 { color: var(--fg-c2, #ff4a2e); visibility: var(--fg-v2, visible); }
+.fg-r1 { opacity: var(--fg-o1, 1); transform: translate(calc(var(--fg-x1, 0.2) * var(--fg-w) * var(--fg-fx, 1) * 1px), calc(var(--fg-y1, -1) * var(--fg-w) * 1px)); }
+.fg-r0 { opacity: calc(0.25 * var(--fg-o1, 1)); transform: translate(calc(var(--fg-x1, 0.2) * var(--fg-w) * var(--fg-fx, 1) * 2px), calc(var(--fg-y1, -1) * var(--fg-w) * 2px)); }
+.fg-r2 { opacity: var(--fg-o2, 1); transform: translate(calc(var(--fg-x2, 1) * var(--fg-w) * var(--fg-fx, 1) * 1px), calc(var(--fg-y2, -0.3) * var(--fg-w) * 1px)); }
 .fg-walk .fg-legF, .fg-walk .fg-legB { animation: fg-stride 0.42s ease-in-out infinite alternate; }
 .fg-walk .fg-legB { animation-direction: alternate-reverse; }
 @keyframes fg-stride { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
