@@ -53,6 +53,8 @@
   // muzzle flash) keep their colours. With no colour to go on, clothes, hats and props read by
   // their outline: a top hat, a crown's points, a skirt's flare, the fringe on a flapper's dress.
   // The options below that are colours (skin, top, hatColor...) are still taken, and ignored.
+  // Animals (critter()) aren't silhouettes: they keep their colours, flat and softened, with the
+  // same rim of light (see critter()).
   //
   //   figure(opts)              a person: an <svg> 0.5em wide and 1em tall (1em is the whole
   //                             figure, feet on the bottom edge), facing right like every drawing
@@ -64,7 +66,7 @@
   //   figure.points(opts)       where things are in the figure's own 60 x 120 box: { handF,
   //                             handB, mouth, head, tip } (tip: the far end of what's held, a
   //                             guitar's head or a torch's flame), to line up sparks, flames, words.
-  //   critter(kind, opts)       an animal the same way: an <svg> 1em wide, feet on the bottom edge,
+  //   critter(kind, opts)       an animal, in colour: an <svg> 1em wide, feet on the bottom edge,
   //                             facing right. kind: 'cat' 'dog' 'mouse' 'rat' 'roach' 'fly' 'bird'
   //                             'eagle' 'raven' 'gull'. opts: color, belly, eye, size (0.6-1.4: how
   //                             big it is within its box), still (legs, tail and wings don't move:
@@ -310,9 +312,11 @@
   // the frame it's drawn in ({ flip, rot }), so the shift can be undone into the screen's.
   const frameOf = ({ flip, rot } = {}) => [flip ? 'scale(-1 1)' : '', rot ? `rotate(${n1(rot)})` : ''].filter(Boolean).join(' ');
   const unframe = ({ flip, rot } = {}) => [rot ? `rotate(${n1(-rot)})` : '', flip ? 'scale(-1 1)' : ''].filter(Boolean).join(' ');
-  function lighted(inner, fr = {}, w = RIM_W) {
+  // colored: instead of the silhouette, this drawing in its own colours over the rims (an animal:
+  // see critter(), on the TV only); the rims then carry the kit's root themselves.
+  function lighted(inner, fr = {}, w = RIM_W, colored = null) {
     // (Baked whole: the parts go as they are, and the figure is lit as one; see figureAt.)
-    if (BAKED?.whole && !BAKED.now) return inner;
+    if (BAKED?.whole && !BAKED.now) return colored ?? inner;
     const shape = shapeOf(inner);
     const f = frameOf(fr);
     const inF = (s) => (f ? `<g transform="${f}">${s}</g>` : s);
@@ -336,7 +340,8 @@
       return `<defs><g id="${id}">${shape}</g></defs>${rims}<use href="#${id}" class="rk"/>${plain ? '' : litOnly(inner)}`;
     }
     rims = ['fg-r0', 'fg-r1', 'fg-r2'].map((c) => `<g class="${c}">${inF(shape)}</g>`).join('');
-    return `${f ? `<g transform="${unframe(fr)}">${rims}</g>` : rims}<g class="fg-k">${inkOf(inner)}</g>`;
+    if (colored != null) return `<g ${ROOT}>${f ? `<g transform="${unframe(fr)}">${rims}</g>` : rims}</g>${colored}`;
+    return `${f ?`<g transform="${unframe(fr)}">${rims}</g>` : rims}<g class="fg-k">${inkOf(inner)}</g>`;
   }
 
   // Arms: [shoulder, elbow] and legs: [hip, knee], in degrees from straight down, + forwards.
@@ -767,7 +772,7 @@
   // A reindeer's body: galloping legs, a tail, a long head.
   const hoofed = (c, o, T, { mane = shade(c, 0.35), extra = '' } = {}) => `<g class="sc-tail" ${pivot([26, 40])}>${inked('M26 40 Q10 40 6 62', mane, 5.4)}</g>${T.legs([34, 41, 80, 87], 54, 30, 6, shade(c, 0.1))}${T.p('M24 46 Q22 31 44 31 H76 Q86 31 90 38 Q94 54 82 58 H36 Q24 58 24 46Z')}${o.belly ? `<path d="M36 56 Q58 60 80 56" stroke="${o.belly}" stroke-width="4" fill="none"/>` : ''}${T.p('M78 36 L92 12 Q96 5 103 7 L116 21 Q119 27 112 29 L102 26 Q96 38 92 48Z')}${T.p('M80 34 Q85 18 95 7 L99 10 Q91 22 89 40Z', mane)}${T.p('M98 8 L98 0 L103 6Z')}${T.eye(103, 13, 9)}<circle cx="114" cy="24.5" r="1.1" fill="${INK}"/>${extra}`;
   // Fluff: circles in one colour, outlined only round the outside (wool, a poodle's pompoms).
-  const fluff = (list, c) => `${list.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${n1(r + LW)}" fill="${INK}"/>`).join('')}${list.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('')}`;
+  const fluff = (list, c) => `${list.map(([x, y, r]) => `<circle data-ol cx="${x}" cy="${y}" r="${n1(r + LW)}" fill="${INK}"/>`).join('')}${list.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('')}`;
   Object.assign(CRITTERS, {
     // A reindeer: antlers, a white ruff; nose: true for Rudolph's (blinking: class xm-nose).
     reindeer: { color: '#9a6432', draw: (c, o, T) => ({ vb: '0 -14 120 100', h: 0.833, body: hoofed(c, { belly: '#e8d0b0', ...o }, T, { mane: '#e8d0b0', extra: `${inked('M99 7 Q94 -4 86 -10 M95 -1 L88 -1 M90 -6 L86 -12 M101 7 Q106 -4 114 -11 M106 -1 L113 -2 M110 -6 L113 -13', '#5a3a1a', 2)}${o.nose ? lit(`<circle class="xm-nose" cx="116.5" cy="24" r="4.4" fill="#ff3030"/>`) : ''}${o.collar ? `<path d="M85 40 L95 44" stroke="${INK}" stroke-width="5.4" stroke-linecap="round"/><path d="M85 40 L95 44" stroke="#c0392b" stroke-width="3.4" stroke-linecap="round"/><circle cx="90" cy="45" r="2.6" fill="#d4af37" ${ink}/>` : ''}` }) }) },
@@ -1015,14 +1020,56 @@
     const single = o.holding === 'torch' ? [L.arms[1].h[0] + 0.6, L.arms[1].h[1] - 17] : PROP_TIPS[o.holding] ? [L.arms[1].h[0] + 0.6 + PROP_TIPS[o.holding][0] * 0.85, L.arms[1].h[1] + 1.4 + PROP_TIPS[o.holding][1] * 0.85] : null;
     return { handF: up(L.arms[1].h), handB: up(L.arms[0].h), mouth: up(L.mouth), head: up(L.head), tip: up(two?.tip || single || L.arms[1].h) };
   };
+  // Someone behind a bar or a counter, at the size of the bar: a kit figure (figureAt's h tall,
+  // its feet at x on the floor behind) drawn in the art's own units, with the counter's top at
+  // `top` coming where a 1.05 m counter comes on a 1.75 m adult (the hips: the chest, shoulders
+  // and head show, about 0.7 m), and cut off along it, and round what's standing on the counter
+  // in front of them (`cut`: path data in the art's units, the taps, a glass). Gives { svg, x0,
+  // y0, w, ht, x, h, feet }: the svg is 1em wide, to go over the art with its top left at (x0,
+  // y0), w wide and ht tall (its bottom edge the counter's top); the figure's x, h and feet.
+  // (`id` names its mask: one of each on screen at a time.)
+  const COUNTER_AT = 51;
+  const behindCounter = (id, x, top, h, o, cut = '') => {
+    const x0 = n1(x - 0.75 * h);
+    const y0 = n1(top - 1.15 * h);
+    const w = n1(1.5 * h);
+    const ht = n1(top - y0);
+    const box = `x="${n1(x0 - w)}" y="${n1(y0 - w)}" width="${n1(3 * w)}" height="${n1(ht + w)}"`;
+    const feet = n1(top + ((118 - COUNTER_AT) * h) / 120);
+    return { x0, y0, w, ht, x, h, feet, svg: `<svg viewBox="${x0} ${y0} ${w} ${ht}" width="1em" height="${+(ht / w).toFixed(4)}em" overflow="visible"><mask id="${id}" maskUnits="userSpaceOnUse" ${box}><rect ${box} fill="#fff"/>${cut ? `<path d="${cut}" fill="#000"/>` : ''}</mask><g mask="url(#${id})">${figureAt(x, feet, h, { ...o, crop: 'waist' })}</g></svg>` };
+  };
 
-  // Animals, the same way: flat colour, the ink outline, dot eyes. Facing right, 1em wide.
+  // Animals aren't silhouettes: only people are (and the people-like drawn by figure(): the
+  // skeleton, the gingerbread man). An animal keeps its colours, drawn flat modern to sit with the
+  // silhouettes: no ink outline (the outlines and the strokes' ink underlays taken off), flat
+  // colour with its own darker shade for the far legs and wing, the palette a little muted, dot
+  // eyes, and the look's rim light along its edge like everyone else (lighted(), colored). The
+  // snowman is snow and the ghost glows: they keep their colours the same way.
+  const MUTE = 0.16;
+  const mute = (hex) => {
+    const h = hex.length === 4 ? hex.slice(1).replace(/./g, '$&$&') : hex.slice(1);
+    const v = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const l = 0.3 * v[0] + 0.59 * v[1] + 0.11 * v[2];
+    return `#${v.map((c) => Math.round(c + (l - c) * MUTE).toString(16).padStart(2, '0')).join('')}`;
+  };
+  // (Also for the animals drawn by hand in colour: the dragon, the kraken's arm, the whales.)
+  // (unInked: the outlines off, the glowing bits still marked; tinted: the colours muted but the
+  // glowing bits', the marks gone.)
+  const unInked = (s) => s
+    .replace(/<path d="([^"]*)"[^>]*? stroke="#1c1410"[^>]*\/>(?=\s*<path d="\1"[^>]*? stroke="(?!#1c1410"))/g, '')
+    .replace(/ stroke="#1c1410" stroke-width="[\d.]+" stroke-linejoin="round"/g, '')
+    .replace(/<circle data-ol [^>]*\/>/g, '');
+  const tinted = (s) => s.split(/(\u0001[^\u0002]*\u0002)/)
+    .map((seg) => (seg[0] === LIT0 ? seg.slice(1, -1) : seg.replace(/(fill|stroke)="(#[0-9a-f]{6}|#[0-9a-f]{3})"/gi, (m, a, c) => `${a}="${mute(c)}"`)))
+    .join('');
+  const softened = (s) => tinted(unInked(s));
+  // Facing right, 1em wide.
   function critter(kind, o = {}) {
     const k = { cat: '#3a3430', dog: '#8a5a2e', mouse: '#7a7068', rat: '#5e554c', roach: '#5a2e14', fly: '#1e1a1a', bird: '#4a4a52', eagle: '#5a3a1e', raven: '#16141a', gull: '#f4f4f0' };
     const reg = CRITTERS[`${kind}:${o.pose}`] || CRITTERS[kind];
     const c = o.color || k[kind] || reg?.color || '#6a5a4a';
     const s = o.size || 1;
-    // (Eyes only show if they glow: an eye colour given.)
+    // (An eye colour given, they glow: lit, so they show in a silhouette too.)
     const eye = (x, y, r) => { const e = `<ellipse cx="${n1(x)}" cy="${n1(y)}" rx="${n1(r * 0.16)}" ry="${n1(r * 0.2)}" fill="${o.eye || INK}"/>`; return o.eye ? lit(e) : e; };
     const p = (d, fill = c) => `<path d="${d}" fill="${fill}" ${ink}/>`;
     const legs = (xs, top, len, w, cl) => [0, 1].map((j) => `<g class="${j ? 'sc-legs-f' : 'sc-legs-b'}">${xs.filter((_, i) => i % 2 === j).map((x) => inked(`M${x} ${top} V${top + len}`, j ? cl : shade(cl, 0.2), w)).join('')}</g>`).join('');
@@ -1055,9 +1102,11 @@
     }
     // (Scaled about the middle of its feet, or of its body if it's flying.)
     const fy = h < 0.5 ? 20 : 60;
-    // (Silhouetted and lit like the people; its rim a little wider, an animal's units being smaller.)
-    body = lighted(body, o.raw && o.flip ? { flip: true } : {}, CRIT_W);
-    const g = `<g transform="translate(50 ${fy}) scale(${s}) translate(-50 ${-fy})" ${ROOT}>${body}</g>`;
+    // (Rim-lit like the people, its rim a little wider, an animal's units being smaller; but in its
+    // own colours, softened. Baked for the venue art, no rims: the art has to be small.)
+    body = unInked(body);
+    body = BAKED ? tinted(body) : lighted(body, o.raw && o.flip ? { flip: true } : {}, CRIT_W, tinted(body));
+    const g = `<g transform="translate(50 ${fy}) scale(${s}) translate(-50 ${-fy})">${body}</g>`;
     if (o.raw) return { vb, h, body: g };
     return `<svg class="fg-crit fg-${kind}${o.still ? ' fg-still' : ''}" viewBox="${vb}" width="1em" height="${h}em" overflow="visible">${g}</svg>`;
   }
@@ -1110,10 +1159,11 @@
   const LANTERN = `<svg viewBox="0 0 30 64" width="0.47em" height="1em"><path d="M15 0 V14" stroke="#2a1a0e" stroke-width="1.5"/>
     <path d="M7 16 H23 L21 22 H9Z" fill="#2a1a0e"/><rect x="8" y="22" width="14" height="26" rx="3" fill="rgba(255,200,110,0.85)" stroke="#2a1a0e" stroke-width="2"/>
     <path d="M15 22 V48 M8 35 H22" stroke="#2a1a0e" stroke-width="1.2"/><path d="M8 48 H22 L19 54 H11Z" fill="#2a1a0e"/></svg>`;
-  // (In the kit's flat colour and ink: the kraken's arm, its suckers; the whale's tail.)
-  const TENTACLE = `<svg viewBox="0 0 60 160" width="0.375em" height="1em" overflow="visible"><path d="M30 160 Q8 120 26 86 Q44 52 22 24 Q14 10 26 4 Q38 0 36 14 Q34 24 40 34 Q56 64 40 96 Q30 124 44 160Z" fill="#7a3b6e" ${ink}/>
-    <path d="M32 150 Q20 120 33 88 Q46 56 28 26" stroke="#5e2a54" stroke-width="3" fill="none" opacity="0.6"/><g fill="#d99bc6" ${ink}>${[30, 50, 72, 96, 120, 142].map((y, i) => `<circle cx="${i % 2 ? 36 : 30}" cy="${y}" r="${3.5 - i * 0.2}"/>`).join('')}</g></svg>`;
-  const FLUKE = `<svg viewBox="0 0 120 60" width="1em" height="0.5em" overflow="visible"><path d="M60 60 Q56 36 60 26 Q40 30 6 8 Q30 4 52 16 Q60 20 60 24 Q60 20 68 16 Q90 4 114 8 Q80 30 60 26 Q64 36 60 60Z" fill="#2a3440" ${ink}/><path d="M60 26 Q40 22 18 10 M60 26 Q80 22 102 10" stroke="#e98a52" stroke-width="1.2" fill="none" opacity="0.7"/></svg>`;
+  // (In colour like the kit's animals, softened (see critter()): the kraken's arm, its suckers;
+  // the whale's tail.)
+  const TENTACLE = softened(`<svg viewBox="0 0 60 160" width="0.375em" height="1em" overflow="visible"><path d="M30 160 Q8 120 26 86 Q44 52 22 24 Q14 10 26 4 Q38 0 36 14 Q34 24 40 34 Q56 64 40 96 Q30 124 44 160Z" fill="#7a3b6e" ${ink}/>
+    <path d="M32 150 Q20 120 33 88 Q46 56 28 26" stroke="#5e2a54" stroke-width="3" fill="none" opacity="0.6"/><g fill="#d99bc6" ${ink}>${[30, 50, 72, 96, 120, 142].map((y, i) => `<circle cx="${i % 2 ? 36 : 30}" cy="${y}" r="${3.5 - i * 0.2}"/>`).join('')}</g></svg>`);
+  const FLUKE = softened(`<svg viewBox="0 0 120 60" width="1em" height="0.5em" overflow="visible"><path d="M60 60 Q56 36 60 26 Q40 30 6 8 Q30 4 52 16 Q60 20 60 24 Q60 20 68 16 Q90 4 114 8 Q80 30 60 26 Q64 36 60 60Z" fill="#2a3440" ${ink}/><path d="M60 26 Q40 22 18 10 M60 26 Q80 22 102 10" stroke="#e98a52" stroke-width="1.2" fill="none" opacity="0.7"/></svg>`);
   // Bar room bits: a dart, a cat. (The dive bar's mouse and fly are the kit's: see critter().)
   const DART = `<svg viewBox="0 0 40 8" width="1em" height="0.2em"><path d="M0 4 L10 1 L10 7Z" fill="#e63946"/><rect x="10" y="3" width="20" height="2" fill="#bbb"/><path d="M30 2 L40 4 L30 6Z" fill="#666"/></svg>`;
   // (The kit's cat, a grey tabby.)
@@ -1236,7 +1286,8 @@
   // (In the kit's way: flat colours, the ink outline round everything, a dot eye.)
   const DRAGON = (() => {
     const dk = `stroke="${INK}" stroke-width="2" stroke-linejoin="round"`;
-    return `<svg viewBox="0 0 320 170" width="1em" height="0.53em" overflow="visible">
+    // (In colour like the kit's animals, softened: see critter().)
+    return softened(`<svg viewBox="0 0 320 170" width="1em" height="0.53em" overflow="visible">
     <g class="sc-dwing back"><path d="M150 96 L118 18 L104 40 L92 22 L84 52 L70 40 L72 74 Q100 84 150 96Z" fill="#2a4422" ${dk}/></g>
     <path d="M110 108 Q70 118 40 104 Q16 92 4 104 Q14 108 18 116 Q30 104 40 116 Q76 134 116 118Z" fill="#3d6b33" ${dk}/>
     <path d="M4 104 L-2 94 L14 100 L10 88 L20 102Z" fill="#2e5226" ${dk}/>
@@ -1251,7 +1302,7 @@
     ${[116, 132, 148, 164].map((x, i) => `<path d="M${x} ${86 - i * 1.5} l4 -8 l4 8" fill="#2e5226" ${dk}/>`).join('')}
     <g class="sc-dwing"><path d="M166 86 L140 4 L128 28 L112 10 L106 44 L88 32 L94 70 Q130 80 166 86Z" fill="#4e7a38" ${dk}/>
       <path d="M166 86 L140 4 M160 84 L112 10 M152 82 L88 32" stroke="#2a4422" stroke-width="3" fill="none" stroke-linecap="round"/></g>
-    <path class="sc-fire" d="M294 50 Q312 40 320 50 Q308 54 320 62 Q304 60 294 54Z" fill="#ff8a1a" ${dk}/><path class="sc-fire" d="M296 51 Q306 47 312 51 Q305 53 312 58 Q303 57 296 53Z" fill="#ffd23f"/></svg>`;
+    <path class="sc-fire" d="M294 50 Q312 40 320 50 Q308 54 320 62 Q304 60 294 54Z" fill="#ff8a1a" ${dk}/><path class="sc-fire" d="M296 51 Q306 47 312 51 Q305 53 312 58 Q303 57 296 53Z" fill="#ffd23f"/></svg>`);
   })();
   // A knight in armour, walking (facing right): a great helm with a plume and a visor slit, a
   // white tabard with a red cross over mail, a heater shield, a sword at his side, plate legs.
@@ -3310,11 +3361,12 @@
       <rect x="24" y="28" width="52" height="14" rx="7" fill="#0a0e24" ${spInk}/><g class="sc-sp-eyes"><ellipse cx="38" cy="35" rx="3.2" ry="4" fill="#7cf0ff"/><ellipse cx="62" cy="35" rx="3.2" ry="4" fill="#7cf0ff"/></g>
       <g class="sc-sp-shake">${inked('M72 62 Q90 58 90 40', '#9aa4c4', 6)}<path d="M84 40 h12 l-2 -22 h-8Z" fill="#e8ecf8" ${spInk}/><rect x="86" y="12" width="8" height="7" rx="2" fill="#c8d0e8" ${spInk}/></g></svg>`;
     const ALIEN = figure({ skin: '#7ae07a', hair: 'bald', face: 'alien', hat: 'antennae', hatColor: '#6ad86a', top: '#8a46d8', bottom: '#6a2ab8', shoes: '#3a1a6a', arms: [[-150, -20], [40, 80]], holding: 'martini', propColor: '#ff5c8a' });
-    const WHALE = `<svg viewBox="0 0 300 120" width="1em" height="0.4em" overflow="visible">
+    // (In colour like the kit's animals, softened: see critter().)
+    const WHALE = softened(`<svg viewBox="0 0 300 120" width="1em" height="0.4em" overflow="visible">
       <path class="sc-sp-tail" d="M40 60 Q14 40 0 20 Q16 52 2 92 Q20 74 40 66Z" fill="#3a50b0" fill-opacity="0.85" ${spInk}/>
       <path d="M36 62 Q80 14 180 24 Q262 30 296 70 Q270 98 190 100 Q100 104 36 62Z" fill="#4a64c8" fill-opacity="0.85" ${spInk}/><path d="M120 92 Q150 104 190 100 Q262 96 290 72" fill="none" stroke="#bfe0ff" stroke-width="2" opacity="0.5"/>
       ${[[110, 40], [140, 34], [170, 32], [200, 36], [128, 58], [160, 54], [190, 56]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#bff8ff"/><circle cx="${x}" cy="${y}" r="8" fill="#7cf0ff" opacity="0.25"/>`).join('')}
-      <path d="M150 96 Q160 118 186 116 Q172 104 172 96Z" fill="#3a50b0" ${spInk}/><ellipse cx="262" cy="60" rx="3.4" ry="4.2" fill="${INK}"/><path d="M240 82 Q262 88 286 76" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+      <path d="M150 96 Q160 118 186 116 Q172 104 172 96Z" fill="#3a50b0" ${spInk}/><ellipse cx="262" cy="60" rx="3.4" ry="4.2" fill="${INK}"/><path d="M240 82 Q262 88 286 76" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`);
     const blobs = (x, y, n = 10, colors = ['#ffcf5a', '#7cf0ff', '#ff5c8a', '#7dff9e']) => {
       for (let i = 0; i < n; i++) later(() => {
         const s = rand(10, 26);
@@ -3326,7 +3378,9 @@
       const r = robot();
       if (r) { r.classList.remove('shake'); void r.offsetWidth; r.classList.add('shake'); }
       cue('beep');
-      say(text, 76, 62, 'sp r');
+      // (By its head: see decor.)
+      const [x, y] = artAt(1066, 640);
+      say(text, x, y, 'sp r');
     };
     const spaceWatch = watchRoom({
       drink: (list) => { robotSays(pick([`Cheers, ${who(list)}!`, `Drink served: ${who(list)}`, `Bottoms up, ${who(list)}!`])); blobs(rand(66, 72), 90, 8); },
@@ -3344,7 +3398,11 @@
         spaceWatch(null);
         el(PLANET, { left: '1vw', top: '18vh', fontSize: '160px' }).classList.add('sc-planet');
         atArt(STATION, 1095, 300, { fontSize: '13vh', marginLeft: '-6.5vh', marginTop: '-6.5vh' }, 0, 'blk sc-sp-station');
-        el(ROBOT, { left: '77vw', top: '70vh', fontSize: '20vh' }).classList.add('sc-sp-robot', 'blk');
+        // The robot behind the bar, left of the glass on it (the bar's near: 360 of the art's
+        // units to the metre by that glass), 252 tall, its body down to the bar's top (809 there)
+        // and the rest of it, the jet, out of sight behind the bar.
+        const u = Math.max(innerWidth / 1600, innerHeight / 900);
+        atArt(ROBOT, 1056, 809 - (104 / 150) * 252, { fontSize: `${(252 * u).toFixed(1)}px`, clipPath: 'inset(-50% -50% 0.306em -50%)' }, 0, 'sc-sp-robot blk');
         for (let i = 0; i < 14; i++) el('', { left: `${rand(0, 100)}vw`, top: `${rand(4, 80)}vh`, animationDelay: `-${rand(0, 4).toFixed(1)}s`, animationDuration: `${rand(2, 5).toFixed(1)}s` }).classList.add('sc-sp-twinkle');
       },
       update: spaceWatch,
@@ -3359,7 +3417,7 @@
         () => { const right = Math.random() < 0.5; drift(WHALE, { from: [right ? -30 : 110, rand(3, 9)], to: [right ? 110 : -30, rand(2, 10)], dur: rand(36, 44), size: rand(260, 340) }).classList.add('sc-sp-whale', 'blk', right ? 'sc-face-r' : 'sc-face-l'); cue('moan', 2000); },
         // An alien floats through the lounge, upside down for a while, holding on to its drink.
         () => { const right = Math.random() < 0.5; drift(ALIEN, { from: [right ? -10 : 108, rand(78, 84)], to: [right ? 108 : -10, rand(70, 80)], dur: rand(24, 30), size: rand(80, 100), spin: right ? 300 : -300 }).classList.add('sc-sp-alien'); },
-        () => { robotSays(pick(['Shaken, not stirred.', 'Another round, Earthlings?', 'Beep boop. Cheers.', 'Ice: 0 kelvin.'])); blobs(84, 72, 6); },
+        () => { robotSays(pick(['Shaken, not stirred.', 'Another round, Earthlings?', 'Beep boop. Cheers.', 'Ice: 0 kelvin.'])); blobs(...artAt(1207, 655), 6); },
         // A meteor shower.
         () => { for (let i = 0; i < 9; i++) later(() => el('', { left: `${rand(20, 100)}vw`, top: `${rand(0, 30)}vh`, animation: 'sc-shoot 0.9s ease-out forwards' }, 1100).classList.add('sc-star'), i * rand(150, 400)); },
         // A starship goes past at warp: a streak and a flash.
@@ -3640,7 +3698,10 @@
     // ----- The dive bar -----
     // The barman behind the bar (from the waist up: the bar hides the rest), polishing a glass;
     // his arm is `sc5-polish` (it pours too, see pour()).
-    const BARMAN = figure({ skin: 'light', hair: 'receding', hairColor: 'brown', beard: 'moustache', top: '#e8e4dc', sleeves: 'short', topStyle: 'vest', accent: '#1a1a1e', neck: 'bow', accent2: '#8a1a2a', build: 'broad', pose: 'polish', holding: 'cloth', crop: 'waist', hooks: { armF: 'sc5-polish' } });
+    // (The size of the bar: 290 tall, where the regular on his stool in front is 314; the bar's
+    // top at 699, and the pint and the taps on it in front of him: see diveBar.)
+    const BARMAN = behindCounter('sc5-barcut', 1020, 699, 380, { skin: 'light', hair: 'receding', hairColor: 'brown', beard: 'moustache', top: '#e8e4dc', sleeves: 'short', topStyle: 'vest', accent: '#1a1a1e', neck: 'bow', accent2: '#8a1a2a', build: 'broad', pose: 'polish', holding: 'cloth', hooks: { armF: 'sc5-polish' } },
+      'M1036 700 L1040 655 H1070 L1074 700Z M1096 600h9v40h-9Z M1114 600h9v40h-9Z M1132 600h9v40h-9Z M1096 640h44v12h-44Z M1112 630h12v70h-12Z');
     const PINT = `<svg viewBox="0 0 30 40" width="1em" height="1.33em"><path d="M4 6 L8 38 H22 L26 6Z" fill="rgba(255,190,70,0.9)" stroke="#fff8e0" stroke-width="1.5"/><path d="M3 4 Q15 -2 27 4 V9 H3Z" fill="#fffaf0"/><path d="M9 12 v20" stroke="#fff" stroke-width="2" opacity="0.5"/></svg>`;
     // A regular, weaving his way to the bathroom out back, his bottle with him.
     const DRUNK = figure({ skin: 'tan', hat: 'beanie', hatColor: '#2a4a6a', face: 'sleepy', beard: 'stubble', hairColor: 'brown', top: '#4a5a3a', topStyle: 'plaid', accent: '#2a3a20', bottom: '#3a3028', pose: 'walk', holding: 'bottle' });
@@ -3679,8 +3740,7 @@
         // The jukebox's lights going round.
         light(84, 690, 170, 130, 'rgba(255, 74, 200, 0.4)', ['sc5-juke']);
         light(84, 690, 170, 130, 'rgba(74, 212, 255, 0.35)', ['sc5-juke', 'b']);
-        // (A figure is 1em tall: 180 of the art's units, his waist at the bar top, 704.)
-        put(BARMAN, 984, 590, 180, ['sc5-barman']);
+        put(BARMAN.svg, BARMAN.x0, BARMAN.y0, BARMAN.w, ['sc5-barman']);
         put('<b>z</b><b>z</b><b>z</b>', 1446, 632, 40, ['sc5-zzz']);
         el('', { left: '-20vw', top: '8vh', width: '140vw', height: '50vh' }).classList.add('sc5-haze');
       },
@@ -3704,7 +3764,8 @@
         () => { const [x, y] = at5(1430, 650); el(DIVE_FLY, { left: `${x}vw`, top: `${y}vh`, fontSize: '18px' }, 9000).classList.add('sc-fly'); },
         // The jukebox kicks in: notes, its lights going faster.
         () => { const [x, y] = at5(84, 640); notes(x, y, '#ff8ad8', 7); layer.querySelectorAll('.sc5-juke').forEach((j) => { j.classList.add('loud'); later(() => j.classList.remove('loud'), 8000); }); cue('chord'); },
-        () => walk(DRUNK, { h: px5(170), y: 99.5, dur: rand(14, 18), cls: ['sc5-drunk'] }),
+        // (The size of the regular on his stool: he's on the floor in front of the bar.)
+        () => walk(DRUNK, { h: px5(310), y: 99.5, dur: rand(14, 18), cls: ['sc5-drunk'] }),
         () => { slide('🍺', { y: 91, size: 48 }); cue('slide', 200); },
         () => crossing('🎱', { y: 94, dur: 3.5, size: 34, bob: false, cls: ['roll'] }),
         () => popup(ROACH, { x: rand(2, 8), bottom: 1, size: 44, life: 3500 }),
@@ -3714,7 +3775,9 @@
     // ----- The tavern -----
     // The barmaid behind the counter (from the front, from the waist up), wiping a tankard: her
     // tankard hand is `sc5-wipe` (it goes up for a toast, see `cheers`).
-    const BARMAID = figure({ facing: 'front', skin: 'pale', blush: true, hair: 'long', hairColor: '#a0441a', hat: 'headband', hatColor: '#e8dcc0', top: '#f0e4c8', sleeves: 'short', topStyle: 'dirndl', accent: '#6a2a1a', accent2: '#e8c070', arms: [[12, -96], [12, -84]], holding: 'tankard', holdingBack: 'rag', crop: 'waist', hooks: { armF: 'sc5-wipe' } });
+    // (The size of the counter, which is near: about 240 of the art's units to the metre there,
+    // by the tankard, the loaf and the bottle on it; its top at 808. See tavernInn.)
+    const BARMAID = behindCounter('sc5-maidcut', 1110, 808, 426, { facing: 'front', skin: 'pale', blush: true, hair: 'long', hairColor: '#a0441a', hat: 'headband', hatColor: '#e8dcc0', top: '#f0e4c8', sleeves: 'short', topStyle: 'dirndl', accent: '#6a2a1a', accent2: '#e8c070', arms: [[24, -114], [24, -104]], holding: 'tankard', holdingBack: 'rag', hooks: { armF: 'sc5-wipe' } });
     // The bard strolling and playing: feathered cap, a lute.
     const BARD = figure({ skin: 'light', hair: 'long', hairColor: '#c88a3a', beard: 'goatee', hat: 'feathercap', hatColor: '#8a2a2a', top: '#2a6a4a', bottom: '#8a2a2a', shoes: '#3a2414', pose: 'play', holding: 'lute', cls: 'fg-walk' });
     // A serving girl with a tray of tankards.
@@ -3744,8 +3807,7 @@
         flame(1146, 424, 14, ['small']);
         // Steam off the pot.
         for (let i = 0; i < 3; i++) put('', 130 + i * 14, 610, 30, ['sc5-steam'], 0, { width: `${px5(30)}px`, height: `${px5(30)}px`, animationDelay: `-${i * 1.3}s` });
-        // (A figure is 1em tall: 196 of the art's units, her waist at the counter's top, 819.)
-        put(BARMAID, 1026, 698, 196, ['sc5-barmaid']);
+        put(BARMAID.svg, BARMAID.x0, BARMAID.y0, BARMAID.w, ['sc5-barmaid']);
       },
       update: (s) => watch5(s, {
         drink: (who) => {
@@ -3760,14 +3822,15 @@
       moments: [
         () => embers(6, () => { const [x, y] = at5(136, 780); return [x + rand(-3, 3), y]; }),
         hearthFlare,
-        // The bard strolls through, playing.
+        // The bard strolls through, playing. (Near, in front of the counter: as big as the barmaid
+        // behind it, his feet out of sight under the bottom of the screen with the counter's.)
         () => {
-          const d = walk(BARD, { h: px5(160), y: 99.5, dur: 18 });
+          const d = walk(BARD, { h: px5(420), y: at5(0, 1060)[1], dur: 18 });
           cue('harp', 600);
           shower(14, 1.1, () => { const r = d.getBoundingClientRect(); const x = ((r.left + r.width / 2) / innerWidth) * 100; const y = (r.top / innerHeight) * 100; drift(pick(['♪', '♫']), { from: [x, y], to: [x + rand(-4, 4), y - 20], dur: 4, size: 24, opacity: 0.8, extra: { color: '#e3b23c' } }); });
         },
         // Another barmaid carries a tray of tankards across.
-        () => { walk(SERVING, { h: px5(160), y: 99.5, dur: 13 }); cue('clink', 1500); },
+        () => { walk(SERVING, { h: px5(410), y: at5(0, 1060)[1], dur: 13 }); cue('clink', 1500); },
         // The tavern cat goes for a stroll.
         () => { const right = Math.random() < 0.5; drift(TAVERN_CAT, { from: [right ? -10 : 108, 90], to: [right ? 108 : -10, 90], dur: rand(14, 18), size: rand(70, 90) }).classList.add('sc-cat', right ? 'sc-face-r' : 'sc-face-l'); cue('meow', rand(3000, 6000)); },
         // An owl on the window sill, blinking in.
@@ -3783,7 +3846,11 @@
     // ----- The club -----
     // The DJ behind the decks: cap on backwards, headphones, a hand on the deck, nodding along.
     // (From the front, from the waist up: his arms are sc5-djarm l and r, his head sc5-nod.)
-    const DJ = figure({ facing: 'front', skin: 'tan', hair: 'short', hairColor: 'black', hat: 'headphones', hatAccent: '#29f0ff', face: 'shades', top: '#1a1a2a', neck: 'scarf', accent2: '#ff2bd6', arms: [[34, -10], [30, -6]], crop: 'waist', hooks: { head: 'sc5-nod', armB: 'sc5-djarm l', armF: 'sc5-djarm r' } });
+    // (The size of the booth: its top at 760, 1.1 m off the floor at the bottom of the art, so 260
+    // tall; a hand on the left deck, the other on the mixer, and his body behind them and the
+    // laptop. See clubFloor.)
+    const DJ = behindCounter('sc5-djcut', 1206, 760, 260, { facing: 'front', skin: 'tan', hair: 'short', hairColor: 'black', hat: 'headphones', hatAccent: '#29f0ff', face: 'shades', top: '#1a1a2a', neck: 'scarf', accent2: '#ff2bd6', arms: [[80, -60], [70, -60]], hooks: { head: 'sc5-nod', armB: 'sc5-djarm l', armF: 'sc5-djarm r' } },
+      'M1250 738 l14 -40 h48 l-6 40Z M1160 738h30v24h-30Z M1222 742h40v20h-40Z');
     // The crowd on the dance floor, seen from behind in silhouette, heads and shoulders, every
     // fourth one's hands up, bouncing to the beat.
     const CROWD = (() => {
@@ -3794,7 +3861,8 @@
         const h = 60 + ((i * 37) % 30);
         const up = i % 4 === 1;
         // (Its head where the old one was, 160 - h: the head's centre is 0.8 of the height up.)
-        const H = 150 + (i % 3) * 8;
+        // (As big as the DJ behind his booth, or a little bigger: they're nearer.)
+        const H = 270 + (i % 3) * 12;
         s += `<g class="sc5-bob" style="animation-delay:-${((i * 0.13) % 0.47).toFixed(2)}s">${figureAt(x, 160 - h + 0.8 * H, H, { facing: 'back', skin: C, hair: ['short', 'long', 'bun', 'curly', 'ponytail'][i % 5], hairColor: C, top: C, bottom: C, pose: up ? 'cheer' : 'stand', crop: 'waist', face: 'none' })}</g>`;
       }
       return `<svg viewBox="0 0 900 160" width="1em" height="0.178em" overflow="visible">${s}</svg>`;
@@ -3836,8 +3904,7 @@
         }
         // The speakers thumping.
         for (const [x, y, r] of [[77, 817, 50], [1550, 813, 34]]) light(x, y, r * 2.4, r * 2.4, 'rgba(155, 92, 255, 0.45)', ['sc5-thump']);
-        // (A figure is 1em tall: 180 of the art's units, his waist at the booth's top.)
-        put(DJ, 1160, 661, 180, ['sc5-dj']);
+        put(DJ.svg, DJ.x0, DJ.y0, DJ.w, ['sc5-dj']);
         put(CROWD, 150, 742, 900, ['sc5-crowd']);
       },
       update: (s) => watch5(s, {
@@ -3876,9 +3943,23 @@
     };
 
     // ----- The castle -----
-    // The king on his throne: crown, beard, ermine, his goblet (raised for a toast).
-    // (The kit's: the arm and the goblet turn on .sc5-raise, the goblet the other way to stay upright.)
-    const KING = figure({ skin: 'light', hairColor: 'grey', beard: 'beard', hat: 'crown', top: '#a01a2a', bottomStyle: 'gown', bottom: '#7a1020', neck: 'ermine', build: 'stout', facing: 'front', arms: ['down', [10, 40]], holding: 'goblet', hooks: { armF: 'sc5-toast', propF: 'sc5-cup' } });
+    // The king on his throne: crown, beard, ermine, his goblet (raised for a toast). Drawn in the
+    // throne's own centimetres (greatHall in lib/roomArt.js: x 0 its middle, y 0 the dais it stands
+    // on, its seat at 60, its back 1.8 m): the kit's king from the waist up, 1.75 m tall, his hips
+    // on the seat; by hand in the same silhouette, each lit as its own part: behind him the robe
+    // falling from his knees to his feet on the dais, just in front of the throne; over him the
+    // ermine capelet (its tails a jagged hem), his spade beard, and his lap (seen from the front his
+    // thighs come at us, so it's short, the knees just below the seat and wider than the shins).
+    // His near hand on the throne's arm; the goblet in his far hand, raised on .sc5-raise.
+    // (The kit's arm and goblet turn on .sc5-raise, the goblet the other way to stay upright.)
+    const KING_W = 1.3;
+    const kingPart = (d) => silhouette(`<path d="${d}"/>`, KING_W).replace('class="fg"', `class="fg" style="--fg-w:${KING_W}"`);
+    const KING = `<svg viewBox="-60 -180 120 200" width="1em" height="1.667em" overflow="visible">
+      ${kingPart('M-19 -48 L-20 -14 Q-22 -3 -26 4 Q-13 6.5 0 5.5 Q13 6.5 26 4 Q22 -3 20 -14 L19 -48Z M-16 3 Q-17 9 -10 10 Q-4 10 -3 4Z M16 3 Q17 9 10 10 Q4 10 3 4Z')}
+      ${figureAt(0, 16.8, 175, { hairColor: 'grey', beard: 'beard', hat: 'crown', neck: 'ermine', build: 'stout', facing: 'front', crop: 'waist', arms: [[18, 30], [10, 40]], holding: 'goblet', hooks: { armF: 'sc5-toast', propF: 'sc5-cup' } })}
+      ${kingPart('M-6 -124.5 Q-16 -122 -20.5 -112 Q-23 -105 -21 -99 L-18 -100.5 L-15 -97.5 L-12 -99.5 L-8 -96.5 L-4 -98.5 L0 -96 L4 -98.5 L8 -96.5 L12 -99.5 L15 -97.5 L18 -100.5 L21 -99 Q23 -105 20.5 -112 Q16 -122 6 -124.5 Q0 -121 -6 -124.5Z')}
+      ${kingPart('M-7.8 -133 Q-9 -121 -4.5 -112.5 Q-1.5 -108.5 0 -107 Q1.5 -108.5 4.5 -112.5 Q9 -121 7.8 -133 Q0 -127.5 -7.8 -133Z')}
+      ${kingPart('M-21 -66 Q-26 -62 -26.5 -53 Q-26.5 -45 -18 -44 Q-8 -43.5 -2.5 -46.5 L0 -49 L2.5 -46.5 Q8 -43.5 18 -44 Q26.5 -45 26.5 -53 Q26 -62 21 -66 Q0 -70 -21 -66Z')}</svg>`;
     const JESTER = figure({ ...JESTER_LOOK, pose: 'cheer' });
     // A scroll unrolled along the top with the king's word on it.
     const decree = (html, life = 5200) => {
@@ -3909,8 +3990,9 @@
         light(1462, 760, 380, 300, 'rgba(255, 120, 30, 0.32)', ['sc5-fireglow']);
         [[1452, 770, 48], [1476, 782, 66, ['b']], [1496, 790, 40]].forEach(([x, y, h, c]) => flame(x, y, h, c));
         CANDLES5.forEach(([x, y]) => flame(x, y, 13, ['small']));
-        // (A figure is 1em tall: the king, sitting, is 206 of the art's units, his feet on the dais.)
-        put(KING, 1048, 612, 206, ['sc5-king']);
+        // (The king's drawing is 120 cm wide (1em) from 1.8 m over the dais: the throne's at
+        // (1100, 808), 1.587 of the art's units to the centimetre.)
+        put(KING, 1100 - 60 * 1.587, 808 - 180 * 1.587, 120 * 1.587, ['sc5-king']);
       },
       update: (s) => { heraldry(s, hallBanner); watch5(s, {
         drink: (who) => { decree(sips(who).replace(/ \+(\d+)/g, ' drinks $1')); toast(); },
@@ -4077,16 +4159,28 @@
     };
     // A drawing popping up from the bottom, `h` vh tall, at x vw.
     const rise = (svg, { x, h, ar, life = 6000 }) => popup(svg, { x, bottom: 0, size: (h / 100) * innerHeight * ar, life });
+    // Someone popping up from behind a bar or a counter (a behindCounter(), which says where):
+    // rising into place from out of sight under its top, and going back down. Gives where the
+    // far end of what's in their front hand is when they're up, in vw/vh (for the burger they
+    // flip, the drink they shake).
+    const popBehind = (b, o, life, ...cls) => {
+      const d = box(b.x0, b.y0, b.w, b.ht, life, 'blk', ...cls);
+      d.style.overflow = 'hidden';
+      d.innerHTML = `<div style="font-size:${(b.w * unit()).toFixed(1)}px;animation:sc-popup ${life / 1000}s ease-in-out forwards">${b.svg}</div>`;
+      const [tx, ty] = figure.points(o).tip;
+      return artAt(b.x + ((tx - 30) * b.h) / 120, b.feet - ((118 - ty) * b.h) / 120);
+    };
 
     // ---------- The diner ----------
     // The carhop on roller skates, a tray held high (a burger and a shake): legs pushing, ponytail
     // swinging. Faces right.
     // (Kit figures. Her legs are dn-leg, pushing off on her skates; her free arm dn-arm.)
     const CARHOP = figure({ skin: 'pale', blush: true, hair: 'ponytail', hairColor: '#7a3a1a', hat: 'cap', hatColor: '#e63946', top: '#fff', sleeves: 'short', neck: 'scarf', accent2: '#e63946', bottom: '#e63946', bottomStyle: 'skirt', shoes: '#fff', skates: '#e63946', pose: 'serve', tray: ['burger', 'shake'], holding: 'tray', hooks: { legB: 'dn-leg b', legF: 'dn-leg', armB: 'dn-arm' } });
-    // Only its top half, the svg cut off at the waist: someone popping up from behind a counter.
-    const waistUp = (o) => `<svg viewBox="0 6 60 70" width="0.857em" height="1em" overflow="visible">${figureAt(30, 118, 120, { ...o, crop: 'waist' })}</svg>`;
     // The short-order cook: chef's hat, a big moustache, his apron, the spatula up (dn-spatula).
-    const COOK = waistUp({ facing: 'front', skin: 'light', blush: true, hair: 'short', hairColor: 'brown', beard: 'moustache', hat: 'chef', top: '#f4f4f0', topStyle: 'apron', accent: '#fff', build: 'stout', arms: ['down', [150, 10]], holding: 'spatula', hooks: { armF: 'dn-spatula' } });
+    // (Behind the counter, at its left end by the gumball machine, the size of the counter: its
+    // top at 680, 1.05 m over the floor at 800, so 215 tall. The gumball globe is in front.)
+    const COOK_LOOK = { facing: 'front', skin: 'light', blush: true, hair: 'short', hairColor: 'brown', beard: 'moustache', hat: 'chef', top: '#f4f4f0', topStyle: 'apron', accent: '#fff', build: 'stout', arms: ['down', [150, 10]], holding: 'spatula', hooks: { armF: 'dn-spatula' } };
+    const COOK = behindCounter('dn-cookcut', 124, 680, 215, COOK_LOOK, 'M40 708 a40 40 0 0 1 80 0Z M64 660h32v12h-32Z');
     const DINER_DANCERS = COUPLE(DINER_HER, DINER_HIM);
     // The Bel Air going by outside, headlights on (as in the window; faces right).
     const BELAIR = `<svg viewBox="0 -16 250 62" width="1em" height="0.248em"><path d="M174 16 L250 -6 V44 L174 26Z" fill="#fff6c8" opacity="0.4"/>
@@ -4114,12 +4208,10 @@
     const carhop = () => walk(CARHOP, { ar: 1, h: 30, dur: rand(7, 9), cls: ['dn-carhop'] });
     // The cook pops up bottom left and flips a burger.
     const cook = () => {
-      const h = 26;
-      const size = (h / 100) * innerHeight;
-      rise(COOK, { x: 1, h, ar: 1, life: 5200 });
-      // (The spatula's over his right shoulder, about 0.8 of the way across.)
-      const x = 1 + ((size * 0.857 * 0.8) / innerWidth) * 100;
-      later(() => { toss('🍔', { x: x - 1.4, y: 100 - h - 4, size: 40, height: 16, spins: 1 }); cue('sizzle'); }, 900);
+      const [x, y] = popBehind(COOK, COOK_LOOK, 5200);
+      // (The burger off the end of his spatula, a burger's size there.)
+      const size = 26 * unit();
+      later(() => { toss('🍔', { x: x - (size / 2 / innerWidth) * 100, y: y - (size / innerHeight) * 100, size, height: 12, spins: 1 }); cue('sizzle'); }, 900);
       later(() => orderUp(), 3600);
     };
     // The Bel Air drives past outside the window, and its headlights sweep the room.
@@ -4297,8 +4389,12 @@
     // (Her legs and arms are sp-legb/legf/armb/armf: the Charleston, in CSS.)
     const FLAPPER = figure({ skin: 'pale', blush: true, hair: 'bob', hairColor: 'black', hat: 'headband', hatColor: '#c9ccd1', hatAccent: '#f4f0e6', top: '#d9ad52', sleeves: 'none', topStyle: 'flapper', accent: '#8a1a2a', bottom: '#d9ad52', bottomStyle: 'skirt', shoes: '#141010', arms: [[-40, 100], [40, -110]], hooks: { legB: 'sp-legb', legF: 'sp-legf', armB: 'sp-armb', armF: 'sp-armf' } });
     // The bartender, shaking a cocktail over his shoulder: moustache, bow tie, sleeve garters.
-    // (From the waist up, popping up behind the bar: see waistUp, in the diner.)
-    const BARTENDER = waistUp({ facing: 'front', skin: 'pale', hair: 'short', hairColor: 'black', beard: 'moustache', top: '#f4f0e6', topStyle: 'vest', accent: '#1a1414', neck: 'bow', accent2: '#8a1a2a', arms: [[110, 96], [110, 96]], holding: 'shaker', hooks: { armB: 'sp-shake', armF: 'sp-shake' } });
+    // (Popping up behind the bar's end, bottom right, the size of the bar: its top at 686, 1.1 m
+    // over the floor at 824, so 236 tall; behind the Bee's Knees and the martini on it. See
+    // popBehind, in the diner, and speakeasyArt.)
+    const BARTENDER_LOOK = { facing: 'front', skin: 'pale', hair: 'short', hairColor: 'black', beard: 'moustache', top: '#f4f0e6', topStyle: 'vest', accent: '#1a1414', neck: 'bow', accent2: '#8a1a2a', arms: [[110, 96], [110, 96]], holding: 'shaker', hooks: { armB: 'sp-shake', armF: 'sp-shake' } };
+    const BARTENDER = behindCounter('sp-barcut', 1372, 686, 236, BARTENDER_LOOK,
+      ['M1330 649 Q1350 680 1370 649Z M1347 664h6v22h-6Z', 'M1374 649 Q1394 680 1414 649Z M1391 664h6v22h-6Z', 'M1430 672 Q1452 690 1474 672Z M1430 666 a8 6 0 0 1 44 0Z'].join(' '));
     // A gangster in a suit and a fedora, a violin case in his hand. Faces right.
     const GANGSTER = figure({ skin: 'light', hair: 'short', hairColor: 'black', hat: 'fedora', hatColor: '#2a2a30', hatAccent: '#0e0e10', top: '#f4f0e6', topStyle: 'suit', accent: '#33333c', neck: 'tie', accent2: '#c0392b', bottom: '#33333c', shoes: '#f4f0e6', face: 'flat', pose: 'walk', holding: 'case' });
     let speakSaw = null;
@@ -4311,9 +4407,10 @@
       }, 900);
     };
     const bartender = () => {
-      rise(BARTENDER, { x: 77, h: 26, ar: 1, life: 6000 });
+      popBehind(BARTENDER, BARTENDER_LOOK, 6000);
       later(() => cue('shaker'), 700);
-      later(() => { slide('🍸', { y: 72, size: 44 }); cue('slide'); }, 3800);
+      // (Along the bar's top, 686: 76vh at 16:9.)
+      later(() => { slide('🍸', { y: artAt(0, 686)[1] - (44 / innerHeight) * 100, size: 44 }); cue('slide'); }, 3800);
     };
     const flapper = () => walk(FLAPPER, { ar: 1, h: 30, dur: rand(10, 13), cls: ['sp-flapper'] });
     SCENES.speakeasy = {

@@ -837,7 +837,7 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc5-dj .sc5-djarm { transition: transform 0.3s ease-out; }
 .sc5-dj .sc5-djarm.r { animation: sc5-scratch 0.47s ease-in-out infinite alternate; }
 @keyframes sc5-scratch { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
-.sc5-dj.up .sc5-djarm.l { transform: rotate(150deg); } .sc5-dj.up .sc5-djarm.r { animation: none; transform: rotate(-150deg); }
+.sc5-dj.up .sc5-djarm.l { transform: rotate(95deg); } .sc5-dj.up .sc5-djarm.r { animation: none; transform: rotate(-105deg); }
 .sc5-crowd .sc5-bob { animation: sc5-bounce 0.47s ease-in-out infinite; }
 @keyframes sc5-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 .sc5-crowd.jump .sc5-bob { animation-name: sc5-jump; }
