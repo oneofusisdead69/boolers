@@ -261,11 +261,22 @@
       const ang = (Math.atan2(u[1], u[0]) * 180) / Math.PI;
       return { tip: top, svg: `${inked(`M${pt(body)} L${pt(top)} l${n1(u[1] * 4)} ${n1(-u[0] * 4)}`, '#5a3418', 2.4)}<g transform="translate(${pt(body)}) rotate(${n1(ang)})"><path d="M-9 0 C-9 -6.5 -2 -7 5 -2.5 L5 2.5 C-2 7 -9 6.5 -9 0Z" fill="${c}" ${ink}/><circle cx="-1.5" cy="0" r="1.8" fill="${INK}"/></g>` };
     },
+    // An alto sax: the mouthpiece at the mouth, the crook down into the body, the body widening
+    // down past both hands to the bow, the bell turned up in front; pearl keys, the tone holes.
     sax: (L, c = '#e0b040') => {
       const [f, b] = [L.arms[1].h, L.arms[0].h];
       const m = L.mouth;
-      const bell = [f[0] + 4, f[1] + 3];
-      return { tip: bell, svg: `${inked(`M${pt([m[0] + 1, m[1] + 1])} Q${pt([b[0] + 2, b[1] - 4])} ${pt(b)} T${pt([f[0] - 2, f[1] + 6])} Q${pt([f[0] + 2, f[1] + 10])} ${pt(bell)}`, c, 3.8)}<path d="M${pt(bell)} l1 -6 l5 2 Z" fill="${c}" ${ink}/>` };
+      const [t0, t1] = [b[0] + 1.5, b[1] - 6];
+      const [x, y] = [f[0] - 2, f[1] + 8];
+      const P = (dx, dy) => pt([x + dx, y + dy]);
+      const on = (u, dx = 0) => [n1(t0 + (x - t0) * u + dx), n1(t1 + (y - 3 - t1) * u)];
+      const dark = shade(c, 0.35);
+      const body = `M${pt([t0 - 1.2, t1])} L${P(-3, -3)} C${P(-3, 5)} ${P(11, 6)} ${P(12.5, -2)} L${P(14.5, -12)} L${P(16, -14)} L${P(7.5, -14.5)} Q${P(8.5, -12)} ${P(8.5, -9)} L${P(8, -3)} C${P(7.5, 1)} ${P(3, 1)} ${P(3, -3)} L${pt([t0 + 1.2, t1])}Z`;
+      return { tip: [x + 11.7, y - 14.5], svg: `${inked(`M${pt([m[0] + 3.5, m[1] + 2.2])} Q${pt([m[0] + 10, m[1] + 2])} ${pt([t0, t1 + 0.5])}`, c, 1.9)}${inked(`M${pt([m[0] + 0.4, m[1] + 0.8])} L${pt([m[0] + 3.6, m[1] + 2.2])}`, '#1a1416', 2)}
+        <path d="${body}" fill="${c}" ${ink}/><path d="M${pt(on(0.05, -0.4))} L${pt(on(0.95, -1.4))}" stroke="#fff6d8" stroke-width="0.8" opacity="0.7"/><path d="M${pt(on(0.1, 1.1))} L${pt(on(0.95, 2.4))}" stroke="${dark}" stroke-width="0.6"/>
+        <ellipse cx="${n1(x + 11.75)}" cy="${n1(y - 14.25)}" rx="4.4" ry="1.3" transform="rotate(-6 ${pt([x + 11.75, y - 14.25])})" fill="${dark}" ${ink}/>
+        ${[0.2, 0.38, 0.6, 0.78].map((u) => `<circle cx="${on(u, 1.4)[0]}" cy="${on(u, 1.4)[1]}" r="1.1" fill="#f6eedc" stroke="${dark}" stroke-width="0.5"/>`).join('')}
+        ${[0.48, 0.7, 0.9].map((u) => `<circle cx="${on(u, -1.6)[0]}" cy="${on(u, -1.6)[1]}" r="1.3" fill="${dark}"/>`).join('')}<path d="M${P(1, 2.5)} q3 1.6 6 0" stroke="${dark}" stroke-width="0.7" fill="none"/>` };
     },
     sticks: (L, c = '#d8c8a0') => {
       const st = (a) => { const e = along(a.h, a.ang + 70, 13); return inked(`M${pt(a.h)} L${pt(e)}`, c, 1.6); };
@@ -884,8 +895,89 @@
   // Hands in the air in front of the TV: the kit's arms close up (in silhouette, its ink round
   // them, a fist on top), leaning this way and that.
   const HANDS = `<svg viewBox="0 0 400 80" width="1em" height="0.2em" overflow="visible">${[20, 70, 120, 175, 230, 280, 330, 380].map((x, i) => { const y = 24 + (i % 3) * 8; const lean = [-6, 4, -2, 7, -5, 3, 6, -4][i]; return `<g class="sc-hand" style="animation-delay:-${(i * 0.17).toFixed(2)}s">${inked(`M${x - lean * 2} 110 L${x} ${y}`, '#07050d', 13)}<circle cx="${x}" cy="${y - 4}" r="9.5" fill="#07050d" stroke="${INK}" stroke-width="${LW * 1.6}"/></g>`; }).join('')}</svg>`;
-  const BANNER = (color) => `<svg viewBox="0 0 50 140" width="0.36em" height="1em"><rect x="0" y="0" width="50" height="6" fill="#5a3d1e"/>
-    <path class="sc-cloth" d="M4 6 H46 V120 L25 104 L4 120Z" fill="${color}"/><path d="M14 40 L25 26 L36 40 L25 70Z" fill="#e8c15a"/></svg>`;
+  // The court's banners (the castle, the tournament): one for each player, a swallow-tailed
+  // gonfalon in their colour, each with its own pattern (a pale, a chevron, a bend…) in gold (or,
+  // on a pale colour, in black), their avatar on a roundel for its device and their name on a
+  // scroll across it. 1em wide. They stir in the draught; whoever's turn it is has theirs lifted
+  // and lit, a banner dips when its player drinks, and the winner's unfurls, big.
+  const CLOTH = 'M2 5 H58 V100 L44 118 L30 102 L16 118 L2 100Z';
+  const BLAZONS = {
+    pale: (m) => `<rect x="22" width="16" height="130" fill="${m}"/>`,
+    chevron: (m) => `<path d="M-5 92 L30 58 L65 92 V108 L30 74 L-5 108Z" fill="${m}"/>`,
+    bend: (m) => `<path d="M-10 6 L6 -10 L76 96 L60 112Z" fill="${m}"/>`,
+    fess: (m) => `<rect y="60" width="60" height="9" fill="${m}"/>`,
+    quarterly: (m) => `<path d="M30 0 H60 V48 H30Z M0 48 H30 V130 H0Z" fill="${m}"/>`,
+    saltire: (m) => `<path d="M-4 0 L64 120 M64 0 L-4 120" stroke="${m}" stroke-width="9"/>`,
+    bordure: (m) => `<path d="${CLOTH}" fill="none" stroke="${m}" stroke-width="12"/>`,
+    chief: (m) => `<rect width="60" height="22" fill="${m}"/>`,
+    paly: (m) => `<path d="M8 0 h7 v130 h-7Z M23 0 h7 v130 h-7Z M38 0 h7 v130 h-7Z M53 0 h7 v130 h-7Z" fill="${m}"/>`,
+    plain: () => '',
+  };
+  const COURT_GOLD = '#e8c15a';
+  const pale = (c) => { const m = /^#?([\da-f]{6})$/i.exec(String(c)); if (!m) return false; const n = parseInt(m[1], 16); return 0.3 * (n >> 16) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255) > 170; };
+  const gonfalon = (p, kind, id) => {
+    const c = /^#[\da-f]{3,8}$/i.test(p.color) ? p.color : '#8c1423';
+    const m = pale(c) ? '#2a1a10' : COURT_GOLD;
+    return `<svg viewBox="0 0 60 124" width="1em" height="2.07em" overflow="visible"><g class="ck-cloth"><clipPath id="${id}"><path d="${CLOTH}"/></clipPath>
+      <path d="${CLOTH}" fill="${c}"/><g clip-path="url(#${id})">${BLAZONS[kind](m)}<g class="ck-folds"><path d="M9 0 V130 M27 0 V130 M45 0 V130" stroke="#000" stroke-width="6" opacity="0.2"/><path d="M15 0 V130 M33 0 V130 M51 0 V130" stroke="#fff" stroke-width="3" opacity="0.13"/></g></g>
+      <path d="${CLOTH}" fill="none" stroke="${COURT_GOLD}" stroke-width="2"/><circle cx="30" cy="38" r="15" fill="${shade(c, 0.45)}" stroke="${COURT_GOLD}" stroke-width="2"/><text x="30" y="45" font-size="19" text-anchor="middle">${esc(p.avatar || '🛡️')}</text></g>
+      <rect x="-4" y="1" width="68" height="5" rx="2.5" fill="#4a2e16"/><circle cx="-4" cy="3.5" r="3.4" fill="${COURT_GOLD}"/><circle cx="64" cy="3.5" r="3.4" fill="${COURT_GOLD}"/></svg><b class="ck-name">${esc(p.name)}</b>`;
+  };
+  // Each player's pattern, from their id (so it stays theirs as others come and go), no two alike.
+  const blazonsFor = (ids) => {
+    const kinds = Object.keys(BLAZONS);
+    const used = new Set();
+    return ids.map((id) => {
+      let h = 7;
+      for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+      let k = h % kinds.length;
+      while (used.has(k) && used.size < kinds.length) k = (k + 1) % kinds.length;
+      used.add(k);
+      return kinds[k];
+    });
+  };
+  // Hangs the banners where `place(i, n)` says ({ left, top, fontSize }), again whenever someone
+  // joins or leaves (or changes their look), and has them follow the game.
+  const court = { drinks: {}, no: null };
+  function heraldry(s, place, cls = []) {
+    if (!layer) return;
+    const ps = s?.players || [];
+    const key = `${innerWidth}x${innerHeight}|${ps.map((p) => [p.id, p.name, p.avatar, p.color].join('|')).join(',')}`;
+    let box = layer.querySelector('.ck-court');
+    if (!box || box.dataset.key !== key) {
+      box?.remove();
+      box = el('', { inset: '0' });
+      box.classList.add('ck-court', ...cls);
+      box.dataset.key = key;
+      const kinds = blazonsFor(ps.map((p) => p.id));
+      ps.forEach((p, i) => {
+        const d = el(gonfalon(p, kinds[i], `ckc${i}`), place(i, ps.length), 0, box);
+        d.classList.add('blk', 'ck-banner');
+        d.dataset.id = p.id;
+        d.firstElementChild.style.animationDelay = `-${((i * 1.37) % 4).toFixed(2)}s`;
+      });
+    }
+    const g = s?.game || {};
+    const over = s?.phase === 'over';
+    const turn = over ? null : g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
+    const won = over ? g.winnerId ?? g.winner : null;
+    const drinks = Object.fromEntries(ps.map((p) => [p.id, p.drinks || 0]));
+    const fresh = court.no !== s?.gameNo;
+    for (const d of box.children) {
+      const id = d.dataset.id;
+      // (ck- names: the page's own .turn and the like would style these too.)
+      d.classList.toggle('ck-turn', turn != null && id === String(turn));
+      d.classList.toggle('ck-win', won != null && id === String(won));
+      if (!fresh && drinks[id] > (court.drinks[id] ?? Infinity)) {
+        d.classList.remove('ck-dip');
+        void d.offsetWidth;
+        d.classList.add('ck-dip');
+        later(() => d.classList.remove('ck-dip'), 1900);
+      }
+    }
+    court.drinks = drinks;
+    court.no = s?.gameNo;
+  }
   // A dragon in flight (facing right): bat wings with their finger bones and scalloped skin, a
   // long neck, a horned head breathing fire, a pale scaled belly, claws tucked up, a long tail
   // ending in a spade.
@@ -2497,15 +2589,21 @@
     ],
   };
 
-  // Horse Race at the castle: the tournament field. Pennants fly; a herald sounds the start, the
-  // crowd cheers, roses are thrown, a falcon goes over and the jester does his act.
-  const PENNANT = (c) => `<svg viewBox="0 0 20 80" width="0.25em" height="1em"><rect x="0" y="0" width="2" height="80" fill="#5a3a1e"/><g class="sc-flag"><path d="M2 4 L20 12 L2 22Z" fill="${c}"/></g></svg>`;
+  // Horse Race at the castle: the tournament field. Every player's banner flies on its staff along
+  // the lists (the court's banners, above: they dip when their player drinks); a herald sounds the
+  // start, the crowd cheers, roses are thrown, a falcon goes over and the jester does his act.
+  const listsBanner = (i, n) => {
+    const step = 18 / n;
+    const size = Math.min(60, (step * 0.72 * innerWidth) / 100);
+    return { left: `calc(${(1.5 + (i + 0.5) * step).toFixed(2)}vw - ${(size / 2).toFixed(1)}px)`, top: '14vh', fontSize: `${size.toFixed(1)}px` };
+  };
   SCENES.castleTournament = {
     decor() {
-      ['#8e1b1b', '#1b3f8e', '#d4af37', '#2a6a3a'].forEach((c, i) => el(PENNANT(c), { left: `${3 + i * 4}vw`, top: '16vh', fontSize: '90px', animationDelay: `-${i * 0.4}s` }).classList.add('sc-jolly'));
+      court.no = null;
       banner('Let the tournament begin!', 'Riders, to the lists', 'tourney');
       cue('fanfare', 300);
     },
+    update: (s) => heraldry(s, listsBanner, ['lists']),
     moments: [
       () => { el('📯', { left: '2vw', top: '30vh', fontSize: '70px', animation: 'sc-herald 4s ease-in-out forwards' }, 4200); cue('fanfare', 400); },
       () => { cue('cheer'); burst(['🌹', '🌸', '🌹'], { x: 6, y: 70, n: 14, spread: 12, size: [20, 30] }); },
@@ -3539,22 +3637,37 @@
       cue('fanfare');
     };
     const toast = () => { const k = layer.querySelector('.sc5-king'); k?.classList.add('sc5-raise'); later(() => k?.classList.remove('sc5-raise'), 2400); };
+    // Where greatHall (lib/roomArt.js) has its torches (the cup's rim, and its size), its fire,
+    // its ring of candles, its window in the gap (the box round it, and the lancet's outline in
+    // it), the armour's visor slit and the throne.
+    const TORCHES5 = [[151, 350, 1.05], [1057, 386, 0.62], [1247, 365, 0.85]];
+    const CANDLES5 = Array.from({ length: 10 }, (_, k) => [570 + 64 * Math.cos((k * Math.PI) / 5), 80 + 13 * Math.sin((k * Math.PI) / 5) - 14]);
+    const WINDOW5 = { x: 1071, y: 109, w: 87, h: 336, clip: 'polygon(0 20%, 46% 0, 100% 4%, 100% 100%, 0 100%)' };
+    // The banners hang from the beam across the hall (its underside at y 91, 48 wide: 0.6 m at
+    // 12.4 m off), in two runs either side of the candles and the seat at the top of the table.
+    const hallBanner = (i, n) => {
+      const t = ((i + 0.5) / n) * 570;
+      const [l, top] = at5((t < 210 ? 285 + t : 470 + t) - 24, 91);
+      return { left: `${l}vw`, top: `${top}vh`, fontSize: `${px5(48)}px` };
+    };
     SCENES.castle = {
       decor() {
         seen5 = null;
-        for (const [x, y] of [[70, 306], [1190, 438]]) { light(x, y - 20, 300, 300, 'rgba(255, 140, 40, 0.3)', ['sc5-fireglow']); flame(x, y, 44); }
-        [-80, -48, -16, 16, 48, 80].forEach((d) => flame(800 + d, 117 + Math.abs(d) / 12, 14, ['small']));
-        // (Not .sc-banner: that's the eggs' welcome, which fades away.)
-        el(BANNER('#8e1b1b'), { left: '8vw', top: '0', fontSize: '150px' }).classList.add('sc5-banner');
-        el(BANNER('#1b3f8e'), { left: '26vw', top: '0', fontSize: '120px' }).classList.add('sc5-banner', 'b');
-        put(KING, 1284, 610, 226, ['sc5-king']);
+        court.no = null;
+        for (const [x, y, k] of TORCHES5) { light(x, y - 20 * k, 300 * k, 300 * k, 'rgba(255, 140, 40, 0.3)', ['sc5-fireglow']); flame(x, y - 4 * k, 40 * k); }
+        // The fire in the great fireplace.
+        light(1462, 760, 380, 300, 'rgba(255, 120, 30, 0.32)', ['sc5-fireglow']);
+        [[1452, 770, 48], [1476, 782, 66, ['b']], [1496, 790, 40]].forEach(([x, y, h, c]) => flame(x, y, h, c));
+        CANDLES5.forEach(([x, y]) => flame(x, y, 13, ['small']));
+        // (A figure is 1em tall: the king, sitting, is 206 of the art's units, his feet on the dais.)
+        put(KING, 1048, 612, 206, ['sc5-king']);
       },
-      update: (s) => watch5(s, {
+      update: (s) => { heraldry(s, hallBanner); watch5(s, {
         drink: (who) => { decree(sips(who).replace(/ \+(\d+)/g, ' drinks $1')); toast(); },
         over: (name) => { toast(); cue('fanfare'); cue('cheer', 600); later(() => burst(['👑', '✨', '🍷'], { x: 36, y: 40, n: 18, spread: 26 }), 300); quote5(name ? `Long live King ${name}!` : 'Long live the king!', 'castle'); },
-      }),
+      }); },
       moments: [
-        () => embers(5, () => { const [x, y] = at5(pick([70, 1190]), 280); return [x + rand(-1, 1), y]; }),
+        () => embers(5, () => { const [x, y, k] = pick(TORCHES5); const [ex, ey] = at5(x, y - 40 * k); return [ex + rand(-1, 1), ey]; }),
         bats,
         () => {
           const right = Math.random() < 0.5;
@@ -3567,14 +3680,15 @@
           cue('clank');
         },
         // The suit of armour isn't empty: eyes in the visor, looking round.
-        () => { put('<i></i><i></i>', 70, 480, 30, ['sc5-armoureyes'], 5200); cue('clank', 3600); },
+        () => { put('<i></i><i></i>', 94, 565, 28, ['sc5-armoureyes'], 5200); cue('clank', 3600); },
         // The king raises his goblet to the court.
         () => { toast(); cue('cheer', 600); },
         // A dragon passes the window, its fire lighting up the night.
         () => {
-          const [l, t] = at5(1046, 150);
-          el(`<div class="sc5-windragon sc-dragon">${DRAGON}</div>`, { left: `${l}vw`, top: `${t}vh`, width: `${px5(108)}px`, height: `${px5(410)}px`, fontSize: `${px5(90)}px` }, 6000).classList.add('sc5-window');
-          later(() => light(1100, 330, 260, 420, 'rgba(255, 140, 40, 0.5)', ['sc5-flash'], 1600), 2600);
+          const { x, y, w, h, clip } = WINDOW5;
+          const [l, t] = at5(x, y);
+          el(`<div class="sc5-windragon sc-dragon">${DRAGON}</div>`, { left: `${l}vw`, top: `${t}vh`, width: `${px5(w)}px`, height: `${px5(h)}px`, fontSize: `${px5(80)}px`, clipPath: clip }, 6000).classList.add('sc5-window');
+          later(() => light(x + w / 2, y + h / 2, 240, 400, 'rgba(255, 140, 40, 0.5)', ['sc5-flash'], 1600), 2600);
           cue('roar', 2600);
         },
         // The jester cartwheels across the hall.
@@ -3592,7 +3706,11 @@
     const PIANIST = `<svg viewBox="0 0 100 130" width="1em" height="1.3em" overflow="visible">
       ${figureAt(50, 178, 190, { facing: 'back', skin: 'brown', hair: 'short', hairColor: 'black', top: '#141016', arms: [[12, 10], [12, 10]], crop: 'waist', hooks: { armB: 'sc5-play', armF: 'sc5-play b' } })}
       <path d="M14 122 v8 M86 122 v8" stroke="${INK}" stroke-width="5"/><rect x="6" y="110" width="88" height="12" rx="3" fill="#2a1a14" ${ink}/></svg>`;
-    const DRUMMER = figure({ facing: 'front', skin: 'brown', hair: 'short', hairColor: 'black', hat: 'flatcap', hatColor: '#2a2a3a', top: '#e8e0d0', topStyle: 'vest', accent: '#2a2a3a', neck: 'bow', accent2: '#8a1a2a', arms: [[34, -66], [34, -66]], holding: 'sticks', propColor: '#d8c8a0', crop: 'waist', hooks: { armB: 'sc5-brush', armF: 'sc5-brush b' } });
+    // (The drummer is drawn in the art's own units, 1400 to 1600 across from 690 down, sat behind
+    // his kit (see jazzKit in lib/roomArt.js): the tom, the bass drum, the snare and the floor tom
+    // in front of him are cut out of him, so he's behind them.)
+    const DRUMMER = `<svg viewBox="1400 690 200 180" width="1em" height="0.9em" overflow="visible"><clipPath id="sc5-kit"><path d="M1380 600H1620V900H1549V790L1532 784.5L1515 790V805L1504 797L1492 795V774L1477 769.5L1462 774V794L1460 796L1442 790.5L1424 796V900H1380Z"/></clipPath><g clip-path="url(#sc5-kit)">
+      ${figureAt(1494, 869, 164, { facing: 'front', skin: 'brown', hair: 'short', hairColor: 'black', hat: 'flatcap', hatColor: '#2a2a3a', top: '#e8e0d0', topStyle: 'vest', accent: '#2a2a3a', neck: 'bow', accent2: '#8a1a2a', arms: [[34, -66], [34, -66]], holding: 'sticks', propColor: '#d8c8a0', crop: 'waist', hooks: { armB: 'sc5-brush', armF: 'sc5-brush b' } })}</g></svg>`;
     // Whoever steps up to the mic: the singer in her gown, the sax player.
     const SINGER = figure({ skin: 'brown', hair: 'long', hairColor: 'black', hat: 'headband', hatColor: '#c8a040', hatAccent: '#f4f0e8', top: '#c8a040', sleeves: 'none', bottom: '#c8a040', bottomStyle: 'gown', arms: [[-60, -40], 'drink'], holding: 'mic' });
     const SAX = figure({ skin: 'brown', hair: 'short', hairColor: 'black', hat: 'fedora', hatColor: '#1a1010', top: '#2a1a2a', topStyle: 'suit', accent: '#2a1a2a', bottom: '#1a1018', pose: 'sax', holding: 'sax', propColor: '#e3b04b' });
@@ -3603,7 +3721,8 @@
     const COOL_CAT = figure({ skin: 'brown', hair: 'short', hairColor: 'black', hat: 'beret', beard: 'goatee', face: 'shades', top: '#1a1a20', neck: 'scarf', accent2: '#e3b23c', bottom: '#2a2a30', pose: 'walk' });
     // Someone steps up to the mic in the spotlight (the singer, the sax), and the notes rise.
     const onStage = (svg, life, sound) => {
-      const [l] = at5(14, 0);
+      // (Just behind the mic, at x 140 in the art.)
+      const [l] = at5(34, 0);
       const d = el(`<span>${svg}</span>`, { left: `${l}vw`, bottom: `${100 - at5(0, 880)[1]}vh`, fontSize: `${px5(190)}px`, animation: `sc-popup ${life / 1000}s ease-in-out forwards` }, life);
       d.classList.add('blk', 'sc5-onstage');
       cue(sound);
@@ -3616,9 +3735,9 @@
         light(100, 640, 360, 640, 'rgba(255, 240, 200, 0.16)', ['sc5-spotbreathe']);
         for (let i = 0; i < 3; i++) el('', { left: `${-10 + i * 12}vw`, top: `${20 + i * 18}vh`, width: '40vw', height: '30vh', animationDelay: `-${i * 9}s` }).classList.add('sc5-smoke');
         light(1100, 440, 220, 200, 'rgba(255, 70, 60, 0.25)', ['sc5-fireglow']);
-        put(PIANIST, 1240, 596, 100, ['sc5-pianist']);
-        // (A figure is 1em tall: 164 of the art's units, his head where it was.)
-        put(DRUMMER, 1491, 636, 164, ['sc5-drummer']);
+        // The pianist on his bench in front of the keys (the art's 88 units to the metre).
+        put(PIANIST, 1228, 733, 70, ['sc5-pianist']);
+        put(DRUMMER, 1400, 690, 200, ['sc5-drummer']);
       },
       update: (s) => watch5(s, {
         drink: (who) => { walk(WAITER, { h: px5(170), y: 99.5, dur: 11 }); cue('clink', 2000); quote5(`Cheers, darling · ${sips(who)}`, 'jazz', '22vh', 2800); },
@@ -3631,7 +3750,7 @@
         () => onStage(SINGER, 10000, 'chord'),
         () => onStage(SAX, 9000, 'chord').classList.add('sax'),
         // A run on the piano.
-        () => { const p = layer.querySelector('.sc5-pianist'); p?.classList.add('run'); later(() => p?.classList.remove('run'), 4000); notes(...at5(1300, 640), '#e3b23c', 4); cue('chord'); },
+        () => { const p = layer.querySelector('.sc5-pianist'); p?.classList.add('run'); later(() => p?.classList.remove('run'), 4000); notes(...at5(1300, 700), '#e3b23c', 4); cue('chord'); },
         // The drummer's rimshot.
         () => { const d = layer.querySelector('.sc5-drummer'); d?.classList.add('hit'); later(() => d?.classList.remove('hit'), 1200); cue('rimshot'); },
         // A waiter crosses with a tray of martinis.
@@ -4125,15 +4244,40 @@
     };
 
     // ---------- The saloon ----------
-    // The batwing doors (over the drawing's doorway): louvred, swinging on their hinges.
-    const door = (x0, w, side) => `<g class="sl-door ${side}"><path d="M${x0} 58 Q${x0 + w / 2} ${side === 'l' ? 46 : 70} ${x0 + w} 50 V138 H${x0}Z" fill="#6a3e1c" stroke="#3a2210" stroke-width="2"/>${[66, 76, 86, 96, 106, 116, 126].map((y) => `<path d="M${x0 + 5} ${y} H${x0 + w - 5}" stroke="#3a2210" stroke-width="2.5"/>`).join('')}<path d="M${x0 + w / 2} 60 V136" stroke="#8a5a2a" stroke-width="2"/></g>`;
-    const DOORS = `<svg viewBox="0 0 116 174" width="1em" height="1.5em" overflow="visible">${door(0, 57, 'l')}${door(59, 57, 'r')}</svg>`;
+    // The room's in perspective (see saloonArt): the floor's vanishing point is at (800, 502) of
+    // the drawing and the camera 2.2 m up, so on the floor at y there are perM(y) units to the
+    // metre. Everyone here stands on that floor, as tall as they'd be where their feet are.
+    const perM = (y) => (y - 502) / 2.2;
+    // Something standing on the floor, its feet (bottom middle) at (x, y) of the drawing, `m`
+    // metres tall, `ar` its width over its height (a kit figure's 0.5).
+    const standAt = (html, x, y, m, life, ar = 0.5) => {
+      const h = m * perM(y) * unit();
+      const [l, t] = artAt(x, y);
+      return el(html, { left: `${l - ((h * ar) / 2 / innerWidth) * 100}vw`, top: `${t - (h / innerHeight) * 100}vh`, fontSize: `${h.toFixed(1)}px` }, life);
+    };
+    // The left edge of the screen, in the drawing's x.
+    const leftEdge = () => -(innerWidth - 1600 * unit()) / 2 / unit();
+    // The poker table in the bottom left corner, the same as the drawing's (pokerTable in
+    // lib/roomArt.js), laid over the scenery: it's so near that anyone on the floor over there is
+    // behind it (.sl-near).
+    const POKER_TABLE = `<svg viewBox="-60 690 340 210" width="1em" height="0.618em"><ellipse cx='110' cy='800' rx='162' ry='46' fill='#3a1e0e'/><ellipse cx='110' cy='795' rx='148' ry='39' fill='#2f5a34'/><path d='M36 838 V900 M184 838 V900' stroke='#3a1e0e' stroke-width='18'/>
+      ${[[52, 792, -12, 'A'], [66, 790, -4, 'A'], [80, 790, 6, '8'], [94, 792, 14, '8']].map(([x, y, a, t], i) => `<g transform='rotate(${a} ${x} ${y})'><rect x='${x - 6.5}' y='${y - 10}' width='13' height='18' rx='2' fill='#fbf8f0'/><text x='${x}' y='${y + 2}' font-family='Georgia, serif' font-size='8' font-weight='700' text-anchor='middle' fill='${i % 2 ? '#c1121f' : '#141414'}'>${t}</text></g>`).join('')}
+      ${[[146, 794, 6, '#c0392b'], [158, 798, 4, '#e8dcc0'], [136, 800, 3, '#2a4a8a']].map(([x, y, n, c]) => Array.from({ length: n }, (_, i) => `<ellipse cx='${x}' cy='${Math.round((y - i * 1.5) * 10) / 10}' rx='4.5' ry='1.6' fill='${c}' stroke='#2a1608' stroke-width='0.6'/>`).join('')).join('')}
+      <path d='M220 788 v-32 q0 -7 5 -10 v-12 h7 v12 q5 3 5 10 v32Z' fill='#5a3a10' opacity='0.9'/><rect x='222' y='760' width='13' height='11' fill='#e8dcc0'/><text x='228.5' y='768' font-family='Georgia, serif' font-size='6' font-weight='700' text-anchor='middle' fill='#3a1a08'>XXX</text></svg>`;
+    // The piano's drawn squashed to 1.3 m about its feet (y 880): where a y of the unsquashed
+    // drawing went.
+    const PIANO_SQ = 0.656;
+    const onPiano = (y) => 880 - (880 - y) * PIANO_SQ;
+    // The batwing doors (over the drawing's doorway, 2.3 m by 1.1: 1 unit of this svg is 1 of the
+    // drawing): louvred, 1.07 m tall and 0.4 m off the floor, swinging on their hinges.
+    const door = (x0, w, side) => `<g class="sl-door ${side}"><path d="M${x0} 88 Q${x0 + w / 2} ${side === 'l' ? 76 : 100} ${x0 + w} 80 V202 H${x0}Z" fill="#6a3e1c" stroke="#3a2210" stroke-width="2"/>${[98, 110, 122, 134, 146, 158, 170, 182, 194].map((y) => `<path d="M${x0 + 5} ${y} H${x0 + w - 5}" stroke="#3a2210" stroke-width="2.5"/>`).join('')}<path d="M${x0 + w / 2} 86 V200" stroke="#8a5a2a" stroke-width="2"/></g>`;
+    const DOORS = `<svg viewBox="0 0 116 245" width="1em" height="2.112em" overflow="visible">${door(0, 57, 'l')}${door(59, 57, 'r')}</svg>`;
     // A stranger, backlit in the doorway; a rider going by in the street.
     // (Both the kit's, in silhouette: every colour the one, no face. The rider on the kit's horse.)
     const silhouette = (c) => ({ skin: c, hair: 'bald', face: 'none', hatColor: c, hatAccent: c, top: c, bottom: c, shoes: c });
     const STRANGER = figure({ ...silhouette('#1a0c04'), hat: 'cowboy', facing: 'front', build: 'broad' });
     const RIDER = `<svg viewBox="0 0 100 80" width="1em" height="0.8em" overflow="visible">${critter.at('horse', 50, 78, 96, { color: '#4a2a14' })}${figureAt(50, 46.5, 56, { ...silhouette('#4a2a14'), hat: 'cowboy', arms: ['ride', 'ride'], legs: [[40, -50], [40, -50]] })}</svg>`;
-    const PIANO_KEYS = `<svg viewBox="0 0 244 26" width="1em" height="0.107em">${[1, 3, 4, 7, 9, 12, 14, 15, 18, 20, 22].map((k, i) => `<rect class="sl-key" x="${(k * 10.2 + 1).toFixed(1)}" y="0" width="8.5" height="26" fill="#000" opacity="0" style="animation-duration:${(1.1 + (i % 4) * 0.37).toFixed(2)}s;animation-delay:-${(i * 0.29).toFixed(2)}s"/>`).join('')}</svg>`;
+    const PIANO_KEYS = `<svg viewBox="0 0 244 26" width="1em" height="${(0.1066 * PIANO_SQ).toFixed(4)}em" preserveAspectRatio="none">${[1, 3, 4, 7, 9, 12, 14, 15, 18, 20, 22].map((k, i) => `<rect class="sl-key" x="${(k * 10.2 + 1).toFixed(1)}" y="0" width="8.5" height="26" fill="#000" opacity="0" style="animation-duration:${(1.1 + (i % 4) * 0.37).toFixed(2)}s;animation-delay:-${(i * 0.29).toFixed(2)}s"/>`).join('')}</svg>`;
     let saloonSaw = null;
     const doorsSwing = () => {
       const d = layer.querySelector('.sl-doors');
@@ -4143,42 +4287,65 @@
       d.classList.add('swing');
       cue('creak');
     };
+    // What's seen through the doorway (its bottom 30 units under the sill, at y 766, for the
+    // stranger stepping in), in px from the bottom of that.
     const behindDoors = (html, cls, life) => {
-      const p = box(1040, 550, 116, 174, life, 'sl-pane');
+      const p = box(1040, 491, 116, 275, life, 'sl-pane');
       p.innerHTML = html;
       p.firstElementChild.classList.add(cls);
       layer.querySelector('.sl-doors')?.before(p);
       return p;
     };
-    // A stranger walks in: there in the doorway, the piano stops, the doors swing... and on it goes.
+    const fromSill = (y) => ((766 - y) * unit()).toFixed(1);
+    // A stranger walks in: out in the street and up to the doorway, the piano stops, the doors
+    // swing... and on it goes. 1.8 m on the sill (y 736); he grows about the horizon as he comes
+    // (sl-enter), so his feet stay on the ground.
     const stranger = () => {
       const piano = layer.querySelectorAll('.sl-piano, .sl-roll');
-      behindDoors(`<div style="font-size:${(140 * unit()).toFixed(1)}px">${STRANGER}</div>`, 'sl-stranger', 5200);
+      behindDoors(`<div style="font-size:${(1.8 * perM(736) * unit()).toFixed(1)}px;bottom:${fromSill(736)}px">${STRANGER}</div>`, 'sl-stranger', 5200);
       piano.forEach((p) => p.classList.add('stop'));
-      later(doorsSwing, 2600);
+      later(doorsSwing, 3500);
       later(() => quote('…', 'sl', 1800, '32vh'), 900);
       later(() => piano.forEach((p) => p.classList.remove('stop')), 4800);
     };
-    const rider = () => { behindDoors(`<div style="font-size:${(70 * unit()).toFixed(1)}px">${RIDER}</div>`, Math.random() < 0.5 ? 'sl-rider' : 'sl-rider-l', 6200); cue('gallop', 500); };
+    // A rider going by out in the street, 24 m off (hooves at y 600, 2.5 m nose to tail).
+    const rider = () => { behindDoors(`<div style="font-size:${(2.5 * perM(600) * unit()).toFixed(1)}px;bottom:${fromSill(601)}px">${RIDER}</div>`, Math.random() < 0.5 ? 'sl-rider' : 'sl-rider-l', 6200); cue('gallop', 500); };
     // The player piano breaks into a rag: the keys go like the clappers, notes fly.
     const rag = () => {
       const piano = layer.querySelector('.sl-piano');
       piano?.classList.add('fast');
       later(() => piano?.classList.remove('fast'), 6000);
-      const [x, y] = artAt(1300, 640);
+      const [x, y] = artAt(1300, onPiano(560));
       notes(x, y, '#e8b84a', 6);
+    };
+    // A tumbleweed blowing across the front of the floor (0.55 m, its bottom just under the picture):
+    // in front of the piano, under the poker table.
+    const tumble = (dur, y = rand(902, 914)) => {
+      const size = 0.55 * perM(y) * unit();
+      const top = artAt(0, y)[1] - (size / innerHeight) * 100;
+      drift(TUMBLEWEED, { from: [-12, top], to: [112, top], dur, size, spin: 1080 }).classList.add('sc-tumble');
+    };
+    // A shot of whiskey slid along the poker table to someone (a 10 cm glass, at the table's 201
+    // units to the metre), over the table.
+    const slideShot = () => {
+      const size = 0.1 * 201 * unit();
+      const [x0, y] = artAt(Math.min(-40, leftEdge() - 30), 792);
+      const [x1] = artAt(100, 792);
+      el('<span>🥃</span>', { left: `${x0}vw`, top: `${y - (size / innerHeight) * 100}vh`, fontSize: `${size.toFixed(1)}px`, '--dx': `${x1 - x0}vw`, animation: 'sc-slide 4.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards' }, 4600).classList.add('sc-slider', 'sl-onnear');
     };
     SCENES.saloon = {
       decor() {
         saloonSaw = watcher();
-        el(POSTER(), { left: '2vw', top: '14vh', fontSize: '130px' }).classList.add('sc-poster');
-        onArt(DOORS, 1040, 550, 116, 0, 'sl-doors');
-        // The player piano playing itself: the keys going down, the roll turning.
-        onArt(PIANO_KEYS, 1204, 672, 244, 0, 'sl-piano');
+        // (The poster 0.8 m tall, on the back wall: 106 units to the metre.)
         const u = unit();
-        const roll = box(1290, 608, 72, 40, 0, 'sl-roll');
-        roll.style.backgroundSize = `${(10 * u).toFixed(1)}px ${(7 * u).toFixed(1)}px`;
-        roll.style.setProperty('--h', `${(-7 * u * 6).toFixed(1)}px`);
+        el(POSTER(), { left: '2vw', top: '14vh', fontSize: `${(0.8 * perM(736) * u).toFixed(1)}px` }).classList.add('sc-poster');
+        onArt(DOORS, 1040, 491, 116, 0, 'sl-doors');
+        onArt(POKER_TABLE, -60, 690, 340, 0, 'sl-near');
+        // The player piano playing itself: the keys going down, the roll turning.
+        onArt(PIANO_KEYS, 1204, onPiano(672), 244, 0, 'sl-piano');
+        const roll = box(1290, onPiano(608), 72, 40 * PIANO_SQ, 0, 'sl-roll');
+        roll.style.backgroundSize = `${(10 * u).toFixed(1)}px ${(7 * PIANO_SQ * u).toFixed(1)}px`;
+        roll.style.setProperty('--h', `${(-7 * PIANO_SQ * u * 6).toFixed(1)}px`);
         // The lantern by the door flickering, dust floating in the sunbeams, the hound asleep.
         box(1028, 130, 140, 140, 0, 'sl-lamp');
         for (let i = 0; i < 16; i++) {
@@ -4207,30 +4374,43 @@
           cue('cheer', 300);
         } else {
           quote(`Drink up, ${e.who}!`, 'sl');
-          slide('🥃', { y: 91, size: 42 });
+          slideShot();
           cue('slide');
         }
       },
       moments: [
-        () => drift(TUMBLEWEED, { from: [-12, rand(86, 90)], to: [112, rand(86, 90)], dur: rand(7, 10), size: rand(56, 80), spin: 1080 }).classList.add('sc-tumble'),
-        // A shootout: two gunslingers square up across the floor, a tumbleweed rolls between
-        // them... one draws, BANG, and the other keels over. The winner blows the smoke away.
+        () => tumble(rand(7, 10)),
+        // A shootout: two gunslingers square up across the floor, 7.8 m off (feet at y 800, 1.8 m
+        // in their hats): one behind the poker table, one in front of the doors. A tumbleweed rolls
+        // between them... one draws, BANG, and the other keels over. The winner blows the smoke away.
         () => {
           const lefty = Math.random() < 0.5;
-          const a = el(GUNSLINGER('#7a2a1a', '#3b2512'), { left: '2vw', bottom: '0', fontSize: '150px' }, 9000);
-          const b = el(GUNSLINGER('#2a4a6a', '#e8dcc0'), { right: '3vw', bottom: '0', fontSize: '150px' }, 9000);
+          const a = standAt(GUNSLINGER('#7a2a1a', '#3b2512'), Math.max(70, leftEdge() + 70), 800, 1.8, 9000);
+          const b = standAt(GUNSLINGER('#2a4a6a', '#e8dcc0'), 1100, 800, 1.8, 9000);
           a.classList.add('sc-slinger', 'blk');
           b.classList.add('sc-slinger', 'blk', 'sc-face-l');
-          later(() => drift(TUMBLEWEED, { from: [-12, 90], to: [112, 90], dur: 4.5, size: 54, spin: 1080 }).classList.add('sc-tumble'), 900);
+          later(() => tumble(4.5), 900);
           const [winner, loser] = lefty ? [a, b] : [b, a];
-          later(() => { winner.classList.add('draw'); cue('bang'); inFront('<b>BANG!</b>', { left: lefty ? '12vw' : '60vw', bottom: '20vh' }, 1800).classList.add('sc-bang'); }, 4200);
+          const [bx, by] = artAt(lefty ? 150 : 940, 540);
+          later(() => { winner.classList.add('draw'); cue('bang'); inFront('<b>BANG!</b>', { left: `${bx}vw`, top: `${by}vh` }, 1800).classList.add('sc-bang'); }, 4200);
           later(() => loser.classList.add('down'), 4450);
           later(() => winner.classList.add('smoke'), 5400);
         },
-        () => { el(HAWK, { left: '14vw', top: '4vh', fontSize: '84px' }, 12000).classList.add('sc-hawk'); cue('hawk', 1500); },
-        () => drift(HAT, { from: [-10, 88], to: [110, 80], dur: rand(5, 7), size: 60, spin: 540 }),
-        () => { slide('🥃', { y: 91, size: 42 }); cue('slide', 200); },
-        () => { crossing(critter('snake'), { y: 94, dur: 9, size: 76, faces: 'right' }); cue('rattle', 500); },
+        // (A hawk in the rafters, 1.2 m across at the back wall.)
+        () => { el(HAWK, { left: '14vw', top: '4vh', fontSize: `${(1.2 * perM(736) * unit()).toFixed(1)}px` }, 12000).classList.add('sc-hawk'); cue('hawk', 1500); },
+        // (A hat blown along low over the front of the floor, 0.4 m across.)
+        () => drift(HAT, { from: [-10, 80], to: [110, 72], dur: rand(5, 7), size: 0.4 * perM(910) * unit(), spin: 540 }).classList.add('sl-onnear'),
+        () => { slideShot(); cue('slide', 200); },
+        // (A rattlesnake 1 m long, across the front of the floor like the tumbleweed.)
+        () => {
+          const size = perM(906) * unit();
+          const d = crossing(critter('snake'), { y: 0, dur: 9, size, faces: 'right' });
+          // (Its belly, 0.8 of the way down the drawing, on the floor at y 906: the drawing sits
+          // a little way down its line, so measured.)
+          const s = d.querySelector('svg').getBoundingClientRect();
+          d.style.top = `${artAt(0, 906)[1] - ((s.top - d.getBoundingClientRect().top + s.height * 0.8) / innerHeight) * 100}vh`;
+          cue('rattle', 500);
+        },
         () => drift('➰', { from: [-10, rand(10, 16)], to: [110, rand(6, 14)], dur: rand(5, 7), size: 60, spin: 1080, opacity: 0.85 }),
         stranger,
         rider,
