@@ -32,6 +32,35 @@
 .fg-sax .fg-head, .fg-play .fg-head { animation: fg-nod 0.52s ease-in-out infinite alternate; }
 @keyframes fg-nod { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
 .fg-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: sc-flicker 0.12s ease-in-out infinite alternate; }
+/* (The bars' additions: a sparkler crackling, an owl blinking, a sleeper breathing, a tuba
+   oompahing, a tower of boxes swaying.) */
+.fg-spark { transform-box: fill-box; transform-origin: 50% 50%; animation: fg-spark 0.12s steps(2) infinite; }
+@keyframes fg-spark { 50% { opacity: 0.4; transform: scale(0.8) rotate(20deg); } }
+.fg-blink { transform-box: fill-box; transform-origin: center; animation: fg-blink 3.4s steps(1) infinite; }
+@keyframes fg-blink { 0%, 46%, 50%, 100% { transform: scaleY(1); } 48% { transform: scaleY(0.1); } }
+.fg-breathe { transform-box: fill-box; transform-origin: 50% 100%; animation: fg-breathe 3.2s ease-in-out infinite; }
+@keyframes fg-breathe { 50% { transform: scaleY(1.05); } }
+.fg-tuba { transform-box: fill-box; transform-origin: 30% 90%; }
+.fg-fringe { transform-box: fill-box; transform-origin: 50% 0; animation: fg-fringe 0.16s ease-in-out infinite alternate; }
+@keyframes fg-fringe { from { transform: skewX(-7deg); } to { transform: skewX(7deg); } }
+/* Playing on the move (pose 'play' plus cls 'fg-walk'): the hand on the neck stays there. */
+.fg-play.fg-walk .fg-armB { animation: none; }
+/* (And pointing, or carrying a tray, on the move: that arm stays put.) */
+.fg-point.fg-walk .fg-armF, .fg-serve.fg-walk .fg-armF, .fg-carry.fg-walk .fg-armF, .fg-carry.fg-walk .fg-armB { animation: none; }
+.fg-stack { transform-box: fill-box; transform-origin: 20% 100%; animation: fh-sway 0.8s ease-in-out infinite alternate; }
+/* (The seasons' and outdoors' additions: a butterfly's wings flitting, a piper's cheeks.) */
+.fg-flit { animation: fg-flit 0.22s ease-in-out infinite alternate; }
+@keyframes fg-flit { to { transform: scaleX(0.3); } }
+.fg-puff { animation: hl-puff 0.5s ease-in-out infinite alternate-reverse; }
+/* (The themed rooms' additions: a juggler's hands in turn, pipe smoke, a muzzle flash that's
+   hidden till the scene shows it.) */
+.fg-juggle .fg-armF, .fg-juggle .fg-armB { animation: fg-juggle 0.43s ease-in-out infinite alternate; }
+.fg-juggle .fg-armB { animation-delay: -0.21s; }
+@keyframes fg-juggle { from { transform: rotate(-12deg); } to { transform: rotate(6deg); } }
+.fg-smoke circle { transform-box: fill-box; transform-origin: center; animation: fg-puff 2.4s ease-out infinite; }
+.fg-smoke circle:nth-child(2) { animation-delay: -0.8s; } .fg-smoke circle:nth-child(3) { animation-delay: -1.6s; }
+@keyframes fg-puff { from { transform: translateY(4px) scale(0.5); opacity: 0.7; } to { transform: translateY(-6px) scale(1.3); opacity: 0; } }
+.fg-muzzle { opacity: 0; }
 .fg-still .sc-legs-f, .fg-still .sc-legs-b, .fg-still .sc-tail, .fg-still .sc-wing, .fg-still .sc-buzz { animation: none; }
 @media (prefers-reduced-motion: reduce) { .fg *, .fg-crit * { animation: none !important; } }
 .sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
@@ -137,8 +166,6 @@
 .sc-mermaid { width: 1em; height: 1.2em; overflow: hidden; translate: 0 -1.2em; }
 .sc-mer-in { animation: sc-mer 4.6s ease-in-out forwards; transform: translateY(110%); }
 @keyframes sc-mer { 0% { transform: translateY(110%); } 18% { transform: translateY(8%); } 80% { transform: translateY(8%); } 100% { transform: translateY(110%); } }
-.sc-wave-arm { transform-origin: 40px 46px; animation: sc-wave 0.5s ease-in-out 1s 6 alternate; }
-@keyframes sc-wave { to { transform: rotate(-25deg); } }
 .sc-mer-tail { position: absolute; left: 0; top: 0; transform: translateY(110%); animation: sc-tail 1.6s ease-in-out 4.8s forwards; }
 @keyframes sc-tail { 0% { transform: translateY(110%) rotate(0); } 45% { transform: translateY(20%) rotate(-10deg); } 100% { transform: translateY(110%) rotate(15deg); } }
 /* Rain on the glass (the storm). */
@@ -272,13 +299,13 @@
    coffee topped up, a gumball on the loose. */
 .dn-carhop svg { animation: dn-glide 0.5s ease-in-out infinite alternate; }
 @keyframes dn-glide { to { transform: translateY(-3px); } }
-.dn-carhop .dn-leg { transform-box: fill-box; transform-origin: 50% 0; animation: dn-skate 1s ease-in-out infinite alternate; }
-.dn-carhop .dn-leg.b { animation-delay: -1s; }
+.dn-carhop .dn-leg, .dn-skater .dn-leg { animation: dn-skate 1s ease-in-out infinite alternate; }
+.dn-carhop .dn-leg.b, .dn-skater .dn-leg.b { animation-delay: -1s; }
+.dn-skater > span > svg { animation: dn-glide 0.5s ease-in-out infinite alternate; }
 @keyframes dn-skate { from { transform: rotate(16deg); } to { transform: rotate(-20deg); } }
-.dn-carhop .dn-arm { transform-origin: 52px 62px; animation: dn-swing 1s ease-in-out infinite alternate; }
-.dn-carhop .dn-pony { transform-origin: 54px 34px; animation: dn-swing 0.5s ease-in-out infinite alternate; }
+.dn-carhop .dn-arm { animation: dn-swing 1s ease-in-out infinite alternate; }
 @keyframes dn-swing { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
-.dn-spatula { transform-origin: 88px 122px; animation: dn-flip 1.3s ease-in-out 0.9s 2; }
+.dn-spatula { animation: dn-flip 1.3s ease-in-out 0.9s 2; }
 @keyframes dn-flip { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(-24deg); } 55% { transform: rotate(8deg); } }
 .dn-pane { overflow: hidden; border-radius: 0.6vw; }
 .dn-car { position: absolute; left: 0; top: 74%; animation: dn-drive 6.5s linear forwards; }
@@ -307,16 +334,17 @@
 .tk-eyes i:first-child { left: 0.093em; }
 .tk-eyes i + i { left: 0.547em; }
 @keyframes tk-eyes { 0%, 100% { opacity: 0; } 15%, 30%, 50%, 70% { opacity: 1; } 22%, 40%, 60% { opacity: 0.5; } }
-.tk-hips { transform-origin: 50px 104px; animation: tk-hips 0.8s ease-in-out infinite alternate; }
+/* (The hula dancer is the kit's: it sets the arms' and the skirt's pivots; she sways from her feet.) */
+.tk-hula { transform-origin: 50% 100%; animation: tk-hips 0.8s ease-in-out infinite alternate; }
 @keyframes tk-hips { from { transform: translateX(-4px) rotate(-4deg); } to { transform: translateX(4px) rotate(4deg); } }
-.tk-skirt { transform-origin: 50px 104px; animation: tk-skirt 0.4s ease-in-out infinite alternate; }
+.tk-skirt { animation: tk-skirt 0.4s ease-in-out infinite alternate; }
 @keyframes tk-skirt { from { transform: skewX(-7deg); } to { transform: skewX(7deg); } }
-.tk-arms { transform-origin: 50px 62px; animation: tk-arms 1.6s ease-in-out infinite alternate; }
+.tk-arms { animation: tk-arms 1.6s ease-in-out infinite alternate; }
 @keyframes tk-arms { from { transform: rotate(-10deg); } to { transform: rotate(10deg) translateY(-3px); } }
 .tk-staff { transform-origin: 70px 50px; animation: sc-spin 0.7s linear infinite; }
 .tk-fglow { animation: sc-fireflicker 1.2s ease-in-out infinite alternate; }
 .tk-canoe svg { animation: dn-glide 1.6s ease-in-out infinite alternate; }
-.tk-canoe .tk-paddle { transform-origin: 80px 18px; animation: tk-paddle 1.3s ease-in-out infinite alternate; }
+.tk-canoe .tk-paddle { animation: tk-paddle 1.3s ease-in-out infinite alternate; }
 @keyframes tk-paddle { from { transform: rotate(-26deg); } to { transform: rotate(18deg); } }
 /* Speakeasy: the peephole, the sconces trembling, the smoke; the flapper's Charleston, the
    bartender's shaker, the telephone. */
@@ -330,13 +358,11 @@
 .sp-haze { width: 180vw; height: 30vh; background: radial-gradient(ellipse 30% 50% at 30% 50%, rgba(220, 205, 190, 0.08), transparent), radial-gradient(ellipse 25% 40% at 75% 40%, rgba(220, 205, 190, 0.07), transparent); animation: sp-haze 80s ease-in-out infinite alternate; }
 @keyframes sp-haze { to { transform: translateX(40vw); } }
 .sp-flapper svg { animation: sc-bounce 0.32s ease-in-out infinite alternate; }
-.sp-flapper .sp-legf, .sp-flapper .sp-legb { transform-box: fill-box; transform-origin: 50% 0; animation: sp-kick 0.32s ease-in-out infinite alternate; }
+.sp-flapper .sp-legf, .sp-flapper .sp-legb { animation: sp-kick 0.32s ease-in-out infinite alternate; }
 .sp-flapper .sp-legb { animation-direction: alternate-reverse; }
 @keyframes sp-kick { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
-.sp-flapper .sp-armf { transform-origin: 42px 62px; animation: sp-kick 0.32s ease-in-out infinite alternate-reverse; }
-.sp-flapper .sp-armb { transform-origin: 58px 62px; animation: sp-kick 0.32s ease-in-out infinite alternate; }
-.sp-flapper .sp-fringe { transform-origin: 50px 104px; animation: tk-skirt 0.16s ease-in-out infinite alternate; }
-.sp-flapper .sp-pearls { transform-origin: 50px 58px; animation: sp-kick 0.32s ease-in-out infinite alternate; }
+.sp-flapper .sp-armf { animation: sp-kick 0.32s ease-in-out infinite alternate-reverse; }
+.sp-flapper .sp-armb { animation: sp-kick 0.32s ease-in-out infinite alternate; }
 .sp-shake { animation: sp-shake 0.13s linear infinite alternate; }
 @keyframes sp-shake { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
 .sp-ring b { display: block; font: italic 700 0.2em/1 Georgia, serif; color: #f6dc8a; text-shadow: 0 2px 6px #000; animation: sp-ring 0.1s linear infinite alternate, sc-fade-out 0.4s 3s forwards; }
@@ -476,10 +502,10 @@
 .sc-tumble svg { display: block; animation: sc-hop 0.55s ease-in-out infinite alternate; }
 @keyframes sc-hop { from { translate: 0 0; } to { translate: 0 -18px; } }
 .sc-slinger { animation: sc-fade-in-out 8.8s ease-in-out forwards; transform-origin: 50% 100%; }
-.sc-slinger .sc-gunarm { transform-origin: 46px 40px; transition: transform 0.12s ease-out; }
-.sc-slinger.draw .sc-gunarm { transform: rotate(-62deg); }
-.sc-slinger .sc-muzzle { opacity: 0; }
-.sc-slinger.draw .sc-muzzle { animation: sc-flash 0.25s steps(1) 1; }
+/* (The kit turns the arm about the shoulder; its gun's flash is hidden till he fires.) */
+.sc-slinger .sc-gunarm { transition: transform 0.12s ease-out; }
+.sc-slinger.draw .sc-gunarm { transform: rotate(-80deg); }
+.sc-slinger.draw .fg-muzzle { animation: sc-flash 0.25s steps(1) 1; }
 @keyframes sc-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
 .sc-slinger.down svg { transform-origin: 50% 100%; animation: sc-keel 0.7s ease-in forwards; }
 @keyframes sc-keel { to { transform: rotate(-82deg) translateY(10px); } }
@@ -566,11 +592,11 @@
 .fh-neon { width: 28vw; height: 18vh; margin: -9vh 0 0 -14vw; background: radial-gradient(ellipse, rgba(255, 60, 100, 0.3), transparent 65%); animation: sc-neon 7s steps(1) infinite; }
 .fh-zz b { position: absolute; font: 700 22px/1 system-ui, sans-serif; color: rgba(255, 240, 220, 0.85); opacity: 0; animation: sc-zzz 3s ease-out infinite; }
 .fh-zz b:nth-child(2) { left: 12px; animation-delay: 1s; } .fh-zz b:nth-child(3) { left: 24px; animation-delay: 2s; font-size: 28px; }
-.fh-kick { transform-box: fill-box; transform-origin: 50% 100%; animation: fh-kick 0.3s ease-in-out infinite alternate; }
+.fh-kick { animation: fh-kick 0.3s ease-in-out infinite alternate; }
 @keyframes fh-kick { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
 .fh-stack { transform-box: fill-box; transform-origin: 30% 100%; animation: fh-sway 0.8s ease-in-out infinite alternate; }
 @keyframes fh-sway { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
-.dropped .fh-stack { visibility: hidden; }
+.dropped .fh-stack, .dropped .fg-stack { visibility: hidden; }
 .fh-surf { animation: sc-bob 0.5s ease-in-out infinite alternate; }
 @keyframes fh-surfpass { from { transform: translateX(-100%); } to { transform: translateX(105vw); } }
 .fh-cops { border-radius: 4px; animation: fh-cops 0.5s steps(1) 10; }
@@ -579,7 +605,7 @@
 @keyframes fh-copglow { 0% { opacity: 1; } 50% { opacity: 0; } }
 .fh-breaker { background: #000; opacity: 0; animation: fh-breaker 1.2s steps(1) forwards; }
 @keyframes fh-breaker { 0%, 30%, 60% { opacity: 0.6; } 15%, 45%, 100% { opacity: 0; } }
-.fh-run .sc-legs-f, .fh-run .sc-legs-b { animation-duration: 0.16s; }
+.fh-run .fg-legF, .fh-run .fg-legB, .fh-run .fg-armF, .fh-run .fg-armB { animation-duration: 0.16s; }
 .sc-oneeighty.fh b { font-family: "Bungee", system-ui, sans-serif; color: #fff; text-shadow: 0 4px 0 #d62828, 0 0 24px rgba(0, 0, 0, 0.8); }
 /* Garage: the welder's arc, the creeper, a tube on the blink, the drip, dust in the sun, the flag. */
 .gr-arc { background: radial-gradient(circle at var(--x) var(--y), rgba(170, 210, 255, 0.35), transparent 30%); animation: sc-fade-out 0.6s ease-out forwards; }
@@ -629,12 +655,9 @@
 .hl-rainbow b { position: absolute; left: 5%; top: 18%; width: 90%; height: 60%; border-radius: 50% 50% 0 0 / 100% 100% 0 0; background: radial-gradient(ellipse 50% 100% at 50% 100%, transparent 70%, rgba(255, 60, 60, 0.5) 72%, rgba(255, 170, 40, 0.5) 76%, rgba(255, 240, 80, 0.45) 80%, rgba(80, 200, 90, 0.45) 84%, rgba(60, 140, 255, 0.45) 88%, rgba(140, 80, 220, 0.4) 92%, transparent 95%); opacity: 0; animation: sc-rainbow 9s ease-in-out forwards; }
 .hl-flash { background: rgba(220, 230, 255, 0.1); opacity: 0; animation: sc-winflash 1.5s ease-out forwards; }
 .hl-puff { transform-box: fill-box; transform-origin: 50% 50%; animation: hl-puff 0.5s ease-in-out infinite alternate; }
-.hl-cheek { transform-box: fill-box; transform-origin: center; animation: hl-puff 0.5s ease-in-out infinite alternate-reverse; }
 @keyframes hl-puff { to { transform: scale(0.88, 0.84); } }
 .sc-oneeighty.hl b { font-family: "Uncial Antiqua", Georgia, serif; color: #ffe3a0; text-shadow: 0 3px 0 #3a1a00, 0 0 24px #ff7a1a; }
 /* Christmas: Santa waving, Rudolph's nose, the tree lights, the star, a bauble falling. */
-.xm-wave { transform-box: fill-box; transform-origin: 0 100%; animation: xm-wave 0.5s ease-in-out infinite alternate; }
-@keyframes xm-wave { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
 .xm-nose { animation: xm-nose 0.8s steps(1) infinite; }
 @keyframes xm-nose { 50% { opacity: 0.45; } }
 .xm-bauble i { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25); }
@@ -645,9 +668,9 @@
 /* Halloween: the hand clawing, the skeleton's jig, the glows, the house's windows, the bubbles. */
 .hw-claw { transform-box: fill-box; transform-origin: 50% 100%; animation: hw-claw 0.6s ease-in-out infinite alternate; }
 @keyframes hw-claw { from { transform: rotate(-8deg); } to { transform: rotate(6deg) scaleY(1.04); } }
-.hw-arml, .hw-armr, .hw-legl, .hw-legr, .hw-head { transform-box: fill-box; animation: hw-jig 0.4s ease-in-out infinite alternate; }
-.hw-arml { transform-origin: 100% 0; } .hw-armr { transform-origin: 0 0; animation-direction: alternate-reverse; }
-.hw-legl { transform-origin: 100% 0; animation-direction: alternate-reverse; } .hw-legr { transform-origin: 0 0; } .hw-head { transform-origin: 50% 100%; }
+/* (The skeleton is the kit's: each part turns about its joint, set inline.) */
+.hw-arml, .hw-armr, .hw-legl, .hw-legr, .hw-head { animation: hw-jig 0.4s ease-in-out infinite alternate; }
+.hw-armr, .hw-legl { animation-direction: alternate-reverse; }
 @keyframes hw-jig { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
 .hw-glow { width: calc(150px * var(--s)); height: calc(150px * var(--s)); margin: calc(-75px * var(--s)) 0 0 calc(-75px * var(--s)); border-radius: 50%; background: radial-gradient(circle, rgba(255, 150, 40, 0.35), transparent 65%); animation: sc-fireflicker 1.3s ease-in-out infinite alternate; }
 .hw-window { background: #1a1024; opacity: 0; animation: hw-window 9s steps(1) infinite; }
@@ -776,12 +799,10 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 /* The tavern: the fire, the candles, the pot steaming, the barmaid, the owl at the window. */
 .sc5-steam { border-radius: 50%; background: radial-gradient(closest-side, rgba(230, 230, 220, 0.35), transparent); opacity: 0; animation: sc5-steam 4s ease-out infinite; }
 @keyframes sc5-steam { 0% { transform: translate(0, 0) scale(0.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-1vw, -12vh) scale(2.6); opacity: 0; } }
-.sc5-barmaid .sc5-wipe { transform-origin: 64px 70px; animation: sc5-polish 1.7s ease-in-out infinite alternate; }
+.sc5-barmaid .sc5-wipe { animation: sc5-polish 1.7s ease-in-out infinite alternate; }
 .sc5-barmaid.cheers .sc5-wipe { animation: sc5-cheers 1.8s ease-in-out; }
 @keyframes sc5-cheers { 0%, 100% { transform: none; } 30%, 70% { transform: translate(4px, -30px) rotate(-8deg); } }
 .sc5-owl { opacity: 0; animation: sc-fade-in-out 6.8s ease-in-out forwards; }
-.sc5-owl .sc5-blink { transform-box: fill-box; transform-origin: center; animation: sc5-blink 3s steps(1) infinite; }
-@keyframes sc5-blink { 0%, 46%, 50%, 100% { transform: scaleY(1); } 48% { transform: scaleY(0.1); } }
 /* The club: the beams swinging, the ball's glint and sparkles, the meters, the DJ, the crowd. */
 .sc5-beam { transform-origin: 50% 0; clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); opacity: 0.8; animation: sc5-sweep 7s ease-in-out infinite alternate; }
 .sc5-beam.l { --a: -32deg; --b: 22deg; } .sc5-beam.r { --a: 30deg; --b: -26deg; }
@@ -795,10 +816,10 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 @keyframes sc5-eq { from { transform: scaleY(0.25); } to { transform: scaleY(1); } }
 .sc5-thump { animation: sc5-thump 0.47s ease-out infinite; }
 @keyframes sc5-thump { 0% { transform: scale(1.15); opacity: 0.9; } 40%, 100% { transform: scale(0.9); opacity: 0.3; } }
-.sc5-dj .sc5-nod { transform-origin: 55px 50px; animation: sc5-nod 0.47s ease-in-out infinite; }
+.sc5-dj .sc5-nod { animation: sc5-nod 0.47s ease-in-out infinite; }
 @keyframes sc5-nod { 0%, 100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(4deg) translateY(3px); } }
 .sc5-dj .sc5-djarm { transition: transform 0.3s ease-out; }
-.sc5-dj .sc5-djarm.l { transform-origin: 34px 62px; } .sc5-dj .sc5-djarm.r { transform-origin: 76px 62px; animation: sc5-scratch 0.47s ease-in-out infinite alternate; }
+.sc5-dj .sc5-djarm.r { animation: sc5-scratch 0.47s ease-in-out infinite alternate; }
 @keyframes sc5-scratch { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
 .sc5-dj.up .sc5-djarm.l { transform: rotate(150deg); } .sc5-dj.up .sc5-djarm.r { animation: none; transform: rotate(-150deg); }
 .sc5-crowd .sc5-bob { animation: sc5-bounce 0.47s ease-in-out infinite; }
@@ -807,8 +828,6 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 @keyframes sc5-jump { 0%, 100% { transform: translateY(4px); } 50% { transform: translateY(-16px); } }
 .sc5-co2 { border-radius: 40% 40% 10% 10%; background: linear-gradient(to top, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.3) 50%, transparent); transform-origin: 50% 100%; animation: sc5-co2 2.3s ease-out forwards; }
 @keyframes sc5-co2 { 0% { transform: scale(0.3, 0); opacity: 1; } 25% { transform: scale(1, 1); opacity: 1; } 100% { transform: scale(2, 1.1); opacity: 0; } }
-.sc5-sparkler circle { animation: sc5-spark 0.12s steps(2) infinite; }
-@keyframes sc5-spark { 50% { opacity: 0.3; } }
 /* The castle: the banners stirring, the king (his goblet up for a toast), the decree, the armour's
    eyes, the window. */
 .sc5-banner { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5)); }
@@ -816,8 +835,8 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc5-banner.b .sc-cloth { animation-delay: -2s; }
 .sc5-king svg { transform-origin: 50% 100%; animation: sc5-breathe 4s ease-in-out infinite; }
 @keyframes sc5-breathe { 50% { transform: scaleY(1.012); } }
-.sc5-king .sc5-toast { transform-origin: 108px 116px; transition: transform 0.5s ease; }
-.sc5-king .sc5-cup { transform-origin: 114px 170px; transition: transform 0.5s ease; }
+/* (The kit turns the arm about the shoulder, and the goblet about the hand.) */
+.sc5-king .sc5-toast, .sc5-king .sc5-cup { transition: transform 0.5s ease; }
 .sc5-king.sc5-raise .sc5-toast { transform: rotate(-130deg); } .sc5-king.sc5-raise .sc5-cup { transform: rotate(130deg); }
 .sc5-scroll { opacity: 0; animation: sc-fade-in-out 5s ease-in-out forwards; }
 .sc5-scroll-in { padding: 0.5em 1em; border-radius: 6px; text-align: center; color: #3a2010; background: linear-gradient(#f4e6c0, #e0c890); box-shadow: inset 0 6px 0 #c8a870, inset 0 -6px 0 #c8a870, 0 6px 18px rgba(0, 0, 0, 0.6); transform-origin: 50% 0; animation: sc5-unroll 0.8s ease-out both; }
@@ -840,12 +859,12 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 @keyframes sc5-smoke { from { transform: translate(0, 0) scale(1); } to { transform: translate(30vw, -12vh) scale(1.4); } }
 .sc5-pianist svg { transform-origin: 50% 100%; animation: sc5-sway 2.4s ease-in-out infinite alternate; }
 @keyframes sc5-sway { from { transform: rotate(-1.5deg); } to { transform: rotate(1.5deg); } }
-.sc5-pianist .sc5-play { transform-origin: 28px 60px; animation: sc5-play 0.3s ease-in-out infinite alternate; }
-.sc5-pianist .sc5-play.b { transform-origin: 72px 60px; animation-delay: -0.15s; }
+.sc5-pianist .sc5-play { animation: sc5-play 0.3s ease-in-out infinite alternate; }
+.sc5-pianist .sc5-play.b { animation-delay: -0.15s; }
 .sc5-pianist.run .sc5-play { animation-duration: 0.1s; }
 @keyframes sc5-play { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(3px) rotate(4deg); } }
-.sc5-drummer .sc5-brush { transform-origin: 30px 60px; animation: sc5-brushk 0.8s ease-in-out infinite alternate; }
-.sc5-drummer .sc5-brush.b { transform-origin: 60px 60px; animation-delay: -0.4s; }
+.sc5-drummer .sc5-brush { animation: sc5-brushk 0.8s ease-in-out infinite alternate; }
+.sc5-drummer .sc5-brush.b { animation-delay: -0.4s; }
 .sc5-drummer.hit .sc5-brush { animation: sc5-hit 0.15s ease-in 6 alternate; }
 @keyframes sc5-brushk { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
 @keyframes sc5-hit { from { transform: rotate(-24deg); } to { transform: rotate(14deg); } }
@@ -925,16 +944,14 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc-lh-blink { animation: lh-wink 4s linear infinite; }
 /* The keeper on the gallery, pipe going, lantern swinging; gulls on the railing. */
 .sc-lh-keeper svg { transform-origin: 50% 100%; animation: pir-hobble 0.55s ease-in-out infinite alternate; }
-.sc-lh-keeper .sc-legs-f, .sc-lh-keeper .sc-legs-b { animation-duration: 0.55s; }
-.sc-lh-keeper.stop svg, .sc-lh-keeper.stop .sc-legs-f, .sc-lh-keeper.stop .sc-legs-b { animation-play-state: paused; }
+.sc-lh-keeper .fg-legF, .sc-lh-keeper .fg-legB, .sc-lh-keeper .fg-armF, .sc-lh-keeper .fg-armB { animation-duration: 0.55s; }
+.sc-lh-keeper.stop svg, .sc-lh-keeper.stop .fg-legF, .sc-lh-keeper.stop .fg-legB, .sc-lh-keeper.stop .fg-armF, .sc-lh-keeper.stop .fg-armB { animation-play-state: paused; }
 .sc-lh-keeper.day .sc-lh-lamp { display: none; }
-.sc-lh-lamp { transform-box: fill-box; transform-origin: 50% 0; animation: sc-swing 1.1s ease-in-out infinite alternate; }
-.sc-lh-pipe circle { animation: lh-puff 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
-.sc-lh-pipe circle:nth-child(2) { animation-delay: -0.8s; } .sc-lh-pipe circle:nth-child(3) { animation-delay: -1.6s; }
-@keyframes lh-puff { from { transform: translateY(6px) scale(0.6); opacity: 0.8; } to { transform: translateY(-10px) scale(1.6); opacity: 0; } }
+/* (The lamp swings from his hand: the kit sets the pivot.) */
+.sc-lh-lamp { animation: sc-swing 1.1s ease-in-out infinite alternate; }
 .sc-lh-gull { transition: transform 2.5s ease-in, opacity 2.5s; }
 .sc-lh-gull.away { transform: translate(-30vw, -60vh) scale(0.5); opacity: 0; }
-.sc-lh-gullhead { transform-box: fill-box; transform-origin: 20% 80%; animation: pir-look 4s ease-in-out infinite; }
+.sc-lh-gull .fg-head { animation: pir-look 4s ease-in-out infinite; }
 .sc-lh-boat svg { animation: sc-bob 2.4s ease-in-out infinite alternate; }
 .sc-lh-bigcrash i { width: 22vw; height: 22vw; max-width: 260px; max-height: 260px; }
 /* A signal flare: up, hanging there bright, drifting down. */
@@ -955,7 +972,7 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc-bh-wheel svg { filter: drop-shadow(0 0 10px rgba(255, 190, 90, 0.5)); }
 .sc-bh-flame { animation: sc-candle 0.2s ease-in-out infinite alternate; }
 .sc-bh-walker svg { transform-origin: 50% 100%; animation: pir-hobble 0.4s ease-in-out infinite alternate; }
-.sc-bh-tuba { transform-box: fill-box; transform-origin: 30% 90%; animation: bh-oompah 0.6s ease-in-out infinite alternate; }
+.sc-bh-walker .fg-tuba { animation: bh-oompah 0.6s ease-in-out infinite alternate; }
 @keyframes bh-oompah { from { transform: rotate(-3deg) scale(1); } to { transform: rotate(3deg) scale(1.04); } }
 .sc-bh-dog svg { animation: sc-bob 0.25s ease-in-out infinite alternate; }
 .sc-bh-hop span { animation: bh-hop 0.5s ease-in-out infinite alternate !important; }
@@ -1009,7 +1026,6 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 @keyframes sp-wobble { from { transform: scale(1.12, 0.88); } to { transform: scale(0.9, 1.1); } }
 .sc-sp-twinkle { width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 2px rgba(200, 230, 255, 0.8); animation: sp-twinkle 3s ease-in-out infinite alternate; }
 @keyframes sp-twinkle { from { opacity: 0.05; transform: scale(0.5); } to { opacity: 1; transform: scale(1.3); } }
-.sc-sp-astro .sc-sp-wave { position: absolute; left: 70%; top: -10%; font-size: 0.4em; animation: sc-wave-hello 0.5s ease-in-out infinite alternate; }
 .sc-sp-whale svg { filter: drop-shadow(0 0 14px rgba(124, 240, 255, 0.4)); animation: sc-bob 4s ease-in-out infinite alternate; }
 .sc-sp-tail { transform-box: fill-box; transform-origin: 100% 50%; animation: sp-tail 2.2s ease-in-out infinite alternate; }
 @keyframes sp-tail { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
