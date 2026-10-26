@@ -20,6 +20,7 @@ const OPTIONAL = {
   horseRace: ['ride'], // jockeys tap while the race runs itself
   shotPoker: ['paid'], // a tab is paid straight away, though only the next deal waits for it
   boatRace: ['cheer'], // bots cheer from the side
+  trackRacing: ['honk'], // a toot of the horn mid-race, whenever you like
 };
 const HOST_MAY = { liarsDice: ['next'], shotPoker: ['deal'], bigTom: ['moveOn'] };
 // Options that reach phases the defaults rarely do (a ton in 501 hands out sips; bluffs to answer).

@@ -156,7 +156,7 @@
     },
     // One at a time, the most important first.
     loudest(sounds) {
-      return ['win', 'bell', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x)) || null;
+      return ['win', 'go', 'bell', 'beep', 'dice', 'dart', 'card', 'turn'].find((x) => sounds.has(x)) || null;
     },
 
     // The heading of a "drink!" alert: the game's own, or how many sips.

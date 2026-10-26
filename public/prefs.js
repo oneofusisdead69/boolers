@@ -2,7 +2,7 @@
 // page (the app, pass and play, and the stand-alone Slevens and Mad Max pages), so it brings its
 // own styles and needs nothing else.
 //
-//   Prefs.play('dice')      play a sound: dice, card, dart, turn, drink, win, bell
+//   Prefs.play('dice')      play a sound: dice, card, dart, turn, drink, win, bell, beep, go, horn
 //   Prefs.button()          HTML for a ⚙️ button; tapping any [data-prefs] opens the panel
 //   Prefs.feedbackButton()  HTML for a 💬 button; tapping any [data-feedback] opens the form
 //
@@ -208,6 +208,22 @@
       for (const at of [0, 0.18, 0.36]) {
         tone(ac, out, { freq: 1568, type: 'sine', at, len: 0.25, gain: 0.25 });
         tone(ac, out, { freq: 3136, type: 'sine', at, len: 0.12, gain: 0.08 });
+      }
+    },
+    // Race lights: a beep for each of 3, 2, 1 ...
+    beep(ac, out) {
+      tone(ac, out, { freq: 660, type: 'square', len: 0.28, gain: 0.16 });
+    },
+    // ... and a higher, longer one for GO.
+    go(ac, out) {
+      tone(ac, out, { freq: 1320, type: 'square', len: 0.6, gain: 0.18 });
+      tone(ac, out, { freq: 1980, type: 'sine', len: 0.5, gain: 0.08 });
+    },
+    // A little car's horn: beep beep.
+    horn(ac, out) {
+      for (const at of [0, 0.16]) {
+        tone(ac, out, { freq: 415, type: 'sawtooth', at, len: 0.12, gain: 0.09 });
+        tone(ac, out, { freq: 523, type: 'square', at, len: 0.12, gain: 0.05 });
       }
     },
     // Rising arpeggio.
