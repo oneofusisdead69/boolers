@@ -36,6 +36,31 @@ test('every track is a closed loop with room between its parts', () => {
   }
 });
 
+test('every track: parts of the loop stay apart, and bots lap it in 12 to 32 seconds', () => {
+  const edge = game.WIDTH / 2 + game.BAND;
+  for (const id of Object.keys(game.TRACKS)) {
+    const tr = game.trackOf(id);
+    // Well apart (a wall between) wherever the loop comes back near itself.
+    const far = Math.round(250 / tr.step);
+    for (let i = 0; i < tr.count; i++) {
+      for (let j = i + far; j < tr.count && tr.count - (j - i) >= far; j++) {
+        assert.ok(Math.hypot(tr.xs[i] - tr.xs[j], tr.ys[i] - tr.ys[j]) > edge * 2, `${id}: parts ${i} and ${j} too close`);
+      }
+    }
+    const t = setup(game, 3, { track: id, laps: 2 });
+    startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+    for (const p of t.room.players) p.bot = 'baller';
+    runRace(t);
+    const g = t.room.game;
+    assert.strictEqual(g.trackId, id);
+    for (const r of g.result) {
+      assert.ok(r.time != null, `${id}: ${r.id} finished`);
+      assert.ok(r.time / 2 > 12 && r.time / 2 < 32, `${id}: a lap in ${(r.time / 2).toFixed(1)}s`);
+    }
+    t.cleanup();
+  }
+});
+
 test('betting: on any car in the race, up to the max', () => {
   const t = setup(game, 3, { maxBet: 3 });
   t.act(0, 'bet', { car: 'p0', sips: 2 });
