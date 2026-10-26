@@ -422,6 +422,7 @@ function playerList({ showKick }) {
       ${p.id === s.hostId ? '<span class="tag">👑 host</span>' : ''}
       ${p.bot ? `<span class="tag bot">🤖 ${PB.esc(BOT_LEVELS[p.bot]?.tag || 'bot')}</span>` : ''}
       ${!p.connected ? '<span class="tag">offline</span>' : ''}
+      ${showKick && p.id !== s.me && p.connected && !p.bot ? `<button class="make-host" data-cmd="makeHost" data-player-id="${PB.esc(p.id)}" data-confirm="Make ${PB.esc(p.name)} the host? They'll pick the games and settings." >👑 Make host</button>` : ''}
       ${showKick && p.id !== s.me ? `<button class="kick" data-cmd="kick" data-player-id="${PB.esc(p.id)}" data-confirm="Remove ${PB.esc(p.name)}?">✕</button>` : ''}
     </li>`).join('')}</ul>`;
 }
