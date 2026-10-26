@@ -110,12 +110,13 @@ document.addEventListener('pointerdown', () => {
   music();
 }, { capture: true });
 
-// Background sound to match the room style (public/ambience.js): off, low or high, remembered.
-const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
+// Background sound to match the room style (public/ambience.js): off, low, high or party (the
+// room's music, upbeat), remembered.
+const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1], ['🎉 Party', 0.9, true]];
 let musicLevel = 1;
 try { musicLevel = Number(localStorage.getItem('tv-music') ?? 1) % MUSIC.length; } catch {}
 function music() {
-  if (soundOn) Ambience.set(PB.state?.look || PB.state?.style, MUSIC[musicLevel][1]);
+  if (soundOn) Ambience.set(PB.state?.look || PB.state?.style, MUSIC[musicLevel][1], { party: !!MUSIC[musicLevel][2] });
   let btn = document.getElementById('tv-music');
   // It appears once sound is on (the "click for sound" button sits in the same corner till then).
   const show = soundOn && PB.state && PB.state.style && PB.state.style !== 'classic';
