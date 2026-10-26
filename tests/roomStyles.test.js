@@ -1,14 +1,21 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('fs');
+const path = require('path');
 const ROOM_STYLES = require('../lib/roomStyles');
+const ROOM_ART = require('../lib/roomArt');
 
 test('every room style has a full set of colours, a font and a table', () => {
   assert.ok(ROOM_STYLES.IDS.includes('classic'));
   for (const id of ROOM_STYLES.IDS.filter((x) => x !== 'classic')) {
     const s = ROOM_STYLES.STYLES[id];
     for (const v of ['bg', 'card', 'card-2', 'text', 'muted', 'accent', 'accent-text', 'danger', 'ok']) assert.ok(s.vars[v], `${id} ${v}`);
-    assert.ok(s.font && s.felt && s.rim && s.bg && s.label && s.emoji, id);
+    assert.ok(s.font && s.label && s.emoji, id);
+    const art = ROOM_ART.ART[id];
+    assert.ok(art?.felt && art.rim && art.bg, id);
   }
+  // The art is every look but classic, and nothing that isn't a look.
+  assert.deepStrictEqual(Object.keys(ROOM_ART.ART).sort(), ROOM_STYLES.IDS.filter((x) => x !== 'classic').sort());
   assert.match(ROOM_STYLES.css(), /html\[data-room="dive"\]/);
   // A page only takes in the look it's showing (all of them is over half a megabyte).
   const dive = ROOM_STYLES.css('dive');
@@ -18,6 +25,13 @@ test('every room style has a full set of colours, a font and a table', () => {
   // The background is a fixed layer, not a fixed background (phones repaint those on every scroll).
   assert.doesNotMatch(ROOM_STYLES.css(), /background-attachment/);
   assert.strictEqual(ROOM_STYLES.css('classic'), '');
+  assert.strictEqual(ROOM_STYLES.css('dive'), ROOM_ART.css('dive'));
+});
+
+test('the browser gets the names and colours, not the art (each look\'s comes on its own)', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../lib/roomStyles.js'), 'utf8');
+  assert.ok(source.length < 60 * 1024, `${source.length} bytes`);
+  assert.doesNotMatch(source, /<svg|<path|data:image/);
 });
 
 test('the Lighthouse is one room whose weather changes: night, day, fog and storm', () => {

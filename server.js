@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -8,6 +9,7 @@ const compression = require('compression');
 const { createContext } = require('./lib/context');
 const LOOKS = require('./lib/looks');
 const ROOM_STYLES = require('./lib/roomStyles');
+const ROOM_ART = require('./lib/roomArt');
 const night = require('./lib/night');
 const { createTrips } = require('./lib/trip');
 const { waterLine } = require('./lib/water');
@@ -43,8 +45,28 @@ app.get('/healthz', (req, res) => res.send('ok'));
 app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public/tv.html')));
 // Avatar and colour lists, shared with the phones.
 app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
-// Room styles (dive bar, tavern…), shared with the phones and the TV.
-app.get('/room-styles.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/roomStyles.js')));
+// Room styles (dive bar, tavern…), shared with the phones and the TV: their names, colours and
+// fonts. The art comes a look at a time (below), so a phone only downloads the room it's in.
+// `version` names this build of the looks: it's in each look's address, so a browser can keep
+// them for good and a deploy that changes one changes the address.
+const roomStylesSource = fs.readFileSync(path.join(__dirname, 'lib/roomStyles.js'), 'utf8');
+const roomStylesVersion = crypto.createHash('sha256')
+  .update(roomStylesSource)
+  .update(fs.readFileSync(path.join(__dirname, 'lib/roomArt.js')))
+  .digest('hex').slice(0, 12);
+const roomStylesJs = `${roomStylesSource}\nROOM_STYLES.version = '${roomStylesVersion}';\n`;
+app.get('/room-styles.js', (req, res) => res.set('Cache-Control', 'public, max-age=0').type('application/javascript').send(roomStylesJs));
+// One look's stylesheet: its colours, background art and table (see css in lib/roomArt.js), built
+// the first time it's asked for. Kept for good when asked for at this build's address; a page from
+// another build (one side of a deploy) gets this build's, but not to keep.
+const roomCss = {};
+app.get('/room-style/:id.css', (req, res) => {
+  const id = req.params.id;
+  if (!Object.hasOwn(ROOM_ART.ART, id)) return res.status(404).end();
+  roomCss[id] ??= ROOM_ART.css(id);
+  res.set('Cache-Control', req.query.v === roomStylesVersion ? 'public, max-age=31536000, immutable' : 'no-cache');
+  res.type('text/css').send(roomCss[id]);
+});
 
 // Pass-and-play pages report their games here (multiplayer games are counted below), and the
 // feedback form posts here. Both just write a log line.

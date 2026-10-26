@@ -42,7 +42,9 @@ for (const id of Object.keys(TITLES)) {
     .replace('<script src="/analytics.js"></script>\n', '')
     .replace('<script src="/prefs.js"></script>', () => `<script>\n${read('public/prefs.js')}</script>`)
     .replace('<script src="/looks.js"></script>', () => `<script>\n${read('lib/looks.js')}</script>`)
-    .replace('<script src="/room-styles.js"></script>', () => `<script>\n${read('lib/roomStyles.js')}</script>`)
+    // (With the art: there's no server to fetch each look's stylesheet from, so the page builds its
+    // own, as lib/roomArt.js does on the server.)
+    .replace('<script src="/room-styles.js"></script>', () => `<script>\n${read('lib/roomStyles.js')}</script>\n<script>\n${read('lib/roomArt.js')}</script>`)
     .replace('<script src="/ambience.js"></script>', () => `<script>\n${read('public/ambience.js')}</script>`)
     .replace('<script src="/pb.js"></script>', () => `<script>\n${read('public/pb.js')}</script>\n<script>\n${read(`public/games/${id}.js`)}</script>`)
     .replace(BUNDLE, () => `  <script>\n${buildBundle(root, id)}</script>\n`)
