@@ -6,6 +6,34 @@
 @keyframes sc-drift { to { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); } }
 /* Turned round with `scale` (not `transform`), so a drawing's own wobble or bob doesn't undo it. */
 .sc-face-l svg { scale: -1 1; }
+/* The character kit (figure() and critter() in scenery.js). Each arm and leg turns about its own
+   shoulder or hip (set inline), so these are just rotations; transforms only. The <svg> (or the
+   <g>, inside another drawing) says the pose: fg-walk, fg-wave... */
+.fg-walk .fg-legF, .fg-walk .fg-legB { animation: fg-stride 0.42s ease-in-out infinite alternate; }
+.fg-walk .fg-legB { animation-direction: alternate-reverse; }
+@keyframes fg-stride { from { transform: rotate(-20deg); } to { transform: rotate(20deg); } }
+/* (The near arm swings back as the near leg goes forward.) */
+.fg-walk .fg-armF, .fg-walk .fg-armB { animation: fg-swing 0.42s ease-in-out infinite alternate; }
+.fg-walk .fg-armB { animation-direction: alternate-reverse; }
+@keyframes fg-swing { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
+.fg-wave .fg-armF, .fg-dance .fg-armF { animation: fg-wave 0.5s ease-in-out infinite alternate; }
+@keyframes fg-wave { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
+.fg-cheer .fg-armF, .fg-cheer .fg-armB, .fg-witness .fg-armB, .fg-dance .fg-armB { animation: fg-pump 0.46s ease-in-out infinite alternate; }
+.fg-cheer .fg-armB { animation-delay: -0.23s; }
+@keyframes fg-pump { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+.fg-dance .fg-legF { animation: fg-kick 0.5s ease-in-out infinite alternate; }
+@keyframes fg-kick { from { transform: rotate(-30deg); } to { transform: rotate(10deg); } }
+.fg-drum .fg-armF, .fg-drum .fg-armB { animation: fg-drum 0.21s ease-in infinite alternate; }
+.fg-drum .fg-armB { animation-delay: -0.1s; }
+@keyframes fg-drum { from { transform: rotate(-16deg); } to { transform: rotate(10deg); } }
+.fg-play .fg-armF { animation: fg-strum 0.26s ease-in-out infinite alternate; }
+@keyframes fg-strum { from { transform: rotate(-7deg); } to { transform: rotate(5deg); } }
+.fg-toast .fg-armF { animation: fg-pump 1.2s ease-in-out infinite alternate; }
+.fg-sax .fg-head, .fg-play .fg-head { animation: fg-nod 0.52s ease-in-out infinite alternate; }
+@keyframes fg-nod { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+.fg-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: sc-flicker 0.12s ease-in-out infinite alternate; }
+.fg-still .sc-legs-f, .fg-still .sc-legs-b, .fg-still .sc-tail, .fg-still .sc-wing, .fg-still .sc-buzz { animation: none; }
+@media (prefers-reduced-motion: reduce) { .fg *, .fg-crit * { animation: none !important; } }
 .sc-wing { transform-origin: 30px 12px; animation: sc-flap 0.22s ease-in-out infinite alternate; }
 @keyframes sc-flap { from { transform: scaleY(1); } to { transform: scaleY(-0.6); } }
 .sc-fog { background: radial-gradient(ellipse at 50% 60%, rgba(190, 160, 220, 0.22), transparent 70%); filter: blur(8px); }
