@@ -111,14 +111,14 @@
     }
     setInterval(() => { ROOM_STYLES.apply(look()); music(); }, 15 * 1000);
 
-    // The room's background music, as on the TV (public/ambience.js): off, low or high, remembered
-    // on this phone. Browsers only allow sound after the first tap.
-    const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1]];
+    // The room's background music, as on the TV (public/ambience.js): off, low, high or party,
+    // remembered on this phone. Browsers only allow sound after the first tap.
+    const MUSIC = [['Off', 0], ['Low', 0.5], ['High', 1], ['🎉 Party', 0.9, true]];
     let musicLevel = 1;
     try { musicLevel = Number(localStorage.getItem('local-music') ?? 1) % MUSIC.length; } catch {}
     let soundOn = false;
     function music() {
-      if (soundOn) Ambience.set(look(), MUSIC[musicLevel][1]);
+      if (soundOn) Ambience.set(look(), MUSIC[musicLevel][1], { party: !!MUSIC[musicLevel][2] });
       document.querySelectorAll('[data-music]').forEach((b) => (b.textContent = `🎵 Music: ${MUSIC[musicLevel][0]}`));
     }
     const musicButton = () => `<button class="secondary music-btn" data-music>🎵 Music: ${MUSIC[musicLevel][0]}</button>`;

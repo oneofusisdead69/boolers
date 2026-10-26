@@ -5,12 +5,17 @@
 // lute in the tavern, Drunken Sailor on the pirate ship, Shenandoah at the lighthouse, a fiddle and
 // the pipes in the Highlands pub, Bach on the organ at Halloween... Classic is quiet.
 //
-//   Ambience.set(style, level)   start, switch or stop (level 0 = off, up to 1)
+//   Ambience.set(style, level, { party })   start, switch or stop (level 0 = off, up to 1)
+//
+// Party mode: they're drinking games, after all. Every room's own music, but upbeat: the tunes
+// at a dancing tempo over a beat (kick, hats, a clap, a bouncing bass on the chords), and the
+// rooms' other rhythms quicker too.
 (() => {
   let ac = null;
   let master = null;
   let current = null; // { style, stop() }
   let level = 0;
+  let party = false;
 
   function audio() {
     if (!ac) {
@@ -116,8 +121,10 @@
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
   // Calls step(time, beat) for every beat (or tick) just ahead of time, so rhythms stay steady.
-  function sequencer(bpm, step, { div = 1 } = {}) {
-    const dur = 60 / bpm / div;
+  // (In party mode a room's rhythms run quicker, up to a point; a tune sets its own tempo.)
+  const partyPace = (bpm) => Math.max(bpm, Math.min(bpm * 1.25, 180));
+  function sequencer(bpm, step, { div = 1, own = false } = {}) {
+    const dur = 60 / (party && !own ? partyPace(bpm) : bpm) / div;
     let next = ac.currentTime + 0.1;
     let n = 0;
     // (The audio's clock stands still while it's asleep, so on waking nothing's been missed.)
@@ -336,22 +343,45 @@
 
   // ---------- Tunes ----------
   // A tune: [midi note or null for a rest, length in eighths], played round and round by a voice.
+  // In party mode it's quicker (a dancing tempo, whatever the room) and has a beat under it.
   function tune(out, { bpm, notes, voice, gain, chords = null, every = 8, comp = null }) {
+    if (party) bpm = Math.min(138, Math.max(bpm * 1.5, every === 6 ? 132 : 120));
     const eighth = 60 / bpm / 2;
     let step = 0;
     let left = 0;
     let bar = 0;
+    let chord = null;
     return sequencer(bpm * 2, (t, n) => {
-      if (chords && n % every === 0) comp(out, t, chords[bar++ % chords.length], eighth * every);
+      if (chords && n % every === 0) {
+        chord = chords[bar++ % chords.length];
+        comp(out, t, chord, eighth * every);
+      }
       if (left === 0) {
         const [m, len] = notes[step];
         if (m) voice(out, t, hz(m), len * eighth, gain);
+        // (No chords: the bass follows the tune.)
+        if (m && !chords) chord = [m];
         left = len;
         step = (step + 1) % notes.length;
       }
+      if (party) beat(out, t, n, every, eighth, chord, gain);
       left -= 1;
-    });
+    }, { own: true });
   }
+  // The party beat, an eighth at a time: a kick on the beat, hats between, a clap on the two and
+  // four (the two, in waltz time), and the bass bouncing root-octave on the chord, if there is one.
+  function beat(out, t, n, every, eighth, chord, gain) {
+    const k = n % every;
+    if (k % 2 === 0) note(out, t, { freq: 120, to: 42, len: 0.22, gain: 0.16, type: 'sine', attack: 0.002 });
+    else hit(out, t, { freq: 8000, gain: 0.03, len: 0.05 });
+    if (every === 6 ? k === 2 : k === 2 || k === 6) hit(out, t, { type: 'bandpass', freq: 1500, q: 0.8, gain: 0.08, len: 0.14 });
+    if (chord) {
+      let root = chord[0];
+      while (root > 45) root -= 12;
+      note(out, t, { freq: hz(k % 2 ? root + 12 : root), len: eighth * 0.9, gain: Math.max(0.05, gain * 1.2), type: 'triangle', attack: 0.005 });
+    }
+  }
+
   // Voices for the tunes.
   const VOICES = {
     // A soft piano: a struck note that fades.
@@ -1423,8 +1453,13 @@
     } catch {}
   }
 
-  function set(style, newLevel) {
+  function set(style, newLevel, { party: wantParty = false } = {}) {
     level = newLevel;
+    // Party mode on or off: the room starts again, its music changed.
+    if (wantParty !== party) {
+      party = wantParty;
+      if (current) { current.stop(); current = null; }
+    }
     const want = level > 0 && ROOMS[style] ? style : null;
     if (!want) {
       if (master) master.gain.setTargetAtTime(0, ac.currentTime, 0.4);
