@@ -182,8 +182,9 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .cards { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .pcard {
   position: relative;
-  width: 64px;
-  height: 92px;
+  /* (rem, like its text: the TV's text is bigger, so its cards are too and the pips fit) */
+  width: 4rem;
+  height: 5.75rem;
   border-radius: 8px;
   background: #fff;
   color: #111;
@@ -203,19 +204,19 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   background: repeating-linear-gradient(45deg, var(--back-1, #5b3fd1) 0 6px, var(--back-2, #4a31b5) 6px 12px);
   border: 4px solid #fff;
 }
-.pcard.lg { width: 110px; height: 158px; }
+.pcard.lg { width: 6.875rem; height: 9.875rem; }
 .pcard.lg .pip { font-size: 3.6rem; }
 .pcard.lg .corner { font-size: 1.2rem; top: 6px; left: 8px; }
 .pcard.lg .corner.br { top: auto; left: auto; bottom: 6px; right: 8px; }
-.pcard.xl { width: 150px; height: 216px; border-radius: 12px; }
+.pcard.xl { width: 9.375rem; height: 13.5rem; border-radius: 12px; }
 .pcard.xl .pip { font-size: 5rem; }
 .pcard.xl .corner { font-size: 1.7rem; top: 8px; left: 10px; }
 .pcard.xl .corner.br { top: auto; left: auto; bottom: 8px; right: 10px; }
-.pcard.md { width: 68px; height: 98px; border-radius: 8px; }
+.pcard.md { width: 4.25rem; height: 6.125rem; border-radius: 8px; }
 .pcard.md .pip { font-size: 2rem; }
 .pcard.md .corner { font-size: 0.95rem; top: 4px; left: 6px; }
 .pcard.md .corner.br { display: none; }
-.pcard.sm { width: 44px; height: 64px; border-radius: 6px; }
+.pcard.sm { width: 2.75rem; height: 4rem; border-radius: 6px; }
 .pcard.sm .pip { font-size: 1.3rem; }
 .pcard.sm .corner { font-size: 0.65rem; top: 3px; left: 4px; }
 .pcard.sm .corner.br { display: none; }
@@ -668,7 +669,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .sp-banner { position: sticky; top: 0; z-index: 5; margin: -4px -4px 0; padding: 10px 12px; border-radius: 12px; background: #0b0a10; color: #fff; border: 2px solid var(--danger); text-align: center; font-weight: 800; letter-spacing: 0.01em; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
 .sp-table { display: flex; flex-direction: column; gap: 8px; padding: 14px 8px; border-radius: 18px; background: radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0e4a2e 100%); box-shadow: inset 0 0 0 4px rgba(0,0,0,0.25); }
 .sp-board { gap: 6px; flex-wrap: nowrap; }
-.sp-board .pcard { width: 56px; height: 80px; }
+.sp-board .pcard { width: 3.5rem; height: 5rem; }
 .sp-pot { text-align: center; color: #e9fff3; font-weight: 600; font-size: 0.95rem; }
 .sp-hole { gap: 12px; }
 .sp-actions { gap: 10px; }
@@ -684,7 +685,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .sp-seat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .sp-seat-main small { color: var(--muted); }
 .sp-seat-cards { gap: 4px; flex-wrap: nowrap; }
-.sp-seat-cards .pcard.sm { width: 34px; height: 48px; }
+.sp-seat-cards .pcard.sm { width: 2.125rem; height: 3rem; }
 .sp-in { min-width: 34px; text-align: center; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: var(--card-2); font-variant-numeric: tabular-nums; }
 .sp-in::before { content: '🍺 '; font-size: 0.8em; }
 .sp-dealer { display: inline-flex; align-items: center; justify-content: center; width: 1.4em; height: 1.4em; border-radius: 50%; background: #fff; color: #111; font-size: 0.7rem; font-weight: 900; vertical-align: middle; }
@@ -717,7 +718,7 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .ar-bettors { min-height: 0; }
 .ar-bettors .ar-lane { background: none; min-height: 0; }
 .ar-side { display: flex; justify-content: center; }
-.ar-side .pcard.sm { width: 30px; height: 42px; border-width: 2px; }
+.ar-side .pcard.sm { width: 1.875rem; height: 2.625rem; border-width: 0.125rem; }
 .ar-side .pcard.sm .pip { font-size: 1rem; }
 .ar-side .pcard.sm .corner { font-size: 0.55rem; }
 .ar-side.flash .pcard { box-shadow: 0 0 0 3px var(--danger); }
@@ -893,13 +894,13 @@ main.ls .spacer { display: none; }
 main.ls .ls-stage .qr { width: 140px; height: 140px; }
 main.ls .room-code { font-size: 2.4rem; }
 /* Cards and tables sized to the short side */
-main.ls .ls-stage .pcard.xl { width: 112px; height: 162px; }
+main.ls .ls-stage .pcard.xl { width: 7rem; height: 10.125rem; }
 main.ls .ls-stage .pcard.xl .pip { font-size: 3.6rem; }
 main.ls .ls-stage .pcard.xl .corner { font-size: 1.25rem; }
 main.ls .mm-pile { height: 190px; }
 main.ls .mm-fan { margin-left: -56px; }
 main.ls .kc-ring { --size: min(300px, 44vw, calc(100dvh - 40px)); }
-main.ls .rb-pyramid .pcard.md { width: 50px; height: 72px; }
+main.ls .rb-pyramid .pcard.md { width: 3.125rem; height: 4.5rem; }
 main.ls .rb-pyramid .pcard.md .pip { font-size: 1.4rem; }
 main.ls .hz-wrap, main.ls .ar-track { max-height: calc(100dvh - 24px); }
 main.ls .hz-track { max-height: calc(100dvh - 40px); }
@@ -907,16 +908,16 @@ main.ls .bt-canvas { width: auto; height: calc(100dvh - 120px); max-width: 100%;
 main.ls .bt-gallery { grid-template-columns: repeat(3, 1fr); }
 main.ls .bt-prompt { font-size: 1.3rem; }
 main.ls .drink-alert .big { font-size: 2.2rem; }
-main.ls .sp-hole .pcard.lg { width: 74px; height: 106px; }
+main.ls .sp-hole .pcard.lg { width: 4.625rem; height: 6.625rem; }
 main.ls .sp-hole .pcard.lg .pip { font-size: 2.4rem; }
 main.ls .sp-hole .pcard.lg .corner { font-size: 0.9rem; }
-main.ls .sp-board .pcard { width: 46px; height: 66px; }
+main.ls .sp-board .pcard { width: 2.875rem; height: 4.125rem; }
 main.ls .sp-table { padding: 10px 8px; }
 main.ls .ar-row { min-height: 34px; }
 main.ls .ar-lane { min-height: 30px; }
 main.ls .ar-horse { width: 30px; height: 30px; }
 main.ls .ar-horse svg.pip { width: 17px; height: 17px; }
-main.ls .ar-side .pcard.sm { width: 24px; height: 33px; }
+main.ls .ar-side .pcard.sm { width: 1.5rem; height: 2.0625rem; }
 main.ls .ar-track { padding: 6px; gap: 2px; }
 /* Full-screen games (Slevens) use the whole width sideways. */
 @media (orientation: landscape) and (min-width: 560px) {
