@@ -66,7 +66,7 @@
   //                             they do by default, using the scenery's sc-legs-f/b, sc-tail,
   //                             sc-wing and sc-buzz).
   //   SKIN, SKINS, skinFor(i), HAIR, INK, LW: the palettes and the ink, for anything drawn by hand
-  //                             to match (the art in lib/roomStyles.js can't call the kit: draw it
+  //                             to match (the art in lib/roomArt.js can't call the kit: draw it
   //                             with these numbers, or paste what figure() gives, as the dive
   //                             bar's regular does).
   //
@@ -1272,7 +1272,7 @@
         () => fall(['🌸', '🌸', '🌹'], 8, 0.7, 0.8),
       ]),
   ];
-  // The château (see chateauGarden() in lib/roomStyles.js), on top of the moments above. Always:
+  // The château (see chateauGarden() in lib/roomArt.js), on top of the moments above. Always:
   // clouds drifting by day; by night the stars twinkle, fireflies over the hedges and the candle on
   // our table flickers. Now and then: the garçon with a tray of coupes, a peacock that stops to fan
   // its tail, madame and her poodle, a cyclist with his baguettes, a hot-air balloon over the
@@ -1355,7 +1355,7 @@
         () => drift(CH_BALLOON, { from: [-8, rand(5, 9)], to: [108, rand(3, 8)], dur: 40, size: 0.14 * innerHeight }).classList.add('ch-balloon', 'blk'),
       ]),
   ];
-  // The Highlands pub (see highlandPub() in lib/roomStyles.js), in any weather. Always: the peat
+  // The Highlands pub (see highlandPub() in lib/roomArt.js), in any weather. Always: the peat
   // fire's glow and the lantern and candle flickering; rain running down the window or fog drifting
   // past it. Now and then: a Highland coo ambles through, sheep, the collie off after something, the
   // piper striking up, a log on the fire, a dram slid along the floor, sparks; in the window, Nessie
@@ -1422,7 +1422,7 @@
   SCENES.stpatricksRain = hlScene('rain');
   SCENES.stpatricksFog = hlScene('fog');
 
-  // Christmas (see christmasEve() in lib/roomStyles.js), on top of the snow and Santa's sleigh
+  // Christmas (see christmasEve() in lib/roomArt.js), on top of the snow and Santa's sleigh
   // above. Always: the fairy lights and the tree twinkling, the star glowing, the fire. Now and
   // then: the toy train goes round with presents aboard, Santa pops out from behind the tree with
   // his sack, Rudolph trots through (nose blinking), a gingerbread man legs it, the cat knocks a
@@ -1500,7 +1500,7 @@
     () => { const b = el('🎁', { left: '3vw', bottom: '3vh', fontSize: '64px' }, 4500); b.classList.add('sc-present'); later(() => burst(['✨', '⭐', '🎉'], { x: 5, y: 86, n: 18, spread: 10 }), 2200); },
   );
 
-  // Halloween (see hauntedHill() in lib/roomStyles.js), on top of the bats, ghosts, witch and the
+  // Halloween (see hauntedHill() in lib/roomArt.js), on top of the bats, ghosts, witch and the
   // rest above. Always: the jack-o'-lanterns and the haunted house's windows flickering, the
   // cauldron bubbling, the lantern in the tree, the owl blinking. Now and then: a hand claws up
   // out of a grave, a skeleton dances, a black cat stalks along the fence, something's eyes in the
@@ -1944,7 +1944,7 @@
     d.classList.add('sc-waste');
     return d;
   }
-  // The oil drums in the background burning (see wasteland() in lib/roomStyles.js).
+  // The oil drums in the background burning (see wasteland() in lib/roomArt.js).
   function drumFires() {
     [[115, 740, 1], [1508, 756, 1.1], [837, 792, 0.7]].forEach(([x, y, s], i) => {
       const [vx, vy] = artAt(x, y);
@@ -2055,7 +2055,7 @@
   // A drawn person `vh` tall walking across the floor (drawings face right).
   const vvWalk = (svg, { vh = 20, dur = 10, bottom = 1, cls = [] } = {}) => crossing(svg, { y: 100 - bottom - vh, dur, size: (vh / 100) * innerHeight, faces: 'right', cls });
 
-  // The frat house (see fratHouse() in lib/roomStyles.js). Always: the string lights twinkling,
+  // The frat house (see fratHouse() in lib/roomArt.js). Always: the string lights twinkling,
   // party lights wandering over the walls, the neon buzzing, and the brother on the couch snoring.
   // Now and then: a keg stand (the room counts), someone crowd-surfs across, a toga party, the
   // pledge with a tower of pizzas (which goes over), a mattress down the stairs, campus security's
@@ -2366,7 +2366,7 @@
     ],
   };
 
-  // The mechanic's garage (see garage() in lib/roomStyles.js). Always: the OPEN sign, the radio's
+  // The mechanic's garage (see garage() in lib/roomArt.js). Always: the OPEN sign, the radio's
   // dial glowing, one fluorescent tube on the blink, oil dripping off the car into the pan, dust
   // turning in the sunlight by the door. Now and then: the mechanic wanders through with his wrench,
   // the welder lowers his mask and sparks fly, someone rolls out from under on a creeper, a customer
@@ -2674,7 +2674,7 @@
     // A drawing made once and placed at a point of the background art (1600 x 900, see artAt).
     const atArt = (html, x, y, style, life, cls) => { const [vx, vy] = artAt(x, y); const d = el(html, { left: `${vx}vw`, top: `${vy}vh`, ...style }, life); if (cls) d.classList.add(...cls.split(' ')); return d; };
 
-    // ----- The pirate tavern: on deck at sunset (see pirateSea() in lib/roomStyles.js) -----
+    // ----- The pirate tavern: on deck at sunset (see pirateSea() in lib/roomArt.js) -----
     // The captain stumps along the deck (peg leg, hook, parrot on his shoulder) and growls; a
     // sailor climbs the shrouds; a ship comes in on the horizon and the deck cannon trades shots
     // with her; the parrot on the rum barrel squawks at whoever drinks; the chest of gold spills;
@@ -2819,7 +2819,7 @@
       ],
     };
 
-    // ----- The lighthouse: from the gallery, in four weathers (see lighthouseView() in roomStyles) -----
+    // ----- The lighthouse: from the gallery, in four weathers (see lighthouseView() in roomArt) -----
     // The lamp's beam sweeps out over the water all the time after dark; the old light on the
     // headland winks back; the bell buoy rocks; the moon (or the sun) glitters on the sea. The
     // keeper comes out on the gallery with his pipe; a trawler comes home with its lights on; gulls
@@ -2940,7 +2940,7 @@
         ],
       };
     }
-    // ----- The space lounge (see spaceLounge() in lib/roomStyles.js) -----
+    // ----- The space lounge (see spaceLounge() in lib/roomArt.js) -----
     // Out of the window: the station turning, stars twinkling, a space whale gliding by, saucers,
     // comets, an astronaut waving with a drink; in the lounge the robot bartender hovers behind
     // the bar, shaking cocktails, and an alien floats past in zero gravity. Drinks float up out of
@@ -3019,7 +3019,7 @@
       ],
     };
 
-    // ----- The beer hall (see beerHall() in lib/roomStyles.js) -----
+    // ----- The beer hall (see beerHall() in lib/roomArt.js) -----
     // The cuckoo clock on the wall ticks (and the cuckoo comes out), the wagon-wheel chandelier
     // sways with its candles going; the waitress carries eight steins at once, the tuba player
     // oompahs past, the dachshund trots through, two lads slap their shoes; steins go up and clink.
@@ -3106,7 +3106,7 @@
       ],
     };
 
-    // ----- The vineyard, afternoon and sunset (see tuscany() in lib/roomStyles.js) -----
+    // ----- The vineyard, afternoon and sunset (see tuscany() in lib/roomArt.js) -----
     // Grapes hang swaying from the pergola; butterflies by day, fireflies at dusk. Nonna comes out
     // with a basket of grapes and tells everyone to eat; a couple zip past on a Vespa; someone
     // stomps grapes in a tub, purple everywhere; a wild boar trots through; the accordion player
@@ -3208,7 +3208,7 @@
 
   // ---------- The five regular rooms: dive, tavern, club, castle, jazz ----------
   // Their background art is drawn whole (diveBar, tavernInn, clubFloor, greatHall and jazzStage in
-  // lib/roomStyles.js); what moves is laid over it here, found by its place in the art's 1600 x 900.
+  // lib/roomArt.js); what moves is laid over it here, found by its place in the art's 1600 x 900.
   // Each room has its people (the barman, the barmaid, the DJ, the king, the band) busy all the
   // time, its lights and fires alive, moments every so often, and an eye on the game: someone
   // drinking, and the game won.
@@ -3644,7 +3644,7 @@
   }
 
   // ---------- The diner, the tiki bar, the speakeasy, the casino and the saloon ----------
-  // Each lines up with its drawing in lib/roomStyles.js (dinerArt, tikiBeach, speakeasyArt,
+  // Each lines up with its drawing in lib/roomArt.js (dinerArt, tikiBeach, speakeasyArt,
   // casinoArt and saloonArt: 1600 x 900, scaled to cover the screen, see artAt): the jukebox's
   // tubes glow over the jukebox, the peephole opens in the door, the reels spin in the slot
   // machine, the batwing doors swing in the doorway. Something's always going on quietly (steam,
