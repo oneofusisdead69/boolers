@@ -200,6 +200,7 @@ function viewFor(room, player) {
     isHost: room.hostId === player.id,
     selectedGame: room.selectedGame,
     style: room.style || 'classic',
+    randomStyle: !!room.randomStyle,
     look: lookOf(room), // what the room looks like right now (the Lighthouse's weather)
     venue: room.venue || '',
     trip: trips.view(room, player.id),
@@ -360,6 +361,11 @@ function startGame(room, gameId, mine = {}) {
   for (const p of room.players.filter((x) => !x.connected)) stashAway(room, p);
   room.players = room.players.filter((p) => p.connected);
   for (const p of room.players) p.drinks = 0;
+  // A random venue: somewhere new for each game.
+  if (room.randomStyle) {
+    room.style = ROOM_STYLES.pickRandom(room.style);
+    newMood(room);
+  }
   room.feed = [];
   room.recap = false;
   room.game = { type: game.id };
@@ -559,8 +565,19 @@ io.on('connection', (socket) => {
   });
 
   // The host dresses the room up (any time, even mid-game).
+  // 'random' is a different venue each game (see startGame).
   on('setStyle', ({ style } = {}) => {
-    if (!hostOnly() || !ROOM_STYLES.PICKABLE.includes(style)) return;
+    if (!hostOnly()) return;
+    if (style === 'random') {
+      if (!room.randomStyle) {
+        room.randomStyle = true;
+        room.style = ROOM_STYLES.pickRandom(room.style);
+        newMood(room);
+      }
+      return broadcast(room);
+    }
+    if (!ROOM_STYLES.PICKABLE.includes(style)) return;
+    room.randomStyle = false;
     if (room.style !== style) {
       room.style = style;
       newMood(room);
