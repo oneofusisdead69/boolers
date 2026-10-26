@@ -896,8 +896,9 @@
   // them, a fist on top), leaning this way and that.
   const HANDS = `<svg viewBox="0 0 400 80" width="1em" height="0.2em" overflow="visible">${[20, 70, 120, 175, 230, 280, 330, 380].map((x, i) => { const y = 24 + (i % 3) * 8; const lean = [-6, 4, -2, 7, -5, 3, 6, -4][i]; return `<g class="sc-hand" style="animation-delay:-${(i * 0.17).toFixed(2)}s">${inked(`M${x - lean * 2} 110 L${x} ${y}`, '#07050d', 13)}<circle cx="${x}" cy="${y - 4}" r="9.5" fill="#07050d" stroke="${INK}" stroke-width="${LW * 1.6}"/></g>`; }).join('')}</svg>`;
   // The court's banners (the castle, the tournament): one for each player, a swallow-tailed
-  // gonfalon in their colour, each with its own pattern (a pale, a chevron, a bend…) in gold (or,
-  // on a pale colour, in black), their avatar on a roundel for its device and their name on a
+  // gonfalon in their colour, each with its own pattern (a pale, a chevron, a bend…) in a deeper
+  // shade of the same colour (so the banner reads as theirs at a glance; gold is only the trim),
+  // their avatar on a roundel for its device and their name on a
   // scroll across it. 1em wide. They stir in the draught; whoever's turn it is has theirs lifted
   // and lit, a banner dips when its player drinks, and the winner's unfurls, big.
   const CLOTH = 'M2 5 H58 V100 L44 118 L30 102 L16 118 L2 100Z';
@@ -917,7 +918,7 @@
   const pale = (c) => { const m = /^#?([\da-f]{6})$/i.exec(String(c)); if (!m) return false; const n = parseInt(m[1], 16); return 0.3 * (n >> 16) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255) > 170; };
   const gonfalon = (p, kind, id) => {
     const c = /^#[\da-f]{3,8}$/i.test(p.color) ? p.color : '#8c1423';
-    const m = pale(c) ? '#2a1a10' : COURT_GOLD;
+    const m = shade(c, pale(c) ? 0.5 : 0.42);
     return `<svg viewBox="0 0 60 124" width="1em" height="2.07em" overflow="visible"><g class="ck-cloth"><clipPath id="${id}"><path d="${CLOTH}"/></clipPath>
       <path d="${CLOTH}" fill="${c}"/><g clip-path="url(#${id})">${BLAZONS[kind](m)}<g class="ck-folds"><path d="M9 0 V130 M27 0 V130 M45 0 V130" stroke="#000" stroke-width="6" opacity="0.2"/><path d="M15 0 V130 M33 0 V130 M51 0 V130" stroke="#fff" stroke-width="3" opacity="0.13"/></g></g>
       <path d="${CLOTH}" fill="none" stroke="${COURT_GOLD}" stroke-width="2"/><circle cx="30" cy="38" r="15" fill="${shade(c, 0.45)}" stroke="${COURT_GOLD}" stroke-width="2"/><text x="30" y="45" font-size="19" text-anchor="middle">${esc(p.avatar || '🛡️')}</text></g>
