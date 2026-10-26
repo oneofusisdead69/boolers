@@ -97,14 +97,35 @@
   let flown = 0; // the last throw flown
 
   // Where a landing point in the close-up is on the page.
+  // A miss that comes down among the cups hits one first: the cup nearest where it came down
+  // (if it's that close), the spot on its rim facing that way, and where it bounces to on the
+  // table, out past the cup. In the close-up's units, before view().
+  function offCup(cups, L, cupR) {
+    const d = (c) => Math.hypot(c.x - L.x, c.y - L.y);
+    const cup = cups.reduce((best, c) => (!best || d(c) < d(best) ? c : best), null);
+    if (!cup || d(cup) > cupR * 2.2) return null;
+    const len = d(cup) || 1;
+    const dir = d(cup) > 0.001 ? { x: (L.x - cup.x) / len, y: (L.y - cup.y) / len } : { x: Math.random() < 0.5 ? -1 : 1, y: 0 };
+    return {
+      rim: { x: cup.x + dir.x * cupR * 0.85, y: cup.y + dir.y * cupR * 0.85 },
+      table: { x: cup.x + dir.x * cupR * 2.6, y: cup.y + dir.y * cupR * 2.6 },
+    };
+  }
+  // Where the flying ball comes down, on the page: in a cup (the middle, where it floats), on a
+  // cup's rim, or on the table.
+  function landing(g, L) {
+    if (L.cup) { const e = view(L.cup.x, L.cup.y); return { x: e.x, y: e.y + ry3(e.f) * 0.12, f: e.f }; }
+    const off = offCup(g.cups[L.target] || [], L, g.cupR);
+    if (off) { const e = view(off.rim.x, off.rim.y); return { x: e.x, y: e.y, f: e.f, off }; }
+    const e = view(L.x, L.y);
+    return { x: e.x, y: e.y + H * e.f, f: e.f };
+  }
   function onPage(L) {
     const svg = document.querySelector('.bp-rack svg');
     if (!svg) return null;
     const r = svg.getBoundingClientRect();
-    // (In: it lands in the middle of the cup, where it floats.)
-    const e = L.cup ? view(L.cup.x, L.cup.y) : view(L.x, L.y);
-    const y = L.cup ? e.y + ry3(e.f) * 0.12 : e.y + H * e.f;
-    return { x: r.left + (e.x / 360) * r.width, y: r.top + ((y - TOP) / (300 - TOP)) * r.height, f: e.f };
+    const e = landing(PB.state.game, L);
+    return { x: r.left + (e.x / 360) * r.width, y: r.top + ((e.y - TOP) / (300 - TOP)) * r.height, f: e.f };
   }
 
   // Beer thrown up out of the cup as the ball goes in: drops flying up and out, falling back.
@@ -160,13 +181,21 @@
             ${splash(rx, c.f)}
           </g></g>`;
       } else {
-        // Out: it hits the table and bounces away, on into the room (a rim-out spins off the
-        // cup first). Its shadow stays on the table under it.
+        // Out: it hits the table and bounces away, on into the room. Coming down among the cups,
+        // it hits one first and bounces off it onto the table. Its shadow stays under it.
         const side = Math.max(-1, Math.min(1, (last.x - (g.aim?.x ?? last.x)) * 4)) * 40 + (Math.random() - 0.5) * 20;
-        ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})" style="--land:${land}s;--bx:${side.toFixed(1)}px">
+        const at = landing(g, last);
+        let kick = '';
+        if (at.off) {
+          const t = view(at.off.table.x, at.off.table.y);
+          kick = `;--kx:${(t.x - at.x).toFixed(1)}px;--ky:${(t.y + H * t.f - at.y).toFixed(1)}px;--after:${(land + 0.45).toFixed(2)}s`;
+          end.x = at.x;
+          end.y = at.y;
+        }
+        ball = `<g transform="translate(${end.x.toFixed(1)} ${end.y.toFixed(1)})" style="--land:${land}s;--bx:${side.toFixed(1)}px${kick}">
           <g class="bp-fly3d ${last.rim ? 'rim' : 'out'} ${handoff ? 'handoff' : ''}" style="--sx:${(180 - end.x).toFixed(1)}px;--sy:${(320 - end.y).toFixed(1)}px">
-            <g class="bp-bounce"><ellipse class="bp-bounce-shadow" cy="${(r * 0.9).toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r * 0.35).toFixed(1)}"/>
-              <g class="bp-hop"><circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g></g></g>`;
+            <g class="${at.off ? 'bp-kick' : ''}"><g class="bp-bounce"><ellipse class="bp-bounce-shadow" cy="${(r * 0.9).toFixed(1)}" rx="${r.toFixed(1)}" ry="${(r * 0.35).toFixed(1)}"/>
+              <g class="bp-hop"><circle r="${r.toFixed(1)}" fill="#fffdf4" stroke="#d8d0c0" stroke-width="1"/></g></g></g></g></g>`;
       }
     }
     return `<div class="bp-close"><div class="bp-rack">${felt}<svg viewBox="0 ${TOP} 360 ${300 - TOP}" aria-label="Their cups">
