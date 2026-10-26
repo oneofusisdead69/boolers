@@ -1054,22 +1054,280 @@
     ],
   };
 
-  // Mad Max in the garage: the wasteland. The dust blows through; a war rig thunders past with a
-  // bike gang behind it; vultures circle; an oil drum goes up.
+  // Mad Max in the garage: Fury Road. Sand blows low across the ground and the oil drums burn; the
+  // war rig thunders past with its convoy of spiked war cars and the Doof Wagon (the drummers
+  // pounding, the guitarist on his bungees, flames out of his guitar); a war boy sprays his mouth
+  // chrome and shouts WITNESS ME; fire columns go up, a flare arcs over, lightning flickers in the
+  // storm on the horizon, and now and then the storm wall itself rolls in. The game drives it too:
+  // a war brings the storm and the drums, the final battle the whole storm, someone out of cards
+  // goes to Valhalla, and the last one holding cards gets witnessed.
+  //
+  // The drawings face right (across the floor, along the bottom). A dust cloud is part of each,
+  // so it's turned round with it.
+  const CHROME = (id) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.42" stop-color="#b9c3ca"/><stop offset="0.52" stop-color="#4a5258"/><stop offset="1" stop-color="#dfe5e8"/></linearGradient>`;
+  const KICK = (x0, x1, y, id) => `<radialGradient id="${id}"><stop offset="0" stop-color="#d89262" stop-opacity="0.8"/><stop offset="1" stop-color="#b8703e" stop-opacity="0"/></radialGradient>
+    <g class="sc-kick">${[0, 1, 2, 3].map((i) => `<ellipse cx="${x0 + ((x1 - x0) * i) / 3}" cy="${y - 10 - i * 4}" rx="${40 - i * 6}" ry="${26 - i * 4}" fill="url(#${id})"/>`).join('')}</g>`;
+  const TYRE = (x, y, r, chrome) => `<g class="sc-tyre"><circle cx="${x}" cy="${y}" r="${r}" fill="#0c0a09"/><path d="M${x - r + 3} ${y} h${2 * r - 6} M${x} ${y - r + 3} v${2 * r - 6}" stroke="#2e2a28" stroke-width="${r / 5}"/><circle cx="${x}" cy="${y}" r="${r * 0.42}" fill="url(#${chrome})"/></g>`;
+  // A pale war boy, standing (for the tops of the vehicles).
+  const RIDER = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-30" r="5" fill="#ece6dc"/><path d="M-5 -24 h10 l2 14 h-14Z" fill="#ece6dc"/><path d="M-5 -10 l-2 10 M5 -10 l2 10" stroke="#2a1e18" stroke-width="3"/><path d="M-6 -22 l-6 -10 M6 -22 l6 -12" stroke="#ece6dc" stroke-width="2.5" stroke-linecap="round"/></g>`;
+  // The war rig: a black tanker truck, chrome stacks spitting flame, spikes all along the tank, a
+  // polecat swaying on his pole, war boys riding on top.
+  const WAR_RIG = `<svg viewBox="0 0 540 150" width="1em" height="0.278em" overflow="visible"><defs>${CHROME('wrC')}
+    <linearGradient id="wrT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0c89a"/><stop offset="0.22" stop-color="#c06a30"/><stop offset="0.7" stop-color="#6a2e12"/><stop offset="1" stop-color="#2a1208"/></linearGradient></defs>
+    ${KICK(20, 140, 146, 'wrK')}
+    <rect x="128" y="112" width="268" height="12" fill="#1a1210"/>
+    <rect x="140" y="50" width="240" height="62" rx="30" fill="url(#wrT)"/>
+    ${[178, 216, 254, 292, 330].map((x) => `<rect x="${x}" y="52" width="5" height="58" fill="#3a1a0a" opacity="0.55"/>`).join('')}
+    <rect x="152" y="58" width="216" height="5" rx="2.5" fill="#fff" opacity="0.3"/>
+    ${Array.from({ length: 15 }, (_, i) => `<path d="M${152 + i * 14} 53 l5 -15 l5 15Z" fill="#241610"/>`).join('')}
+    <path d="M206 52 v-20 h34 v20Z" fill="#2e221c"/><rect x="212" y="26" width="22" height="7" fill="url(#wrC)"/>
+    <g class="sc-pole"><path d="M300 52 L280 -46" stroke="#5a3a22" stroke-width="4"/>${RIDER(280, -40, 1.1)}</g>
+    ${RIDER(170, 38)}${RIDER(352, 38)}
+    <path d="M388 124 V60 H438 L448 34 H478 L494 62 L514 70 V124Z" fill="#1c1816"/>
+    <path d="M452 40 H474 L486 62 H446Z" fill="#7ab8c0" opacity="0.85"/><path d="M455 43 H462 L452 60 H448Z" fill="#fff" opacity="0.4"/>
+    <rect x="502" y="74" width="14" height="46" fill="url(#wrC)"/><path d="M502 82 h14 M502 90 h14 M502 98 h14 M502 106 h14" stroke="#2a2a2a" stroke-width="1.5"/>
+    <path d="M516 76 l14 4 l-14 4Z M516 94 l16 4 l-16 4Z M516 110 l14 4 l-14 4Z" fill="url(#wrC)"/>
+    <circle cx="510" cy="68" r="4.5" fill="#ffe08a"/><circle cx="510" cy="68" r="10" fill="#ffe08a" opacity="0.3"/>
+    <path d="M504 86 q6 -6 12 0 v6 h-12Z" fill="#e8dcc0"/>
+    <rect x="394" y="96" width="42" height="18" rx="9" fill="url(#wrC)"/>
+    <rect x="424" y="8" width="8" height="54" fill="url(#wrC)"/><rect x="438" y="14" width="8" height="48" fill="url(#wrC)"/>
+    <path class="sc-exflame" d="M428 8 q-8 -14 0 -30 q3 10 7 2 q6 12 -2 28Z" fill="#ff8a1a"/><path class="sc-exflame b" d="M442 14 q-7 -12 0 -26 q3 9 6 2 q5 10 -2 24Z" fill="#ffb347"/>
+    ${RIDER(410, 60)}
+    ${[152, 188, 334, 368, 410, 478].map((x) => TYRE(x, 128, 18, 'wrC')).join('')}</svg>`;
+  // A war car: a hot rod bristling with spikes, the blower out of the bonnet spitting flame, a war
+  // boy at the back with a thunderstick (the lance with a bomb on the end).
+  const WAR_CAR = (body = '#3a1c10') => `<svg viewBox="0 0 230 100" width="1em" height="0.435em" overflow="visible"><defs>${CHROME('wcC')}</defs>
+    ${KICK(0, 60, 96, 'wcK')}
+    <path d="M40 80 L48 56 H118 L132 38 H166 L176 56 L208 60 L216 82 H40Z" fill="${body}"/>
+    <path d="M136 42 H162 L170 56 H132Z" fill="#6aa0a8" opacity="0.8"/>
+    ${Array.from({ length: 10 }, (_, i) => `<path d="M${54 + i * 11} ${i > 6 ? 40 : 57} l4 -${12 + (i % 3) * 4} l4 ${12 + (i % 3) * 4}Z" fill="#1e100a"/>`).join('')}
+    <rect x="182" y="44" width="22" height="16" rx="2" fill="url(#wcC)"/><rect x="186" y="36" width="5" height="8" fill="url(#wcC)"/><rect x="195" y="36" width="5" height="8" fill="url(#wcC)"/>
+    <path class="sc-exflame" d="M188 36 q-6 -10 0 -22 q2 8 5 2 q4 9 -1 20Z" fill="#ff8a1a"/><path class="sc-exflame b" d="M197 36 q-6 -10 0 -20 q2 7 5 2 q4 8 -1 18Z" fill="#ffd060"/>
+    <path d="M216 66 l12 3 l-12 3Z M216 76 l12 3 l-12 3Z" fill="url(#wcC)"/>
+    <path d="M44 72 h-14 l-4 -6 M44 78 h-16" stroke="url(#wcC)" stroke-width="4" fill="none"/>
+    <g class="sc-pole slow">${RIDER(86, 56)}<path d="M92 38 L138 -12" stroke="#6a4a2a" stroke-width="3"/><path d="M134 -8 l10 -14 l4 6Z" fill="#2a1e18"/></g>
+    ${TYRE(72, 80, 20, 'wcC')}${TYRE(194, 86, 14, 'wcC')}</svg>`;
+  // The Doof Wagon: a truck with a wall of speakers, the drummers pounding at the back, and the
+  // Doof Warrior in his red suit hanging on bungees out front, flames shooting out of his guitar.
+  const DOOF = `<svg viewBox="0 0 380 220" width="1em" height="0.579em" overflow="visible"><defs>${CHROME('dfC')}
+    <radialGradient id="dfS"><stop offset="0" stop-color="#2a2624"/><stop offset="0.55" stop-color="#5a5452"/><stop offset="0.7" stop-color="#1a1615"/><stop offset="0.85" stop-color="#8a8480"/><stop offset="1" stop-color="#2a2624"/></radialGradient>
+    <linearGradient id="dfF" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff3b0"/><stop offset="0.3" stop-color="#ffb347"/><stop offset="0.7" stop-color="#ff5a1a"/><stop offset="1" stop-color="#ff5a1a" stop-opacity="0"/></linearGradient></defs>
+    ${KICK(-10, 50, 216, 'dfK')}
+    <rect x="16" y="168" width="344" height="14" fill="#1a1210"/>
+    <rect x="44" y="38" width="200" height="130" fill="#141010" stroke="#3a3030" stroke-width="3"/>
+    <g class="sc-thump">${Array.from({ length: 12 }, (_, i) => `<circle cx="${70 + (i % 4) * 50}" cy="${62 + Math.floor(i / 4) * 42}" r="18" fill="url(#dfS)"/>`).join('')}</g>
+    ${[60, 110, 160, 210].map((x) => `<circle cx="${x}" cy="160" r="2" fill="#ff3a2a"/>`).join('')}
+    <rect x="2" y="134" width="38" height="34" rx="4" fill="#8a3a1a"/><ellipse cx="21" cy="134" rx="19" ry="5" fill="#e8d8b8"/>
+    <g transform="translate(20 132)"><circle cx="0" cy="-34" r="6" fill="#ece6dc"/><path d="M-6 -28 h12 l2 16 h-16Z" fill="#ece6dc"/>
+      <path class="sc-drumarm" d="M-5 -24 l-12 8" stroke="#ece6dc" stroke-width="3" stroke-linecap="round"/><path class="sc-drumarm b" d="M5 -24 l12 8" stroke="#ece6dc" stroke-width="3" stroke-linecap="round"/></g>
+    <path d="M248 168 V12 H306" stroke="#2a2420" stroke-width="5" fill="none"/>
+    <g class="sc-bungee"><path d="M266 12 V56 M290 12 V56" stroke="#8a7a6a" stroke-width="1.5"/>
+      <path d="M266 56 h24 l4 46 l-6 30 h-6 l-4 -26 l-4 26 h-6 l-6 -30Z" fill="#c0201a"/><circle cx="278" cy="46" r="10" fill="#c0201a"/><path d="M271 44 h14 v6 h-14Z" fill="#1a1010"/>
+      <path d="M262 98 L318 40" stroke="#d8d8d8" stroke-width="4"/><path d="M266 104 L322 48" stroke="#b8b8b8" stroke-width="3"/>
+      <ellipse cx="268" cy="100" rx="24" ry="15" transform="rotate(-45 268 100)" fill="#b8201a" stroke="url(#dfC)" stroke-width="4"/><ellipse cx="282" cy="112" rx="16" ry="10" transform="rotate(-45 282 112)" fill="#8a1810" stroke="url(#dfC)" stroke-width="3"/><path d="M314 36 l10 -2 l2 10 l-6 4Z" fill="#8a8480"/>
+      <path class="sc-flamejet" d="M320 40 Q300 0 322 -40 Q326 -14 336 -30 Q332 -70 352 -104 Q352 -60 362 -74 Q370 -20 334 42Z" fill="url(#dfF)"/><circle cx="322" cy="40" r="7" fill="#fff3b0"/></g>
+    <path d="M304 168 V98 H340 L362 126 V168Z" fill="#2a2420"/><path d="M312 104 H338 L352 124 H312Z" fill="#6aa0a8" opacity="0.8"/>
+    <path d="M362 132 l12 4 l-12 4Z M362 150 l12 4 l-12 4Z" fill="url(#dfC)"/>
+    ${[60, 104, 300, 340].map((x) => TYRE(x, 196, 20, 'dfC')).join('')}</svg>`;
+  // A war boy, painted white, mouth sprayed chrome, can in one hand and the other fist up.
+  const WAR_BOY = `<svg viewBox="0 0 90 170" width="1em" height="1.89em"><defs>${CHROME('wbC')}</defs>
+    <path d="M28 104 L24 166 H38 L45 120 L52 166 H66 L62 104Z" fill="#2a1e18"/><rect x="26" y="100" width="38" height="8" fill="#4a3428"/>
+    <path d="M26 58 Q45 50 64 58 L62 104 H28Z" fill="#ece6dc"/><path d="M34 66 l8 6 M48 70 l10 -4 M36 84 l20 2" stroke="#b8a898" stroke-width="1.5"/>
+    <path d="M28 62 L14 34 L10 10" stroke="#ece6dc" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="10" cy="8" r="6" fill="#ece6dc"/>
+    <path d="M62 62 L72 50 L60 40" stroke="#ece6dc" stroke-width="8" fill="none" stroke-linecap="round"/><rect x="52" y="30" width="10" height="16" rx="2" fill="url(#wbC)"/>
+    <circle cx="45" cy="34" r="16" fill="#f2ede6"/><ellipse cx="38" cy="30" rx="4.5" ry="4" fill="#120a08"/><ellipse cx="52" cy="30" rx="4.5" ry="4" fill="#120a08"/>
+    <ellipse cx="45" cy="42" rx="8" ry="5.5" fill="url(#wbC)"/><path d="M39 41 h12" stroke="#fff" stroke-width="1.5" opacity="0.9"/></svg>`;
+  // The storm wall rolling in: billows piled up the sky, dark, their edges lit, lightning inside.
+  const STORM_WALL = (() => {
+    let s = '<rect x="0" y="0" width="760" height="900" fill="#2a100a"/>';
+    for (let y = 40; y <= 900; y += 70) {
+      const edge = 700 + Math.sin(y / 120) * 70;
+      for (let x = 520 + Math.random() * 40; x < edge + 60; x += 70 + Math.random() * 40) {
+        const r = 70 + Math.random() * 60;
+        s += `<circle cx="${(x + r * 0.18).toFixed(0)}" cy="${(y - r * 0.15).toFixed(0)}" r="${r.toFixed(0)}" fill="${x > edge - 80 ? '#a04a22' : '#4a1e10'}"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${r.toFixed(0)}" fill="${pick(['#2e1209', '#3a160c', '#341409'])}"/>`;
+      }
+    }
+    for (let i = 0; i < 80; i++) s += `<circle cx="${(760 + Math.random() * 230).toFixed(0)}" cy="${(Math.random() * 900).toFixed(0)}" r="${(1.5 + Math.random() * 3).toFixed(1)}" fill="#d88a50" opacity="${(0.3 + Math.random() * 0.5).toFixed(2)}"/>`;
+    s += `<g class="sc-bolt"><ellipse cx="420" cy="300" rx="340" ry="220" fill="#ffb0a0" opacity="0.25"/>
+      <path d="M470 40 l-50 120 l56 -10 l-74 160 l40 -8 l-60 140 M408 310 l60 50" stroke="#fff4ec" stroke-width="6" fill="none"/></g>
+      <g class="sc-bolt b"><ellipse cx="300" cy="620" rx="260" ry="160" fill="#ffb0a0" opacity="0.2"/><path d="M340 420 l-34 90 l40 -8 l-50 120" stroke="#fff4ec" stroke-width="4" fill="none"/></g>`;
+    return `<svg viewBox="0 0 1000 900" preserveAspectRatio="xMaxYMax slice" width="100%" height="100%">${s}</svg>`;
+  })();
+  const BOLT = `<svg viewBox="0 0 100 200" width="1em" height="2em"><path d="M60 0 l-26 70 l30 -6 l-40 92 l20 -4 l-28 48" stroke="#fff4ec" stroke-width="4" fill="none"/><path d="M60 0 l-26 70 l30 -6 l-40 92" stroke="#ffb0a0" stroke-width="12" fill="none" opacity="0.3"/></svg>`;
+
+  // Where a point of the background art (1600 x 900, scaled to cover the screen) is, in vw/vh.
+  const artAt = (x, y) => {
+    const s = Math.max(innerWidth / 1600, innerHeight / 900);
+    return [((innerWidth - 1600 * s) / 2 + x * s) / innerWidth * 100, ((innerHeight - 900 * s) / 2 + y * s) / innerHeight * 100];
+  };
+  // A vehicle along the bottom of the screen, `h` vh tall, its wheels at `y` vh: off one side and
+  // across to the other (`ar` is the drawing's width over its height).
+  function drive(svg, { ar, h, y = 99, dur, right }) {
+    const size = (h / 100) * innerHeight * ar;
+    const w = (size / innerWidth) * 100;
+    const d = drift(svg, { from: [right ? -w - 2 : 102, y - h], to: [right ? 102 : -w - 2, y - h], dur, size });
+    d.classList.add('sc-veh', 'blk', right ? 'sc-face-r' : 'sc-face-l');
+    return d;
+  }
+  const rig = (right, dur = 9) => drive(WAR_RIG, { ar: 3.6, h: 22, dur, right });
+  const warCar = (right, dur = 6) => drive(WAR_CAR(pick(['#3a1c10', '#4a2a1a', '#2a1a14', '#5a2410'])), { ar: 2.3, h: rand(10, 13), y: rand(98, 100), dur, right });
+  const doof = (right, dur = 11) => drive(DOOF, { ar: 1.727, h: 27, dur, right });
+  // The whole convoy: the rig out front, war cars round it, the Doof Wagon, bikes at the back.
+  function convoy() {
+    const right = Math.random() < 0.5;
+    cue('rumble');
+    rig(right);
+    later(() => warCar(right, 6.5), 1200);
+    later(() => { warCar(right, 7); cue('vroom'); }, 2600);
+    later(() => { doof(right); cue('drum'); cue('riff', 1200); }, 3600);
+    for (let i = 0; i < 4; i++) later(() => crossing('🏍️', { y: rand(90, 95), dur: rand(4, 5), size: 46, bob: false }), 6000 + i * 350);
+  }
+  // A column of fire going up from the ground at x vw (and a flash of its light on everything).
+  function fireColumn(x, { bottom = 4, h = 46, delay = 0 } = {}) {
+    later(() => {
+      el('<i></i>', { left: `${x}vw`, bottom: `${bottom}vh`, height: `${h}vh` }, 2800).classList.add('sc-firecol');
+      el('', { inset: '0', '--x': `${x}vw`, '--y': `${100 - bottom - h / 3}vh` }, 1700).classList.add('sc-blastglow');
+      burst(['●', '•', '▪'], { x, y: 100 - bottom - 6, n: 16, spread: 6, size: [5, 12], colors: ['#ffd23f', '#ff8a1a', '#ff4a1a', '#2a1208'], rise: [-40, -16], fall: [-10, 4] });
+      for (let i = 0; i < 3; i++) later(() => drift('', { from: [x - 4, 100 - bottom - h * 0.8], to: [x - 6 + i * 3, 100 - bottom - h - 18], dur: 5, size: 10 }).classList.add('sc-plume', 'dark'), 500 + i * 300);
+    }, delay);
+    cue('boom', delay);
+  }
+  // A flare fired up from the right, hanging red over everything, and coming down.
+  function flare() {
+    const x = rand(66, 71);
+    cue('bang');
+    el('', { left: `${x}vw`, top: '96vh', '--fx': `${-rand(3, 8)}vw` }, 7200).classList.add('sc-flare');
+    el('', { inset: '0', '--x': `${x - 8}vw` }, 7000).classList.add('sc-flareglow');
+  }
+  // Lightning in the storm on the horizon (the background's, top left), and thunder after.
+  function stormFlash() {
+    const [x, y] = artAt(250, 150);
+    el(BOLT, { left: `${x - 3}vw`, top: `${Math.max(0, y - 4)}vh`, fontSize: `${rand(10, 16)}vh` }, 1400).classList.add('sc-stormbolt');
+    el('', { left: '0', top: '0', width: `${artAt(760, 0)[0]}vw`, height: `${artAt(0, 600)[1]}vh` }, 1400).classList.add('sc-stormflash');
+    cue('thunderFar', rand(600, 1400));
+  }
+  // The storm wall rolls in from the left (the whole screen for the final battle), lightning in it.
+  function stormWall(big = false) {
+    const life = big ? 14000 : 10000;
+    el(STORM_WALL, { left: '0', top: '0', width: big ? '112vw' : '78vw', height: '100vh', '--life': `${life / 1000}s` }, life).classList.add('sc-stormwall');
+    cue('wind');
+    for (const t of big ? [2200, 4200, 6400, 9000] : [2600, 5200]) cue('thunder', t + 500);
+  }
+  // A war boy pops up at the left, sprays his mouth chrome, and: WITNESS ME!
+  function witnessMe() {
+    const size = (0.32 * innerHeight) / 1.89;
+    const w = (size / innerWidth) * 100;
+    const h = 32;
+    popup(WAR_BOY, { x: 2, bottom: 0, size, life: 5200 });
+    later(() => {
+      burst(['•', '●', '✦'], { x: 2 + w * 0.6, y: 100 - h + h * 0.24, n: 22, spread: 4, size: [4, 10], colors: ['#ffffff', '#dfe5e8', '#9aa4ac', '#c9d2d8'], rise: [-10, -3], fall: [-4, 6] });
+      cue('shaker');
+    }, 1000);
+    later(() => { wasteShout('WITNESS ME!'); cue('cheer'); }, 1900);
+    later(() => fireColumn(2 + w / 2, { h: 50 }), 3600);
+  }
+  // A war car hits a mine as it comes in from the left: up it goes, a tyre flying.
+  function mine() {
+    const d = warCar(true, 5);
+    // It goes from -w - 2 to 102 (vw) in 5s: when is its middle at `at`?
+    const dx = parseFloat(d.style.getPropertyValue('--dx'));
+    const w = dx - 104;
+    const at = rand(8, 14);
+    const t = ((at + 2 + w / 2) / dx) * 5000;
+    later(() => {
+      d.remove();
+      fireColumn(at, { h: 52 });
+      burst(['▪', '■', '▲'], { x: at, y: 88, n: 14, spread: 10, size: [8, 18], colors: ['#2a1208', '#4a2a1a', '#8a8480'], rise: [-36, -14], fall: [10, 20] });
+      drift('🛞', { from: [at, 86], to: [at + rand(20, 34), 104], dur: 2.4, size: 44, spin: 900, extra: { animationTimingFunction: 'cubic-bezier(0.3, -0.6, 0.7, 1)' } });
+    }, Math.max(300, t));
+  }
+  // Big words over the table, chrome and fire.
+  function wasteShout(big, small = '', life = 3400) {
+    const d = inFront(`<b>${big}</b>${small ? `<small>${small}</small>` : ''}`, { left: '0', right: '26vw', top: '24vh', '--life': `${(life - 200) / 1000}s` }, life);
+    d.classList.add('sc-waste');
+    return d;
+  }
+  // The oil drums in the background burning (see wasteland() in lib/roomStyles.js).
+  function drumFires() {
+    [[115, 740, 1], [1508, 756, 1.1], [837, 792, 0.7]].forEach(([x, y, s], i) => {
+      const [vx, vy] = artAt(x, y);
+      el('<i></i><i></i>', { left: `${vx}vw`, top: `${vy}vh`, '--s': s, animationDelay: `-${i * 0.4}s` }).classList.add('sc-drumfire');
+    });
+  }
+
+  let wl = null;
+  const nameOf = (s, id, upper = false) => { const n = String(s.players?.find((p) => p.id === id)?.name || 'Someone'); return esc(upper ? n.toUpperCase() : n); };
   SCENES.garageWasteland = {
+    gap: [10, 22],
     decor() {
+      wl = null;
       el('', { left: '0', top: '0', width: '100vw', height: '100vh' }).classList.add('sc-dust');
-      banner('Welcome to the Wasteland', 'Fuel’s low. Drinks are lower.', 'waste');
+      el('', { left: '0', bottom: '0', width: '200vw', height: '30vh' }).classList.add('sc-sandblow');
+      drumFires();
+      // It begins: fire either side, WITNESS ME, the welcome, and the convoy roaring across.
+      fireColumn(6, { h: 54 });
+      fireColumn(68, { h: 44, delay: 450 });
+      later(() => { wasteShout('WITNESS ME!', '', 2400); burst(['•', '●', '✦'], { x: 37, y: 34, n: 30, spread: 30, size: [4, 10], colors: ['#ffffff', '#dfe5e8', '#9aa4ac'] }); }, 200);
+      later(() => banner('Welcome to the Wasteland', 'Fuel’s low. Drinks are lower.', 'waste'), 2600);
       cue('riff', 400);
+      later(convoy, 1800);
+    },
+    // The game's big moments (Mad Max's view: games/madMax.js).
+    update(s) {
+      const g = s?.gameType === 'madMax' ? s.game : null;
+      if (!g) return;
+      const w = g.war;
+      const now = { no: s.gameNo, war: w ? `${w.challengedId}>${w.challengers.join(',')}${w.final ? '!' : ''}` : null, warWon: w?.winnerId || null, winner: g.winnerId || null, counts: w ? wl?.counts || {} : g.counts || {} };
+      const was = wl;
+      wl = now;
+      // The first look at a game (the TV just turned on, or a new game): nothing to react to yet.
+      if (!was || was.no !== now.no) return;
+      if (now.winner && now.winner !== was.winner) {
+        wasteShout(`WITNESS ${nameOf(s, now.winner, true)}!`, 'Last one holding cards', 5000);
+        [4, 20, 52, 68].forEach((x, i) => fireColumn(x, { h: 50, delay: i * 350 }));
+        later(flare, 1600);
+        later(convoy, 2400);
+        cue('cheer', 300); cue('riff', 900);
+        return;
+      }
+      if (now.war && now.war !== was.war) {
+        const names = [w.challengedId, ...w.challengers].map((id) => nameOf(s, id)).join(' vs ');
+        if (w.final) {
+          wasteShout('FINAL BATTLE', `${names} · winner takes all`, 4200);
+          stormWall(true);
+          later(() => doof(Math.random() < 0.5), 1500);
+          [6, 66].forEach((x, i) => fireColumn(x, { h: 52, delay: 600 + i * 400 }));
+          cue('riff', 1200);
+        } else {
+          wasteShout('WAR!', names);
+          stormWall();
+          cue('drum', 300);
+        }
+      } else if (now.warWon && now.warWon !== was.warWon && !now.winner) {
+        later(() => { wasteShout(`${nameOf(s, now.warWon, true)} WINS THE WAR`, '', 2800); fireColumn(rand(4, 10), { h: 44 }); cue('cheer'); }, 600);
+      }
+      // Out of cards (counted only between wars: in one, cards are laid out of hands for a while).
+      if (!w) {
+        const out = Object.keys(now.counts).filter((id) => now.counts[id] === 0 && was.counts[id] > 0 && id !== now.winner);
+        out.forEach((id, i) => later(() => {
+          wasteShout('VALHALLA!', `${nameOf(s, id)} is out of cards`, 3200);
+          fireColumn(rand(4, 10), { h: 48 });
+          later(() => fireColumn(rand(62, 70), { h: 40 }), 500);
+        }, 900 + i * 3600));
+      }
     },
     moments: [
-      () => { crossing('🔥🚚', { y: 90, dur: 5, size: 70, bob: false }); cue('rumble'); },
-      () => { for (let i = 0; i < pick([3, 4, 5]); i++) later(() => crossing('🏍️', { y: rand(88, 94), dur: 3.2, size: 50, bob: false }), i * 300); cue('vroom'); },
+      convoy,
+      () => { doof(Math.random() < 0.5); cue('drum'); cue('riff', 1500); },
+      mine,
+      () => { stormWall(); later(stormFlash, 3000); },
+      witnessMe,
+      flare,
+      stormFlash,
       () => { for (let i = 0; i < 3; i++) drift('🦅', { from: [-10, rand(4, 14)], to: [110, rand(4, 16)], dur: rand(14, 18), size: 40, extra: { animationDelay: `${i * 1.2}s` } }); },
-      () => { cue('boom'); burst(['🔥', '💥', '🔥'], { x: rand(4, 12), y: 80, n: 12, spread: 6, size: [30, 50], rise: [-24, -10], fall: [0, 10] }); },
-      () => { el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 6000).classList.add('sc-duststorm'); cue('wind'); },
-      () => drift(TUMBLEWEED, { from: [-12, 88], to: [112, 88], dur: 7, size: 64, spin: 1080 }).classList.add('sc-tumble'),
-      () => cue('riff'),
+      () => { for (let i = 0; i < pick([4, 5, 6]); i++) later(() => crossing('🏍️', { y: rand(89, 95), dur: rand(3, 4), size: rand(40, 52), bob: false }), i * 280); cue('vroom'); },
+      () => { [4, 12, 64, 70].forEach((x, i) => fireColumn(x, { h: rand(36, 52), delay: i * 260 })); },
+      () => { warCar(Math.random() < 0.5); later(() => warCar(Math.random() < 0.5), 1500); cue('vroom'); },
     ],
   };
 
