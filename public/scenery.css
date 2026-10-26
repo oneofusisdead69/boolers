@@ -395,9 +395,13 @@
 .sl-doors.swing .sl-door { animation: sl-swing 2.2s ease-out; }
 @keyframes sl-swing { 0% { transform: scaleX(1); } 15% { transform: scaleX(0.12); } 35% { transform: scaleX(0.8); } 50% { transform: scaleX(0.3); } 70% { transform: scaleX(0.95); } 85% { transform: scaleX(0.78); } 100% { transform: scaleX(1); } }
 .sl-pane { overflow: hidden; }
-.sl-pane .sl-stranger { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 100%; opacity: 0; animation: sl-enter 5s ease-in forwards; }
+/* (He grows about the horizon, 0.4 m over his 1.8 m: in perspective, so his feet stay on the street.) */
+.sl-pane .sl-stranger { position: absolute; left: 50%; bottom: 0; transform-origin: 50% -22%; opacity: 0; animation: sl-enter 5s ease-in forwards; }
 .sl-pane .sl-stranger svg, .sl-pane .sl-rider svg, .sl-pane .sl-rider-l svg { display: block; }
-@keyframes sl-enter { 0% { opacity: 0; transform: translateX(-50%) scale(0.55); } 15% { opacity: 1; } 55% { opacity: 1; transform: translateX(-50%) scale(0.75); } 80% { opacity: 0.9; transform: translateX(-50%) scale(1.25); } 100% { opacity: 0; transform: translateX(-50%) scale(1.5); } }
+@keyframes sl-enter { 0% { opacity: 0; transform: translateX(-50%) scale(0.5); } 15% { opacity: 1; } 50% { opacity: 1; transform: translateX(-50%) scale(0.8); } 72% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0; transform: translateX(-50%) scale(1.12); } }
+/* The poker table over the scenery (anyone over there is behind it); what's on it, over that. */
+.sl-near { z-index: 1; }
+.sl-onnear { z-index: 2; }
 .sl-pane .sl-rider, .sl-pane .sl-rider-l { position: absolute; left: 0; bottom: 6%; animation: sl-ride 6s linear forwards; }
 .sl-pane .sl-rider-l { animation-direction: reverse; }
 .sl-pane .sl-rider-l svg { scale: -1 1; }
@@ -828,11 +832,24 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 @keyframes sc5-jump { 0%, 100% { transform: translateY(4px); } 50% { transform: translateY(-16px); } }
 .sc5-co2 { border-radius: 40% 40% 10% 10%; background: linear-gradient(to top, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.3) 50%, transparent); transform-origin: 50% 100%; animation: sc5-co2 2.3s ease-out forwards; }
 @keyframes sc5-co2 { 0% { transform: scale(0.3, 0); opacity: 1; } 25% { transform: scale(1, 1); opacity: 1; } 100% { transform: scale(2, 1.1); opacity: 0; } }
-/* The castle: the banners stirring, the king (his goblet up for a toast), the decree, the armour's
-   eyes, the window. */
-.sc5-banner { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5)); }
-.sc5-banner .sc-cloth { transform-origin: 25px 6px; animation: sc-banner 4s ease-in-out infinite alternate; }
-.sc5-banner.b .sc-cloth { animation-delay: -2s; }
+/* The castle: the court's banners (the tournament's too), the king (his goblet up for a toast),
+   the decree, the armour's eyes, the window. A banner stirs; on its player's turn it's lifted and
+   lit, it dips when they drink, and the winner's unfurls, big. */
+.ck-banner { transform-origin: 50% 0; transition: transform 0.6s ease, filter 0.6s ease; filter: drop-shadow(0 0.08em 0.1em rgba(0, 0, 0, 0.55)); }
+.ck-cloth { transform-origin: 30px 4px; animation: ck-wave 4.2s ease-in-out infinite alternate; animation-delay: inherit; }
+.ck-folds { animation: ck-folds 3.1s ease-in-out infinite alternate; animation-delay: inherit; }
+@keyframes ck-wave { from { transform: skewX(-2.5deg) scaleX(0.97); } to { transform: skewX(2.5deg) scaleX(1); } }
+@keyframes ck-folds { from { transform: translateX(-4px); } to { transform: translateX(4px); } }
+.ck-name { position: absolute; left: 50%; top: 4.6em; max-width: 6.5em; padding: 0.12em 0.45em; transform: translateX(-50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 0.24em/1.15 "Cinzel", Georgia, serif; color: #3a2010; background: linear-gradient(#f4e6c0, #d8bf86); border-radius: 0.25em; box-shadow: inset 0 0.12em 0 #c8a870, inset 0 -0.12em 0 #c8a870, 0 0.15em 0.4em rgba(0, 0, 0, 0.6); }
+.ck-banner.ck-turn { transform: translateY(-0.12em) scale(1.12); filter: brightness(1.3) drop-shadow(0 0 0.25em rgba(255, 214, 120, 0.9)); }
+.ck-banner.ck-dip { animation: ck-dip 1.8s ease-in-out; }
+@keyframes ck-dip { 0%, 100% { transform: none; } 25% { transform: translateY(0.5em) rotate(-6deg) scaleY(0.9); filter: brightness(0.7); } 60% { transform: translateY(0.3em) rotate(4deg) scaleY(0.93); } }
+.ck-banner.ck-win { z-index: 2; transform: scale(1.9); filter: brightness(1.25) drop-shadow(0 0 0.35em rgba(255, 214, 120, 0.95)); }
+.ck-banner.ck-win .ck-cloth { animation: ck-unfurl 1.2s ease-out, ck-wave 1.6s ease-in-out 1.2s infinite alternate; }
+@keyframes ck-unfurl { from { transform: scaleY(0.12); } to { transform: none; } }
+/* Along the lists, each on its staff. */
+.ck-court.lists .ck-banner::before { content: ""; position: absolute; z-index: -1; left: 50%; top: -0.5em; width: 0.07em; height: 3.8em; margin-left: -0.035em; background: #5a3a1e; border-radius: 0.04em; }
+.ck-court.lists .ck-banner::after { content: ""; position: absolute; left: 50%; top: -0.62em; width: 0.16em; height: 0.16em; margin-left: -0.08em; border-radius: 50%; background: #e8c15a; }
 .sc5-king svg { transform-origin: 50% 100%; animation: sc5-breathe 4s ease-in-out infinite; }
 @keyframes sc5-breathe { 50% { transform: scaleY(1.012); } }
 /* (The kit turns the arm about the shoulder, and the goblet about the hand.) */
@@ -847,7 +864,7 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc5-armoureyes i:nth-child(1) { left: 0.2em; } .sc5-armoureyes i:nth-child(2) { left: 0.62em; }
 @keyframes sc5-eyes { 0% { opacity: 0; transform: translateX(0); } 10% { opacity: 1; } 35% { transform: translateX(-0.1em); } 60% { transform: translateX(0.1em); } 85% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; } }
 .sc5-window { overflow: hidden; clip-path: polygon(0 26%, 50% 0, 100% 26%, 100% 100%, 0 100%); }
-.sc5-windragon { position: absolute; top: 22%; left: 0; filter: brightness(0.25); animation: sc5-windragon 5.5s linear forwards; }
+.sc5-windragon { position: absolute; top: 40%; left: 0; filter: brightness(0.25); animation: sc5-windragon 5.5s linear forwards; }
 .sc5-windragon svg { display: block; }
 @keyframes sc5-windragon { from { transform: translateX(-110%); } to { transform: translateX(130%); } }
 .sc5-tumble svg { transform-origin: 50% 60%; animation: sc5-cartwheel 0.9s linear infinite; }
