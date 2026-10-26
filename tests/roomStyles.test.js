@@ -41,3 +41,16 @@ test('the Lighthouse is one room whose weather changes: night, day, fog and stor
   assert.deepStrictEqual([...seen].sort(), ['lighthouse', 'lighthouseDay', 'storm']);
   assert.strictEqual(pickMood('dive'), null);
 });
+
+test('random: a year-round venue (never classic or seasonal), never the one you were just in', () => {
+  const { pickRandom, RANDOM_FROM, STYLES } = require('../lib/roomStyles');
+  assert.ok(RANDOM_FROM.length > 10);
+  assert.ok(!RANDOM_FROM.includes('classic'));
+  assert.ok(RANDOM_FROM.every((id) => !STYLES[id].seasonal && !STYLES[id].mood));
+  for (let i = 0; i < 200; i++) {
+    const at = RANDOM_FROM[i % RANDOM_FROM.length];
+    const next = pickRandom(at);
+    assert.ok(RANDOM_FROM.includes(next));
+    assert.notStrictEqual(next, at);
+  }
+});

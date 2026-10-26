@@ -83,9 +83,15 @@
     // Games played since this page opened, for the water reminder; and a number for each game.
     const localNight = {};
     let localGames = 0;
-    // The room style (dive bar, tavern…) is remembered on this phone.
+    // The room style (dive bar, tavern…) is remembered on this phone. On 'random' it's somewhere
+    // new for each game: `roomStyle` is where we are now.
     let roomStyle = 'classic';
-    try { roomStyle = ROOM_STYLES.roomOf(localStorage.getItem('local-room-style')) || 'classic'; } catch {}
+    let randomStyle = false;
+    try {
+      const saved = localStorage.getItem('local-room-style');
+      randomStyle = saved === 'random';
+      roomStyle = randomStyle ? ROOM_STYLES.pickRandom() : ROOM_STYLES.roomOf(saved) || 'classic';
+    } catch {}
     if (!ROOM_STYLES.PICKABLE.includes(roomStyle)) roomStyle = 'classic';
     // Rooms whose look changes on its own (the Lighthouse's weather) do it here too: a new mood
     // every few minutes while a game is on, as in an online room.
@@ -221,7 +227,8 @@
         </div>
         <div class="card room-style-card">
           <h2>Room style</h2>
-          ${PB.roomStylePicker(roomStyle, (id) => `data-room-style="${esc(id)}"`)}
+          ${PB.roomStylePicker(randomStyle ? 'random' : roomStyle, (id) => `data-room-style="${esc(id)}"`)}
+          ${randomStyle ? `<p class="muted center">🔀 Somewhere new every game</p>` : ''}
         </div>
         <p class="error">${esc(error)}</p>
         <button id="start">Start ${esc(game.name)}</button>`;
@@ -241,8 +248,11 @@
       $app.querySelectorAll('[data-room-style]').forEach((b) => {
         b.onclick = () => {
           names = readNames();
-          roomStyle = b.dataset.roomStyle;
-          try { localStorage.setItem('local-room-style', roomStyle); } catch {}
+          const picked = b.dataset.roomStyle;
+          if (picked !== 'random') roomStyle = picked;
+          else if (!randomStyle) roomStyle = ROOM_STYLES.pickRandom(roomStyle);
+          randomStyle = picked === 'random';
+          try { localStorage.setItem('local-room-style', picked); } catch {}
           renderSetup();
         };
       });
@@ -260,6 +270,7 @@
     }
 
     function startGame() {
+      if (randomStyle) roomStyle = ROOM_STYLES.pickRandom(roomStyle);
       // Tonight's tab carries on from game to game on this page, by name.
       const before = Object.fromEntries((room?.players || lastPlayers).map((p) => [p.name, p]));
       room = {

@@ -460,7 +460,8 @@ function roomStyleCard(s) {
   return `<div class="card room-style-card">
       <h2>Venue &amp; style</h2>
       <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
-      ${PB.roomStylePicker(s.style, (id) => `data-cmd="setStyle" data-style="${PB.esc(id)}"`)}
+      ${PB.roomStylePicker(s.randomStyle ? 'random' : s.style, (id) => `data-cmd="setStyle" data-style="${PB.esc(id)}"`)}
+      ${s.randomStyle ? `<p class="muted center">🔀 Now: ${PB.esc(STYLES[s.style]?.label || '')} · somewhere new every game</p>` : ''}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;
 }

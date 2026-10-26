@@ -187,9 +187,11 @@
 
     // The room styles to pick from (the seasonal ones under their own heading). `attrs(id)` is
     // what a style's button does when tapped (its data-* attributes).
+    // ('random' picks a new venue every game; `selected` is 'random' then.)
     roomStylePicker(selected, attrs) {
       const { STYLES } = ROOM_STYLES;
-      return [false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${Object.entries(STYLES).filter(([, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
+      const random = `<button class="${selected === 'random' ? 'selected' : ''}" ${attrs('random')}><span>🔀</span>Random</button>`;
+      return [false, true].map((seasonal) => `${seasonal ? '<small class="muted">Seasonal</small>' : ''}<div class="room-styles">${seasonal ? '' : random}${Object.entries(STYLES).filter(([, st]) => !st.mood && !!st.seasonal === seasonal).map(([id, st]) => `
         <button class="${id === selected ? 'selected' : ''}" ${attrs(id)}><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>`).join('')}</div>`).join('');
     },
 
