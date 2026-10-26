@@ -290,6 +290,8 @@ function playSounds(prev, s) {
 
 // Quick updates a game sends without the whole state (where a dart is aimed).
 socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
+// Where the cars are in a race, many times a second (games/trackRacing.js).
+socket.on('cars', (cars) => PB.screens[PB.state?.gameType]?.onCars?.(cars));
 
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {

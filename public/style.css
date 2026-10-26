@@ -1261,3 +1261,92 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 .bot-row { display: grid; gap: 6px; margin-top: 10px; }
 .bot-row .segmented button { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .bot-row .segmented button small { color: var(--muted); font-size: 0.72em; font-weight: 600; }
+
+/* ---------- Track Racing (public/games/trackRacing.js) ---------- */
+/* The track: three canvases (track, skid marks, cars) over the room's felt, which is the grass. */
+.tr-stage { position: relative; width: 100%; aspect-ratio: 1000 / 625; border-radius: 14px; overflow: hidden; background: var(--felt, radial-gradient(ellipse at center, #3f8f4f 0%, #2f7a3e 65%, #235f30 100%)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); flex: none; }
+.tr-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tr-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 3; }
+.tr-count b { font-size: 6rem; font-weight: 900; color: #fff; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.45), 0 0 30px rgba(0, 0, 0, 0.5); animation: tr-count 1s ease-out both; }
+.tr-count.go b { color: var(--ok); animation: tr-go 1.3s ease-out both; }
+@keyframes tr-count { 0% { transform: scale(1.6); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.85); opacity: 0.85; } }
+@keyframes tr-go { 0% { transform: scale(0.6); opacity: 0; } 20% { transform: scale(1.15); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+#tv-center:has(.tr-stage) { width: 1000px; }
+#tv-center .tr-stage { border-radius: 20px; }
+#tv-center .tr-count b { font-size: 14rem; }
+
+/* Standings and bets. */
+.tr-board, .tr-results { gap: 8px; }
+.tr-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 10px; font-size: 0.95rem; }
+.tr-row.me { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.tr-pos { width: 1.4em; text-align: center; font-size: 1.2rem; color: var(--accent); }
+.tr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.15; }
+.tr-lap { display: block; color: var(--muted); font-size: 0.78em; font-variant-numeric: tabular-nums; }
+.tr-backers { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 2px; max-width: 45%; }
+.tr-backers i { font-style: normal; font-size: 0.75rem; font-weight: 800; margin-right: 4px; }
+#tv-left .tr-row { font-size: 1.1rem; }
+.tr-winner .big { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.tr-winner { border: 3px solid var(--pc, var(--accent)); }
+
+/* Betting. */
+.tr-place-bet { gap: 12px; }
+.tr-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.tr-pick button { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card-2); color: var(--text); border: 2px solid transparent; padding: 10px 6px; font-size: 0.95rem; }
+.tr-pick button.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card-2)); }
+.tr-pick small { min-height: 1.2em; display: flex; gap: 2px; align-items: center; color: var(--muted); }
+.tr-ready { gap: 10px; text-align: center; }
+.tr-ready p { margin: 0; }
+.tr-enable { width: auto; align-self: center; padding: 12px 18px; }
+.tr-small { width: auto; padding: 8px 12px; font-size: 0.85rem; }
+
+/* Driving: the whole phone is the wheel and pedals. */
+.tr-drive {
+  position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background: var(--bg); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none;
+}
+.tr-hud { display: flex; align-items: stretch; gap: 8px; flex: none; }
+.tr-place { display: flex; align-items: baseline; gap: 4px; background: var(--card); border-radius: 12px; padding: 4px 12px; }
+.tr-place b { font-size: 1.7rem; font-weight: 900; color: var(--accent); }
+.tr-place small { color: var(--muted); }
+.tr-laps { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 12px; font-weight: 800; font-size: 1.15rem; }
+.tr-horn { width: 52px; padding: 0; font-size: 1.4rem; background: var(--card); }
+.tr-cockpit { position: relative; flex: 1; min-height: 0; display: flex; gap: 8px; }
+.tr-cockpit > .tr-pedal, .tr-steer, .tr-pedals { flex: 1; }
+.tr-pedal {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 0 22px;
+  border-radius: 20px; font-size: 1.4rem; font-weight: 900; letter-spacing: 0.08em; color: #fff; touch-action: none;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.25); transition: transform 0.06s, filter 0.06s;
+}
+.tr-pedal small { font-size: 0.7rem; font-weight: 600; letter-spacing: 0; opacity: 0.8; }
+.tr-pedal.gas { background: linear-gradient(160deg, #3ddc84, #1d8f4e); }
+.tr-pedal.brake { background: linear-gradient(160deg, #ff6b6b, #b0262c); }
+.tr-pedal.on, .tr-arrow.on { filter: brightness(1.3); transform: scale(0.97); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); }
+.tr-steer, .tr-pedals { display: flex; gap: 8px; min-width: 0; }
+.tr-pedals { flex-direction: column; }
+.tr-pedals .gas { flex: 2; }
+.tr-pedals .brake { flex: 1; padding-bottom: 12px; }
+.tr-arrow { flex: 1; padding: 0; font-size: 2.6rem; background: var(--card-2); color: var(--text); border-radius: 20px; touch-action: none; }
+.tr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; }
+.tr-wheel { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)); transition: transform 0.05s linear; }
+.tr-wheel-box { width: 100%; }
+.tr-modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; flex: none; }
+.tr-modes:empty { display: none; }
+/* Upright: the wheel sits between the pedals, over them. */
+.tr-drive.port .tr-center { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: 46%; z-index: 2; }
+.tr-drive.port.has-tv .tr-center { top: 16%; width: 62%; }
+/* Upright with buttons: the wheel in a row of its own over the buttons. */
+.tr-drive.port.buttons .tr-cockpit { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
+.tr-drive.port.buttons .tr-center { position: relative; left: auto; top: auto; transform: none; width: auto; grid-column: 1 / -1; }
+.tr-drive.port.buttons .tr-wheel-box { width: 96px; }
+.tr-drive.port.buttons.has-tv .tr-wheel-box { width: 160px; }
+.tr-drive.port .tr-center .tr-count { position: absolute; }
+/* Sideways: a control under each thumb, the map (or a big wheel) in the middle. */
+.tr-drive.land .tr-cockpit > .tr-pedal, .tr-drive.land .tr-steer, .tr-drive.land .tr-pedals { flex: 0 0 24%; }
+.tr-drive.land .tr-center { position: relative; flex: 1; min-width: 0; }
+.tr-drive.land .tr-center .tr-stage { width: auto; height: 100%; max-width: 100%; max-height: calc(100% - 0px); }
+.tr-drive.land .tr-center:has(.tr-stage) .tr-wheel-box { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 22%; opacity: 0.9; }
+.tr-drive.land.has-tv .tr-wheel-box { width: min(100%, 62vh); }
+.tr-drive.land .tr-steer { flex-direction: column; }
+.tr-drive.land { gap: 6px; }
+.tr-drive.land .tr-modes .tr-small { padding: 5px 10px; }

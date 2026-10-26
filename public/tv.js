@@ -77,6 +77,8 @@ socket.on('state', (s) => {
 
 // Quick updates a game sends without the whole state (where a dart is aimed).
 socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
+// Where the cars are in a race, many times a second (games/trackRacing.js).
+socket.on('cars', (cars) => PB.screens[PB.state?.gameType]?.onCars?.(cars));
 
 // Every drink pops up on the TV, with a buzz, and the drinker's glass tips up.
 const sipping = new Set();
