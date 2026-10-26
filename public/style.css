@@ -1299,54 +1299,53 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 .tr-enable { width: auto; align-self: center; padding: 12px 18px; }
 .tr-small { width: auto; padding: 8px 12px; font-size: 0.85rem; }
 
-/* Driving: the whole phone is the wheel and pedals. */
+/* Driving: the whole phone is the view from your car, with the pedals over it. */
 .tr-drive {
-  position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
-  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  background: var(--bg); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none;
+  position: fixed; inset: 0; z-index: 5; overflow: hidden;
+  background: #000; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none;
+  --pad-t: max(8px, env(safe-area-inset-top)); --pad-r: max(8px, env(safe-area-inset-right)); --pad-b: max(8px, env(safe-area-inset-bottom)); --pad-l: max(8px, env(safe-area-inset-left));
 }
-.tr-hud { display: flex; align-items: stretch; gap: 8px; flex: none; }
-.tr-place { display: flex; align-items: baseline; gap: 4px; background: var(--card); border-radius: 12px; padding: 4px 12px; }
+.tr-view { position: absolute; inset: 0; }
+.tr-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tr-view .tr-count b { font-size: 7rem; }
+/* A new lap, the last lap, the flag. */
+.tr-banner { position: absolute; left: 0; right: 0; top: 24%; display: flex; justify-content: center; pointer-events: none; z-index: 3; opacity: 0; }
+.tr-banner b { padding: 6px 22px; border-radius: 14px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 2.2rem; font-weight: 900; letter-spacing: 0.02em; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5); border: 2px solid var(--accent); }
+.tr-banner.on { animation: tr-banner 1.8s ease-out forwards; }
+@keyframes tr-banner { 0% { opacity: 0; transform: scale(1.5); } 15% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0.0; } }
+/* The pedals: the screen's two halves (four quarters with steering buttons), clear but for a
+   label at the bottom, lit up from below while held. */
+.tr-zones { position: absolute; inset: 0; display: flex; z-index: 1; }
+.tr-zone {
+  flex: 1; min-width: 0; height: 100%; padding: 0 0 calc(var(--pad-b) + 6px); border-radius: 0; background: transparent; box-shadow: none;
+  display: flex; align-items: flex-end; justify-content: center; touch-action: none; color: #fff; transition: background 0.08s;
+}
+.tr-zone span { padding: 4px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.38); font-size: 0.8rem; font-weight: 900; letter-spacing: 0.08em; opacity: 0.85; }
+.tr-zone.steer span { font-size: 1.5rem; padding: 4px 16px; letter-spacing: 0; }
+.tr-zone.gas.on { background: linear-gradient(to top, rgba(61, 220, 132, 0.4), transparent 45%); }
+.tr-zone.brake.on { background: linear-gradient(to top, rgba(255, 90, 90, 0.42), transparent 45%); }
+.tr-zone.steer.on { background: linear-gradient(to top, rgba(255, 255, 255, 0.22), transparent 45%); }
+.tr-zone.on span { opacity: 1; background: rgba(0, 0, 0, 0.6); }
+/* Your place and lap, the horn and the way out along the top. */
+.tr-hud { position: absolute; top: var(--pad-t); left: var(--pad-l); right: var(--pad-r); display: flex; align-items: stretch; gap: 6px; z-index: 2; pointer-events: none; }
+.tr-hud > * { pointer-events: auto; }
+.tr-place, .tr-laps { pointer-events: none; }
+.tr-place { display: flex; align-items: baseline; gap: 4px; background: rgba(0, 0, 0, 0.5); border-radius: 12px; padding: 2px 12px; color: #fff; }
 .tr-place b { font-size: 1.7rem; font-weight: 900; color: var(--accent); }
-.tr-place small { color: var(--muted); }
-.tr-laps { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--card); border-radius: 12px; font-weight: 800; font-size: 1.15rem; }
-.tr-horn { width: 52px; padding: 0; font-size: 1.4rem; background: var(--card); }
-.tr-cockpit { position: relative; flex: 1; min-height: 0; display: flex; gap: 8px; }
-.tr-cockpit > .tr-pedal, .tr-steer, .tr-pedals { flex: 1; }
-.tr-pedal {
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 0 22px;
-  border-radius: 20px; font-size: 1.4rem; font-weight: 900; letter-spacing: 0.08em; color: #fff; touch-action: none;
-  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.25); transition: transform 0.06s, filter 0.06s;
-}
-.tr-pedal small { font-size: 0.7rem; font-weight: 600; letter-spacing: 0; opacity: 0.8; }
-.tr-pedal.gas { background: linear-gradient(160deg, #3ddc84, #1d8f4e); }
-.tr-pedal.brake { background: linear-gradient(160deg, #ff6b6b, #b0262c); }
-.tr-pedal.on, .tr-arrow.on { filter: brightness(1.3); transform: scale(0.97); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); }
-.tr-steer, .tr-pedals { display: flex; gap: 8px; min-width: 0; }
-.tr-pedals { flex-direction: column; }
-.tr-pedals .gas { flex: 2; }
-.tr-pedals .brake { flex: 1; padding-bottom: 12px; }
-.tr-arrow { flex: 1; padding: 0; font-size: 2.6rem; background: var(--card-2); color: var(--text); border-radius: 20px; touch-action: none; }
-.tr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; }
-.tr-wheel { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)); transition: transform 0.05s linear; }
-.tr-wheel-box { width: 100%; }
-.tr-modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; flex: none; }
+.tr-place small { color: rgba(255, 255, 255, 0.75); }
+.tr-laps { display: flex; align-items: center; padding: 0 12px; background: rgba(0, 0, 0, 0.5); color: #fff; border-radius: 12px; font-weight: 800; font-size: 1.05rem; margin-right: auto; }
+.tr-horn { width: 46px; padding: 0; font-size: 1.3rem; background: rgba(0, 0, 0, 0.5); }
+.tr-hud .end-mini { background: rgba(0, 0, 0, 0.5); }
+/* With no TV, the map in the corner. */
+.tr-minimap { position: absolute; top: calc(var(--pad-t) + 50px); right: var(--pad-r); width: min(34vw, 190px); z-index: 2; pointer-events: none; opacity: 0.88; }
+.tr-minimap .tr-stage { border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+.tr-drive.land .tr-minimap { width: min(24vw, 210px); }
+/* The wheel, small and see-through, at the bottom in the middle. */
+.tr-wheel-box { position: absolute; left: 50%; bottom: calc(var(--pad-b) + 2px); width: 84px; transform: translateX(-50%); z-index: 2; pointer-events: none; opacity: 0.6; }
+.tr-drive.port .tr-wheel-box { width: 72px; bottom: calc(var(--pad-b) + 34px); }
+.tr-wheel { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)); transition: transform 0.05s linear; }
+.tr-modes { position: absolute; left: 50%; top: calc(var(--pad-t) + 52px); transform: translateX(-50%); display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; z-index: 2; width: max-content; max-width: 60%; }
 .tr-modes:empty { display: none; }
-/* Upright: the wheel sits between the pedals, over them. */
-.tr-drive.port .tr-center { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: 46%; z-index: 2; }
-.tr-drive.port.has-tv .tr-center { top: 16%; width: 62%; }
-/* Upright with buttons: the wheel in a row of its own over the buttons. */
-.tr-drive.port.buttons .tr-cockpit { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
-.tr-drive.port.buttons .tr-center { position: relative; left: auto; top: auto; transform: none; width: auto; grid-column: 1 / -1; }
-.tr-drive.port.buttons .tr-wheel-box { width: 96px; }
-.tr-drive.port.buttons.has-tv .tr-wheel-box { width: 160px; }
-.tr-drive.port .tr-center .tr-count { position: absolute; }
-/* Sideways: a control under each thumb, the map (or a big wheel) in the middle. */
-.tr-drive.land .tr-cockpit > .tr-pedal, .tr-drive.land .tr-steer, .tr-drive.land .tr-pedals { flex: 0 0 24%; }
-.tr-drive.land .tr-center { position: relative; flex: 1; min-width: 0; }
-.tr-drive.land .tr-center .tr-stage { width: auto; height: 100%; max-width: 100%; max-height: calc(100% - 0px); }
-.tr-drive.land .tr-center:has(.tr-stage) .tr-wheel-box { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 22%; opacity: 0.9; }
-.tr-drive.land.has-tv .tr-wheel-box { width: min(100%, 62vh); }
-.tr-drive.land .tr-steer { flex-direction: column; }
-.tr-drive.land { gap: 6px; }
-.tr-drive.land .tr-modes .tr-small { padding: 5px 10px; }
+.tr-modes .tr-small { padding: 5px 10px; font-size: 0.78rem; background: rgba(0, 0, 0, 0.5); color: #fff; border-color: transparent; }
+.tr-modes .tr-enable { padding: 7px 12px; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+.tr-drive.port .tr-modes { top: auto; bottom: calc(var(--pad-b) + 120px); max-width: 90%; }

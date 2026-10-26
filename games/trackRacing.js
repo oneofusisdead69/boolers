@@ -1,6 +1,6 @@
-// Track Racing: top-down arcade racing, Micro Machines style. The track is on the TV (or, with no
-// TV, a small map on every phone); each phone is a steering wheel: tilt it to steer, hold the
-// pedals to go and stop. Before each race everyone bets sips on a car (anyone's, their own
+// Track Racing: arcade racing. The TV shows the whole track from above, Micro Machines style;
+// each phone shows the race from its own car (first person, a chase cam behind it) and is the
+// steering wheel: tilt it to steer, hold the pedals to go and stop. Before each race everyone bets sips on a car (anyone's, their own
 // included), as in Horse Race: losers drink their bet, winners hand out theirs. Last place can
 // drink extra.
 //
@@ -36,6 +36,14 @@ const TRACKS = {
   hairpin: {
     name: 'Hairpin Alley',
     points: [[150, 95], [850, 95], [912, 118], [932, 165], [912, 212], [850, 235], [430, 235], [330, 250], [285, 312], [330, 375], [430, 390], [850, 390], [912, 413], [932, 460], [912, 507], [850, 530], [160, 530], [95, 475], [95, 150]],
+  },
+  speedway: {
+    name: 'The Speedway',
+    points: [[230, 92], [770, 92], [875, 117], [922, 210], [922, 410], [875, 508], [770, 533], [620, 533], [560, 498], [500, 468], [440, 498], [380, 533], [230, 533], [125, 508], [78, 410], [78, 210], [125, 117]],
+  },
+  chicanes: {
+    name: 'Chicane City',
+    points: [[150, 100], [330, 100], [390, 145], [450, 100], [600, 100], [660, 145], [720, 100], [860, 110], [925, 200], [925, 420], [860, 520], [700, 525], [640, 480], [580, 525], [420, 525], [360, 480], [300, 525], [150, 520], [80, 430], [80, 190]],
   },
 };
 const TRACK_IDS = Object.keys(TRACKS);
@@ -496,7 +504,7 @@ const skillOf = (room, id) => {
 module.exports = {
   id: 'trackRacing',
   name: 'Track Racing',
-  description: '🏎️ Top-down racing on the TV. Your phone is the steering wheel: tilt to steer. Bet sips on a car; losers drink, winners hand out.',
+  description: '🏎️ Arcade racing: the track on the TV, the view from your car on your phone, which is the steering wheel: tilt to steer. Bet sips on a car; losers drink, winners hand out.',
   rules: [
     'Bet sips on a car before each race: anyone\'s, even your own.',
     'Tilt your phone like a steering wheel. Right pedal goes, left pedal brakes (and reverses).',
