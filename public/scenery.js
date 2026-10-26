@@ -107,10 +107,7 @@
   const TENTACLE = `<svg viewBox="0 0 60 160" width="0.375em" height="1em"><path d="M30 160 Q8 120 26 86 Q44 52 22 24 Q14 10 26 4 Q38 0 36 14 Q34 24 40 34 Q56 64 40 96 Q30 124 44 160Z" fill="#7a3b6e"/>
     <g fill="#d99bc6">${[30, 50, 72, 96, 120, 142].map((y, i) => `<circle cx="${i % 2 ? 36 : 30}" cy="${y}" r="${3.5 - i * 0.2}"/>`).join('')}</g></svg>`;
   const FLUKE = `<svg viewBox="0 0 120 60" width="1em" height="0.5em"><path d="M60 60 Q56 36 60 26 Q40 30 6 8 Q30 4 52 16 Q60 20 60 24 Q60 20 68 16 Q90 4 114 8 Q80 30 60 26 Q64 36 60 60Z" fill="#0b1014" stroke="#e98a52" stroke-width="1.2"/></svg>`;
-  // Bar room bits: a dartboard and a dart, a mouse, a fly, a cat.
-  const DARTBOARD = `<svg viewBox="0 0 60 60" width="1em" height="1em"><circle cx="30" cy="30" r="29" fill="#111"/>
-    ${[26, 20, 12, 6, 2.5].map((r, i) => `<circle cx="30" cy="30" r="${r}" fill="${['#1d8f4e', '#e8dcc0', '#d3262e', '#e8dcc0', '#d3262e'][i]}"/>`).join('')}
-    ${Array.from({ length: 10 }, (_, i) => `<path d="M30 30 L${30 + 26 * Math.cos(i * 0.628)} ${30 + 26 * Math.sin(i * 0.628)}" stroke="#111" stroke-width="1"/>`).join('')}</svg>`;
+  // Bar room bits: a dart, a mouse, a fly, a cat.
   const DART = `<svg viewBox="0 0 40 8" width="1em" height="0.2em"><path d="M0 4 L10 1 L10 7Z" fill="#e63946"/><rect x="10" y="3" width="20" height="2" fill="#bbb"/><path d="M30 2 L40 4 L30 6Z" fill="#666"/></svg>`;
   const MOUSE = `<svg viewBox="0 0 50 24" width="1em" height="0.48em"><path d="M4 22 Q0 12 10 8 Q22 2 34 10 L44 14 Q46 18 40 20 L8 22Z" fill="#5b524a"/>
     <circle cx="30" cy="8" r="4" fill="#7a6f64"/><circle cx="41" cy="15" r="1.2" fill="#111"/><path d="M4 20 Q-6 18 -10 10" stroke="#5b524a" stroke-width="1.5" fill="none"/></svg>`;
@@ -147,7 +144,7 @@
     <path d="M104 22 L130 26" stroke="#e8d7a8" stroke-width="1"/><path d="M128 18 L176 18 Q186 18 184 30 L130 32 Q124 26 128 18Z" fill="#c0392b"/><path d="M124 36 L188 36 Q194 34 194 30" stroke="#e8c15a" stroke-width="2.5" fill="none"/>
     <circle cx="152" cy="13" r="6" fill="#f2d2b6"/><path d="M144 10 L152 0 L160 10Z" fill="#c0392b"/><circle cx="160" cy="11" r="1.8" fill="#fff"/><path d="M146 16 Q152 24 158 16Z" fill="#fff"/>
     <rect x="140" y="18" width="24" height="10" rx="4" fill="#c0392b"/><circle cx="102" cy="20" r="2.4" fill="#ff3b3b"/></g></svg>`;
-  // Club: hands in the air. Castle: a banner, a dragon, a knight. Jazz: the mic stand.
+  // Club: hands in the air. Castle: a banner, a dragon, a knight.
   const HANDS = `<svg viewBox="0 0 400 80" width="1em" height="0.2em"><g fill="#07050d">${[20, 70, 120, 175, 230, 280, 330, 380].map((x, i) => `<g class="sc-hand" style="animation-delay:-${(i * 0.17).toFixed(2)}s"><rect x="${x - 6}" y="${20 + (i % 3) * 8}" width="12" height="70" rx="6"/><ellipse cx="${x}" cy="${18 + (i % 3) * 8}" rx="9" ry="11"/></g>`).join('')}</g></svg>`;
   const BANNER = (color) => `<svg viewBox="0 0 50 140" width="0.36em" height="1em"><rect x="0" y="0" width="50" height="6" fill="#5a3d1e"/>
     <path class="sc-cloth" d="M4 6 H46 V120 L25 104 L4 120Z" fill="${color}"/><path d="M14 40 L25 26 L36 40 L25 70Z" fill="#e8c15a"/></svg>`;
@@ -188,8 +185,6 @@
     <ellipse cx="32" cy="38" rx="9" ry="6" fill="url(#kst)" stroke="#4b535d"/>
     <path d="M50 40 h24 v20 q0 18 -12 26 q-12 -8 -12 -26Z" fill="#1f4f9e" stroke="#d9ad52" stroke-width="2.5"/><path d="M60 44 h4 v10 h8 v4 h-8 v18 h-4 v-18 h-8 v-4 h8Z" fill="#d9ad52"/>
     <ellipse cx="52" cy="40" rx="8" ry="6" fill="url(#kst)" stroke="#4b535d"/></svg>`;
-  const MIC = `<svg viewBox="0 0 40 160" width="0.25em" height="1em"><g fill="#15121a"><rect x="18" y="30" width="4" height="120"/><ellipse cx="20" cy="154" rx="16" ry="5"/>
-    <rect x="13" y="6" width="14" height="26" rx="7" fill="#9aa4b0"/><path d="M13 16 H27 M13 21 H27" stroke="#5b6470"/></g></svg>`;
   // Tiki: a torch, a parrot, a coconut. Speakeasy: the bulb. Saloon: the poster, a hawk, a hat.
   // Beer hall: a stein.
   const TORCH = `<svg viewBox="0 0 30 200" width="0.15em" height="1em"><rect x="12" y="40" width="6" height="160" fill="#5a3d1e"/>
@@ -483,35 +478,8 @@
         },
       ],
     },
-    club: {
-      moments: [
-        // The disco ball drops from the ceiling, spins with lights everywhere, and goes back up.
-        () => {
-          const ball = el('<div class="sc-ball-string"></div><div class="sc-ball"></div>', { left: 'calc(50% - 40px)', top: '0' }, 14000);
-          ball.classList.add('sc-disco');
-          for (let i = 0; i < 10; i++) {
-            el('', {
-              left: `${rand(5, 95)}vw`, top: `${rand(10, 90)}vh`,
-              background: pick(['#ff2bd6', '#29f0ff', '#ffffff', '#9b5cff', '#ffd23f']),
-              animation: `sc-spot ${rand(3, 6)}s ease-in-out ${rand(0.8, 2)}s infinite alternate, sc-fade-out 1s 12.5s forwards`,
-              '--sx': `${rand(-30, 30)}vw`, '--sy': `${rand(-25, 25)}vh`,
-            }, 14000).classList.add('sc-spot');
-          }
-        },
-        // Lasers sweeping the room from the corners.
-        () => {
-          for (let i = 0; i < 6; i++) {
-            const left = i % 2 === 0;
-            el('', { [left ? 'left' : 'right']: '0', bottom: '0', background: pick(['#ff2bd6', '#29f0ff', '#3dff7a']), animationDelay: `${i * 0.25}s`, '--from': `${left ? 12 : -12}deg`, '--to': `${left ? 68 : -68}deg` }, 6000).classList.add('sc-laser', left ? 'l' : 'r');
-          }
-        },
-        // The strobe: three quick flashes.
-        () => el('', { inset: '0' }, 1500).classList.add('sc-strobe'),
-        // The dance floor: hands going up along the bottom.
-        () => el(HANDS, { left: '0', bottom: '-2vh', fontSize: '100vw' }, 7000).classList.add('sc-hands', 'blk'),
-      ],
-      gap: [16, 32],
-    },
+    // (The club, the tavern, the castle, the jazz club and the dive bar are further down, with
+    // their drawn people: see "The five regular rooms".)
     // Snow coming down, and Santa's sleigh crossing the sky with his bells.
     christmas: {
       moments: [
@@ -523,309 +491,13 @@
         },
       ],
     },
-    // Sparks off the peat fire, and now and then a few shamrocks.
-    stpatricks: { moments: hearth() },
-    stpatricksFog: { moments: hearth() },
-    // In the rain, lightning flickers in the windows now and then and thunder rolls in later.
-    stpatricksRain: {
-      moments: [...hearth(), () => {
-        // Over the panes of the two windows (see stpatricks in lib/roomStyles.js: 230 x 200, panes inset 15).
-        const w = Math.min(300, innerWidth * 0.34);
-        const pane = { width: `${(w * 200) / 230}px`, height: `${(w * 170) / 230}px`, top: `calc(11vh + ${(w * 15) / 230}px)` };
-        for (const left of [`calc(3vw + ${(w * 15) / 230}px)`, `calc(97vw - ${(w * 215) / 230}px)`]) el('', { left, ...pane }, 1600).classList.add('sc-winflash');
-        later(() => window.Ambience?.cue('thunderFar'), rand(1500, 3500));
-      }],
-    },
-    // A wanted poster on the wall; a tumbleweed, a hawk circling overhead, a hat blowing past.
-    saloon: {
-      decor() {
-        el(POSTER(), { left: '2vw', top: '14vh', fontSize: '130px' }).classList.add('sc-poster');
-      },
-      // The poster's always the host.
-      update(s) {
-        const host = s?.players?.find((p) => p.id === s.hostId);
-        const poster = layer?.querySelector('.sc-poster');
-        const key = host ? `${host.avatar}|${host.name}|${host.color}` : '';
-        if (!poster || !host || poster.dataset.key === key) return;
-        poster.dataset.key = key;
-        poster.innerHTML = POSTER(host.avatar || '🤠', host.name, host.color);
-      },
-      moments: [
-        () => drift(TUMBLEWEED, { from: [-12, rand(86, 90)], to: [112, rand(86, 90)], dur: rand(7, 10), size: rand(56, 80), spin: 1080 }).classList.add('sc-tumble'),
-        // A shootout: two gunslingers square up across the floor, a tumbleweed rolls between
-        // them... one draws, BANG, and the other keels over. The winner blows the smoke away.
-        () => {
-          const lefty = Math.random() < 0.5;
-          const a = el(GUNSLINGER('#7a2a1a', '#3b2512'), { left: '2vw', bottom: '0', fontSize: '150px' }, 9000);
-          const b = el(GUNSLINGER('#2a4a6a', '#e8dcc0'), { right: '3vw', bottom: '0', fontSize: '150px' }, 9000);
-          a.classList.add('sc-slinger', 'blk');
-          b.classList.add('sc-slinger', 'blk', 'sc-face-l');
-          later(() => drift(TUMBLEWEED, { from: [-12, 90], to: [112, 90], dur: 4.5, size: 54, spin: 1080 }).classList.add('sc-tumble'), 900);
-          const [winner, loser] = lefty ? [a, b] : [b, a];
-          later(() => { winner.classList.add('draw'); window.Ambience?.cue('bang'); inFront('<b>BANG!</b>', { left: lefty ? '12vw' : '60vw', bottom: '20vh' }, 1800).classList.add('sc-bang'); }, 4200);
-          later(() => loser.classList.add('down'), 4450);
-          later(() => winner.classList.add('smoke'), 5400);
-        },
-        () => { el(HAWK, { left: '14vw', top: '4vh', fontSize: '70px' }, 12000).classList.add('sc-hawk'); later(() => window.Ambience?.cue('hawk'), 1500); },
-        () => drift(HAT, { from: [-10, 88], to: [110, 80], dur: rand(5, 7), size: 60, spin: 540 }),
-      ],
-    },
-    // A ringed planet turning slowly in the window; shooting stars, a flying saucer, a lost
-    // astronaut tumbling past, a comet.
-    space: {
-      decor() {
-        el(PLANET, { left: '1vw', top: '18vh', fontSize: '160px' }).classList.add('sc-planet');
-      },
-      moments: [
-        () => {
-          for (let i = 0; i < pick([1, 2, 3]); i++) {
-            later(() => el('', { left: `${rand(10, 90)}vw`, top: `${rand(5, 40)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 600);
-          }
-        },
-        () => {
-          const right = Math.random() < 0.5;
-          drift(UFO, { from: [right ? -12 : 110, rand(8, 14)], to: [right ? 112 : -12, rand(8, 16)], dur: rand(7, 10), size: rand(70, 100) }).classList.add('sc-ufo');
-          later(() => window.Ambience?.cue('ufo'), 800);
-        },
-        () => drift(ASTRONAUT, { from: [-10, rand(60, 80)], to: [rand(20, 40), rand(10, 30)], dur: rand(22, 28), size: rand(50, 70), spin: rand(-200, 200) }),
-        () => drift('', { from: [110, rand(4, 12)], to: [-20, rand(20, 34)], dur: 3.5 }).classList.add('sc-comet'),
-      ],
-    },
-    // Lanterns hanging from the beams; sparks from the fire, the tavern cat strolling past.
-    tavern: {
-      decor() {
-        el(LANTERN, { left: '3vw', top: '9vh', fontSize: '70px' }).classList.add('sc-lantern');
-        el(LANTERN, { left: '30vw', top: '6vh', fontSize: '56px', animationDelay: '-1.4s' }).classList.add('sc-lantern');
-      },
-      moments: [
-        () => embers(6, () => [rand(10, 90), 102]),
-        () => {
-          const right = Math.random() < 0.5;
-          drift(CAT, { from: [right ? -10 : 108, 89], to: [right ? 108 : -10, 89], dur: rand(14, 18), size: rand(70, 90) }).classList.add('sc-cat', right ? 'sc-face-r' : 'sc-face-l');
-          later(() => window.Ambience?.cue('meow'), rand(3000, 6000));
-        },
-      ],
-    },
-    // Banners in the great hall, torches on the walls; bats, a dragon going by breathing fire, a
-    // knight clanking past.
-    castle: {
-      decor() {
-        for (const left of ['3vw', 'calc(97vw - 26px)']) el('<div class="sc-flame"></div>', { left, top: '18vh' }).classList.add('sc-torch');
-        el(BANNER('#8e1b1b'), { left: '8vw', top: '0', fontSize: '150px' }).classList.add('sc-banner');
-        el(BANNER('#1b3f8e'), { left: '26vw', top: '0', fontSize: '120px', animationDelay: '-2s' }).classList.add('sc-banner');
-      },
-      moments: [
-        () => embers(5, () => [pick([5, 95]) + rand(-1, 1), 20]),
-        bats,
-        () => {
-          const right = Math.random() < 0.5;
-          drift(DRAGON, { from: [right ? -30 : 115, rand(2, 6)], to: [right ? 115 : -30, rand(1, 8)], dur: rand(9, 12), size: rand(240, 300) }).classList.add('sc-dragon', 'blk', right ? 'sc-face-r' : 'sc-face-l');
-          later(() => window.Ambience?.cue('roar'), 2500);
-        },
-        () => {
-          const right = Math.random() < 0.5;
-          drift(KNIGHT, { from: [right ? -8 : 104, 78], to: [right ? 104 : -8, 78], dur: rand(16, 20), size: 150 }).classList.add('sc-knight', right ? 'sc-face-r' : 'sc-face-l');
-          window.Ambience?.cue('clank');
-        },
-      ],
-    },
-    // The singer's mic stand on the stage; smoke, a spotlight sweeping round, gold notes rising.
-    jazz: {
-      decor() {
-        el(MIC, { left: '4vw', bottom: '6vh', fontSize: '220px' }).classList.add('sc-mic');
-      },
-      moments: [
-        () => smoke(),
-        () => el('', { left: '20vw', top: '-10vh' }, 8000).classList.add('sc-spotlight'),
-        () => shower(7, 0.7, () => drift(pick(['♪', '♫', '♬']), { from: [rand(2, 12), 80], to: [rand(2, 40), rand(10, 30)], dur: rand(6, 9), size: rand(22, 34), spin: rand(-30, 30), opacity: 0.7, extra: { color: '#e3b23c' } })),
-      ],
-    },
-    // A bare bulb swinging over the room; smoke, bubbles, and the cops' lights going past outside
-    // (everyone goes quiet).
-    speakeasy: {
-      decor() {
-        el(SHELF, { left: '1vw', top: '9vh', fontSize: '220px' }).classList.add('sc-shelf', 'blk');
-        el(BULB, { left: '22vw', top: '-2vh', fontSize: '150px' }).classList.add('sc-bulb');
-        el(DOOR, { right: '3vw', bottom: '-2vh', fontSize: '190px' }).classList.add('sc-door', 'blk');
-        el(GRAMOPHONE, { left: '1vw', bottom: '9vh', fontSize: '130px' }).classList.add('sc-gramophone', 'blk');
-      },
-      moments: [
-        () => smoke(),
-        // Knock knock: the peephole slides open, a pair of eyes looks the room over, and it shuts.
-        () => {
-          window.Ambience?.cue('knock');
-          later(() => {
-            const door = layer.querySelector('.sc-door');
-            if (!door) return;
-            door.classList.add('peek');
-            later(() => door.classList.remove('peek'), 5200);
-          }, 900);
-        },
-        () => { el('', { inset: '0' }, 6000).classList.add('sc-police'); window.Ambience?.cue('siren'); },
-      ],
-    },
-    // Bunting across the hall; bubbles, and two steins clinking: Prost!
-    beerhall: {
-      decor() {
-        el('', { left: '0', top: '0', width: '100vw', height: '10vh' }).classList.add('sc-bunting');
-      },
-      moments: [
-        () => bubbles(['beer']),
-        () => {
-          el(STEIN, { left: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'l');
-          el(STEIN, { right: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'r');
-          later(() => window.Ambience?.cue('clink'), 1100);
-        },
-      ],
-    },
-    // Marquee lights chasing round the top; coins and cards falling, and a slot machine hitting
-    // 7-7-7.
-    casino: {
-      decor() {
-        el('', { left: '0', top: '0', width: '100vw', height: '5vh' }).classList.add('sc-marquee');
-      },
-      moments: [
-        () => fall(['🪙', '💰', '🎲', '♠️', '♥️'], 7, 0.6),
-        () => {
-          const reels = el('<div class="sc-reel"><b>🍒🔔🍋⭐7️⃣</b></div><div class="sc-reel"><b>🍋⭐🍒🔔7️⃣</b></div><div class="sc-reel"><b>🔔🍒⭐🍋7️⃣</b></div>', { left: '2vw', top: '76vh' }, 7000);
-          reels.classList.add('sc-slots');
-          later(() => { reels.classList.add('win'); window.Ambience?.cue('jackpot'); }, 3200);
-        },
-      ],
-    },
-    // On deck at sunset: the Jolly Roger flying, a lantern swinging, and out at sea gulls, ships,
-    // dolphins, a whale, spray over the rail, and now and then the kraken.
-    pirate: {
-      decor() {
-        el(JOLLY_ROGER, { left: '12vw', top: '13vh', fontSize: '110px' }).classList.add('sc-jolly');
-        el(LANTERN, { left: '2.5vw', top: '16vh', fontSize: '80px' }).classList.add('sc-lantern');
-      },
-      moments: [
-        () => {
-          const right = Math.random() < 0.5;
-          const y = rand(9, 20);
-          for (let i = 0; i < pick([2, 3, 4]); i++) {
-            drift(GULL, { from: [right ? -10 : 110, y + rand(-3, 3)], to: [right ? 110 : -10, y + rand(-4, 8)], dur: rand(10, 14), size: rand(34, 54), extra: { animationDelay: `${i * rand(0.3, 0.9)}s` } });
-          }
-          later(() => window.Ambience?.cue('gulls'), 1500);
-        },
-        () => across(SHIP, { y: 41, dur: rand(30, 40), size: rand(60, 90), cls: ['sc-pitch'] }),
-        () => {
-          el('<i></i><i></i><i></i><i></i><i></i>', { left: `${rand(25, 75)}vw`, bottom: '8vh' }, 3200).classList.add('sc-crash');
-          window.Ambience?.cue('crash');
-        },
-        () => {
-          for (let i = 0; i < pick([2, 3]); i++) {
-            el(DOLPHIN, { left: `${rand(2, 6) + i * 4}vw`, top: `${rand(50, 58)}vh`, fontSize: `${rand(50, 66)}px`, animationDelay: `${i * 0.5}s` }, 4000).classList.add('sc-dolphin');
-          }
-          later(() => window.Ambience?.cue('splash'), 1500);
-        },
-        // A whale: a spout, then its tail lifting and slipping back under.
-        () => {
-          const x = rand(3, 8);
-          el('<i></i><i></i><i></i>', { left: `${x}vw`, top: '45vh' }, 3000).classList.add('sc-spout');
-          later(() => el(FLUKE, { left: `${x - 2}vw`, top: 'calc(46vh - 52px)', fontSize: '104px' }, 4200).classList.add('sc-fluke'), 1800);
-          later(() => window.Ambience?.cue('splash'), 4800);
-        },
-        // The kraken: a tentacle comes up over the rail, feels about, and slides back down.
-        () => {
-          const left = Math.random() < 0.5;
-          for (let i = 0; i < pick([1, 2]); i++) {
-            el(TENTACLE, { [left ? 'left' : 'right']: `${rand(1, 9)}vw`, bottom: '0', fontSize: `${rand(220, 300)}px`, animationDelay: `${i * 0.7}s` }, 8000).classList.add('sc-tentacle');
-          }
-          window.Ambience?.cue('splash');
-          later(() => window.Ambience?.cue('creak'), 1200);
-        },
-      ],
-    },
-    // Tiki torches burning; fireflies, a parrot flying over, a coconut dropping.
-    tiki: {
-      // (The volcano erupting is in MORE.tiki below.)
-      decor() {
-        for (const left of ['2vw', '9vw']) {
-          el(TORCH, { left, bottom: '0', fontSize: '220px' }).classList.add('sc-tikitorch');
-          el('<div class="sc-flame"></div>', { left: `calc(${left} + 6px)`, bottom: 'calc(220px - 18px)' }).classList.add('sc-torch');
-        }
-      },
-      moments: [
-        () => {
-          const right = Math.random() < 0.5;
-          drift(PARROT, { from: [right ? -10 : 110, rand(6, 14)], to: [right ? 110 : -10, rand(4, 18)], dur: rand(7, 9), size: rand(60, 80) }).classList.add(right ? 'sc-face-r' : 'sc-face-l');
-          later(() => window.Ambience?.cue('squawk'), 1200);
-        },
-        // One coconut drops, then another... then the whole bunch comes down into a big pile, which
-        // sits there a while.
-        () => {
-          const SIZE = 38;
-          // The pile: rows of 5, 4, 3, 2, 1 coconuts, the bottom row on the floor in the corner.
-          const slots = [];
-          for (let row = 0; row < 5; row++) {
-            for (let i = 0; i < 5 - row; i++) slots.push({ left: `calc(13vw + ${(i + row / 2) * (SIZE - 4)}px)`, bottom: `${row * (SIZE - 8)}px` });
-          }
-          // The first two land in the middle of the bottom row; the rest fill the pile in order.
-          const order = [slots[2], slots[1], ...slots.filter((_, i) => i !== 1 && i !== 2)];
-          const times = [0, 1700, ...order.slice(2).map((_, i) => 3600 + i * 140 + rand(0, 80))];
-          order.forEach((slot, i) => later(() => {
-            const left = 14000 - times[i];
-            el(COCONUT, { ...slot, fontSize: `${SIZE}px`, '--spin': `${rand(-200, 200)}deg`, animation: `sc-coconut 0.75s ease-in forwards, sc-fade-out 0.8s ${(left - 900) / 1000}s forwards` }, left);
-            if (i < 2 || i % 3 === 0) later(() => window.Ambience?.cue('thud'), 600); // as it lands
-          }, times[i]));
-        },
-        () => {
-        for (let i = 0; i < 12; i++) {
-          el('', { left: `${rand(0, 100)}vw`, top: `${rand(20, 95)}vh`, animation: `sc-fly ${rand(4, 7)}s ease-in-out ${rand(0, 3)}s 2 alternate`, '--sx': `${rand(-12, 12)}vw`, '--sy': `${rand(-10, 10)}vh` }, 18000).classList.add('sc-firefly');
-        }
-      }],
-    },
-    // The neon OPEN sign and a ceiling fan turning; notes off the jukebox, and a car's headlights
-    // sweeping past the window.
-    diner: {
-      decor() {
-        el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open');
-        el(FAN, { left: '14vw', top: '0', fontSize: '230px' }).classList.add('sc-fan', 'blk');
-      },
-      moments: [
-        () => shower(6, 1, () => drift(pick(['♪', '♫', '♬']), { from: [rand(5, 95), 100], to: [rand(5, 95), rand(45, 70)], dur: rand(5, 8), size: rand(18, 30), spin: rand(-30, 30), opacity: 0.5, extra: { color: '#e63946' } })),
-        () => { const right = Math.random() < 0.5; drift('', { from: [right ? -40 : 110, 20], to: [right ? 110 : -40, 20], dur: 2.6 }).classList.add('sc-headlights'); },
-      ],
-    },
-    // A neon BEER sign that sputters, a dartboard on the wall; a fly, a dart, a mouse.
-    dive: {
-      decor() {
-        el('<span>BEER</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'beer');
-        el(DARTBOARD, { left: '2vw', top: '62vh', fontSize: '90px' }).classList.add('sc-board');
-      },
-      moments: [
-        () => el('', { right: '-10vw', top: '-10vh' }, 3000).classList.add('sc-neon'),
-        () => layer.querySelector('.sc-sign.beer')?.animate([{ opacity: 1 }, { opacity: 0.15 }, { opacity: 1 }, { opacity: 0.2 }, { opacity: 0.2 }, { opacity: 1 }], { duration: 1400, easing: 'steps(1)' }),
-        () => {
-          // A dart flies in and sticks in the board.
-          // (Not drift(): the dart stays in the board a while after it lands.)
-          el(DART, { left: '-12vw', top: '66.5vh', fontSize: '60px', '--dx': '14.5vw', '--dy': '0vh', '--spin': '0deg', animation: 'sc-drift 0.45s ease-out forwards' }, 6000);
-          later(() => window.Ambience?.cue('thud'), 450);
-        },
-        () => el(FLY, { left: `${rand(5, 60)}vw`, top: `${rand(8, 20)}vh`, fontSize: '16px' }, 9000).classList.add('sc-fly'),
-        () => { const right = Math.random() < 0.5; drift(MOUSE, { from: [right ? -6 : 104, 94], to: [right ? 104 : -6, 94], dur: rand(3, 4.5), size: 56 }).classList.add('sc-mouse', right ? 'sc-face-r' : 'sc-face-l'); },
-      ],
-    },
-    lighthouse: { moments: seaMoments() },
-    lighthouseDay: { moments: dayMoments() },
-    lighthouseFog: {
-      decor() {
-        // Banks of fog drifting slowly across, in front of the sea.
-        for (const [top, h, dur, delay] of [[24, 40, 70, -20], [44, 46, 95, -60], [60, 40, 80, -35]]) {
-          el('', { left: '-60vw', top: `${top}vh`, width: '90vw', height: `${h}vh`, animation: `sc-fogbank ${dur}s linear ${delay}s infinite` }).classList.add('sc-fogcloud');
-        }
-      },
-      moments: fogMoments(),
-      gap: [10, 24],
-    },
-    storm: {
-      decor() {
-        el('', { inset: '0' }).classList.add('sc-rain');
-      },
-      moments: [...seaMoments(true), lightning, lightning],
-    },
+    // (The Highlands pub: see hlScene below.)
+    // (The saloon, the speakeasy, the casino, the tiki bar and the diner are further down, drawn
+    // to match their pictures: see their block.)
+    // (The space lounge is further down, with the pirate tavern.)
+    // (The beer hall is further down, with the pirate tavern.)
+    // (The pirate tavern is further down, with the beer hall, space, the lighthouse and the vineyard.)
+    // (The lighthouse, in all its weathers, is further down with the pirate tavern.)
   };
 
   // ---------- Outdoors: the vineyard and the château ----------
@@ -857,20 +529,7 @@
       el('', { left: `${rand(0, 100)}vw`, top: `${rand(20, 95)}vh`, animation: `sc-fly ${rand(4, 7)}s ease-in-out ${rand(0, 3)}s 2 alternate`, '--sx': `${rand(-12, 12)}vw`, '--sy': `${rand(-10, 10)}vh` }, 18000).classList.add('sc-firefly');
     }
   };
-  const vineyard = (sunset) => [
-    () => flock(SWALLOW),
-    () => notes(3, 82, '#7a1f2b'),
-    () => { burst(['🍷', '✨', '🍇'], { x: 4, y: 82, n: 14, spread: 10, size: [18, 28] }); cue('clink'); },
-    ...(sunset
-      ? [fireflies, () => popup('🦉', { x: 2, bottom: 2, size: 60, life: 5000 }), () => { flock(SWALLOW, { n: [7, 11] }); }]
-      : [
-        () => flutter('🦋', 2),
-        () => flutter('🐝', 1),
-        () => { const x = rand(10, 60); drift('🍇', { from: [x, 6], to: [x, 92], dur: 1.2, size: 32, spin: 90, extra: { animationTimingFunction: 'ease-in' } }); cue('thud', 1200); },
-        () => { crossing('🛵', { y: 91, dur: 4, size: 54, faces: 'left', bob: false }); cue('vespa'); },
-        () => crossing('🐕', { y: 92, dur: 8, size: 50 }),
-      ]),
-  ];
+  // (The vineyard's moments are further down, with the pirate tavern.)
   const chateauMoments = (night) => [
     () => { burst(['🥂', '✨', '🫧'], { x: 4, y: 82, n: 16, spread: 10, size: [18, 28] }); cue('pop'); },
     () => crossing('🐩', { y: 92, dur: 9, size: 52 }),
@@ -884,10 +543,351 @@
         () => fall(['🌸', '🌸', '🌹'], 8, 0.7, 0.8),
       ]),
   ];
-  SCENES.vineyard = { moments: vineyard(false) };
-  SCENES.vineyardSunset = { moments: vineyard(true) };
-  SCENES.chateau = { moments: chateauMoments(false) };
-  SCENES.chateauNight = { moments: chateauMoments(true) };
+  // The château (see chateauGarden() in lib/roomStyles.js), on top of the moments above. Always:
+  // clouds drifting by day; by night the stars twinkle, fireflies over the hedges and the candle on
+  // our table flickers. Now and then: the garçon with a tray of coupes, a peacock that stops to fan
+  // its tail, madame and her poodle, a cyclist with his baguettes, a hot-air balloon over the
+  // château, a cork popped; by night a couple waltzing past. Any game: finishing a drink pops the
+  // champagne (Santé !), sips bring the garçon round, a win gets Bravo ! and petals (or fireworks).
+  const CH_LEGS = (cls, x, trouser, shoe) => `<g class="${cls}"><path d="M${x} 72 h10 v38 h-10Z" fill="${trouser}"/><path d="M${x - 2} 108 h13 q7 0 8 7 h-21Z" fill="${shoe}"/></g>`;
+  const CH_GARCON = `<svg viewBox="0 0 70 130" width="0.54em" height="1em" overflow="visible">
+    ${CH_LEGS('sc-legs-b', 26, '#1a1a22', '#0a0a0a')}<path d="M24 44 Q16 58 21 72" stroke="#f4f4f4" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M21 38 Q32 33 43 38 L44 74 H20Z" fill="#f4f4f4"/><path d="M22 40 L30 40 L32 72 H21Z M42 40 L36 40 L34 72 H44Z" fill="#1a1a22"/><path d="M28 38 l4 4 l4 -4 l-4 3Z" fill="#1a1a22"/>
+    ${CH_LEGS('sc-legs-f', 23, '#1a1a22', '#0a0a0a')}<path d="M18 70 H46 L48 112 H16Z" fill="#fbfbf6"/><path d="M24 76 V110 M40 76 V110" stroke="#e0e0d8" stroke-width="1.5"/>
+    <path d="M41 42 Q54 34 54 14" stroke="#f4f4f4" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="54" cy="11" rx="17" ry="3" fill="#c8ccd0"/>
+    ${[44, 52, 60].map((x) => `<path d="M${x - 4} -6 q4 7 8 0Z" fill="#f4e0a0" opacity="0.9"/><path d="M${x} -2 V9" stroke="#e8eef4" stroke-width="1.5"/>`).join('')}
+    <circle cx="33" cy="25" r="10" fill="#f0c8a0"/><path d="M23 22 Q24 12 34 13 Q42 14 43 21 Q34 17 23 22Z" fill="#141414"/><circle cx="38" cy="24" r="1.4" fill="#222"/><path d="M34 30 q4 -2 8 0 q-2 3 -4 1 q-2 2 -4 -1Z" fill="#141414"/></svg>`;
+  // A peacock (facing right), its train behind; `.ch-fan` opens into the full tail.
+  const CH_PEACOCK = `<svg viewBox="0 0 170 130" width="1em" height="0.76em" overflow="visible">
+    <g class="ch-fan">${Array.from({ length: 13 }, (_, i) => { const a = Math.PI * (1.05 + i * 0.07); const x = 104 + 72 * Math.cos(a); const y = 84 + 72 * Math.sin(a); return `<path d="M104 84 L${(104 + 76 * Math.cos(a - 0.05)).toFixed(1)} ${(84 + 76 * Math.sin(a - 0.05)).toFixed(1)} L${(104 + 76 * Math.cos(a + 0.05)).toFixed(1)} ${(84 + 76 * Math.sin(a + 0.05)).toFixed(1)}Z" fill="#2a7a3a"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="7" fill="#d4af37"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#1a4aa8"/>`; }).join('')}</g>
+    <path d="M96 86 Q50 84 4 104 Q40 108 98 98Z" fill="#2a6a34"/>${[20, 44, 68].map((x) => `<circle cx="${x}" cy="${100 - (x - 20) * 0.12}" r="4" fill="#d4af37"/>`).join('')}
+    <g class="sc-legs-b"><path d="M108 104 v22" stroke="#8a7a5a" stroke-width="3"/></g><g class="sc-legs-f"><path d="M116 104 v22" stroke="#8a7a5a" stroke-width="3"/></g>
+    <ellipse cx="112" cy="92" rx="20" ry="14" fill="#1a4aa8"/><path d="M118 84 Q122 56 128 34" stroke="#1a5ac8" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="130" cy="32" r="7" fill="#1a5ac8"/>
+    <path d="M136 31 l8 2 l-8 3Z" fill="#c8a85a"/><circle cx="132" cy="30" r="1.5" fill="#fff"/><path d="M128 25 l-2 -10 M131 25 l1 -11 M134 26 l4 -9" stroke="#1a5ac8" stroke-width="1.5"/><circle cx="126" cy="15" r="2" fill="#1a5ac8"/><circle cx="132" cy="14" r="2" fill="#1a5ac8"/><circle cx="138" cy="17" r="2" fill="#1a5ac8"/></svg>`;
+  // Madame in her hat with her parasol, the poodle out in front on its lead.
+  const CH_MADAME = `<svg viewBox="0 0 160 130" width="1em" height="0.81em" overflow="visible">
+    <path d="M6 26 Q30 2 56 26Z" fill="#f4f0f4"/><path d="M31 6 V60" stroke="#5a3a2a" stroke-width="2"/>
+    <g class="sc-legs-b"><path d="M30 110 h6 v8 h-6Z" fill="#f0c8a0"/></g><g class="sc-legs-f"><path d="M38 110 h6 v8 h-6Z" fill="#f0c8a0"/></g>
+    <path d="M28 46 Q37 42 46 46 L58 112 H16Z" fill="#e88aa8"/><path d="M26 66 H50" stroke="#fff" stroke-width="3"/><path d="M44 52 Q56 62 62 68" stroke="#f0c8a0" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="37" cy="36" r="9" fill="#f0c8a0"/><ellipse cx="38" cy="28" rx="20" ry="5" fill="#f4e4c8"/><path d="M28 28 Q30 16 40 16 Q48 18 48 28Z" fill="#f4e4c8"/><path d="M28 26 h20" stroke="#c0392b" stroke-width="3"/><circle cx="41" cy="36" r="1.3" fill="#222"/>
+    <path d="M62 68 Q90 92 110 92" stroke="#c0392b" stroke-width="1.5" fill="none"/>
+    <g class="ch-bob"><circle cx="138" cy="74" r="9" fill="#fff"/><circle cx="146" cy="82" r="6" fill="#fbe8f0"/><circle cx="141" cy="74" r="1.4" fill="#222"/><path d="M134 70 q-4 6 -2 12" stroke="#f4dce8" stroke-width="5"/>
+      <ellipse cx="118" cy="96" rx="20" ry="8" fill="#fff"/><circle cx="132" cy="92" r="9" fill="#fff"/><circle cx="96" cy="84" r="6" fill="#fff"/><path d="M98 92 l-4 -6" stroke="#fff" stroke-width="3"/>
+      <g class="sc-legs-f"><path d="M104 102 v18" stroke="#fff" stroke-width="3"/><circle cx="104" cy="122" r="4" fill="#fff"/><path d="M128 102 v18" stroke="#fff" stroke-width="3"/><circle cx="128" cy="122" r="4" fill="#fff"/></g>
+      <g class="sc-legs-b"><path d="M110 102 v18" stroke="#f4f0f0" stroke-width="3"/><circle cx="110" cy="122" r="4" fill="#f4f0f0"/><path d="M134 102 v18" stroke="#f4f0f0" stroke-width="3"/><circle cx="134" cy="122" r="4" fill="#f4f0f0"/></g>
+      <path d="M126 90 l-6 2" stroke="#c0392b" stroke-width="2.5"/></g></svg>`;
+  const CH_WHEEL = (x, y) => `<g class="ch-wheel" style="transform-origin:${x}px ${y}px"><circle cx="${x}" cy="${y}" r="20" fill="none" stroke="#1a1a1a" stroke-width="3"/>${[0, 45, 90, 135].map((a) => { const dx = 20 * Math.cos((a * Math.PI) / 180); const dy = 20 * Math.sin((a * Math.PI) / 180); return `<path d="M${(x - dx).toFixed(1)} ${(y - dy).toFixed(1)} L${(x + dx).toFixed(1)} ${(y + dy).toFixed(1)}" stroke="#5a5a5a" stroke-width="1"/>`; }).join('')}</g>`;
+  // On his bicycle: beret, a striped jersey, baguettes in the basket.
+  const CH_CYCLIST = `<svg viewBox="0 0 130 110" width="1em" height="0.85em" overflow="visible">${CH_WHEEL(26, 86)}${CH_WHEEL(100, 86)}
+    <path d="M26 86 L52 86 L82 56 L46 56 Z M52 86 L44 48 M82 56 L100 86 M80 44 L82 56" stroke="#2a5a8a" stroke-width="4" fill="none" stroke-linejoin="round"/><path d="M38 46 h14" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+    <path d="M86 30 h18 l-4 12 h-12Z" fill="#a8743a"/><path d="M88 32 L96 6 M94 32 L106 10" stroke="#e0a858" stroke-width="7" stroke-linecap="round"/>
+    <path d="M46 44 Q50 60 60 70 L56 86 M48 46 Q62 60 70 62 L66 80" stroke="#1a1a3a" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M40 18 Q50 12 62 22 L52 48 H40Z" fill="#f4f4f4"/><path d="M41 24 h18 M41 32 h15 M41 40 h12" stroke="#1a3a7a" stroke-width="4"/><path d="M56 26 L80 42" stroke="#f0c8a0" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="54" cy="10" r="8" fill="#f0c8a0"/><ellipse cx="52" cy="4" rx="10" ry="4" fill="#1a1a1a"/><rect x="51" y="-2" width="2" height="4" fill="#1a1a1a"/><circle cx="58" cy="9" r="1.3" fill="#222"/></svg>`;
+  const CH_BALLOON = `<svg viewBox="0 0 80 124" width="0.65em" height="1em" overflow="visible">
+    ${['#c0392b', '#f4e8d0', '#1b3f8e', '#f4e8d0', '#c0392b'].map((col, i) => `<path d="M40 2 C${8 + i * 12} 2 ${4 + i * 16} ${40} ${12 + i * 14} 70 L${30 + i * 5} 90 L${30 + (i + 1) * 4} 90 L${12 + (i + 1) * 14} 70 C${4 + (i + 1) * 16} 40 ${8 + (i + 1) * 12} 2 40 2Z" fill="${col}"/>`).join('')}
+    <path d="M40 2 C4 2 -2 44 14 70 L30 90 H50 L66 70 C82 44 76 2 40 2Z" fill="none" stroke="#2a1a1a" stroke-width="1" opacity="0.3"/><path d="M16 30 Q40 40 64 30" stroke="#d4af37" stroke-width="3" fill="none"/>
+    <path d="M32 92 L32 106 M48 92 L48 106" stroke="#5a3a1e" stroke-width="1.2"/><rect x="30" y="104" width="20" height="14" rx="2" fill="#8a5a2a"/><circle cx="36" cy="102" r="3" fill="#f0c8a0"/><circle cx="44" cy="102" r="3" fill="#e2b48a"/></svg>`;
+  const CH_COUPLE = `<svg viewBox="0 0 70 120" width="0.58em" height="1em"><g class="ch-waltz">
+    <path d="M38 48 Q50 46 54 54 L66 118 H26Z" fill="#c8a0e8"/><path d="M36 56 Q48 52 62 70" stroke="#e8d0f8" stroke-width="2" fill="none" opacity="0.6"/>
+    <path d="M14 76 h9 v40 h-9Z M24 76 h9 v40 h-9Z" fill="#141418"/><path d="M12 40 Q24 34 36 40 L36 78 H12Z" fill="#141418"/><path d="M22 40 l2 10 l2 -10Z" fill="#f4f4f4"/>
+    <path d="M34 46 Q44 44 46 52" stroke="#141418" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="24" cy="28" r="9" fill="#f0c8a0"/><path d="M15 26 Q18 16 28 18 Q33 22 32 26Z" fill="#2a1a10"/>
+    <circle cx="44" cy="34" r="8" fill="#f4d0b0"/><path d="M36 32 Q38 22 48 24 Q54 30 50 40 Q46 30 36 32Z" fill="#8a4a1a"/></g></svg>`;
+  const chOn = () => current === 'chateau' || current === 'chateauNight';
+  // The peacock comes in from the left, stops, fans its tail, and goes back the way it came.
+  function chPeacock() {
+    const size = (0.22 * innerHeight) / 0.76;
+    el(CH_PEACOCK, { left: `-${((size / innerWidth) * 100).toFixed(1)}vw`, bottom: '4vh', fontSize: `${size}px`, '--dx': `${(((size / innerWidth) * 100) + 2).toFixed(1)}vw` }, 11000).classList.add('ch-peacock', 'blk');
+    cue('peacock', 3400);
+  }
+  function chCork(name = '') {
+    cue('pop');
+    drift('<i></i>', { from: [3, 84], to: [rand(30, 50), rand(4, 20)], dur: 1.6, size: 14, spin: 1080, extra: { animationTimingFunction: 'cubic-bezier(0.2, 0.7, 0.4, 1)' } }).classList.add('ch-cork');
+    burst(['●', '•', '○'], { x: 4, y: 84, n: 22, spread: 5, size: [5, 12], colors: ['#fff8e0', '#f4e0a0', '#ffffff'], rise: [-26, -10], fall: [-4, 6] });
+    later(() => inFront(`<b>Santé${name ? `, ${name}` : ''} !</b>`, { left: '0', right: '26vw', top: '24vh' }, 3000).classList.add('sc-oneeighty', 'ton', 'ch'), 500);
+    cue('clink', 900);
+  }
+  const chWatch = vvWatch({
+    finish: (p) => chCork(esc(p.name)),
+    sip: () => vvWalk(CH_GARCON, { vh: 22, dur: 11 }),
+    over: (s) => {
+      inFront('<b>Bravo !</b>', { left: '0', right: '26vw', top: '24vh' }, 3600).classList.add('sc-oneeighty', 'ton', 'ch');
+      cue('cheer');
+      if (current === 'chateauNight') { fireworks(); later(fireworks, 2600); } else { fall(['🌸', '🌹', '🌸'], 6, 0.25, 0.9); flock('🕊️', { y: [4, 12], n: [4, 6], size: [30, 40] }); }
+    },
+  });
+  const chDecor = (night) => () => {
+    chWatch.reset();
+    if (!chOn()) return;
+    if (!night) {
+      for (let i = 0; i < 2; i++) el('<i></i><i></i><i></i>', { left: '0', top: `${[22, 17][i]}vh`, '--s': [1, 0.7][i], animationDuration: `${[140, 190][i]}s`, animationDelay: `-${[30, 120][i]}s` }).classList.add('ch-cloud');
+      return;
+    }
+    for (let i = 0; i < 14; i++) el('', { left: `${rand(2, 98)}vw`, top: `${rand(1, 14)}vh`, '--c': '#ffffff', animationDuration: `${rand(1.5, 4).toFixed(1)}s`, animationDelay: `-${rand(0, 4).toFixed(1)}s` }).classList.add('fh-twinkle', 'ch-star');
+    for (let i = 0; i < 10; i++) el('', { left: `${rand(0, 14)}vw`, top: `${rand(55, 85)}vh`, '--sx': `${rand(-5, 5)}vw`, '--sy': `${rand(-6, 6)}vh`, animation: `sc-fly ${rand(4, 7).toFixed(1)}s ease-in-out ${rand(0, 3).toFixed(1)}s infinite alternate` }).classList.add('sc-firefly');
+    const [cx, cy] = artAt(1230, 676);
+    el('', { left: `${cx}vw`, top: `${cy}vh` }).classList.add('ch-candle');
+  };
+  const chMore = (night) => [
+    () => vvWalk(CH_GARCON, { vh: 22, dur: 11 }),
+    () => { vvWalk(CH_MADAME, { vh: 17, dur: 15 }); cue('pop', 7000); },
+    () => chCork(),
+    ...(night
+      ? [() => { vvWalk(CH_COUPLE, { vh: 21, dur: 16 }); notes(6, 80, '#e6c06a', 8); }]
+      : [
+        chPeacock,
+        () => { vvWalk(CH_CYCLIST, { vh: 17, dur: 6 }); cue('clink', 1500); },
+        () => drift(CH_BALLOON, { from: [-8, rand(5, 9)], to: [108, rand(3, 8)], dur: 40, size: 0.14 * innerHeight }).classList.add('ch-balloon', 'blk'),
+      ]),
+  ];
+  // The Highlands pub (see highlandPub() in lib/roomStyles.js), in any weather. Always: the peat
+  // fire's glow and the lantern and candle flickering; rain running down the window or fog drifting
+  // past it. Now and then: a Highland coo ambles through, sheep, the collie off after something, the
+  // piper striking up, a log on the fire, a dram slid along the floor, sparks; in the window, Nessie
+  // crossing the loch, a rainbow over the glen (when it's clear), lightning (in the rain). Any game:
+  // finishing a drink gets Sláinte!, sips a dram slid over, a win the pipes.
+  const HL_COO = `<svg viewBox="0 0 160 104" width="1em" height="0.65em" overflow="visible">
+    <path class="sc-tail" d="M20 44 Q4 50 6 74" stroke="#a8582a" stroke-width="4" fill="none"/><path d="M2 72 q4 10 10 0Z" fill="#8a4420"/>
+    <g class="sc-legs-b"><rect x="34" y="66" width="11" height="32" rx="4" fill="#8a4420"/><rect x="100" y="66" width="11" height="32" rx="4" fill="#8a4420"/></g>
+    <path d="M18 50 Q22 24 66 24 Q110 22 126 40 Q132 62 118 74 L24 76 Q14 66 18 50Z" fill="#b8642a"/>
+    ${Array.from({ length: 14 }, (_, i) => `<path d="M${24 + i * 7} ${70 + (i % 2) * 2} l2 10 l3 -9" fill="#a8582a"/>`).join('')}${Array.from({ length: 8 }, (_, i) => `<path d="M${30 + i * 11} 34 q4 8 0 16" stroke="#d07a3a" stroke-width="2" fill="none" opacity="0.6"/>`).join('')}
+    <g class="sc-legs-f"><rect x="44" y="66" width="11" height="32" rx="4" fill="#9a4c22"/><rect x="110" y="66" width="11" height="32" rx="4" fill="#9a4c22"/></g>
+    <path d="M118 30 Q118 18 140 20 Q156 24 154 46 Q152 62 140 64 Q124 62 120 48Z" fill="#b8642a"/>
+    <path d="M126 24 Q110 8 96 10 Q112 14 122 28 M146 22 Q160 4 174 8 Q160 12 150 26" stroke="#efe2c4" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M120 26 q6 18 4 22 M128 24 q4 18 2 22 M136 24 q2 16 2 20 M144 24 q0 16 -2 20 M150 28 q-2 12 -4 16" stroke="#e08a4a" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="146" cy="58" rx="9" ry="7" fill="#6a3418"/><circle cx="142" cy="58" r="1.6" fill="#2a1408"/><circle cx="150" cy="58" r="1.6" fill="#2a1408"/></svg>`;
+  const HL_SHEEP = `<svg viewBox="0 0 84 62" width="1em" height="0.74em" overflow="visible">
+    <g class="sc-legs-b"><rect x="20" y="40" width="5" height="20" fill="#1a1a1a"/><rect x="54" y="40" width="5" height="20" fill="#1a1a1a"/></g>
+    <g fill="#f4f0e4">${[[18, 30, 12], [30, 22, 13], [44, 20, 13], [58, 26, 12], [26, 38, 11], [42, 38, 12], [56, 38, 11]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g>
+    <g class="sc-legs-f"><rect x="28" y="40" width="5" height="20" fill="#262626"/><rect x="62" y="40" width="5" height="20" fill="#262626"/></g>
+    <ellipse cx="72" cy="26" rx="9" ry="11" fill="#1a1a1a" transform="rotate(20 72 26)"/><path d="M66 18 l-8 -4 l6 8Z" fill="#1a1a1a"/><circle cx="74" cy="23" r="1.4" fill="#fff"/></svg>`;
+  const HL_COLLIE = `<svg viewBox="0 0 100 60" width="1em" height="0.6em" overflow="visible">
+    <path class="sc-tail" d="M16 24 Q0 16 4 4 Q12 18 22 20Z" fill="#141414" style="transform-origin:16px 24px"/>
+    <g class="sc-legs-b"><path d="M22 36 l-6 20 h6 l6 -18 M60 36 l-4 20 h6 l4 -18" fill="#f4f0e8"/></g>
+    <path d="M14 26 Q20 14 50 16 Q72 16 78 24 L76 42 Q50 44 20 42Z" fill="#141414"/><path d="M54 40 Q64 26 78 28 L74 44Z" fill="#f4f0e8"/>
+    <g class="sc-legs-f"><path d="M30 38 l2 20 h6 l-2 -20 M66 38 l6 18 h6 l-6 -18" fill="#f4f0e8"/></g>
+    <path d="M70 22 Q74 6 90 10 Q98 14 96 22 L86 28 Q76 30 70 22Z" fill="#141414"/><path d="M84 14 L96 20 L86 26 Q80 22 84 14Z" fill="#f4f0e8"/><path d="M76 10 l2 -10 l6 10Z" fill="#141414"/><circle cx="86" cy="15" r="1.6" fill="#7a4a1a"/><circle cx="97" cy="20" r="2" fill="#141414"/></svg>`;
+  // The piper, puffing away (facing right).
+  const HL_PIPER = `<svg viewBox="0 0 90 140" width="0.64em" height="1em" overflow="visible">
+    <path d="M32 98 h9 v30 h-9Z M46 98 h9 v30 h-9Z" fill="#f0c8a0"/><path d="M31 108 h11 v18 h-11Z M45 108 h11 v18 h-11Z" fill="#e8e0d0"/><path d="M28 126 h16 v6 h-16Z M44 126 h16 v6 h-16Z" fill="#1a1a1a"/>
+    <path d="M26 70 H62 L66 100 H22Z" fill="#a8201a"/><path d="M30 70 V100 M42 70 V100 M54 70 V100 M24 82 H64 M23 92 H65" stroke="#1e3a1e" stroke-width="2.5"/><path d="M36 70 V100 M48 70 V100" stroke="#f4c430" stroke-width="1"/>
+    <path d="M38 76 h12 l2 14 h-16Z" fill="#e8dcc0"/><circle cx="44" cy="80" r="2" fill="#141414"/>
+    <path d="M28 38 Q44 32 60 38 L62 72 H26Z" fill="#141414"/><path d="M42 36 l2 10 l2 -10" fill="#f4f4f4"/>
+    <g class="hl-puff"><path d="M22 48 Q10 46 12 62 Q16 76 32 72 Q40 64 36 52 Q30 46 22 48Z" fill="#2a5a3a"/><path d="M16 54 L30 68 M14 64 L34 56" stroke="#c0392b" stroke-width="2"/></g>
+    <path d="M24 50 L8 6 M28 48 L20 2 M32 48 L34 10" stroke="#1a1008" stroke-width="4" stroke-linecap="round"/><path d="M5 2 h7 v6 h-7Z M17 -2 h7 v6 h-7Z M31 6 h7 v6 h-7Z" fill="#e8dcc0"/><path d="M10 20 Q20 12 34 22" stroke="#c0392b" stroke-width="2" fill="none"/>
+    <path d="M52 30 L60 78" stroke="#1a1008" stroke-width="5"/><path d="M58 44 Q64 54 60 64 M56 46 Q50 56 56 66" stroke="#f0c8a0" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="46" cy="24" r="11" fill="#f0c8a0"/><circle class="hl-cheek" cx="53" cy="28" r="5" fill="#f4a8a0"/><circle cx="50" cy="21" r="1.5" fill="#222"/><path d="M50 28 L54 30" stroke="#1a1008" stroke-width="2"/>
+    <path d="M34 16 Q36 8 48 9 Q58 10 58 16Z" fill="#141414"/><path d="M34 16 h24" stroke="#c0392b" stroke-width="2"/><path d="M36 14 l-6 6 M38 14 l-4 8" stroke="#141414" stroke-width="2"/></svg>`;
+  const HL_NESSIE = `<svg viewBox="0 0 120 40" width="1em" height="0.33em" overflow="visible"><g fill="#1e3a2a">
+    <path d="M86 34 Q88 6 100 4 Q112 4 110 14 L104 14 Q98 12 96 34Z"/><path d="M50 34 Q62 16 74 34Z"/><path d="M18 34 Q28 22 38 34Z"/><path d="M2 34 Q8 28 12 34Z"/></g><circle cx="104" cy="9" r="1.4" fill="#e8f0e8"/>
+    <path d="M0 36 h120" stroke="#e8eef2" stroke-width="1.5" opacity="0.5"/></svg>`;
+  const hlOn = () => /^stpatricks/.test(current || '');
+  // Something in the window on the glen (see highlandPub(): its glass is 60,180 to 300,400).
+  function hlWindow(html, cls, life) {
+    if (!hlOn()) return null;
+    const [x0, y0] = artAt(60, 180);
+    const [x1, y1] = artAt(300, 400);
+    const d = el(html, { left: `${x0}vw`, top: `${y0}vh`, width: `${x1 - x0}vw`, height: `${y1 - y0}vh` }, life);
+    d.classList.add('hl-win', ...cls);
+    return d;
+  }
+  const hlNessie = () => hlWindow(`<div class="hl-nessie">${HL_NESSIE}</div>`, [], 14000);
+  function hlPiper() {
+    popup(HL_PIPER, { x: 2, bottom: 0, size: 0.32 * innerHeight, life: 9000 });
+    notes(9, 66, '#e6b84a', 7);
+    cue('cheer', 7600);
+  }
+  function hlSlainte(name = '') {
+    inFront(`<b>Sláinte${name ? `, ${name}` : ''}!</b>`, { left: '0', right: '26vw', top: '24vh' }, 3200).classList.add('sc-oneeighty', 'ton', 'hl');
+    burst(['●', '•', '✦'], { x: rand(40, 60), y: 86, n: 18, spread: 10, size: [5, 10], colors: ['#ff8a2a', '#ffd23f', '#ff5a14'], rise: [-50, -26], fall: [-10, 0] });
+    cue('clink'); cue('cheer', 400);
+  }
+  const hlWatch = vvWatch({
+    finish: (p) => hlSlainte(esc(p.name)),
+    sip: () => { slide('🥃', { y: 91, size: 44 }); cue('slide', 200); },
+    over: () => { hlPiper(); later(() => hlSlainte('mhath'), 600); },
+  });
+  const hlScene = (weather) => ({
+    decor() {
+      hlWatch.reset();
+      if (!hlOn()) return;
+      const [fx, fy] = artAt(800, 720);
+      el('', { left: `${fx}vw`, top: `${fy}vh` }).classList.add('hl-fire');
+      for (const [x, y, s] of [[160, 168, 1], [76, 370, 0.5]]) { const [lx, ly] = artAt(x, y); el('', { left: `${lx}vw`, top: `${ly}vh`, '--s': s }).classList.add('hl-lamp'); }
+      if (weather === 'rain') hlWindow('', ['sc-rain'], 0);
+      if (weather === 'fog') hlWindow('<i></i>', ['hl-fogpane'], 0);
+    },
+    update: hlWatch,
+    moments: [
+      ...hearth().slice(0, 2),
+      () => { vvWalk(HL_COO, { vh: 20, dur: 18 }); cue('moo', 4000); },
+      () => { for (let i = 0; i < pick([2, 3, 4]); i++) later(() => vvWalk(HL_SHEEP, { vh: rand(9, 11), dur: rand(9, 12) }), i * 900); cue('baa', 2500); },
+      () => vvWalk(HL_COLLIE, { vh: 10, dur: 4 }),
+      hlPiper,
+      () => { burst(['●', '•', '✦'], { x: rand(40, 60), y: 90, n: 30, spread: 14, size: [5, 11], colors: ['#ff8a2a', '#ffd23f', '#ff5a14'], rise: [-60, -30], fall: [-14, 0] }); cue('thud'); },
+      () => { slide('🥃', { y: 91, size: 44 }); cue('slide', 200); },
+      ...(weather === 'fog' ? [] : [hlNessie]),
+      ...(weather === 'clear' ? [() => hlWindow('<b></b>', ['hl-rainbow'], 9200)] : []),
+      ...(weather === 'rain' ? [() => { hlWindow('', ['sc-winflash'], 1600); el('', { inset: '0' }, 1400).classList.add('hl-flash'); cue('thunderFar', rand(1500, 3500)); }, () => popup('☂️', { x: 2, bottom: 2, size: 64, life: 5000 })] : []),
+    ],
+  });
+  SCENES.stpatricks = hlScene('clear');
+  SCENES.stpatricksRain = hlScene('rain');
+  SCENES.stpatricksFog = hlScene('fog');
+
+  // Christmas (see christmasEve() in lib/roomStyles.js), on top of the snow and Santa's sleigh
+  // above. Always: the fairy lights and the tree twinkling, the star glowing, the fire. Now and
+  // then: the toy train goes round with presents aboard, Santa pops out from behind the tree with
+  // his sack, Rudolph trots through (nose blinking), a gingerbread man legs it, the cat knocks a
+  // bauble off the tree, an elf peeks out of the presents, a snowman, a present that won't keep
+  // still. Any game: finishing a drink gets a Ho ho ho!, sips a cocoa slid over, a win the sleigh.
+  const XM_SANTA = `<svg viewBox="0 0 100 130" width="0.77em" height="1em" overflow="visible">
+    <path d="M10 60 Q0 30 26 26 Q44 24 46 50 L40 80 Q18 84 10 60Z" fill="#8a5a2a"/><path d="M20 30 q10 -10 22 0" stroke="#5a3a1a" stroke-width="4" fill="none"/>
+    <path d="M30 70 Q50 56 76 70 L80 126 H28Z" fill="#c0392b"/><rect x="28" y="96" width="52" height="10" fill="#1a1a1a"/><rect x="48" y="96" width="12" height="10" fill="#d4af37"/><path d="M52 70 V126" stroke="#f4f4f4" stroke-width="7"/>
+    <path class="xm-wave" d="M74 74 Q90 64 92 44" stroke="#c0392b" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="92" cy="40" r="7" fill="#f4f4f4"/>
+    <path d="M32 76 Q22 84 30 96" stroke="#c0392b" stroke-width="11" fill="none" stroke-linecap="round"/>
+    <circle cx="54" cy="44" r="16" fill="#f4c8a8"/><path d="M36 48 Q38 78 54 80 Q70 78 72 48 Q64 58 54 58 Q44 58 36 48Z" fill="#f8f8f8"/><path d="M46 54 q8 -5 16 0" stroke="#f0f0f0" stroke-width="5" fill="none"/>
+    <circle cx="48" cy="40" r="2" fill="#222"/><circle cx="60" cy="40" r="2" fill="#222"/><circle cx="54" cy="47" r="4" fill="#e8907a"/>
+    <path d="M36 34 Q40 6 70 14 Q80 18 86 30 L70 30 Q56 28 36 34Z" fill="#c0392b"/><rect x="34" y="28" width="40" height="9" rx="4" fill="#f8f8f8"/><circle cx="88" cy="32" r="6" fill="#f8f8f8"/></svg>`;
+  const XM_REINDEER = `<svg viewBox="0 0 130 100" width="1em" height="0.77em" overflow="visible">
+    <path class="sc-tail" d="M18 40 q-10 -6 -6 -14" stroke="#8a5a2a" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <g class="sc-legs-b"><rect x="26" y="56" width="7" height="38" rx="3" fill="#6a4020"/><rect x="82" y="56" width="7" height="38" rx="3" fill="#6a4020"/></g>
+    <path d="M16 46 Q20 30 54 30 Q86 28 96 40 Q98 58 86 62 L24 62 Q14 58 16 46Z" fill="#9a6432"/><path d="M30 58 Q60 64 88 56" stroke="#e8d0b0" stroke-width="6" fill="none"/>
+    <g class="sc-legs-f"><rect x="36" y="56" width="7" height="38" rx="3" fill="#7a4a24"/><rect x="92" y="56" width="7" height="38" rx="3" fill="#7a4a24"/></g>
+    <path d="M90 40 Q98 22 106 18 L118 20 Q124 26 118 32 L104 40Z" fill="#9a6432"/><path d="M100 18 Q92 2 84 0 M96 10 L88 8 M108 18 Q112 2 122 0 M112 10 L120 10" stroke="#5a3a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="110" cy="22" r="1.8" fill="#222"/><circle class="xm-nose" cx="121" cy="27" r="5" fill="#ff3030"/><path d="M98 34 l8 4" stroke="#c0392b" stroke-width="4"/><circle cx="102" cy="40" r="3" fill="#d4af37"/></svg>`;
+  const XM_GINGER = `<svg viewBox="0 0 60 80" width="0.75em" height="1em" overflow="visible"><g fill="#b8743a">
+    <g class="sc-legs-b"><rect x="20" y="50" width="10" height="26" rx="5"/></g><g class="sc-legs-f"><rect x="30" y="50" width="10" height="26" rx="5"/></g>
+    <rect x="18" y="26" width="24" height="30" rx="10"/><path d="M20 32 L4 24 M40 32 L56 22" stroke="#b8743a" stroke-width="9" stroke-linecap="round"/><circle cx="30" cy="16" r="12"/></g>
+    <circle cx="26" cy="14" r="1.8" fill="#2a1408"/><circle cx="34" cy="14" r="1.8" fill="#2a1408"/><path d="M25 20 q5 4 10 0" stroke="#fff" stroke-width="1.8" fill="none"/>
+    <circle cx="30" cy="34" r="2" fill="#d62828"/><circle cx="30" cy="42" r="2" fill="#2a8a4a"/><path d="M3 22 l3 4 M54 20 l2 4" stroke="#fff" stroke-width="2"/></svg>`;
+  const XM_TRAIN = `<svg viewBox="0 0 320 90" width="1em" height="0.28em" overflow="visible">
+    ${[0, 92].map((x) => `<rect x="${x + 4}" y="50" width="84" height="22" rx="3" fill="${x ? '#1b5a9e' : '#2a6a3a'}"/><rect x="${x + 14}" y="28" width="26" height="24" fill="${x ? '#e8b84a' : '#c0392b'}"/><rect x="${x + 44}" y="36" width="30" height="16" fill="${x ? '#7a3a9a' : '#f4f4f4'}"/><path d="M${x + 27} 28 V52 M${x + 14} 40 H${x + 40}" stroke="#f4f4f4" stroke-width="3"/>
+      <g class="sc-tyre"><circle cx="${x + 20}" cy="76" r="9" fill="#1a1a1a"/><path d="M${x + 13} 76 h14" stroke="#888" stroke-width="2"/></g><g class="sc-tyre"><circle cx="${x + 70}" cy="76" r="9" fill="#1a1a1a"/><path d="M${x + 63} 76 h14" stroke="#888" stroke-width="2"/></g><rect x="${x + 88}" y="62" width="8" height="4" fill="#3a3a3a"/>`).join('')}
+    <rect x="190" y="36" width="90" height="34" rx="14" fill="#141414"/><rect x="190" y="20" width="40" height="50" fill="#c0392b"/><rect x="186" y="16" width="48" height="8" fill="#1a1a1a"/><rect x="198" y="28" width="22" height="16" fill="#ffd27a"/>
+    <rect x="252" y="12" width="14" height="26" fill="#141414"/><path d="M248 10 h22 l-3 6 h-16Z" fill="#1a1a1a"/><circle cx="264" cy="44" r="5" fill="#d4af37"/><path d="M280 52 L300 74 H280Z" fill="#c0392b"/><circle cx="286" cy="40" r="5" fill="#fff8d0"/>
+    ${[214, 252].map((x) => `<g class="sc-tyre"><circle cx="${x}" cy="72" r="14" fill="#c0392b"/><circle cx="${x}" cy="72" r="5" fill="#1a1a1a"/><path d="M${x - 12} 72 h24 M${x} 60 v24" stroke="#8a1a14" stroke-width="2"/></g>`).join('')}</svg>`;
+  const xmOn = () => current === 'christmas';
+  function xmTrain() {
+    const right = Math.random() < 0.5;
+    const d = drive(XM_TRAIN, { ar: 3.56, h: 9, y: xmOn() ? Math.min(100, artAt(0, 892)[1]) : 99, dur: 12, right });
+    d.classList.add('xm-train');
+    cue('whistle', 600);
+    for (let i = 0; i < 8; i++) later(() => { const r = d.getBoundingClientRect(); const x = ((right ? r.right - r.width * 0.17 : r.left + r.width * 0.17) / innerWidth) * 100; drift('', { from: [x, (r.top / innerHeight) * 100], to: [x + rand(-3, 3), (r.top / innerHeight) * 100 - 14], dur: 2.4, size: 10 }).classList.add('sc-plume', 'steam', 'xm-puff'); }, 800 + i * 1200);
+  }
+  function xmBauble() {
+    const [x, y] = xmOn() ? artAt(rand(110, 220), rand(380, 560)) : [rand(3, 10), 50];
+    const col = pick(['#d62828', '#e8b84a', '#3a7ae8']);
+    drift(`<i style="background:${col}"></i>`, { from: [x, y], to: [x + rand(-1, 2), 95], dur: 0.9, size: 14, spin: 200, extra: { animationTimingFunction: 'ease-in' } }).classList.add('xm-bauble');
+    later(() => { cue('shatter'); burst(['✦', '•', '✧'], { x, y: 95, n: 16, spread: 4, size: [5, 10], colors: [col, '#ffffff', '#ffd23f'], rise: [-10, -3], fall: [-2, 4] }); }, 900);
+    later(() => { crossing(CAT, { y: 92, dur: 3, size: 46, faces: 'right', cls: ['sc-cat'] }); cue('meow'); }, 1300);
+  }
+  const xmHoho = (name = '') => {
+    popup(XM_SANTA, { x: 2, bottom: 0, size: 0.3 * innerHeight, life: 5200 });
+    later(() => { inFront(`<b>Ho ho ho${name ? `, ${name}` : ''}!</b>`, { left: '0', right: '26vw', top: '24vh' }, 3000).classList.add('sc-oneeighty', 'ton', 'xm'); cue('sleighbells'); }, 900);
+  };
+  const xmWatch = vvWatch({
+    finish: (p) => { xmHoho(esc(p.name)); later(() => burst(['🎁', '✨', '⭐'], { x: 6, y: 80, n: 14, spread: 10 }), 1400); },
+    sip: () => { slide('☕', { y: 91, size: 44 }); cue('slide', 200); },
+    over: () => {
+      drift(SLEIGH, { from: [-30, rand(6, 8)], to: [115, rand(1, 3)], dur: 11, size: 230 }).classList.add('sc-sleigh');
+      later(() => { inFront('<b>Merry Christmas!</b>', { left: '0', right: '26vw', top: '24vh' }, 3600).classList.add('sc-oneeighty', 'ton', 'xm'); cue('sleighbells'); cue('cheer', 300); }, 1200);
+      fall(['❄', '✨', '⭐'], 6, 0.25, 0.85);
+    },
+  });
+  SCENES.christmas.decor = () => {
+    xmWatch.reset();
+    if (!xmOn()) return;
+    for (let i = 0; i < 32; i++) {
+      const x = 25 + i * 50;
+      const [vx, vy] = artAt(x, 66 + 33 * Math.sin(((x % 400) / 400) * Math.PI));
+      el('', { left: `${vx}vw`, top: `${vy}vh`, '--c': ['#ff4d4d', '#ffd23f', '#4dd4ff', '#7dff7a'][i % 4], animationDelay: `-${(Math.random() * 3).toFixed(2)}s`, animationDuration: `${(1.2 + Math.random() * 2).toFixed(2)}s` }).classList.add('fh-twinkle');
+    }
+    for (let i = 0; i < 14; i++) {
+      const y = 150 + Math.random() * 450;
+      const half = 40 + ((y - 100) / 520) * 160;
+      const [vx, vy] = artAt(160 + (Math.random() - 0.5) * half * 1.5, y);
+      el('', { left: `${vx}vw`, top: `${vy}vh`, '--c': pick(['#fff4c0', '#ffd23f', '#ff9a8a', '#9ad8ff']), animationDelay: `-${(Math.random() * 3).toFixed(2)}s`, animationDuration: `${(0.8 + Math.random() * 1.6).toFixed(2)}s` }).classList.add('fh-twinkle', 'xm-tree');
+    }
+    const [sx, sy] = artAt(160, 92);
+    el('', { left: `${sx}vw`, top: `${sy}vh` }).classList.add('xm-star');
+    const [fx, fy] = artAt(800, 760);
+    el('', { left: `${fx}vw`, top: `${fy}vh` }).classList.add('hl-fire');
+  };
+  SCENES.christmas.update = xmWatch;
+  SCENES.christmas.moments.push(
+    xmTrain,
+    () => { xmHoho(); later(() => burst(['🎁', '✨', '⭐'], { x: 6, y: 80, n: 12, spread: 8 }), 1600); },
+    () => vvWalk(XM_REINDEER, { vh: 17, dur: 10 }),
+    () => { vvWalk(XM_GINGER, { vh: 9, dur: 3.4 }); later(() => vvWalk(CAT, { vh: 8, dur: 4.2 }), 600); },
+    xmBauble,
+    () => popup('🧝', { x: rand(3, 8), bottom: 2, size: 56, life: 4200 }),
+    () => popup('⛄', { x: 2, bottom: 2, size: 80, life: 5500 }),
+    () => { const b = el('🎁', { left: '3vw', bottom: '3vh', fontSize: '64px' }, 4500); b.classList.add('sc-present'); later(() => burst(['✨', '⭐', '🎉'], { x: 5, y: 86, n: 18, spread: 10 }), 2200); },
+  );
+
+  // Halloween (see hauntedHill() in lib/roomStyles.js), on top of the bats, ghosts, witch and the
+  // rest above. Always: the jack-o'-lanterns and the haunted house's windows flickering, the
+  // cauldron bubbling, the lantern in the tree, the owl blinking. Now and then: a hand claws up
+  // out of a grave, a skeleton dances, a black cat stalks along the fence, something's eyes in the
+  // crypt. Any game: finishing a drink gets MWAHAHA! (and a bat or three), sips the eyes in the dark,
+  // a win the thunder, the howl, and the ghosts.
+  const HW_HAND = `<svg viewBox="0 0 70 90" width="0.78em" height="1em" overflow="visible"><g class="hw-claw">
+    <path d="M26 90 L28 50 Q20 40 22 26 L18 8 Q20 4 24 8 L28 24 L30 4 Q34 0 36 4 L36 24 L42 6 Q46 2 48 8 L44 28 L52 16 Q56 14 56 20 L46 44 Q44 52 42 90Z" fill="#7a9a5a"/>
+    <path d="M30 56 Q34 60 38 56 M28 70 h12" stroke="#4a6a3a" stroke-width="2" fill="none"/><path d="M30 60 l6 4 l-2 8" stroke="#3a2a1a" stroke-width="1.5" fill="none"/></g>
+    <path d="M0 90 Q10 72 34 74 Q58 72 70 90Z" fill="#1a1020"/><circle cx="14" cy="82" r="3" fill="#2a1e30"/><circle cx="56" cy="84" r="2.4" fill="#2a1e30"/></svg>`;
+  const HW_BONE = (x1, y1, x2, y2, w = 4) => `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="#ece6d8" stroke-width="${w}" stroke-linecap="round"/>`;
+  const HW_SKELETON = `<svg viewBox="0 0 80 130" width="0.62em" height="1em" overflow="visible">
+    <g class="hw-legl">${HW_BONE(34, 78, 26, 104)}${HW_BONE(26, 104, 30, 126)}<path d="M24 126 h12" stroke="#ece6d8" stroke-width="5" stroke-linecap="round"/></g>
+    <g class="hw-legr">${HW_BONE(46, 78, 54, 104)}${HW_BONE(54, 104, 50, 126)}<path d="M46 126 h12" stroke="#ece6d8" stroke-width="5" stroke-linecap="round"/></g>
+    <path d="M30 76 Q40 70 50 76 Q46 84 40 82 Q34 84 30 76Z" fill="#ece6d8"/>${HW_BONE(40, 34, 40, 76, 4)}
+    ${[42, 50, 58, 66].map((y) => `<path d="M28 ${y} Q40 ${y - 6} 52 ${y}" stroke="#ece6d8" stroke-width="3" fill="none"/>`).join('')}
+    <g class="hw-arml">${HW_BONE(30, 40, 16, 56)}${HW_BONE(16, 56, 8, 38)}<circle cx="7" cy="34" r="4" fill="#ece6d8"/></g>
+    <g class="hw-armr">${HW_BONE(50, 40, 64, 56)}${HW_BONE(64, 56, 72, 38)}<circle cx="73" cy="34" r="4" fill="#ece6d8"/></g>
+    <g class="hw-head"><path d="M26 20 Q26 2 40 2 Q54 2 54 20 Q54 28 48 30 V34 H32 V30 Q26 28 26 20Z" fill="#ece6d8"/><ellipse cx="34" cy="18" rx="5" ry="6" fill="#1a1020"/><ellipse cx="46" cy="18" rx="5" ry="6" fill="#1a1020"/><path d="M40 22 l-2 5 h4Z" fill="#1a1020"/><path d="M34 31 V34 M38 31 V34 M42 31 V34 M46 31 V34" stroke="#1a1020" stroke-width="1.5"/></g></svg>`;
+  const HW_CAT = `<svg viewBox="0 0 90 60" width="1em" height="0.67em" overflow="visible"><g fill="#05030a">
+    <path class="sc-tail" d="M14 28 Q2 20 6 2 Q10 0 10 4 Q8 18 20 24Z" style="transform-origin:16px 28px"/>
+    <g class="sc-legs-b"><rect x="20" y="36" width="5" height="22" rx="2"/><rect x="58" y="36" width="5" height="22" rx="2"/></g>
+    <path d="M14 34 Q24 14 44 14 Q64 14 70 30 L66 42 H20Z"/><g class="sc-legs-f"><rect x="28" y="36" width="5" height="22" rx="2"/><rect x="64" y="36" width="5" height="22" rx="2"/></g>
+    <circle cx="74" cy="24" r="10"/><path d="M66 18 L68 6 L74 14Z M78 14 L84 6 L84 18Z"/></g><ellipse cx="72" cy="23" rx="2" ry="2.6" fill="#ffd23f"/><ellipse cx="79" cy="23" rx="2" ry="2.6" fill="#ffd23f"/></svg>`;
+  const hwOn = () => current === 'halloween';
+  const hwWatch = vvWatch({
+    finish: (p) => { inFront(`<b>MWAHAHA!</b><small>${esc(p.name)}, drink it all</small>`, { left: '0', right: '26vw', top: '24vh' }, 3200).classList.add('sc-oneeighty', 'ton', 'hw', 'vv'); bats(); cue('howl', 600); },
+    sip: () => el(EYES, { left: `${rand(5, 14)}vw`, top: `${rand(60, 85)}vh`, fontSize: `${rand(36, 56)}px` }, 4200).classList.add('sc-eyes'),
+    over: () => {
+      el('', { inset: '0' }, 1400).classList.add('sc-lightning');
+      cue('thunder', 600); cue('howl', 2200);
+      later(() => inFront('<b>BOO!</b>', { left: '0', right: '26vw', top: '24vh' }, 2800).classList.add('sc-oneeighty', 'ton', 'hw'), 500);
+      for (let i = 0; i < 3; i++) later(() => { const x = rand(4, 60); drift(GHOST, { from: [x, 90], to: [x + rand(-12, 12), rand(15, 40)], dur: rand(7, 10), size: rand(50, 80) }).classList.add('sc-ghost'); }, 900 + i * 700);
+    },
+  });
+  const hwDecor = SCENES.halloween.decor;
+  SCENES.halloween.decor = () => {
+    hwWatch.reset();
+    if (!hwOn()) return hwDecor();
+    el('', { left: '-20vw', bottom: '-6vh', width: '140vw', height: '28vh', animation: 'sc-fog 22s ease-in-out infinite alternate' }).classList.add('sc-fog');
+    const clouds = el('<div class="sc-cloud a"></div><div class="sc-cloud b"></div><div class="sc-cloud c"></div>', { left: `${artAt(1300, 0)[0]}vw`, top: `${artAt(0, 140)[1]}vh` });
+    clouds.classList.add('sc-clouds');
+    for (const [x, y, s] of [[90, 846, 1.1], [210, 870, 0.7], [1490, 846, 1.2], [1380, 870, 0.75], [1078, 480, 0.5], [300, 256, 0.8]]) { const [vx, vy] = artAt(x, y); el('', { left: `${vx}vw`, top: `${vy}vh`, '--s': s, animationDelay: `-${rand(0, 2).toFixed(1)}s` }).classList.add('hw-glow'); }
+    for (const [x, y] of [[1060, 330], [1146, 330], [1000, 410], [1094, 410]]) { const [vx, vy] = artAt(x, y); const [wx, wy] = artAt(x + 26, y + 38); el('', { left: `${vx}vw`, top: `${vy}vh`, width: `${wx - vx}vw`, height: `${wy - vy}vh`, animationDelay: `-${rand(0, 9).toFixed(1)}s`, animationDuration: `${rand(7, 13).toFixed(1)}s` }).classList.add('hw-window'); }
+    const [ox, oy] = artAt(421, 126);
+    el(EYES, { left: `${ox - 0.9}vw`, top: `${oy - 0.9}vh`, fontSize: `${(artAt(440, 0)[0] - artAt(400, 0)[0]) * innerWidth / 100}px` }).classList.add('hw-owl');
+    const [cx, cy] = artAt(1240, 826);
+    const bubble = () => later(() => { if (current !== 'halloween') return; drift('', { from: [cx + rand(-3, 3), cy], to: [cx + rand(-4, 4), cy - rand(8, 14)], dur: rand(1.6, 2.6), size: 10 }).classList.add('hw-bubble'); bubble(); }, rand(300, 900));
+    bubble();
+  };
+  SCENES.halloween.update = hwWatch;
+  SCENES.halloween.moments.push(
+    () => { popup(HW_HAND, { x: rand(2, 10), bottom: -1, size: 0.16 * innerHeight, life: 5200 }); cue('moan', 600); },
+    () => { popup(HW_SKELETON, { x: 2, bottom: 0, size: 0.28 * innerHeight, life: 7000 }); notes(10, 70, '#ece6d8', 5); cue('rattle', 900); },
+    () => { crossing(HW_CAT, { y: 89, dur: 9, size: (0.08 * innerHeight) / 0.67, faces: 'right', bob: false }); cue('meow', 3000); },
+    () => { if (!hwOn()) return; const [x, y] = artAt(172, 622); el(EYES, { left: `${x - 1}vw`, top: `${y}vh`, fontSize: '40px' }, 4200).classList.add('sc-eyes'); cue('creak'); },
+    () => { if (!hwOn()) return; const [x, y] = artAt(1240, 820); burst(['●', '•', '○'], { x, y, n: 20, spread: 4, size: [6, 14], colors: ['#7cff9a', '#c8ffb0', '#3aff6a'], rise: [-24, -10], fall: [-6, 4] }); cue('sizzle'); },
+  );
+
+  // (The drawn madame, peacock, cyclist and balloon take over from the emoji ones.)
+  SCENES.chateau = { decor: chDecor(false), update: chWatch, moments: [...chateauMoments(false).filter((m, i) => ![1, 2, 4, 5].includes(i)), ...chMore(false)] };
+  SCENES.chateauNight = { decor: chDecor(true), update: chWatch, moments: [...chateauMoments(true).filter((m, i) => i !== 1), ...chMore(true)] };
 
   // ---------- Easter eggs (see EGGS in roomStyles.js) ----------
   // A banner across the middle as the egg begins.
@@ -1331,22 +1331,168 @@
     ],
   };
 
-  // The frat house: a ping-pong ball sinks a cup, the room chants CHUG, a pizza box flies, someone
-  // crowd-surfs across, the string lights flicker, and a toga goes by.
+  // ---------- The regular venues that react to any game ----------
+  // Watches the room for drinks: `sip` with everyone who just drank ([{ p, n }], at most every few
+  // seconds), `finish` for each player told to finish their drink, `over` when a game's won. Nothing
+  // on the first look (the TV just came on), nor when a new game starts.
+  function vvWatch(on, every = 5000) {
+    let was = null;
+    let quiet = 0;
+    const w = (s) => {
+      if (!s?.players) return;
+      const now = { no: s.gameNo, phase: s.phase, fin: {}, sips: {} };
+      for (const p of s.players) { now.fin[p.id] = p.finished || 0; now.sips[p.id] = p.total || 0; }
+      const before = was;
+      was = now;
+      if (!before || before.no !== now.no) return;
+      if (now.phase === 'over' && before.phase !== 'over') return on.over?.(s);
+      const finished = s.players.filter((p) => now.fin[p.id] > (before.fin[p.id] ?? now.fin[p.id]));
+      finished.forEach((p, i) => later(() => on.finish?.(p, s), i * 3200));
+      const sipped = s.players.filter((p) => !finished.includes(p) && now.sips[p.id] > (before.sips[p.id] ?? now.sips[p.id])).map((p) => ({ p, n: now.sips[p.id] - before.sips[p.id] }));
+      if (sipped.length && !finished.length && Date.now() > quiet) { quiet = Date.now() + every; on.sip?.(sipped, s); }
+    };
+    w.reset = () => { was = null; quiet = 0; };
+    return w;
+  }
+  const vvName = (p) => esc(String(p?.name || 'Someone').toUpperCase());
+  // A drawn person `vh` tall walking across the floor (drawings face right).
+  const vvWalk = (svg, { vh = 20, dur = 10, bottom = 1, cls = [] } = {}) => crossing(svg, { y: 100 - bottom - vh, dur, size: (vh / 100) * innerHeight, faces: 'right', cls });
+
+  // The frat house (see fratHouse() in lib/roomStyles.js). Always: the string lights twinkling,
+  // party lights wandering over the walls, the neon buzzing, and the brother on the couch snoring.
+  // Now and then: a keg stand (the room counts), someone crowd-surfs across, a toga party, the
+  // pledge with a tower of pizzas (which goes over), a mattress down the stairs, campus security's
+  // lights in the window (everyone scatters), the breaker going, a trick shot into the cups, CHUG.
+  // Any game: whoever has to finish their drink gets chanted at, sips get a cup raised, and a win
+  // gets BOOL! BOOL! BOOL!
   const RED_CUP = `<svg viewBox="0 0 40 46" width="0.87em" height="1em"><path d="M4 4 h32 l-5 40 h-22Z" fill="#d62828"/><rect x="4" y="4" width="32" height="6" fill="#f4f4f4"/><path d="M8 18 h24 M9 26 h22" stroke="#b01e1e" stroke-width="1.5"/></svg>`;
+  const FH_LEG = (x, skin, shoe, shorts = '#b89a6a') => `<path d="M${x} 74 h11 v20 h-11Z" fill="${shorts}"/><path d="M${x + 2} 93 h7 v17 h-7Z" fill="${skin}"/><path d="M${x} 109 h12 q7 0 8 7 h-20Z" fill="${shoe}"/>`;
+  const FH_CUP = (x, y) => `<path d="M${x - 6} ${y} h12 l-2 14 h-8Z" fill="#d62828"/><rect x="${x - 6}" y="${y}" width="12" height="3" fill="#fff"/>`;
+  const FH_HEAD = (skin, cap, x = 32, y = 27) => `<circle cx="${x}" cy="${y}" r="11" fill="${skin}"/><circle cx="${x + 5}" cy="${y - 2}" r="1.5" fill="#222"/><path d="M${x + 2} ${y + 4} q4 3 7 0" stroke="#7a3a1a" stroke-width="1.6" fill="none"/>
+    ${cap ? `<path d="M${x - 11} ${y - 2} Q${x - 10} ${y - 14} ${x} ${y - 14} Q${x + 10} ${y - 14} ${x + 11} ${y - 5}Z" fill="${cap}"/><path d="M${x - 10} ${y - 4} h-10 q-2 3 2 5 h9Z" fill="${cap}"/>` : `<path d="M${x - 11} ${y - 3} Q${x - 8} ${y - 15} ${x + 4} ${y - 13} Q${x + 12} ${y - 10} ${x + 10} ${y - 6} Q${x} ${y - 9} ${x - 11} ${y - 3}Z" fill="#3a2414"/>`}`;
+  // A brother walking (facing right), cup in hand.
+  const FH_BRO = (shirt = '#2a6fdb', cap = '#c0392b', skin = '#e2b48a') => `<svg viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible">
+    <g class="sc-legs-b">${FH_LEG(26, skin, '#e8e8e8')}</g><path d="M24 44 Q16 58 21 70" stroke="${skin}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M21 40 Q32 35 43 40 L45 78 H19Z" fill="${shirt}"/><path d="M19 70 h26 v8 h-26Z" fill="#b89a6a"/>
+    <g class="sc-legs-f">${FH_LEG(23, skin, '#fff', '#c8aa7a')}</g>
+    <path d="M41 44 Q50 52 50 62" stroke="${skin}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M38 40 l8 8 l-5 3 l-6 -6Z" fill="${shirt}"/>${FH_CUP(51, 52)}
+    ${FH_HEAD(skin, cap)}</svg>`;
+  // A toga, a laurel wreath, a cup held high.
+  const FH_TOGA = (skin = '#f0c8a0') => `<svg viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible">
+    <g class="sc-legs-b"><path d="M27 86 h7 v24 h-7Z" fill="${skin}"/><path d="M25 109 h12 q6 0 7 6 h-19Z" fill="#7a4a1a"/></g>
+    <g class="sc-legs-f"><path d="M24 86 h7 v24 h-7Z" fill="${skin}"/><path d="M22 109 h12 q6 0 7 6 h-19Z" fill="#8a5a2a"/></g>
+    <path d="M24 44 Q16 58 21 72" stroke="${skin}" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M20 40 Q32 34 44 42 L46 92 Q32 98 17 92Z" fill="#f4f1ea"/><path d="M26 40 L44 90 M33 41 L19 88 M24 60 L42 66" stroke="#d2cbbb" stroke-width="2" fill="none"/>
+    <path d="M42 44 Q52 34 50 18" stroke="${skin}" stroke-width="6" fill="none" stroke-linecap="round"/>${FH_CUP(50, 6)}
+    ${FH_HEAD(skin, null)}<path d="M21 22 q11 -12 22 0" stroke="#5a8a2a" stroke-width="4" stroke-dasharray="3 2" fill="none"/></svg>`;
+  // The pledge, a tower of pizza boxes in his arms (it sways; when it goes, `.dropped` hides it).
+  const FH_PLEDGE = `<svg viewBox="0 0 70 160" width="0.44em" height="1em" overflow="visible"><g transform="translate(0 40)">
+    <g class="sc-legs-b">${FH_LEG(26, '#c99068', '#2a2a2a', '#3a4a6a')}</g><path d="M21 40 Q32 35 43 40 L45 78 H19Z" fill="#8e1b1b"/><text x="32" y="62" font-size="9" font-family="Georgia" font-weight="700" text-anchor="middle" fill="#fff">ΒΩ</text>
+    <g class="sc-legs-f">${FH_LEG(23, '#c99068', '#333', '#3a4a6a')}</g>${FH_HEAD('#c99068', null)}
+    <path d="M40 46 L56 40 M24 46 Q36 56 54 44" stroke="#c99068" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+    <g class="fh-stack">${Array.from({ length: 7 }, (_, i) => `<rect x="${36 + (i % 2) * 2 - 2}" y="${76 - i * 12}" width="34" height="11" rx="1.5" fill="${i % 3 ? '#c8945a' : '#b8844a'}" stroke="#8a5a2a"/><rect x="${44 + (i % 2) * 2}" y="${79 - i * 12}" width="14" height="5" fill="#c0392b" opacity="0.8"/>`).join('')}</g></svg>`;
+  // A keg stand: one upside down on the keg, legs kicking, two holding him up by the ankles.
+  const FH_KEGSTAND = `<svg viewBox="0 0 150 200" width="0.75em" height="1em" overflow="visible">
+    <rect x="52" y="150" width="46" height="50" rx="7" fill="#b8c0c8"/><path d="M52 162 h46 M52 188 h46" stroke="#7a828a" stroke-width="3"/><rect x="57" y="152" width="6" height="46" fill="#fff" opacity="0.4"/>
+    <rect x="70" y="140" width="10" height="12" fill="#2a2a2a"/>
+    <g class="fh-kick"><path d="M70 92 L60 36 L52 30 M78 92 L90 38 L98 30" stroke="#3a4a6a" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M46 26 l12 -6 l4 8 l-12 6Z M94 22 l12 6 l-4 8 l-12 -6Z" fill="#f4f4f4"/></g>
+    <path d="M62 88 h26 l2 44 h-30Z" fill="#d62828"/><path d="M64 120 L56 152 M86 120 L94 152" stroke="#e2b48a" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="75" cy="138" r="10" fill="#e2b48a"/><path d="M66 140 q9 8 18 0" fill="#3a2414"/>
+    <g><path d="M28 112 h16 l3 50 h-22Z" fill="#2a6fdb"/><path d="M26 160 h9 v38 h-9Z M37 160 h9 v38 h-9Z" fill="#b89a6a"/><circle cx="36" cy="100" r="10" fill="#c99068"/><path d="M26 97 q10 -14 20 -2Z" fill="#2a6a3a"/>
+      <path d="M42 118 L56 42" stroke="#c99068" stroke-width="6" stroke-linecap="round"/></g>
+    <g><path d="M106 112 h16 l3 50 h-22Z" fill="#7a3a8a"/><path d="M104 160 h9 v38 h-9Z M115 160 h9 v38 h-9Z" fill="#3a4a6a"/><circle cx="114" cy="100" r="10" fill="#f0c8a0"/><path d="M104 96 q10 -12 20 0Z" fill="#c0392b"/>
+      <path d="M108 118 L94 42" stroke="#f0c8a0" stroke-width="6" stroke-linecap="round"/></g></svg>`;
+  // Someone crowd-surfing, on a sea of hands.
+  const FH_SURF = `<svg viewBox="0 0 240 110" width="1em" height="0.46em" overflow="visible"><g class="fh-surf">
+    <path d="M40 40 Q100 30 170 36 L172 52 Q100 58 40 54Z" fill="#2a6fdb"/><path d="M20 44 L44 42 L44 52 L18 54Z M8 42 h14 v6 h-14Z M6 52 h14 v6 h-14Z" fill="#b89a6a"/>
+    <path d="M150 38 L170 8 M140 52 L160 82" stroke="#e2b48a" stroke-width="7" stroke-linecap="round"/><path d="M164 4 h14 l-2 10 h-10Z" fill="#d62828"/>
+    <circle cx="188" cy="44" r="13" fill="#e2b48a"/><path d="M176 40 Q180 28 192 30 Q202 32 200 40Z" fill="#3a2414"/><path d="M190 50 q6 4 10 -2" stroke="#7a3a1a" stroke-width="2" fill="none"/></g>
+    <g fill="#1a1008">${[20, 46, 72, 98, 124, 150, 176, 202, 228].map((x, i) => `<g class="sc-hand" style="animation-delay:-${(i * 0.13).toFixed(2)}s"><rect x="${x - 6}" y="${62 + (i % 3) * 6}" width="12" height="60" rx="6"/><ellipse cx="${x}" cy="${60 + (i % 3) * 6}" rx="9" ry="10"/></g>`).join('')}</g></svg>`;
+  // Someone riding a mattress down the stairs.
+  const FH_MATTRESS = `<svg viewBox="0 0 120 70" width="1em" height="0.58em" overflow="visible"><rect x="4" y="40" width="112" height="22" rx="8" fill="#e8e4f0" stroke="#a8a0c0" stroke-width="3"/><path d="M20 44 v14 M40 44 v14 M60 44 v14 M80 44 v14 M100 44 v14" stroke="#c8c0d8" stroke-width="2"/>
+    <path d="M44 40 L52 18 L70 18 L74 40Z" fill="#7bd88f"/><path d="M52 22 L30 10 M70 22 L94 8" stroke="#e2b48a" stroke-width="6" stroke-linecap="round"/><circle cx="62" cy="10" r="10" fill="#e2b48a"/><ellipse cx="66" cy="12" rx="4" ry="5" fill="#5a1a10"/></svg>`;
+  const fhOn = () => current === 'frat';
+  const fhAt = (x, y) => (fhOn() ? artAt(x, y) : null);
+  function fhChant(words, { x = [3, 16], bottom = [10, 22], n = 3, every = 650 } = {}) {
+    cue('chant');
+    for (let i = 0; i < n; i++) later(() => inFront(`<b>${words}</b>`, { left: `${rand(...x)}vw`, bottom: `${rand(...bottom)}vh` }, 1300).classList.add('sc-sign-up', 'oi'), i * every);
+  }
+  // Along the bottom, the hands just showing.
+  const fhSurf = () => el(FH_SURF, { left: '0', top: '78vh', fontSize: `${(0.22 * innerHeight) / 0.46}px`, animation: 'fh-surfpass 9s linear forwards' }, 9200).classList.add('blk');
+  function fhKegstand(name = '') {
+    const d = popup(FH_KEGSTAND, { x: 8, bottom: -1, size: 0.3 * innerHeight, life: 7000 });
+    cue('cheer', 400);
+    [1, 2, 3, 4, 5].forEach((n, i) => later(() => inFront(`<b>${n}!</b>`, { left: `${rand(10, 16)}vw`, bottom: '36vh' }, 1100).classList.add('sc-sign-up', 'oi'), 1200 + i * 850));
+    later(() => { inFront(`<b>${name ? `${name}!` : 'LEGEND!'}</b>`, { left: '0', right: '26vw', top: '26vh' }, 2600).classList.add('sc-oneeighty', 'ton', 'fh'); cue('airhorn'); cue('cheer', 200); }, 5600);
+    return d;
+  }
+  function fhPizzas() {
+    const dur = 11;
+    const d = vvWalk(FH_PLEDGE, { vh: 26, dur });
+    const right = d.classList.contains('flip') ? false : true;
+    const at = rand(0.3, 0.55);
+    later(() => {
+      d.classList.add('dropped');
+      const x = right ? -10 + 118 * at : 108 - 118 * at;
+      burst(['🍕', '🍕', '📦'], { x: x + 2, y: 80, n: 10, spread: 8, size: [26, 40], rise: [-20, -8], fall: [14, 22] });
+      cue('crash');
+      later(() => cue('aww'), 400);
+    }, dur * 1000 * at);
+  }
+  function fhCops() {
+    const p = fhAt(1012, 110);
+    const q = fhAt(1156, 194);
+    if (p) el('', { left: `${p[0]}vw`, top: `${p[1]}vh`, width: `${q[0] - p[0]}vw`, height: `${q[1] - p[1]}vh` }, 5200).classList.add('fh-cops');
+    el('', { inset: '0' }, 5200).classList.add('fh-copglow');
+    cue('siren');
+    later(() => { inFront('<b>COPS!</b>', { left: '0', right: '26vw', top: '26vh' }, 2200).classList.add('sc-oneeighty', 'ton', 'fh'); cue('aww'); }, 1200);
+    for (let i = 0; i < 5; i++) later(() => vvWalk(FH_BRO(pick(['#2a6fdb', '#8e1b1b', '#2a6a3a', '#f4f4f4']), pick(['#c0392b', '#1b3f8e', null])), { vh: rand(18, 22), dur: rand(2.2, 3), cls: ['fh-run'] }), 1800 + i * 300);
+  }
+  function fhMattress() {
+    const a = fhAt(30, 236);
+    const b = fhAt(470, 770);
+    if (!a) return fhChant('CHUG!');
+    drift(FH_MATTRESS, { from: [a[0] - 4, a[1] - 6], to: [b[0], b[1] - 8], dur: 2.2, size: 0.16 * innerHeight, spin: 0, extra: { rotate: '44deg', animationTimingFunction: 'ease-in' } }).classList.add('blk');
+    later(() => { cue('thud'); cue('cheer', 300); }, 2100);
+  }
+  const fhWatch = vvWatch({
+    finish: (p) => { fhChant('CHUG!', { n: 4 }); later(() => { inFront(`<b>${vvName(p)} CHUGS!</b>`, { left: '0', right: '26vw', top: '26vh' }, 2800).classList.add('sc-oneeighty', 'ton', 'fh'); burst(['🥤', '🎉', '✨'], { x: 6, y: 80, n: 14, spread: 10, size: [20, 28] }); cue('cheer'); }, 2600); },
+    sip: (list) => { popup(FH_BRO(pick(['#2a6fdb', '#8e1b1b', '#2a6a3a']), pick(['#c0392b', null])), { x: rand(2, 6), bottom: 0, size: 0.2 * innerHeight, life: 3600 }); cue('pop', 600); if (list.length > 2) fhChant('DRINK!', { n: 2 }); },
+    over: () => { fhChant('BOOL!', { n: 5, every: 520 }); fall(['🎉', '🥤', '🍕'], 5, 0.2, 0.9); later(fhSurf, 1600); cue('airhorn', 2800); cue('cheer', 3000); },
+  });
   SCENES.frat = {
     decor() {
+      fhWatch.reset();
       for (let i = 0; i < 3; i++) el(RED_CUP, { left: `${2 + i * 2.6}vw`, bottom: '3vh', fontSize: '46px' }).classList.add('blk');
       el(RED_CUP, { left: '3.3vw', bottom: 'calc(3vh + 40px)', fontSize: '46px' }).classList.add('blk');
+      // Party lights wandering over the walls.
+      ['#ff2bd6', '#29f0ff', '#ffd23f', '#7bd88f'].forEach((c, i) => el('', { left: `${[4, 40, 70, 88][i]}vw`, top: `${[30, 8, 14, 60][i]}vh`, '--c': c, animationDelay: `-${i * 3.1}s`, animationDuration: `${11 + i * 2}s` }).classList.add('fh-spot'));
+      if (!fhOn()) return;
+      // The string lights twinkling (the ones along the top, see fratHouse()), the neon, the snorer.
+      for (let i = 0; i < 32; i++) {
+        const x = 25 + i * 50;
+        const [vx, vy] = artAt(x, 108 + 27 * Math.sin(((x % 400) / 400) * Math.PI));
+        el('', { left: `${vx}vw`, top: `${vy}vh`, '--c': ['#ffd23f', '#ff4d6d', '#3de0ff', '#7bd88f'][i % 4], animationDelay: `-${(Math.random() * 3).toFixed(2)}s`, animationDuration: `${(1.4 + Math.random() * 2).toFixed(2)}s` }).classList.add('fh-twinkle');
+      }
+      const [nx, ny] = artAt(1350, 653);
+      el('', { left: `${nx}vw`, top: `${ny}vh` }).classList.add('fh-neon');
+      const [zx, zy] = artAt(70, 640);
+      el('<b>z</b><b>z</b><b>Z</b>', { left: `${zx}vw`, top: `${zy}vh` }).classList.add('fh-zz');
     },
+    update: fhWatch,
     moments: [
       () => { toss('⚪', { x: 30, y: 82, size: 18, height: 30, spins: 0, delay: 0 }); later(() => { burst(['💦'], { x: 4, y: 88, n: 6, spread: 3, size: [14, 20] }); cue('splash'); cue('cheer', 300); }, 1100); },
-      () => { cue('chant'); for (let i = 0; i < 3; i++) later(() => inFront('<b>CHUG!</b>', { left: `${rand(2, 14)}vw`, bottom: `${rand(8, 18)}vh` }, 1300).classList.add('sc-sign-up', 'oi'), i * 650); },
+      () => fhChant('CHUG!'),
       () => drift('🍕', { from: [-8, 70], to: [108, 40], dur: 2.4, size: 54, spin: 720 }),
-      () => crossing('🏄', { y: 70, dur: 8, size: 60, bob: true }),
-      () => crossing('🧖', { y: 91, dur: 12, size: 54 }),
+      () => { fhSurf(); cue('cheer', 1500); },
+      () => { vvWalk(FH_TOGA(), { vh: 22, dur: 12 }); later(() => vvWalk(FH_TOGA('#c99068'), { vh: 21, dur: 12.5 }), 1400); later(() => fhChant('TOGA!', { n: 2 }), 2400); },
       () => { burst(['🥤', '🎉', '✨'], { x: 6, y: 80, n: 14, spread: 10, size: [20, 28] }); cue('pop'); },
-      () => document.querySelectorAll('#scenery .sc, body').length && document.body.animate([{ filter: 'none' }, { filter: 'brightness(0.6)' }, { filter: 'none' }, { filter: 'brightness(0.7)' }, { filter: 'none' }], { duration: 900, easing: 'steps(1)' }),
+      () => { el('', { inset: '0' }, 1300).classList.add('fh-breaker'); cue('clank'); later(() => cue('aww'), 200); },
+      () => fhKegstand(),
+      fhPizzas,
+      fhCops,
+      fhMattress,
+      () => { const bro = FH_BRO(pick(['#2a6fdb', '#f4f4f4', '#2a6a3a']), pick(['#c0392b', '#1b3f8e'])); vvWalk(bro, { vh: 21, dur: 9 }); later(() => vvWalk(FH_BRO('#8e1b1b', null, '#c99068'), { vh: 22, dur: 9.4 }), 700); },
     ],
   };
 
@@ -1531,16 +1677,103 @@
     ],
   };
 
-  // The mechanic's garage: the radio on, a tyre rolling across, sparks off the welder.
+  // The mechanic's garage (see garage() in lib/roomStyles.js). Always: the OPEN sign, the radio's
+  // dial glowing, one fluorescent tube on the blink, oil dripping off the car into the pan, dust
+  // turning in the sunlight by the door. Now and then: the mechanic wanders through with his wrench,
+  // the welder lowers his mask and sparks fly, someone rolls out from under on a creeper, a customer
+  // pulls up in his pickup and leans on the horn, a tyre gets away, the shop cat, the radio turned up,
+  // the impact wrench. Any game: finishing a drink is a PIT STOP, sips get a beer raised, a win the
+  // checkered flag and a hot rod tearing past.
+  const GR_MECH = (hand = 'wrench', suit = '#2a4a7a') => `<svg viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible">
+    <g class="sc-legs-b"><path d="M26 72 h11 v38 h-11Z" fill="${suit}"/><path d="M24 108 h14 q7 0 8 8 h-22Z" fill="#1a1a1a"/></g>
+    <path d="M24 44 Q16 58 20 72" stroke="${suit}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="20" cy="74" r="4" fill="#c99068"/>
+    <path d="M20 40 Q32 35 44 40 L45 80 H19Z" fill="${suit}"/><path d="M28 38 l4 8 l4 -8" fill="#fff" opacity="0.6"/><ellipse cx="37" cy="52" rx="5" ry="3" fill="#f4f0e6"/><rect x="19" y="70" width="26" height="4" fill="#1a2a4a"/>
+    <path d="M38 54 q4 6 2 14" stroke="#1a2a4a" stroke-width="1.5" fill="none"/><path d="M22 60 q6 4 12 2" stroke="#1a1a1a" stroke-width="2" opacity="0.3"/>
+    <g class="sc-legs-f"><path d="M23 72 h11 v38 h-11Z" fill="${suit}"/><path d="M21 108 h14 q7 0 8 8 h-22Z" fill="#111"/></g>
+    <path d="M41 44 Q50 52 50 62" stroke="${suit}" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="51" cy="64" r="4" fill="#c99068"/>
+    ${hand === 'wrench' ? '<path d="M51 66 L58 30" stroke="#b8c0c8" stroke-width="4" stroke-linecap="round"/><path d="M54 30 a5 5 0 1 1 8 0 l-2 -5 h-4Z" fill="#b8c0c8"/>' : '<rect x="47" y="44" width="8" height="20" rx="3" fill="#6a3a14"/><rect x="49" y="38" width="4" height="7" fill="#6a3a14"/><rect x="47" y="50" width="8" height="6" fill="#f4f0e6"/>'}
+    <circle cx="32" cy="27" r="11" fill="#c99068"/><circle cx="37" cy="25" r="1.5" fill="#222"/><path d="M33 32 q4 2 7 -1" stroke="#5a2a10" stroke-width="1.6" fill="none"/><path d="M26 31 q3 3 6 2" stroke="#3a3a3a" stroke-width="2" opacity="0.4"/>
+    <path d="M21 24 Q22 13 33 13 Q43 13 43 22Z" fill="#c0392b"/><path d="M40 22 h12 q2 3 -2 4 h-11Z" fill="#c0392b"/></svg>`;
+  // The welder: mask down, torch going (the sparks are a burst from its tip).
+  const GR_WELDER = `<svg viewBox="0 0 90 130" width="0.69em" height="1em" overflow="visible">
+    <path d="M22 60 Q40 52 58 60 L60 130 H20Z" fill="#5a4a3a"/><path d="M26 64 h28 v66 h-28Z" fill="#7a5a3a"/>
+    <path d="M56 66 Q70 74 74 62" stroke="#5a4a3a" stroke-width="10" fill="none" stroke-linecap="round"/><rect x="70" y="52" width="6" height="16" rx="2" fill="#3a3a3a" transform="rotate(30 73 60)"/>
+    <path d="M24 66 Q14 84 30 92" stroke="#5a4a3a" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M22 20 Q40 6 58 20 L60 50 Q40 60 20 50Z" fill="#2a3038"/><rect x="28" y="30" width="26" height="9" rx="2" fill="#3a8aff"/><rect x="30" y="31" width="10" height="3" fill="#cfe6ff" opacity="0.8"/></svg>`;
+  // Lying on a creeper, rolled out from under (facing up, head to the right).
+  const GR_CREEPER = `<svg viewBox="0 0 150 40" width="1em" height="0.27em" overflow="visible"><rect x="10" y="22" width="120" height="8" rx="3" fill="#2a3038"/><circle cx="20" cy="34" r="5" fill="#111"/><circle cx="120" cy="34" r="5" fill="#111"/>
+    <path d="M2 18 h60 v8 h-60Z" fill="#2a4a7a"/><path d="M0 14 h8 v10 h-8Z" fill="#1a1a1a"/><path d="M60 12 Q90 6 116 14 V24 H60Z" fill="#2a4a7a"/><path d="M80 12 L96 -8" stroke="#2a4a7a" stroke-width="7" stroke-linecap="round"/><path d="M92 -12 l10 4 M96 -8 l-2 -12" stroke="#b8c0c8" stroke-width="3"/>
+    <circle cx="126" cy="14" r="10" fill="#c99068"/><path d="M118 8 Q126 0 134 8Z" fill="#c0392b"/><circle cx="128" cy="10" r="1.4" fill="#222"/></svg>`;
+  // A customer's '56 pickup (facing right), arm out of the window.
+  const GR_PICKUP = (body = '#3aa0a0') => `<svg viewBox="0 0 260 110" width="1em" height="0.42em" overflow="visible"><defs>${CHROME('grP')}</defs>
+    <path d="M10 44 H128 V86 H10Z" fill="${body}"/><rect x="10" y="40" width="118" height="6" fill="#2a2a2a" opacity="0.3"/>
+    <path d="M122 86 V30 Q124 14 140 14 H176 Q186 14 190 30 L196 44 H232 Q252 46 254 64 V86Z" fill="${body}"/>
+    <path d="M136 42 V26 Q138 20 146 20 H172 Q180 20 182 28 L186 42Z" fill="#bfe4f0"/><path d="M144 40 l14 -16" stroke="#fff" stroke-width="4" opacity="0.5"/>
+    <path d="M130 50 H254 M70 50 V84" stroke="#000" stroke-width="2" opacity="0.2"/><path d="M8 82 H256 V92 H8Z" fill="url(#grP)"/><rect x="246" y="56" width="10" height="12" rx="4" fill="#fff8d0"/>
+    <path d="M156 46 Q150 56 162 58 L176 54" stroke="#c99068" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="160" cy="30" r="8" fill="#5a3a2a"/>
+    ${TYRE(58, 90, 20, 'grP')}${TYRE(210, 90, 20, 'grP')}</svg>`;
+  const GR_FLAG = `<svg viewBox="0 0 90 70" width="1em" height="0.78em"><rect x="0" y="0" width="3" height="70" fill="#5a4a3a"/>
+    <g class="sc-flag">${Array.from({ length: 24 }, (_, i) => `<rect x="${3 + (i % 6) * 14}" y="${2 + Math.floor(i / 6) * 10}" width="14" height="10" fill="${(i + Math.floor(i / 6)) % 2 ? '#111' : '#f4f4f4'}"/>`).join('')}</g></svg>`;
+  const grOn = () => current === 'garage';
+  function grWeld() {
+    const size = 0.3 * innerHeight;
+    popup(GR_WELDER, { x: 1, bottom: 0, size, life: 6000 });
+    const w = ((size * 0.69) / innerWidth) * 100;
+    for (let i = 0; i < 5; i++) later(() => { burst(['✦', '•', '✧', '•'], { x: 1 + w * 0.82, y: 100 - 30 * 0.56, n: 18, spread: 6, size: [5, 11], colors: ['#ffd23f', '#ff9a2a', '#ffffff', '#9ad0ff'], rise: [-14, -2], fall: [8, 24] }); el('', { inset: '0', '--x': `${1 + w * 0.82}vw`, '--y': `${100 - 30 * 0.56}vh` }, 600).classList.add('gr-arc'); }, 1300 + i * 650);
+    cue('weld', 1300);
+  }
+  function grCreeper() {
+    const size = (0.08 * innerHeight) / 0.27;
+    el(GR_CREEPER, { left: `-${((size / innerWidth) * 100).toFixed(1)}vw`, bottom: '1vh', fontSize: `${size}px`, '--dx': `${(((size / innerWidth) * 100) + 3).toFixed(1)}vw` }, 7000).classList.add('gr-creeper', 'blk');
+    later(() => cue('wrench'), 2400);
+  }
+  function grPickup(fast = false) {
+    const right = Math.random() < 0.5;
+    const d = drive(GR_PICKUP(pick(['#3aa0a0', '#c0392b', '#e8b84a', '#7a9ac0'])), { ar: 2.36, h: fast ? 12 : 14, dur: fast ? 2.2 : 9, right });
+    if (!fast) later(() => { cue('beep'); inFront('<b>BEEP BEEP!</b>', { left: right ? '30vw' : '50vw', bottom: '16vh' }, 1300).classList.add('sc-sign-up', 'oi'); }, 3600);
+    return d;
+  }
+  const grWatch = vvWatch({
+    finish: (p) => {
+      inFront(`<b>PIT STOP!</b><small>${esc(p.name)} finishes the lot</small>`, { left: '0', right: '26vw', top: '24vh' }, 3000).classList.add('sc-oneeighty', 'ton', 'gr');
+      crossing('🛞', { y: 92, dur: 3, size: 54, cls: ['roll'], bob: false });
+      burst(['⚙', '•', '⚙'], { x: 4, y: 84, n: 14, spread: 8, size: [10, 18], colors: ['#c8d0d8', '#8a939e'], rise: [-24, -10], fall: [10, 20] });
+      cue('wrench'); cue('cheer', 500);
+    },
+    sip: () => { popup(GR_MECH('beer'), { x: rand(2, 5), bottom: 0, size: 0.22 * innerHeight, life: 3800 }); cue('clink', 900); },
+    over: () => {
+      el(GR_FLAG, { left: '2vw', top: '27vh', fontSize: '120px' }, 7000).classList.add('sc-jolly', 'gr-flagwave');
+      later(() => { grPickup(true); cue('vroom'); }, 800);
+      later(() => { cue('brakes'); cue('cheer', 400); }, 2600);
+    },
+  });
   SCENES.garage = {
-    decor() { el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open'); },
+    decor() {
+      grWatch.reset();
+      el('<span>OPEN</span>', { left: '2vw', top: '16vh' }).classList.add('sc-sign', 'open');
+      if (!grOn()) return;
+      // The radio's dial, a tube on the blink, the drip, the dust in the sun.
+      const [rx, ry] = artAt(532, 142);
+      el('', { left: `${rx}vw`, top: `${ry}vh`, '--c': '#ffd88a', animationDuration: '0.9s' }).classList.add('fh-twinkle');
+      const [tx, ty] = artAt(390, 102);
+      const [tx2, ty2] = artAt(530, 112);
+      el('', { left: `${tx}vw`, top: `${ty}vh`, width: `${tx2 - tx}vw`, height: `${ty2 - ty}vh` }).classList.add('gr-tube');
+      const [dx, dy] = artAt(822, 440);
+      const [, py] = artAt(0, 630);
+      el('', { left: `${dx}vw`, top: `${dy}vh`, '--fall': `${py - dy}vh` }).classList.add('gr-drip');
+      for (let i = 0; i < 9; i++) el('', { left: `${rand(72, 98)}vw`, top: `${rand(70, 96)}vh`, '--sx': `${rand(-3, 3)}vw`, '--sy': `${rand(-6, 2)}vh`, animation: `sc-fly ${rand(6, 10).toFixed(1)}s ease-in-out ${rand(0, 5).toFixed(1)}s infinite alternate` }).classList.add('gr-mote');
+    },
+    update: grWatch,
     moments: [
       () => crossing('🛞', { y: 92, dur: 4, size: 54, cls: ['roll'], bob: false }),
-      () => { burst(['✦', '•', '✧'], { x: rand(30, 60), y: 60, n: 26, spread: 8, size: [6, 12], colors: ['#ffd23f', '#ff9a2a', '#ffffff'], rise: [-14, -4], fall: [10, 30] }); cue('weld'); },
-      () => cue('wrench'),
-      () => { crossing('🐈', { y: 93, dur: 9, size: 44 }); },
-      () => { popup('📻', { x: 3, bottom: 3, size: 56, life: 4000 }); cue('riff'); },
-      () => cue('horn'),
+      grWeld,
+      () => { vvWalk(GR_MECH(), { vh: 23, dur: 12 }); later(() => cue('wrench'), 4000); },
+      () => crossing(CAT, { y: 93, dur: 9, size: 54, faces: 'right', cls: ['sc-cat'] }),
+      () => { const [x, y] = grOn() ? artAt(500, 120) : [4, 70]; notes(x, y, '#ffd88a', 7); cue('riff'); },
+      () => grPickup(),
+      grCreeper,
+      () => { cue('wrench'); burst(['⚙', '•', '⚙'], { x: rand(3, 8), y: 86, n: 12, spread: 6, size: [10, 18], colors: ['#c8d0d8', '#8a939e'], rise: [-20, -8], fall: [8, 16] }); },
+      () => { vvWalk(GR_MECH('beer', '#5a6a3a'), { vh: 22, dur: 11 }); },
     ],
   };
 
@@ -1704,129 +1937,1723 @@
   // ---------- More moments, room by room ----------
   // So no room shows the same three things all night.
   const MORE = {
-    dive: [
-      () => { slide('🍺', { y: 91, size: 48 }); cue('slide', 200); },
-      () => crossing('🎱', { y: 94, dur: 3.5, size: 34, bob: false, cls: ['roll'] }),
-      () => { popup('🪳', { x: rand(2, 8), bottom: 1, size: 34, life: 3500 }); },
-    ],
-    tavern: [
-      () => notes(4, 80, '#e3b23c'),
-      () => { slide('🍺', { y: 91, size: 50 }); cue('slide', 200); },
-      () => { for (let i = 0; i < 2; i++) crossing('🎲', { y: 94 - i * 2, dur: 2.6 + i * 0.4, size: 32, bob: false, cls: ['roll'] }); cue('dice', 300); },
-      () => { const d = el('<span>🐕</span><b>z</b><b>z</b><b>z</b>', { left: '2vw', bottom: '2vh', fontSize: '56px' }, 9000); d.classList.add('sc-sleeper'); },
-    ],
-    club: [
-      () => { burst(['🎉', '✨', '🟪', '🟦', '🟨', '🟩'], { x: rand(10, 30), y: 12, n: 34, spread: 34 }); cue('pop'); },
-      () => { for (let i = 0; i < 6; i++) later(() => drift('', { from: [rand(2, 30), 98], to: [rand(10, 60), rand(10, 30)], dur: rand(1.6, 2.4), size: 8, spin: rand(-720, 720) }).classList.add('sc-glowstick', pick(['g', 'p', 'b'])), i * 250); },
-    ],
-    castle: [
-      () => { for (let i = 0; i < 3; i++) toss(pick(['🔴', '🟡', '🔵']), { x: 4 + i * 1.6, y: 80, size: 22, height: 16, spins: 1, delay: i * 0.43 }); el('<span>🤹</span>', { left: '3vw', bottom: '2vh', fontSize: '64px' }, 4200); },
-      () => crossing('🐀', { y: 95, dur: 4, size: 38 }),
-      () => { el('📯', { left: '2vw', top: '12vh', fontSize: '70px', animation: 'sc-herald 4s ease-in-out forwards' }, 4200); cue('fanfare', 400); },
-    ],
-    jazz: [
-      () => { el('<span>🎷</span>', { left: '7vw', bottom: '8vh', fontSize: '76px' }, 9000).classList.add('sc-sway'); notes(9, 76, '#e3b23c', 8); },
-      () => { crossing('💃', { y: 90, dur: 14, size: 64 }); later(() => crossing('🕺', { y: 90, dur: 14, size: 64 }), 600); },
-      () => crossing('😎', { y: 94, dur: 9, size: 40, bob: true }),
-    ],
-    diner: [
-      () => crossing('🛼', { y: 94, dur: 3.2, size: 46, bob: false }),
-      () => { toss('🍔', { x: 4, y: 82, size: 46, height: 18, spins: 1 }); cue('sizzle'); },
-      () => { const b = el(`${SERVICE_BELL}<b>Order up!</b>`, { left: '2vw', top: '30vh', fontSize: '56px' }, 3500); b.classList.add('sc-orderup'); },
-      () => popup('🥤', { x: 3, bottom: 2, size: 60, life: 4500 }),
-    ],
-    tiki: [
-      () => crossing('🦀', { y: 95, dur: 7, size: 40 }),
-      () => el('🦎', { left: '1vw', top: '30vh', fontSize: '46px', animation: 'sc-gecko 6s ease-in-out forwards' }, 6200),
-      () => { el('<span>🗿</span>', { left: '2vw', bottom: '24vh', fontSize: '70px' }, 4500).classList.add('sc-glowmask'); cue('drum'); },
-    ],
-    speakeasy: [
-      () => crossing('💃', { y: 89, dur: 12, size: 66 }),
-      () => { el('<span>🍸</span>', { left: '12vw', top: '22vh', fontSize: '44px' }, 4000).classList.add('sc-shaker'); cue('shaker'); },
-      () => notes(3, 78, '#d9ad52', 5),
-    ],
-    casino: [
-      rollDice,
-      () => { burst(['🃏', '🂡', '🂮', '🃁'], { x: 6, y: 80, n: 14, spread: 18, size: [28, 40] }); },
-      () => { burst(['🍾', '🫧', '✨', '🫧'], { x: 4, y: 78, n: 18, spread: 14 }); cue('pop'); },
-      () => { const w = el('<span>🎡</span>', { left: '2vw', bottom: '4vh', fontSize: '80px' }, 5000); w.classList.add('sc-roulette'); cue('dice', 3800); },
-    ],
-    saloon: [
-      () => { slide('🥃', { y: 91, size: 42 }); cue('slide', 200); },
-      () => { crossing('🐍', { y: 95, dur: 9, size: 44 }); cue('rattle', 500); },
-      () => drift('➰', { from: [-10, rand(10, 16)], to: [110, rand(6, 14)], dur: rand(5, 7), size: 60, spin: 1080, opacity: 0.85 }),
-    ],
-    beerhall: [
-      () => crossing('🥨', { y: 94, dur: 4, size: 44, bob: false, cls: ['roll'] }),
-      () => crossing('🐕', { y: 93, dur: 8, size: 52 }),
-      () => notes(4, 80, '#2f6fd0'),
-      () => { burst(['🫧', '🍺', '🫧'], { x: 4, y: 82, n: 16, spread: 10, size: [16, 26] }); cue('pop'); },
-    ],
-    space: [
-      () => drift('🚀', { from: [-8, 90], to: [60, -10], dur: 4, size: 56, spin: 0 }).classList.add('sc-rocket'),
-      () => crossing('🛰️', { y: rand(6, 12), dur: 16, size: 46, bob: false }),
-    ],
-    christmas: [
-      () => crossing('🦌', { y: 92, dur: 9, size: 60 }),
-      () => popup('⛄', { x: 2, bottom: 2, size: 80, life: 5500 }),
-      () => { const b = el('🎁', { left: '3vw', bottom: '3vh', fontSize: '64px' }, 4500); b.classList.add('sc-present'); later(() => burst(['✨', '⭐', '🎉'], { x: 5, y: 86, n: 18, spread: 10 }), 2200); },
-      () => burst(['✨', '⭐', '✨'], { x: rand(10, 30), y: 6, n: 16, spread: 12 }),
-    ],
-    lighthouse: [
-      () => { for (let i = 0; i < pick([1, 2]); i++) later(() => el('', { left: `${rand(5, 60)}vw`, top: `${rand(4, 14)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 700); },
-      () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
-      () => crossing('🍾', { y: 52, dur: 26, size: 26, bob: true, cls: ['bottle'] }),
-    ],
-    lighthouseDay: [
-      () => drift('🎈', { from: [rand(0, 30), 60], to: [rand(10, 50), -15], dur: 18, size: 60, opacity: 0.9 }),
-      () => { const x = rand(2, 9); drift('🐦', { from: [x, 4], to: [x + 2, 50], dur: 1.1, size: 40, spin: 40, extra: { animationTimingFunction: 'ease-in' } }); cue('splash', 1100); },
-      () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
-    ],
-    lighthouseFog: [
-      () => crossing('🏮', { y: 40, dur: 22, size: 30, bob: true, cls: ['sc-fogged'] }),
-      () => { el(BUOY, { left: '2vw', top: '24vh', fontSize: '90px' }, 7000).classList.add('sc-buoy', 'blk'); cue('buoy', 1200); cue('buoy', 4200); },
-    ],
-    storm: [
-      () => { el('', { inset: '0' }, 1400).classList.add('sc-lightning'); cue('thunder', 700); },
-      () => drift('☂️', { from: [-10, rand(8, 20)], to: [110, rand(10, 30)], dur: 4, size: 60, spin: 720 }),
-    ],
-    stpatricks: [
-      () => popup('🥃', { x: 2, bottom: 2, size: 64, life: 5000 }),
-      () => el('🌈', { left: '4vw', top: '16vh', fontSize: '120px', animation: 'sc-rainbow 9s ease-in-out forwards' }, 9200),
-      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
-    ],
-    stpatricksFog: [
-      () => popup('🥃', { x: 2, bottom: 2, size: 64, life: 5000 }),
-      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
-    ],
-    stpatricksRain: [
-      () => popup('☂️', { x: 2, bottom: 2, size: 64, life: 5000 }),
-      () => { crossing('🐑', { y: 93, dur: 11, size: 54 }); cue('baa', 2500); },
-    ],
-    pirate: [
-      () => popup('🦜', { x: 2, bottom: 20, size: 60, life: 5000 }),
-      () => { burst(['🪙', '💰', '💎', '🪙'], { x: 5, y: 84, n: 20, spread: 12 }); cue('jackpot'); },
-    ],
+    // (The diner, the tiki bar, the speakeasy, the casino and the saloon: in their block.)
+    // (Christmas has its own, drawn, further down: see xmMore.)
   };
-  // The tiki bar's volcano, out on the horizon (see tikiBeach in lib/roomStyles.js: its crater at
-  // 1000, 132 of 1600 × 900, the view scaled to cover the screen) goes off: a rumble, the crater
-  // flares, lava bursts up and falls back, and a plume of smoke rises.
-  function eruption() {
-    const s = Math.max(innerWidth / 1600, innerHeight / 900);
-    const x = ((innerWidth - 1600 * s) / 2 + 1000 * s) / innerWidth * 100;
-    const y = ((innerHeight - 900 * s) / 2 + 132 * s) / innerHeight * 100;
-    cue('rumble');
-    el('', { left: `${x}vw`, top: `${y}vh` }, 7000).classList.add('sc-crater');
-    later(() => {
-      cue('boom');
-      burst(['●', '●', '•'], { x, y, n: 40, spread: 6, size: [6, 14], colors: ['#ffd23f', '#ff8a1a', '#ff4a1a'], rise: [-24, -10], fall: [16, 34] });
-      for (let i = 0; i < 5; i++) later(() => drift('', { from: [x - 1, y - 2], to: [x - 6 + i * 2, y - 26], dur: 6, size: 10 }).classList.add('sc-plume'), i * 300);
-    }, 1400);
-  }
-  // Peaceful most of the time: one moment in about fifteen.
-  MORE.tiki = [...(MORE.tiki || []), () => (Math.random() < 0.5 ? eruption() : flock(SWALLOW))];
 
   for (const [id, list] of Object.entries(MORE)) SCENES[id]?.moments.push(...list);
+
+  // ---------- The pirate tavern, the beer hall, the space lounge, the lighthouse, the vineyard ----------
+  // (In a block of their own, so their names don't meet anyone else's.)
+  {
+    // What any game does, seen from the TV: someone drinks, someone finishes their drink, the game
+    // ends. `on.drink(list)` gets [{ p, sips }] for everyone who drank in one go; reactions come at
+    // most every few seconds (a round where everyone drinks is one reaction, not six).
+    const ENDED = ['over', 'results', 'summary'];
+    const watchRoom = (on) => {
+      let was = null;
+      let quietTill = 0;
+      return (s) => {
+        if (!s) { was = null; return; }
+        if (!s.players) return;
+        const now = { no: s.gameNo, phase: s.phase, total: {}, fin: {} };
+        for (const p of s.players) { now.total[p.id] = p.total || 0; now.fin[p.id] = p.finished || 0; }
+        const prev = was;
+        was = now;
+        if (!prev || prev.no !== now.no) return;
+        if (ENDED.includes(now.phase) && !ENDED.includes(prev.phase)) { quietTill = Date.now() + 6000; on.end?.(s); return; }
+        if (Date.now() < quietTill) return;
+        const finished = s.players.filter((p) => now.fin[p.id] > (prev.fin[p.id] ?? now.fin[p.id]));
+        const drank = s.players.map((p) => ({ p, sips: now.total[p.id] - (prev.total[p.id] ?? now.total[p.id]) })).filter((d) => d.sips > 0);
+        if (finished.length) { quietTill = Date.now() + 3500; on.finish?.(finished[0], s); } else if (drank.length) { quietTill = Date.now() + 2500; on.drink?.(drank, s); }
+      };
+    };
+    const who = (list) => (list.length > 2 ? 'everyone' : list.map((d) => esc(d.p.name)).join(' & '));
+    // A speech bubble (over the table, so it can be read), at x vw / y vh, pointing down-left.
+    // (With 'r' in `cls`, the tail's at the right and x is where the bubble's right edge goes.)
+    const say = (text, x, y, cls = '', life = 2800) => {
+      const right = cls.split(' ').includes('r');
+      inFront(`<b>${text}</b>`, { [right ? 'right' : 'left']: `${right ? 100 - x : x}vw`, top: `${y}vh`, '--life': `${life / 1000 - 0.2}s` }, life).classList.add('sc-say', ...cls.split(' ').filter(Boolean));
+    };
+    // A drawing made once and placed at a point of the background art (1600 x 900, see artAt).
+    const atArt = (html, x, y, style, life, cls) => { const [vx, vy] = artAt(x, y); const d = el(html, { left: `${vx}vw`, top: `${vy}vh`, ...style }, life); if (cls) d.classList.add(...cls.split(' ')); return d; };
+
+    // ----- The pirate tavern: on deck at sunset (see pirateSea() in lib/roomStyles.js) -----
+    // The captain stumps along the deck (peg leg, hook, parrot on his shoulder) and growls; a
+    // sailor climbs the shrouds; a ship comes in on the horizon and the deck cannon trades shots
+    // with her; the parrot on the rum barrel squawks at whoever drinks; the chest of gold spills;
+    // the kraken feels about over the rail; gulls, dolphins, a whale, a bottle with a message.
+    // Every drink gets the parrot, a finished drink gets the cannon, the end of a game a salute.
+    const CAPTAIN = `<svg viewBox="0 0 110 170" width="0.65em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M46 112 L44 162" stroke="#6b4524" stroke-width="8" stroke-linecap="round"/><path d="M40 112 h14 v12 h-14Z" fill="#2a2030"/></g>
+      <path d="M36 58 L22 92 L28 96" stroke="#9a1e22" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M26 94 q-10 4 -6 12" stroke="#c9c9c9" stroke-width="3" fill="none"/>
+      <path d="M34 52 Q52 44 72 52 L80 128 Q56 134 28 128Z" fill="#9a1e22"/><path d="M34 52 L28 128 M72 52 L80 128" stroke="#e3b23c" stroke-width="2.5"/>
+      <path d="M46 52 L54 76 L62 52Z" fill="#f2ead8"/>${[66, 78, 90, 102].map((y) => `<circle cx="${y > 80 ? 64 : 63}" cy="${y}" r="2.2" fill="#e3b23c"/>`).join('')}
+      <rect x="32" y="92" width="46" height="7" fill="#2a1a0e"/><rect x="50" y="91" width="9" height="9" rx="1" fill="#e3b23c"/>
+      <path d="M36 98 Q24 124 30 146" stroke="#c9d2d8" stroke-width="3.5" fill="none"/><path d="M34 96 h8" stroke="#e3b23c" stroke-width="4"/>
+      <g class="sc-legs-f"><path d="M54 112 h16 l2 28 h-16Z" fill="#2a2030"/><path d="M56 138 h16 l2 18 h10 q2 6 -2 8 h-26Z" fill="#141010"/></g>
+      <path d="M70 56 Q84 70 88 86" stroke="#9a1e22" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M88 88 q8 2 8 10 q0 8 -8 6" stroke="#d8dde3" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <circle cx="56" cy="34" r="13" fill="#e2b48a"/><path d="M43 36 Q44 58 56 60 Q68 58 69 36 Q62 44 56 42 Q50 44 43 36Z" fill="#1e1410"/>
+      <path d="M48 30 h16" stroke="#1a1010" stroke-width="2"/><ellipse cx="61" cy="32" rx="4.5" ry="3.6" fill="#1a1010"/><circle cx="51" cy="33" r="1.6" fill="#1a1010"/><path d="M50 40 q6 3 12 0" stroke="#7a3a2a" stroke-width="2" fill="none"/>
+      <path d="M24 24 Q56 -2 90 24 Q78 16 56 18 Q34 16 24 24Z" fill="#1a1416"/><path d="M36 20 Q56 -10 78 20 Q56 14 36 20Z" fill="#1a1416"/><path d="M24 24 Q56 4 90 24" stroke="#e3b23c" stroke-width="2" fill="none"/>
+      <circle cx="57" cy="10" r="3.4" fill="#f2efe6"/><path d="M53 15 l8 3 M61 15 l-8 3" stroke="#f2efe6" stroke-width="1.4"/>
+      <g class="sc-pir-cpbird"><path d="M30 48 Q24 30 34 26 Q42 28 40 44Z" fill="#d82a2a"/><path d="M32 36 Q30 46 36 50 L38 38Z" fill="#2f7fe0"/><path d="M30 48 L24 66 L32 50Z" fill="#d82a2a"/><path d="M40 30 q5 1 3 6" fill="#ffd23f"/><circle cx="36" cy="30" r="1.6" fill="#111"/></g></svg>`;
+    const SAILOR = `<svg viewBox="0 0 60 96" width="0.62em" height="1em"><g class="sc-pir-armL"><path d="M18 34 L10 4" stroke="#e2b48a" stroke-width="6" stroke-linecap="round"/></g><g class="sc-pir-armR"><path d="M42 34 L50 8" stroke="#e2b48a" stroke-width="6" stroke-linecap="round"/></g>
+      <path d="M16 30 Q30 24 44 30 L42 62 H18Z" fill="#f2efe6"/>${[36, 44, 52, 60].map((y) => `<path d="M17 ${y} H43" stroke="#2a3a6a" stroke-width="3.5"/>`).join('')}
+      <g class="sc-pir-armR"><path d="M22 62 L18 92" stroke="#2a2030" stroke-width="8" stroke-linecap="round"/></g><g class="sc-pir-armL"><path d="M38 62 L42 88" stroke="#2a2030" stroke-width="8" stroke-linecap="round"/></g>
+      <circle cx="30" cy="20" r="9" fill="#3a2414"/><path d="M21 18 Q30 8 39 18 Z" fill="#c0201a"/><path d="M38 17 l8 4 l-7 1Z" fill="#c0201a"/></svg>`;
+    const CANNON = `<svg viewBox="0 0 210 120" width="1em" height="0.571em" overflow="visible">
+      <defs><linearGradient id="pirI" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa0ac"/><stop offset="0.3" stop-color="#3e424c"/><stop offset="1" stop-color="#16171c"/></linearGradient></defs>
+      <g class="sc-pir-barrel"><g transform="rotate(-12 70 64)"><path d="M18 50 Q12 64 18 78 L40 76 L176 70 Q182 64 176 58 L40 52Z" fill="url(#pirI)" stroke="#0c0c10" stroke-width="1.5"/><path d="M40 55 L174 60" stroke="#ffb070" stroke-width="2" opacity="0.6"/>
+        ${[56, 108, 150].map((x) => `<rect x="${x}" y="${51 + x * 0.04}" width="8" height="${25 - x * 0.08}" rx="1.5" fill="url(#pirI)" stroke="#0c0c10"/>`).join('')}<rect x="170" y="55" width="13" height="18" rx="2" fill="url(#pirI)" stroke="#0c0c10"/><circle cx="12" cy="64" r="8" fill="url(#pirI)"/>
+        <g class="sc-pir-flash"><path d="M182 64 l30 -18 l-8 14 l34 -2 l-32 10 l26 16 l-34 -8 l2 14Z" fill="#ffd23f"/><circle cx="190" cy="64" r="12" fill="#fff6c8"/></g></g></g>
+      <path d="M22 74 L120 70 L132 100 L14 104Z" fill="#7a4a22" stroke="#2a1808" stroke-width="2"/><path d="M22 75 L120 71" stroke="#e0a060" stroke-width="3"/><path d="M30 86 H122" stroke="#4a2a10" stroke-width="2"/>
+      ${[38, 110].map((x) => `<circle cx="${x}" cy="104" r="15" fill="#5a3418" stroke="#2a1808" stroke-width="3"/><path d="M${x - 12} 104 h24 M${x} 92 v24" stroke="#2a1808" stroke-width="2"/><circle cx="${x}" cy="104" r="4" fill="#c9973c"/>`).join('')}
+      ${[[160, 112], [178, 112], [169, 97]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="url(#pirI)" stroke="#0c0c10"/>`).join('')}</svg>`;
+    const POLLY = `<svg viewBox="0 0 60 100" width="0.6em" height="1em"><path d="M26 64 L18 98 L26 96 L30 70 L34 96 L42 98 L34 64Z" fill="#c0201a"/><path d="M24 70 L22 96 M36 70 L38 96" stroke="#2f7fe0" stroke-width="3"/>
+      <ellipse cx="30" cy="48" rx="15" ry="22" fill="#d82a2a"/><path class="sc-pir-pwing" d="M20 40 Q14 62 26 76 Q34 60 32 42Z" fill="#2f7fe0"/><path d="M22 52 Q20 64 26 72" stroke="#ffd23f" stroke-width="4" fill="none"/>
+      <g class="sc-pir-phead"><circle cx="34" cy="24" r="11" fill="#d82a2a"/><path d="M38 18 Q46 18 44 30 Q40 26 38 28Z" fill="#f2efe6"/><circle cx="40" cy="22" r="2" fill="#111"/>
+        <path d="M44 22 Q54 22 52 34 Q48 30 44 30Z" fill="#2a2a2a"/><path d="M44 30 Q48 30 49 34" stroke="#555" stroke-width="2" fill="none"/></g>
+      <path d="M22 70 h16" stroke="#6b6050" stroke-width="3"/><path d="M24 70 v6 M36 70 v6" stroke="#6b6050" stroke-width="2"/></svg>`;
+    const GALLEON = `<svg viewBox="0 0 140 110" width="1em" height="0.786em"><path d="M6 76 L134 70 L120 96 L22 98Z" fill="#241826"/><path d="M8 76 L134 70" stroke="#e8a060" stroke-width="1.5"/>
+      ${[30, 48, 66, 84, 102].map((x) => `<rect x="${x}" y="80" width="6" height="5" fill="#ffc060" opacity="0.7"/>`).join('')}<path d="M110 70 L132 56 L136 70Z" fill="#241826"/><path d="M2 76 L-10 70 L8 72Z" fill="#241826"/>
+      ${[[40, 16, 22], [72, 6, 26], [104, 20, 20]].map(([x, top, w]) => `<rect x="${x - 1}" y="${top}" width="2.5" height="${74 - top}" fill="#241826"/><path d="M${x - w} ${top + 8} Q${x} ${top + 2} ${x + w} ${top + 8} L${x + w - 2} ${top + 30} Q${x} ${top + 34} ${x - w + 2} ${top + 30}Z" fill="#f0c8b0"/><path d="M${x - w + 2} ${top + 36} Q${x} ${top + 32} ${x + w - 2} ${top + 36} L${x + w - 4} ${top + 56} Q${x} ${top + 60} ${x - w + 4} ${top + 56}Z" fill="#e8b098"/>`).join('')}
+      <path d="M72 6 l14 3 l-14 4Z" fill="#c0201a"/><path d="M30 70 L72 6 L112 68" stroke="#241826" stroke-width="1" fill="none"/></svg>`;
+    const BOTTLE = `<svg viewBox="0 0 60 30" width="1em" height="0.5em"><g class="sc-pir-bob"><path d="M4 12 Q4 6 12 6 H38 L46 10 H56 V18 H46 L38 22 H12 Q4 22 4 16Z" fill="rgba(90,160,110,0.75)" stroke="#2a5a3a"/><rect x="54" y="9" width="5" height="10" fill="#8a6a3a"/><path d="M12 10 h20 v8 h-20Z" fill="#f2e6c4"/></g><path d="M0 22 Q15 18 30 22 T60 22" stroke="#9fb8d8" stroke-width="1.5" fill="none" opacity="0.6"/></svg>`;
+
+    const pirateParrot = () => layer?.querySelector('.sc-pir-polly');
+    const squawk = (text) => {
+      const p = pirateParrot();
+      if (p) { p.classList.remove('talk'); void p.offsetWidth; p.classList.add('talk'); }
+      cue('squawk');
+      const [x, y] = artAt(30, 610);
+      say(text, x + 3, y - 9, 'pir');
+    };
+    const fireCannon = (delay = 0) => later(() => {
+      const c = layer?.querySelector('.sc-pir-cannon');
+      if (!c) return;
+      c.classList.remove('fire'); void c.offsetWidth; c.classList.add('fire');
+      cue('boom');
+      const r = c.getBoundingClientRect();
+      const x = ((r.left + r.width * 0.95) / innerWidth) * 100;
+      const y = ((r.top + r.height * 0.18) / innerHeight) * 100;
+      for (let i = 0; i < 4; i++) later(() => drift('', { from: [x - 1, y - 2], to: [x + rand(2, 9), y - rand(14, 26)], dur: 4.5, size: 10 }).classList.add('sc-pir-smoke'), i * 140);
+    }, delay);
+    const splash = (x, y, big = 1) => { el('<i></i><i></i><i></i>', { left: `${x}vw`, top: `${y}vh`, '--s': big }, 2600).classList.add('sc-pir-splash'); cue('splash'); };
+    // A ship sails in on the horizon (left), and the deck cannon trades shots with her.
+    const broadside = () => {
+      const g = el(GALLEON, { left: '-2vw', top: 'calc(46.5vh - 0.72 * 110px)', fontSize: '110px' }, 30000);
+      g.classList.add('sc-pir-galleon', 'blk');
+      fireCannon(9000);
+      later(() => splash(rand(9, 13), 44.5, 0.7), 10400);
+      later(() => { el('', { left: '10vw', top: '41vh' }, 900).classList.add('sc-pir-muzzle'); later(() => drift('', { from: [10, 41], to: [12, 33], dur: 4, size: 8 }).classList.add('sc-pir-smoke', 'far'), 100); }, 13500);
+      later(() => { cue('boom'); }, 14300);
+      later(() => { el('<i></i><i></i><i></i><i></i><i></i>', { left: `${rand(16, 26)}vw`, bottom: '14vh' }, 3200).classList.add('sc-crash'); cue('crash'); }, 15000);
+    };
+    // The captain stumps in from the right, stops below the sidebar to have his say, and goes on
+    // across the deck.
+    const captain = (line) => {
+      const d = el(CAPTAIN, { left: '0', top: '64vh', fontSize: `${0.32 * innerHeight}px` }, 21000);
+      d.classList.add('sc-pir-captain', 'sc-face-l');
+      d.animate([{ transform: 'translateX(104vw)' }, { transform: 'translateX(80vw)', offset: 0.2 }, { transform: 'translateX(80vw)', offset: 0.45 }, { transform: 'translateX(-14vw)' }], { duration: 20000, fill: 'forwards' });
+      cue('creak', 600);
+      later(() => d.classList.add('stop'), 4000);
+      later(() => say(line || pick(['Arrr!', 'Yo ho ho!', 'Shiver me timbers!', 'Who drank me rum?', 'Hoist the colours!', 'Splice the mainbrace!']), 81, 68, 'pir r'), 4500);
+      later(() => d.classList.remove('stop'), 9000);
+    };
+    const climber = () => {
+      el(SAILOR, { left: '0', top: '0', fontSize: '11vh' }, 16000).classList.add('sc-pir-climb');
+      cue('creak', 1500);
+    };
+    const coins = () => { const [x, y] = artAt(1230, 780); burst(['🪙', '🪙', '💰', '💎', '🪙'], { x, y, n: 22, spread: 8, rise: [-30, -14], fall: [-4, 10] }); cue('jackpot'); };
+    const pirateWatch = watchRoom({
+      drink: (list) => squawk(pick([`Drink up, ${who(list)}!`, `Arrr! ${who(list)}, drink!`, `Rrrum for ${who(list)}!`])),
+      finish: (p) => { squawk(`Down the hatch, ${esc(p.name)}!`); fireCannon(600); },
+      end: () => {
+        inFront('<b>Yo ho ho!</b>', { left: '0', right: '26vw', top: '30vh' }, 3400).classList.add('sc-quote', 'pir');
+        [0, 1400, 2800].forEach((t) => fireCannon(t));
+        later(coins, 600);
+        later(() => squawk('Pieces of eight!'), 3600);
+        later(() => captain(pick(['A fine haul, me hearties!', 'Rum for the winners!', 'Drinks on the losers!'])), 1200);
+      },
+    });
+    SCENES.pirate = {
+      decor() {
+        el(JOLLY_ROGER, { left: '12vw', top: '13vh', fontSize: '110px' }).classList.add('sc-jolly');
+        el(LANTERN, { left: '2.5vw', top: '16vh', fontSize: '80px' }).classList.add('sc-lantern');
+        // The sun's road on the water, glittering (it's at 1095 of the art: between the table and
+        // the sidebar), and the swell rolling in under it.
+        el('', { left: '0', top: `${artAt(0, 414)[1]}vh`, width: '200vw', height: `${artAt(0, 746)[1] - artAt(0, 414)[1]}vh` }).classList.add('sc-pir-swell');
+        for (let i = 0; i < 12; i++) {
+          const t = Math.random();
+          atArt('', 1095 + (Math.random() - 0.5) * (80 + t * 300), 430 + t * t * 300, { width: `${(0.6 + t * 2.4).toFixed(1)}vw`, animationDelay: `-${rand(0, 3).toFixed(1)}s`, animationDuration: `${rand(1.6, 3.2).toFixed(1)}s` }, 0, 'sc-pir-glint');
+        }
+        // The cannon on the deck, left, and the parrot on the rum barrel.
+        el(CANNON, { left: '8vw', bottom: '4vh', fontSize: '24vh' }).classList.add('sc-pir-cannon', 'blk');
+        const [px, py] = artAt(44, 690);
+        el(POLLY, { left: `${px}vw`, top: `${py - 9.4}vh`, fontSize: '10vh' }).classList.add('sc-pir-polly', 'blk');
+        pirateWatch(null);
+      },
+      update: pirateWatch,
+      moments: [
+        () => {
+          const right = Math.random() < 0.5;
+          const y = rand(9, 20);
+          for (let i = 0; i < pick([2, 3, 4]); i++) {
+            drift(GULL, { from: [right ? -10 : 110, y + rand(-3, 3)], to: [right ? 110 : -10, y + rand(-4, 8)], dur: rand(10, 14), size: rand(34, 54), extra: { animationDelay: `${i * rand(0.3, 0.9)}s` } });
+          }
+          cue('gulls', 1500);
+        },
+        broadside,
+        captain,
+        climber,
+        () => { el('<i></i><i></i><i></i><i></i><i></i>', { left: `${rand(25, 75)}vw`, bottom: '12vh' }, 3200).classList.add('sc-crash'); cue('crash'); },
+        () => {
+          for (let i = 0; i < pick([2, 3]); i++) el(DOLPHIN, { left: `${rand(2, 6) + i * 4}vw`, top: `${rand(50, 58)}vh`, fontSize: `${rand(50, 66)}px`, animationDelay: `${i * 0.5}s` }, 4000).classList.add('sc-dolphin');
+          cue('splash', 1500);
+        },
+        // A whale: a spout, then its tail lifting and slipping back under.
+        () => {
+          const x = rand(3, 8);
+          el('<i></i><i></i><i></i>', { left: `${x}vw`, top: '47vh' }, 3000).classList.add('sc-spout');
+          later(() => el(FLUKE, { left: `${x - 2}vw`, top: 'calc(48vh - 52px)', fontSize: '104px' }, 4200).classList.add('sc-fluke'), 1800);
+          cue('splash', 4800);
+        },
+        // The kraken: tentacles come up over the rail, feel about, and slide back down.
+        () => {
+          const left = Math.random() < 0.5;
+          for (let i = 0; i < pick([1, 2, 3]); i++) el(TENTACLE, { [left ? 'left' : 'right']: `${rand(1, 12)}vw`, bottom: '0', fontSize: `${rand(220, 320)}px`, animationDelay: `${i * 0.7}s` }, 8600).classList.add('sc-tentacle');
+          cue('splash');
+          cue('creak', 1200);
+          later(() => squawk('KRAKEN!'), 1800);
+        },
+        () => squawk(pick(['Pieces of eight!', 'Polly wants a rum!', 'Arrr!', 'Walk the plank!', 'Who’s next?'])),
+        coins,
+        // A bottle with a message in it bobs by in the sun's road.
+        () => { const [x] = artAt(1060, 0); drift(BOTTLE, { from: [x - 6, 70], to: [x + 10, 72], dur: 20, size: 54 }).classList.add('blk'); },
+        () => fireCannon(),
+      ],
+    };
+
+    // ----- The lighthouse: from the gallery, in four weathers (see lighthouseView() in roomStyles) -----
+    // The lamp's beam sweeps out over the water all the time after dark; the old light on the
+    // headland winks back; the bell buoy rocks; the moon (or the sun) glitters on the sea. The
+    // keeper comes out on the gallery with his pipe; a trawler comes home with its lights on; gulls
+    // sit on the railing by day; in the storm a ship in trouble sends up a flare and the sea breaks
+    // right over the rocks. Every drink gets a toast from the gallery, a finished drink the horn,
+    // the end of a game the flares.
+    const KEEPER = (coat, hat) => `<svg viewBox="0 0 90 170" width="0.53em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M34 108 h14 l1 50 h-14Z" fill="#1e2a3a"/><path d="M33 156 h17 q6 0 8 8 h-25Z" fill="#141010"/></g>
+      <path d="M28 52 Q45 44 62 52 L66 112 Q45 118 24 112Z" fill="${coat}"/><path d="M45 50 V114" stroke="rgba(0,0,0,0.25)" stroke-width="2"/>${coat === '#1e2a4a' ? [62, 74, 86, 98].map((y) => `<path d="M30 ${y} q15 4 32 0" stroke="#2e3e64" stroke-width="3" fill="none"/>`).join('') : '<path d="M46 60 h4 M46 76 h4 M46 92 h4" stroke="#8a6a10" stroke-width="3"/>'}
+      <g class="sc-legs-f"><path d="M44 108 h14 l1 50 h-14Z" fill="#26344a"/><path d="M43 156 h17 q6 0 8 8 h-25Z" fill="#1a1410"/></g>
+      <path d="M30 56 Q16 74 22 96" stroke="${coat}" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <g class="sc-lh-lamp"><path d="M22 96 v10" stroke="#2a2a2a" stroke-width="2"/><path d="M15 106 h14 l-2 4 h-10Z" fill="#2a2a2a"/><rect x="16" y="110" width="12" height="16" rx="2" fill="#ffd27a" stroke="#2a2a2a" stroke-width="2"/><circle cx="22" cy="118" r="16" fill="#ffd27a" opacity="0.25"/></g>
+      <path d="M60 56 Q72 66 70 80 L62 84" stroke="${coat}" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <circle cx="46" cy="32" r="13" fill="#e8bc98"/><path d="M33 34 Q34 54 46 56 Q58 54 59 34 Q52 42 46 40 Q40 42 33 34Z" fill="#f2efe6"/><path d="M38 38 q8 -4 16 0" stroke="#f2efe6" stroke-width="4" fill="none"/>
+      <circle cx="51" cy="29" r="1.6" fill="#1a1010"/><path d="M48 25 h7" stroke="#cfc8bc" stroke-width="2"/><circle cx="58" cy="33" r="2.4" fill="#d89a80"/>
+      <path d="M55 42 h12 v-6 h5 v8 h-17Z" fill="#5a3a1e"/><g class="sc-lh-pipe"><circle cx="70" cy="30" r="3" fill="#cfd8e0" opacity="0.5"/><circle cx="74" cy="22" r="4" fill="#cfd8e0" opacity="0.35"/><circle cx="70" cy="13" r="5" fill="#cfd8e0" opacity="0.2"/></g>
+      ${hat === 'souwester' ? '<path d="M26 26 Q46 4 66 26 Q74 30 76 36 Q62 30 46 30 Q28 30 18 34 Q20 28 26 26Z" fill="#e8b81a"/>' : '<path d="M32 22 Q46 12 60 22 L60 26 H32Z" fill="#1a2238"/><path d="M30 26 h32 v4 h-32Z" fill="#0e1424"/><path d="M58 28 h12 l-2 3 h-10Z" fill="#0e1424"/>'}</svg>`;
+    const TRAWLER = (lit) => `<svg viewBox="0 0 150 80" width="1em" height="0.533em" overflow="visible"><path d="M4 50 L140 46 L128 68 L16 70Z" fill="#7a1f1a"/><path d="M6 52 L140 48" stroke="#e8e0d0" stroke-width="3"/>
+      <path d="M86 48 V26 H118 L122 48Z" fill="#e8e0d0"/><rect x="92" y="30" width="8" height="7" fill="${lit ? '#ffd27a' : '#5a7a9a'}"/><rect x="104" y="30" width="8" height="7" fill="${lit ? '#ffd27a' : '#5a7a9a'}"/>
+      <path d="M100 26 V4 M40 48 V10 M40 12 L4 34 M40 12 L76 30" stroke="#2a2a2a" stroke-width="2.5"/><path d="M14 40 l10 6 M66 36 l-8 8" stroke="#2a2a2a" stroke-width="1.5"/>
+      ${lit ? '<circle cx="100" cy="4" r="3" fill="#fff6d8"/><circle cx="100" cy="4" r="10" fill="#fff6d8" opacity="0.3"/><circle cx="140" cy="46" r="2.6" fill="#4dff7a"/><circle cx="40" cy="10" r="2.4" fill="#ff4a3a"/><path d="M80 48 L40 70 L130 70Z" fill="#ffe8a0" opacity="0.08"/>' : ''}</svg>`;
+    const GULL_SIT = `<svg viewBox="0 0 50 40" width="1.25em" height="1em"><g class="sc-lh-gullhead"><circle cx="38" cy="10" r="6" fill="#fff"/><path d="M43 10 l7 2 l-7 1Z" fill="#f0b020"/><circle cx="40" cy="9" r="1.2" fill="#111"/></g>
+      <path d="M8 22 Q20 10 38 14 Q44 22 36 28 Q22 32 8 22Z" fill="#fff"/><path d="M10 20 Q22 14 34 18 Q28 24 14 24Z" fill="#9aa4ae"/><path d="M8 22 L0 18 L6 24Z" fill="#2a2a2a"/><path d="M24 30 v8 M30 30 v8" stroke="#f0a020" stroke-width="2"/></svg>`;
+    const BELL_BUOY = (night) => `<svg viewBox="0 0 60 80" width="0.75em" height="1em" overflow="visible"><g class="sc-lh-buoy"><path d="M18 44 L30 8 L42 44 M22 30 H38 M26 18 H34" stroke="#1a1a1a" stroke-width="2.5" fill="none"/>
+      <path d="M25 32 Q25 22 30 22 Q35 22 35 32 L37 36 H23Z" fill="#c9973c"/>${night ? '<circle cx="30" cy="6" r="3" fill="#ff5a4a"/><circle class="sc-lh-blink" cx="30" cy="6" r="12" fill="#ff5a4a" opacity="0.4"/>' : ''}
+      <path d="M10 44 H50 L44 64 H16Z" fill="#b0302a"/><rect x="13" y="50" width="34" height="6" fill="#e8e0d0"/></g><path d="M0 64 q15 -6 30 0 t30 0" stroke="#c8dcf0" stroke-width="2" fill="none" opacity="0.5"/></svg>`;
+
+    const lhPlace = { buoy: [1075, 625], far: [144, 346], moon: { day: [384, 130], other: [1110, 150] } };
+    const keeper = (weather, line) => {
+      const oil = weather === 'storm' || weather === 'fog';
+      const d = el(KEEPER(oil ? '#e8b81a' : '#1e2a4a', oil ? 'souwester' : 'cap'), { left: '0', top: '66vh', fontSize: `${0.3 * innerHeight}px` }, 21000);
+      d.classList.add('sc-lh-keeper', 'sc-face-l', ...(weather === 'day' ? ['day'] : []));
+      d.animate([{ transform: 'translateX(104vw)' }, { transform: 'translateX(82vw)', offset: 0.2 }, { transform: 'translateX(82vw)', offset: 0.45 }, { transform: 'translateX(-12vw)' }], { duration: 20000, fill: 'forwards' });
+      later(() => d.classList.add('stop'), 4000);
+      later(() => say(line || pick(weather === 'day' ? ['Fair winds!', 'Not a cloud in the sky.', 'Ship ahoy!', 'Grand day for it.'] : weather === 'fog' ? ['Can’t see me own boots.', 'Keep that horn going!', 'Something’s out there…'] : weather === 'storm' ? ['Batten down the hatches!', 'Hold on to your hats!', 'She’s a wild one tonight.'] : ['All’s well.', 'Light’s burning bright.', 'Calm seas tonight.']), 82, 69, 'lh r'), 4500);
+      later(() => d.classList.remove('stop'), 9000);
+    };
+    const trawler = (weather) => {
+      const lit = weather !== 'day';
+      const right = Math.random() < 0.5;
+      const d = drift(TRAWLER(lit), { from: [right ? -14 : 108, 40.5], to: [right ? 108 : -14, 41], dur: rand(38, 48), size: rand(80, 110) });
+      d.classList.add('sc-lh-boat', right ? 'sc-face-r' : 'sc-face-l', ...(weather === 'fog' ? ['sc-fogged'] : []));
+      if (weather === 'day') for (let i = 0; i < 3; i++) drift(GULL, { from: [right ? -10 : 112, 34 + i], to: [right ? 106 : -8, 33 + i * 1.5], dur: rand(36, 44), size: 22, extra: { animationDelay: `${0.6 + i * 0.4}s` } });
+      cue(weather === 'fog' ? 'foghornFar' : 'horn', 3000);
+    };
+    const lhSpray = (x = rand(66, 92), big = false) => {
+      el('<i></i><i></i><i></i><i></i><i></i>', { left: `${x}vw`, bottom: big ? '22vh' : '18vh', '--s': big ? 1.6 : 1 }, 3200).classList.add('sc-crash', ...(big ? ['sc-lh-bigcrash'] : []));
+      cue('crash');
+    };
+    const signalFlares = () => {
+      for (let i = 0; i < 3; i++) later(() => {
+        const x = rand(64, 72);
+        el('', { left: `${x}vw`, top: '58vh', '--fx': `${rand(-4, 4)}vw`, '--c': pick(['#ff3a20', '#3aff6a', '#fff0a0']) }, 7200).classList.add('sc-lh-flare');
+        cue('bang');
+      }, i * 900);
+    };
+    const lhToast = (weather) => (list) => {
+      say(pick([`Pour one out for ${who(list)}!`, `${who(list)} drinks! All hands!`, `Bottoms up, ${who(list)}!`]), 82, 70, 'lh r');
+      cue(weather === 'fog' ? 'foghornFar' : 'horn');
+      if (weather !== 'day') el('', { left: '50vw', bottom: '-10vh' }, 4000).classList.add('sc-beam', 'sc-lh-quickbeam');
+    };
+    function lighthouseScene(weather) {
+      const night = weather !== 'day';
+      let watch = null;
+      watch = watchRoom({
+        drink: lhToast(weather),
+        finish: (p) => { say(`${esc(p.name)} finishes it! Sound the horn!`, 82, 70, 'lh r'); cue(weather === 'day' ? 'horn' : 'foghorn'); lhSpray(undefined, true); },
+        end: () => { signalFlares(); keeper(weather, pick(['A fine game, sailors.', 'Ring the bell!', 'Drinks on the losers!'])); cue('horn', 800); },
+      });
+      return {
+        decor() {
+          watch(null);
+          const [bx, by] = artAt(...lhPlace.buoy);
+          el(BELL_BUOY(night), { left: `${bx}vw`, top: `${by - 7}vh`, fontSize: '7vh' }).classList.add('blk');
+          // The old light on the headland, winking (not by day); the beam sweeping round.
+          if (night) {
+            const [fx, fy] = artAt(...lhPlace.far);
+            el('', { left: `${fx}vw`, top: `${fy}vh` }).classList.add('sc-lh-far', ...(weather === 'fog' ? ['fog'] : []));
+            el('', { left: '50vw', bottom: '-10vh' }).classList.add('sc-lh-sweep', ...(weather === 'fog' ? ['fog'] : []));
+          }
+          // The moon (or the sun) on the water.
+          if (weather === 'night' || weather === 'day') {
+            const [mx] = weather === 'day' ? lhPlace.moon.day : lhPlace.moon.other;
+            for (let i = 0; i < 12; i++) {
+              const t = Math.random();
+              atArt('', mx + (Math.random() - 0.5) * (60 + t * 280), 404 + t * t * 320, { width: `${(0.5 + t * 2).toFixed(1)}vw`, animationDelay: `-${rand(0, 3).toFixed(1)}s`, animationDuration: `${rand(1.6, 3.2).toFixed(1)}s` }, 0, `sc-pir-glint lh${weather === 'day' ? ' day' : ''}`);
+            }
+          }
+          if (weather === 'day') for (const x of [46, 88]) el(GULL_SIT, { left: `${x}vw`, bottom: 'calc(16vh - 6px)', fontSize: '5vh' }).classList.add('sc-lh-gull', 'blk');
+          if (weather === 'storm') el('', { inset: '0' }).classList.add('sc-rain');
+          if (weather === 'fog') {
+            for (const [top, h, dur, delay] of [[24, 40, 70, -20], [44, 46, 95, -60], [60, 40, 80, -35]]) el('', { left: '-60vw', top: `${top}vh`, width: '90vw', height: `${h}vh`, animation: `sc-fogbank ${dur}s linear ${delay}s infinite` }).classList.add('sc-fogcloud');
+          }
+        },
+        update: (s) => watch(s),
+        gap: weather === 'fog' ? [10, 24] : undefined,
+        moments: [
+          () => keeper(weather),
+          () => trawler(weather),
+          ...(weather === 'day' ? [
+            ...dayMoments(),
+            () => drift('🎈', { from: [rand(0, 30), 60], to: [rand(10, 50), -15], dur: 18, size: 60, opacity: 0.9 }),
+            () => { const x = rand(2, 9); drift('🐦', { from: [x, 4], to: [x + 2, 50], dur: 1.1, size: 40, spin: 40, extra: { animationTimingFunction: 'ease-in' } }); cue('splash', 1100); },
+            () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
+            // A gull on the railing takes off, and another lands.
+            () => { const g = layer.querySelector('.sc-lh-gull'); if (!g) return; g.classList.add('away'); cue('gulls'); later(() => g.classList.remove('away'), 9000); },
+          ] : weather === 'fog' ? [
+            ...fogMoments(),
+            () => crossing('🏮', { y: 40, dur: 22, size: 30, bob: true, cls: ['sc-fogged'] }),
+            () => { cue('buoy', 400); cue('buoy', 3400); layer.querySelector('.sc-lh-buoy')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-14deg)' }, { transform: 'rotate(12deg)' }, { transform: 'rotate(0)' }], { duration: 3000, iterations: 2, easing: 'ease-in-out' }); },
+          ] : [
+            ...seaMoments(weather === 'storm'),
+            () => lhSpray(),
+            () => { for (let i = 0; i < pick([1, 2]); i++) later(() => el('', { left: `${rand(5, 60)}vw`, top: `${rand(4, 14)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 700); },
+            () => popup('🦭', { x: 2, bottom: 2, size: 64, life: 5000 }),
+            () => crossing('🍾', { y: 52, dur: 26, size: 26, bob: true, cls: ['bottle'] }),
+            ...(weather === 'storm' ? [
+              lightning, lightning,
+              () => drift('☂️', { from: [-10, rand(8, 20)], to: [110, rand(10, 30)], dur: 4, size: 60, spin: 720 }),
+              () => lhSpray(rand(70, 90), true),
+              // A ship in trouble out there sends up a flare.
+              () => { const x = rand(64, 71); el('', { left: `${x}vw`, top: '46vh', '--fx': `${rand(-3, 3)}vw`, '--c': '#ff3a20' }, 7200).classList.add('sc-lh-flare'); cue('bang'); later(() => keeper('storm', 'A flare! Man the lifeboat!'), 1500); },
+            ] : []),
+          ]),
+        ],
+      };
+    }
+    // ----- The space lounge (see spaceLounge() in lib/roomStyles.js) -----
+    // Out of the window: the station turning, stars twinkling, a space whale gliding by, saucers,
+    // comets, an astronaut waving with a drink; in the lounge the robot bartender hovers behind
+    // the bar, shaking cocktails, and an alien floats past in zero gravity. Drinks float up out of
+    // their glasses for whoever's drinking (it's zero G), a finished drink is a zero-G chug, and
+    // the end of a game sets off a supernova.
+    const STATION = `<svg viewBox="0 0 120 120" width="1em" height="1em"><g class="sc-sp-spin"><circle cx="60" cy="60" r="50" fill="none" stroke="#9aa4c4" stroke-width="9"/><circle cx="60" cy="60" r="50" fill="none" stroke="#5a648a" stroke-width="9" stroke-dasharray="6 10"/>
+      <path d="M60 10 V110 M10 60 H110 M25 25 L95 95 M95 25 L25 95" stroke="#6a7498" stroke-width="3"/>${[0, 60, 120, 180, 240, 300].map((a) => `<circle cx="${(60 + 50 * Math.cos((a * Math.PI) / 180)).toFixed(1)}" cy="${(60 + 50 * Math.sin((a * Math.PI) / 180)).toFixed(1)}" r="2.4" fill="#ffe08a"/>`).join('')}</g>
+      <circle cx="60" cy="60" r="13" fill="#c8d0e8"/><circle cx="60" cy="60" r="6" fill="#7cf0ff"/><rect x="44" y="-4" width="32" height="10" fill="#2a4a9a" stroke="#9aa4c4"/><rect x="44" y="114" width="32" height="10" fill="#2a4a9a" stroke="#9aa4c4"/></svg>`;
+    const ROBOT = `<svg viewBox="0 0 100 150" width="0.667em" height="1em" overflow="visible"><defs><linearGradient id="spM" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6a7498"/><stop offset="0.4" stop-color="#e8ecf8"/><stop offset="1" stop-color="#5a6488"/></linearGradient></defs>
+      <path d="M50 4 V18" stroke="#9aa4c4" stroke-width="3"/><circle class="sc-sp-blink" cx="50" cy="4" r="5" fill="#ff5c8a"/>
+      <path d="M22 44 Q22 16 50 16 Q78 16 78 44Z" fill="url(#spM)"/><rect x="24" y="28" width="52" height="14" rx="7" fill="#0a0e24"/><g class="sc-sp-eyes"><circle cx="38" cy="35" r="4" fill="#7cf0ff"/><circle cx="62" cy="35" r="4" fill="#7cf0ff"/></g>
+      <rect x="28" y="48" width="44" height="56" rx="12" fill="url(#spM)"/><rect x="38" y="60" width="24" height="16" rx="3" fill="#0a0e24"/><path d="M42 66 h4 M50 66 h8 M42 71 h12" stroke="#7dff9e" stroke-width="2"/>
+      <path d="M28 62 Q12 72 16 92" stroke="#9aa4c4" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="16" cy="94" r="5" fill="#c8d0e8"/>
+      <g class="sc-sp-shake"><path d="M72 62 Q90 58 90 40" stroke="#9aa4c4" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M84 40 h12 l-2 -22 h-8Z" fill="#e8ecf8" stroke="#6a7498"/><rect x="86" y="12" width="8" height="7" rx="2" fill="#c8d0e8"/></g>
+      <path d="M36 104 L50 132 L64 104Z" fill="#3a4470"/><path class="sc-sp-jet" d="M42 128 Q50 150 58 128Z" fill="#7cf0ff" opacity="0.85"/></svg>`;
+    const ALIEN = `<svg viewBox="0 0 90 110" width="0.82em" height="1em"><path d="M30 20 Q26 6 18 4 M60 20 Q64 6 72 4" stroke="#6ad86a" stroke-width="3" fill="none"/><circle cx="18" cy="4" r="4" fill="#ff5c8a"/><circle cx="72" cy="4" r="4" fill="#ff5c8a"/>
+      <ellipse cx="45" cy="34" rx="26" ry="22" fill="#7ae07a"/>${[[33, 30], [45, 26], [57, 30]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="6" fill="#fff"/><circle class="sc-sp-look" cx="${x + 1}" cy="${y + 1}" r="3" fill="#111"/>`).join('')}<path d="M36 44 Q45 50 54 44" stroke="#2a6a2a" stroke-width="2.5" fill="none"/>
+      <path d="M30 54 Q45 50 60 54 L64 86 Q45 92 26 86Z" fill="#8a46d8"/><path d="M30 60 Q14 64 10 50" stroke="#7ae07a" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M60 60 Q74 62 76 48" stroke="#7ae07a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M68 34 L86 34 L78 46 V54 M72 56 H84" stroke="#cfe8ff" stroke-width="2" fill="none"/><path d="M71 36 L83 36 L78 43Z" fill="#ff5c8a"/>
+      <path d="M34 86 Q30 100 22 106 M56 86 Q60 100 68 106" stroke="#7ae07a" stroke-width="6" fill="none" stroke-linecap="round"/></svg>`;
+    const WHALE = `<svg viewBox="0 0 300 120" width="1em" height="0.4em"><defs><linearGradient id="spW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a7ae8" stop-opacity="0.85"/><stop offset="1" stop-color="#2a3a8a" stop-opacity="0.6"/></linearGradient></defs>
+      <path class="sc-sp-tail" d="M40 60 Q14 40 0 20 Q16 52 2 92 Q20 74 40 66Z" fill="url(#spW)"/>
+      <path d="M36 62 Q80 14 180 24 Q262 30 296 70 Q270 98 190 100 Q100 104 36 62Z" fill="url(#spW)"/><path d="M120 92 Q150 104 190 100 Q262 96 290 72" fill="none" stroke="#bfe0ff" stroke-width="2" opacity="0.5"/>
+      ${[[110, 40], [140, 34], [170, 32], [200, 36], [128, 58], [160, 54], [190, 56]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#bff8ff"/><circle cx="${x}" cy="${y}" r="8" fill="#7cf0ff" opacity="0.25"/>`).join('')}
+      <path d="M150 96 Q160 118 186 116 Q172 104 172 96Z" fill="url(#spW)"/><circle cx="262" cy="62" r="4" fill="#fff"/><path d="M240 82 Q262 88 286 76" stroke="#1a2468" stroke-width="2" fill="none"/></svg>`;
+    const blobs = (x, y, n = 10, colors = ['#ffcf5a', '#7cf0ff', '#ff5c8a', '#7dff9e']) => {
+      for (let i = 0; i < n; i++) later(() => {
+        const s = rand(10, 26);
+        drift('', { from: [x + rand(-3, 3), y], to: [x + rand(-10, 10), y - rand(30, 60)], dur: rand(5, 8), size: 10, extra: { width: `${s}px`, height: `${s}px`, '--c': pick(colors) } }).classList.add('sc-sp-blob');
+      }, i * 160);
+    };
+    const robot = () => layer?.querySelector('.sc-sp-robot');
+    const robotSays = (text) => {
+      const r = robot();
+      if (r) { r.classList.remove('shake'); void r.offsetWidth; r.classList.add('shake'); }
+      cue('beep');
+      say(text, 76, 62, 'sp r');
+    };
+    const spaceWatch = watchRoom({
+      drink: (list) => { robotSays(pick([`Cheers, ${who(list)}!`, `Drink served: ${who(list)}`, `Bottoms up, ${who(list)}!`])); blobs(rand(66, 72), 90, 8); },
+      finish: (p) => { robotSays(`Zero-G chug: ${esc(p.name)}!`); blobs(68, 92, 18); blobs(6, 88, 10); },
+      end: () => {
+        el('', { inset: '0', '--x': '68vw', '--y': '30vh' }, 2600).classList.add('sc-sp-nova');
+        cue('warp');
+        later(() => burst(['✦', '✧', '•', '✺'], { x: 68, y: 30, n: 40, spread: 30, size: [12, 26], colors: ['#7cf0ff', '#ff5c8a', '#ffe08a', '#ffffff'], rise: [-30, 10], fall: [0, 40] }), 400);
+        later(() => robotSays('Victory protocol engaged.'), 1600);
+        later(() => { drift(UFO, { from: [-12, 10], to: [112, 12], dur: 8, size: 90 }).classList.add('sc-ufo'); cue('ufo'); }, 2400);
+      },
+    });
+    SCENES.space = {
+      decor() {
+        spaceWatch(null);
+        el(PLANET, { left: '1vw', top: '18vh', fontSize: '160px' }).classList.add('sc-planet');
+        atArt(STATION, 1095, 300, { fontSize: '13vh', marginLeft: '-6.5vh', marginTop: '-6.5vh' }, 0, 'blk sc-sp-station');
+        el(ROBOT, { left: '77vw', top: '70vh', fontSize: '20vh' }).classList.add('sc-sp-robot', 'blk');
+        for (let i = 0; i < 14; i++) el('', { left: `${rand(0, 100)}vw`, top: `${rand(4, 80)}vh`, animationDelay: `-${rand(0, 4).toFixed(1)}s`, animationDuration: `${rand(2, 5).toFixed(1)}s` }).classList.add('sc-sp-twinkle');
+      },
+      update: spaceWatch,
+      moments: [
+        () => { for (let i = 0; i < pick([1, 2, 3]); i++) later(() => el('', { left: `${rand(10, 90)}vw`, top: `${rand(5, 40)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 600); },
+        () => { const right = Math.random() < 0.5; drift(UFO, { from: [right ? -12 : 110, rand(8, 14)], to: [right ? 112 : -12, rand(8, 16)], dur: rand(7, 10), size: rand(70, 100) }).classList.add('sc-ufo'); cue('ufo', 800); },
+        () => { const d = drift(`${ASTRONAUT}<b class="sc-sp-wave">👋</b>`, { from: [-10, rand(60, 80)], to: [rand(20, 40), rand(10, 30)], dur: rand(22, 28), size: rand(56, 76), spin: rand(-120, 120) }); d.classList.add('sc-sp-astro'); },
+        () => drift('', { from: [110, rand(4, 12)], to: [-20, rand(20, 34)], dur: 3.5 }).classList.add('sc-comet'),
+        () => drift('🚀', { from: [-8, 90], to: [60, -10], dur: 4, size: 56, spin: 0 }).classList.add('sc-rocket'),
+        () => crossing('🛰️', { y: rand(6, 12), dur: 16, size: 46, bob: false }),
+        // The space whale glides past along the top, glowing.
+        () => { const right = Math.random() < 0.5; drift(WHALE, { from: [right ? -30 : 110, rand(3, 9)], to: [right ? 110 : -30, rand(2, 10)], dur: rand(36, 44), size: rand(260, 340) }).classList.add('sc-sp-whale', 'blk', right ? 'sc-face-r' : 'sc-face-l'); cue('moan', 2000); },
+        // An alien floats through the lounge, upside down for a while, holding on to its drink.
+        () => { const right = Math.random() < 0.5; drift(ALIEN, { from: [right ? -10 : 108, rand(78, 84)], to: [right ? 108 : -10, rand(70, 80)], dur: rand(24, 30), size: rand(80, 100), spin: right ? 300 : -300 }).classList.add('sc-sp-alien'); },
+        () => { robotSays(pick(['Shaken, not stirred.', 'Another round, Earthlings?', 'Beep boop. Cheers.', 'Ice: 0 kelvin.'])); blobs(84, 72, 6); },
+        // A meteor shower.
+        () => { for (let i = 0; i < 9; i++) later(() => el('', { left: `${rand(20, 100)}vw`, top: `${rand(0, 30)}vh`, animation: 'sc-shoot 0.9s ease-out forwards' }, 1100).classList.add('sc-star'), i * rand(150, 400)); },
+        // A starship goes past at warp: a streak and a flash.
+        () => { el('', { left: '-40vw', top: `${rand(14, 40)}vh` }, 1400).classList.add('sc-sp-warp'); cue('warp'); },
+      ],
+    };
+
+    // ----- The beer hall (see beerHall() in lib/roomStyles.js) -----
+    // The cuckoo clock on the wall ticks (and the cuckoo comes out), the wagon-wheel chandelier
+    // sways with its candles going; the waitress carries eight steins at once, the tuba player
+    // oompahs past, the dachshund trots through, two lads slap their shoes; steins go up and clink.
+    // Every drink gets a "Prost!" and the steins, a finished drink the whole hall chanting "Ex!",
+    // and the end of a game the band.
+    const CUCKOO = `<svg viewBox="0 0 100 190" width="0.526em" height="1em" overflow="visible">
+      <path d="M50 6 L98 50 H2Z" fill="#6a4424"/><path d="M50 14 L88 48 H12Z" fill="#8a5a30"/>${[20, 40, 60, 80].map((x) => `<path d="M${x} 50 q4 10 0 18" stroke="#5a3418" stroke-width="5" fill="none"/>`).join('')}
+      <path d="M40 30 q10 -16 20 0 q-4 -6 -10 0 q-6 -6 -10 0Z" fill="#4a7a2a"/><rect x="12" y="50" width="76" height="80" fill="#a8743e"/>
+      <rect x="40" y="56" width="20" height="18" fill="#3a2010"/><g class="sc-bh-door"><rect x="40" y="56" width="20" height="18" fill="#6a4424" stroke="#3a2010"/></g>
+      <g class="sc-bh-bird"><path d="M44 66 Q50 56 58 62 L66 60 L60 66 Q56 72 46 70Z" fill="#c0392b"/><circle cx="56" cy="62" r="1.6" fill="#111"/><path d="M62 60 l6 -2" stroke="#f0b020" stroke-width="2"/></g>
+      <circle cx="50" cy="100" r="22" fill="#f6efe0" stroke="#5a3418" stroke-width="3"/>${Array.from({ length: 12 }, (_, i) => `<path d="M${(50 + 18 * Math.sin((i * Math.PI) / 6)).toFixed(1)} ${(100 - 18 * Math.cos((i * Math.PI) / 6)).toFixed(1)} L${(50 + 21 * Math.sin((i * Math.PI) / 6)).toFixed(1)} ${(100 - 21 * Math.cos((i * Math.PI) / 6)).toFixed(1)}" stroke="#3a2010" stroke-width="2"/>`).join('')}
+      <path d="M50 100 L50 86 M50 100 L60 104" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round"/><path d="M20 130 h60 l-6 10 h-48Z" fill="#6a4424"/>
+      <g class="sc-bh-pend"><path d="M50 130 V170" stroke="#c9a24a" stroke-width="2"/><circle cx="50" cy="174" r="8" fill="#c9a24a"/></g>
+      <path d="M34 140 V178 M66 140 V164" stroke="#3a2010" stroke-width="1.2"/><path d="M30 178 q4 -12 8 0 q-4 10 -8 0Z M62 164 q4 -12 8 0 q-4 10 -8 0Z" fill="#5a3418"/></svg>`;
+    const WHEEL = `<svg viewBox="0 0 160 110" width="1em" height="0.69em" overflow="visible"><path d="M80 -200 V40 M80 40 L20 70 M80 40 L140 70 M80 40 L56 80 M80 40 L104 80" stroke="#3a2a1a" stroke-width="2"/>
+      <ellipse cx="80" cy="76" rx="70" ry="14" fill="none" stroke="#5a3418" stroke-width="8"/><ellipse cx="80" cy="76" rx="20" ry="5" fill="#5a3418"/>
+      ${[18, 48, 80, 112, 142].map((x, i) => { const y = 76 - Math.sqrt(Math.max(0, 1 - ((x - 80) / 70) ** 2)) * (i % 2 ? -10 : 10); return `<rect x="${x - 3}" y="${y - 20}" width="6" height="16" fill="#f6efe0"/><g class="sc-bh-flame" style="animation-delay:-${(i * 0.07).toFixed(2)}s"><path d="M${x} ${y - 32} q-5 7 0 12 q5 -5 0 -12Z" fill="#ffb347"/><circle cx="${x}" cy="${y - 26}" r="10" fill="#ffd27a" opacity="0.25"/></g>`; }).join('')}</svg>`;
+    const WAITRESS = `<svg viewBox="0 0 120 170" width="0.706em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M50 128 l-2 32 h8 l2 -32Z" fill="#f2ead6"/><path d="M44 158 h14 v6 h-16Z" fill="#2a1a10"/></g><g class="sc-legs-f"><path d="M64 128 l2 32 h8 l-2 -32Z" fill="#f2ead6"/><path d="M62 158 h14 v6 h-16Z" fill="#2a1a10"/></g>
+      <path d="M40 80 Q60 74 80 80 L92 132 Q60 140 28 132Z" fill="#c0392b"/><path d="M48 82 L52 134 Q60 136 68 134 L72 82Z" fill="#f6efe0"/><path d="M48 82 h24" stroke="#2a6fdb" stroke-width="3"/>
+      <path d="M42 50 Q60 44 78 50 L76 82 H44Z" fill="#2e6a3a"/><path d="M50 50 L60 64 L70 50" fill="#fff"/><path d="M52 60 l16 0 M52 68 l16 0" stroke="#e8c15a" stroke-width="1.5"/>
+      <path d="M44 54 Q26 58 22 74" stroke="#fff" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M76 54 Q94 58 98 74" stroke="#fff" stroke-width="11" fill="none" stroke-linecap="round"/>
+      ${[[6, 66], [-8, 70], [20, 64]].map(([x, y]) => `<rect x="${x}" y="${y}" width="16" height="22" rx="2" fill="rgba(255,206,90,0.92)" stroke="#8a6a3a" stroke-width="1.5"/><path d="M${x - 1} ${y + 1} q8 -8 18 0Z" fill="#fffaf0"/>`).join('')}
+      ${[[90, 66], [104, 70], [76, 64]].map(([x, y]) => `<rect x="${x}" y="${y}" width="16" height="22" rx="2" fill="rgba(255,206,90,0.92)" stroke="#8a6a3a" stroke-width="1.5"/><path d="M${x - 1} ${y + 1} q8 -8 18 0Z" fill="#fffaf0"/>`).join('')}
+      <circle cx="60" cy="30" r="14" fill="#f2c9a5"/><path d="M45 28 Q46 12 60 12 Q74 12 75 28 Q68 18 60 20 Q52 18 45 28Z" fill="#f0c850"/><path d="M47 30 Q40 44 44 56 M73 30 Q80 44 76 56" stroke="#f0c850" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="55" cy="30" r="1.6" fill="#1a1010"/><circle cx="65" cy="30" r="1.6" fill="#1a1010"/><path d="M55 36 q5 4 10 0" stroke="#a03030" stroke-width="1.8" fill="none"/><circle cx="51" cy="35" r="2.6" fill="#f0a0a0" opacity="0.6"/><circle cx="69" cy="35" r="2.6" fill="#f0a0a0" opacity="0.6"/>
+      <circle cx="44" cy="58" r="3" fill="#c0392b"/></svg>`;
+    const TUBA = `<svg viewBox="0 0 130 170" width="0.765em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M48 112 h12 l-2 46 h-10Z" fill="#f2c9a5"/><path d="M44 156 h16 v8 h-18Z" fill="#2a1a10"/></g><g class="sc-legs-f"><path d="M64 112 h12 l2 46 h-10Z" fill="#f2c9a5"/><path d="M64 156 h16 v8 h-18Z" fill="#2a1a10"/></g>
+      <path d="M44 86 H80 L82 116 H42Z" fill="#6a4424"/><path d="M48 54 L46 92 M76 54 L78 92" stroke="#6a4424" stroke-width="5"/><path d="M46 70 H78" stroke="#6a4424" stroke-width="4"/>
+      <path d="M42 50 Q62 44 82 50 L80 90 H44Z" fill="#f6efe0"/><path d="M46 52 L50 90 M78 52 L74 90" stroke="#6a4424" stroke-width="5"/>
+      <g class="sc-bh-tuba"><path d="M60 70 Q92 50 98 20 Q100 6 116 2 Q128 6 128 20 Q124 32 110 30 Q106 64 76 92 Q60 100 52 88Z" fill="#e0b040" stroke="#8a6420" stroke-width="2"/><ellipse cx="116" cy="12" rx="12" ry="14" fill="#8a6420"/><ellipse cx="116" cy="12" rx="8" ry="10" fill="#3a2a10"/>
+        <path d="M62 82 Q74 82 80 72 M70 66 v-8 M76 62 v-8 M82 58 v-8" stroke="#c9973c" stroke-width="3" fill="none"/></g>
+      <path d="M44 56 Q34 70 56 80" stroke="#f6efe0" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <circle cx="62" cy="34" r="13" fill="#f2c9a5"/><path d="M50 42 Q62 52 74 42 Q68 46 62 46 Q56 46 50 42Z" fill="#8a5a2a"/><circle cx="62" cy="40" r="3" fill="#e88080"/><circle cx="57" cy="31" r="1.6" fill="#111"/><circle cx="67" cy="31" r="1.6" fill="#111"/>
+      <path d="M44 24 Q62 22 80 24 L76 18 Q62 4 48 18Z" fill="#3a5a2a"/><path d="M42 24 H82" stroke="#2a4020" stroke-width="3"/><path d="M76 18 Q90 2 84 -8" stroke="#f2ead6" stroke-width="3" fill="none"/></svg>`;
+    const DACHSHUND = `<svg viewBox="0 0 110 50" width="1em" height="0.455em"><path class="sc-tail" d="M14 22 Q2 14 4 6" stroke="#7a3e1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <rect x="12" y="18" width="70" height="18" rx="9" fill="#8a4a20"/><g class="sc-legs-f"><rect x="20" y="32" width="6" height="12" rx="3" fill="#7a3e1a"/><rect x="66" y="32" width="6" height="12" rx="3" fill="#7a3e1a"/></g><g class="sc-legs-b"><rect x="28" y="32" width="6" height="12" rx="3" fill="#6a3416"/><rect x="74" y="32" width="6" height="12" rx="3" fill="#6a3416"/></g>
+      <path d="M76 22 Q80 8 92 10 Q106 14 106 24 Q98 28 90 26 Q84 30 78 28Z" fill="#8a4a20"/><path d="M84 12 Q80 24 86 30 Q90 22 88 12Z" fill="#5a2a10"/><circle cx="96" cy="17" r="1.8" fill="#111"/><circle cx="106" cy="23" r="2" fill="#111"/>
+      <path d="M40 18 h20 v18 h-20Z" fill="#2a6fdb" opacity="0.8"/><path d="M40 18 l10 9 l10 -9 M40 36 l10 -9 l10 9" stroke="#fff" stroke-width="1.5" fill="none"/></svg>`;
+    const steinsUp = (x = 80) => {
+      for (const [dx, d, r] of [[-6, 0, -14], [0, 0.12, 0], [6, 0.06, 14]]) el(STEIN, { left: `${x + dx}vw`, bottom: '-2vh', fontSize: '15vh', '--r': `${r}deg`, animationDelay: `${d}s` }, 3200).classList.add('sc-bh-up', 'blk');
+      cue('clink', 1100);
+      later(() => burst(['💧', '•', '•'], { x: x + 3, y: 72, n: 10, spread: 4, size: [8, 14], colors: ['#fffaf0', '#ffe08a'], rise: [-10, -4], fall: [4, 10] }), 1100);
+    };
+    const waitress = () => { const right = Math.random() < 0.5; drift(WAITRESS, { from: [right ? -10 : 104, 66], to: [right ? 104 : -10, 66], dur: 15, size: 0.3 * innerHeight }).classList.add('sc-bh-walker', right ? 'sc-face-r' : 'sc-face-l'); };
+    const band = () => {
+      const right = Math.random() < 0.5;
+      drift(TUBA, { from: [right ? -10 : 104, 66], to: [right ? 104 : -10, 66], dur: 18, size: 0.3 * innerHeight }).classList.add('sc-bh-walker', right ? 'sc-face-r' : 'sc-face-l');
+      cue('chord'); cue('chord', 1600);
+      shower(10, 0.6, () => { const r = layer?.querySelector('.sc-bh-tuba')?.getBoundingClientRect(); if (r) drift(pick(['♪', '♫', '♬']), { from: [((r.left + r.width / 2) / innerWidth) * 100, ((r.top) / innerHeight) * 100], to: [((r.left + r.width / 2) / innerWidth) * 100 + rand(-6, 6), rand(30, 50)], dur: rand(3, 5), size: rand(24, 34), opacity: 0.85, extra: { color: '#2a6fdb' } }); });
+    };
+    const cuckoo = () => {
+      const c = layer?.querySelector('.sc-bh-cuckoo');
+      if (!c) return;
+      c.classList.remove('out'); void c.offsetWidth; c.classList.add('out');
+      for (let i = 0; i < 3; i++) later(() => say('Kuckuck!', 9, 12 + i * 0.5, 'bh', 900), 400 + i * 1000);
+    };
+    const exChant = (name) => {
+      const d = inFront(`<b>Ex! Ex! Ex!</b>${name ? `<small>${name}</small>` : ''}`, { left: '0', right: '26vw', top: '28vh' }, 3600);
+      d.classList.add('sc-quote', 'prost', 'sc-bh-ex');
+      cue('chant'); cue('cheer', 1800);
+    };
+    const beerWatch = watchRoom({
+      drink: (list) => { say(`Prost, ${who(list)}!`, 82, 64, 'bh r'); steinsUp(rand(74, 84)); },
+      finish: (p) => { exChant(esc(p.name)); steinsUp(78); later(() => steinsUp(6), 400); },
+      end: () => {
+        inFront('<b>Prost!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'prost');
+        burst(['🍺', '🍻', '🥨'], { x: 36, y: 40, n: 20, spread: 30 });
+        cue('clink'); cue('cheer', 300);
+        later(band, 1200);
+      },
+    });
+    SCENES.beerhall = {
+      decor() {
+        beerWatch(null);
+        el('', { left: '0', top: '0', width: '100vw', height: '10vh' }).classList.add('sc-bunting');
+        el(CUCKOO, { left: '1.2vw', top: '11vh', fontSize: '19vh' }).classList.add('sc-bh-cuckoo', 'blk');
+        el(WHEEL, { left: '64vw', top: '3vh', fontSize: '11vw' }).classList.add('sc-bh-wheel', 'blk');
+      },
+      update: beerWatch,
+      moments: [
+        () => bubbles(['beer']),
+        () => {
+          el(STEIN, { left: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'l');
+          el(STEIN, { right: '-10vw', bottom: '4vh', fontSize: '110px' }, 3200).classList.add('sc-stein', 'r');
+          cue('clink', 1100);
+        },
+        waitress,
+        band,
+        cuckoo,
+        () => { const right = Math.random() < 0.5; drift(DACHSHUND, { from: [right ? -10 : 104, 88], to: [right ? 104 : -10, 88], dur: 9, size: 0.14 * innerHeight }).classList.add('sc-bh-dog', 'blk', right ? 'sc-face-r' : 'sc-face-l'); },
+        // Two lads in lederhosen slap their shoes (the Schuhplattler) across the floor.
+        () => { for (let i = 0; i < 2; i++) later(() => crossing('🕺', { y: 86, dur: 12, size: 70, cls: ['sc-bh-hop'] }), i * 700); cue('snaps', 800); cue('snaps', 2400); },
+        () => steinsUp(rand(74, 84)),
+        () => { slide('🍺', { y: 91, size: 48 }); cue('slide', 200); },
+        () => crossing('🥨', { y: 94, dur: 4, size: 44, bob: false, cls: ['roll'] }),
+        () => { cue('yodel'); notes(5, 80, '#2a6fdb'); },
+        () => { burst(['🫧', '🍺', '🫧'], { x: 4, y: 82, n: 16, spread: 10, size: [16, 26] }); cue('pop'); },
+      ],
+    };
+
+    // ----- The vineyard, afternoon and sunset (see tuscany() in lib/roomStyles.js) -----
+    // Grapes hang swaying from the pergola; butterflies by day, fireflies at dusk. Nonna comes out
+    // with a basket of grapes and tells everyone to eat; a couple zip past on a Vespa; someone
+    // stomps grapes in a tub, purple everywhere; a wild boar trots through; the accordion player
+    // strolls by; swallows wheel over the vines. Every drink gets "Salute!" and two glasses
+    // clinking, a finished drink "Alla goccia!", the end of a game a cork popping and Nonna.
+    const NONNA = `<svg viewBox="0 0 100 160" width="0.625em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M40 136 v18 h8 v-18Z" fill="#3a3030"/><path d="M36 152 h14 v6 h-16Z" fill="#141010"/></g><g class="sc-legs-f"><path d="M54 136 v18 h8 v-18Z" fill="#3a3030"/><path d="M52 152 h14 v6 h-16Z" fill="#141010"/></g>
+      <path d="M34 56 Q50 48 66 56 L74 140 Q50 146 26 140Z" fill="#1e1a20"/><path d="M38 76 Q50 72 62 76 L64 138 Q50 142 36 138Z" fill="#f6f0e2"/><path d="M38 76 Q50 72 62 76" stroke="#c0392b" stroke-width="3" fill="none"/>
+      <path d="M62 62 Q78 74 80 92" stroke="#1e1a20" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <g transform="translate(58 84)"><path d="M0 0 Q20 30 44 0" stroke="#8a5a2e" stroke-width="3" fill="none"/><path d="M-2 0 H46 L40 24 H4Z" fill="#b08040"/><path d="M0 8 H44 M2 16 H42" stroke="#8a5a2e" stroke-width="2"/>${[[6, -4], [14, -8], [22, -4], [30, -9], [38, -4], [10, -14], [26, -16], [18, -18]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#5a2a6a"/>`).join('')}<path d="M30 -20 q8 -8 14 0 q-8 4 -14 0Z" fill="#5f8a2a"/></g>
+      <path d="M36 62 Q24 80 40 96" stroke="#1e1a20" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <circle cx="50" cy="34" r="14" fill="#ecc4a0"/><path d="M34 34 Q34 14 50 14 Q66 14 66 34 Q66 22 50 22 Q34 22 34 34Z" fill="#2a2a3a"/><path d="M36 30 Q32 46 40 50 M64 30 Q68 46 60 50" stroke="#2a2a3a" stroke-width="5" fill="none"/>
+      <circle cx="45" cy="34" r="4" fill="none" stroke="#6a5a4a" stroke-width="1.4"/><circle cx="56" cy="34" r="4" fill="none" stroke="#6a5a4a" stroke-width="1.4"/><path d="M49 34 h3" stroke="#6a5a4a" stroke-width="1.4"/><circle cx="45" cy="34" r="1.2" fill="#111"/><circle cx="56" cy="34" r="1.2" fill="#111"/>
+      <path d="M45 42 q5 4 10 0" stroke="#a04040" stroke-width="1.8" fill="none"/><circle cx="41" cy="40" r="2.6" fill="#e09080" opacity="0.6"/><circle cx="60" cy="40" r="2.6" fill="#e09080" opacity="0.6"/></svg>`;
+    const VESPA = `<svg viewBox="0 0 170 120" width="1em" height="0.706em" overflow="visible">
+      <path class="sc-vy-scarf" d="M60 34 Q40 30 22 40 Q36 36 46 44 Q30 46 18 56 Q42 48 58 44Z" fill="#c0392b"/>
+      <path d="M40 92 Q40 66 64 62 H96 L104 40 H112 L116 64 Q140 66 146 92Z" fill="#8fd4c0"/><path d="M44 90 Q46 72 66 68 H92" stroke="#fff" stroke-width="3" fill="none" opacity="0.6"/><path d="M104 40 L110 18 H126" stroke="#4a4a4a" stroke-width="4" fill="none"/><circle cx="126" cy="18" r="5" fill="#e8e8e8"/>
+      <ellipse cx="72" cy="62" rx="26" ry="6" fill="#5a3a1e"/>
+      <path d="M62 60 L58 30 Q60 20 70 22 L76 56Z" fill="#2a4a8a"/><path d="M64 34 L100 30 L106 22" stroke="#2a4a8a" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M66 58 L86 70 L84 90" stroke="#3a3040" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <circle cx="66" cy="12" r="11" fill="#ecc4a0"/><path d="M54 12 Q54 -2 66 -2 Q78 -2 78 10 L80 14 H56Z" fill="#f2f2f2"/><path d="M70 10 h10 v5 h-10Z" fill="#2a2a2a" opacity="0.7"/>
+      <path d="M44 62 L40 36 Q42 28 50 30 L56 60Z" fill="#e8a0b0"/><circle cx="46" cy="22" r="10" fill="#ecc4a0"/><path d="M36 22 Q36 8 48 10 Q58 12 54 20 Q44 16 36 22Z" fill="#5a3418"/><path d="M36 22 Q30 34 34 44" stroke="#5a3418" stroke-width="5" fill="none"/>
+      <g class="sc-tyre"><circle cx="56" cy="96" r="16" fill="#1a1a1a"/><circle cx="56" cy="96" r="7" fill="#c8c8c8"/><path d="M50 96 h12 M56 90 v12" stroke="#6a6a6a" stroke-width="2"/></g><g class="sc-tyre"><circle cx="136" cy="96" r="16" fill="#1a1a1a"/><circle cx="136" cy="96" r="7" fill="#c8c8c8"/><path d="M130 96 h12 M136 90 v12" stroke="#6a6a6a" stroke-width="2"/></g>
+      <path d="M150 64 l12 -2" stroke="#ffd860" stroke-width="5" stroke-linecap="round"/></svg>`;
+    const BOAR = `<svg viewBox="0 0 130 80" width="1em" height="0.615em"><path class="sc-tail" d="M14 30 q-10 -4 -10 -14" stroke="#2a1e18" stroke-width="3" fill="none"/>
+      <path d="M12 34 Q14 14 50 12 Q90 8 104 22 L122 34 Q126 42 118 46 L104 50 Q92 60 60 58 Q22 58 12 34Z" fill="#3a2a20"/>${Array.from({ length: 9 }, (_, i) => `<path d="M${30 + i * 8} ${13 - Math.sin(i / 2.5) * 2} l3 -8 l3 8" fill="#2a1e18"/>`).join('')}
+      <g class="sc-legs-f"><rect x="26" y="52" width="8" height="22" rx="3" fill="#2a1e18"/><rect x="86" y="52" width="8" height="22" rx="3" fill="#2a1e18"/></g><g class="sc-legs-b"><rect x="38" y="52" width="8" height="22" rx="3" fill="#221812"/><rect x="74" y="52" width="8" height="22" rx="3" fill="#221812"/></g>
+      <path d="M96 18 l4 -10 l6 10Z" fill="#2a1e18"/><circle cx="108" cy="28" r="2" fill="#ffd27a"/><ellipse cx="122" cy="40" rx="6" ry="5" fill="#5a4038"/><path d="M114 44 q6 -2 6 -10" stroke="#f2ead6" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+    const STOMPER = `<svg viewBox="0 0 120 150" width="0.8em" height="1em" overflow="visible">
+      <path d="M40 32 Q60 26 80 32 L78 76 H42Z" fill="#f2ead6"/><path d="M40 32 L36 76 M80 32 L84 76" stroke="#5a7aaa" stroke-width="4"/>
+      <path d="M42 40 Q20 30 16 8" stroke="#f2ead6" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M78 40 Q100 30 104 8" stroke="#f2ead6" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="16" cy="6" r="6" fill="#ecc4a0"/><circle cx="104" cy="6" r="6" fill="#ecc4a0"/>
+      <circle cx="60" cy="16" r="13" fill="#ecc4a0"/><path d="M47 12 Q50 0 60 0 Q72 0 74 12 Q66 6 60 8 Q52 6 47 12Z" fill="#3a2418"/><path d="M52 22 q8 6 16 0" stroke="#a04040" stroke-width="2" fill="none"/><circle cx="55" cy="15" r="1.6" fill="#111"/><circle cx="65" cy="15" r="1.6" fill="#111"/>
+      <g class="sc-vy-stompL"><path d="M48 76 L46 108" stroke="#5a7aaa" stroke-width="12" stroke-linecap="round"/><path d="M46 106 L44 120" stroke="#ecc4a0" stroke-width="9" stroke-linecap="round"/><path d="M44 116 L42 124" stroke="#6a2a6a" stroke-width="9" stroke-linecap="round"/></g>
+      <g class="sc-vy-stompR"><path d="M72 76 L74 108" stroke="#5a7aaa" stroke-width="12" stroke-linecap="round"/><path d="M74 106 L76 120" stroke="#ecc4a0" stroke-width="9" stroke-linecap="round"/><path d="M76 116 L78 124" stroke="#6a2a6a" stroke-width="9" stroke-linecap="round"/></g>
+      <path d="M14 112 Q60 104 106 112 L100 150 H20Z" fill="#8a5a2e"/><ellipse cx="60" cy="112" rx="46" ry="8" fill="#5a1a4a"/>${[[30, 110], [44, 108], [78, 108], [90, 111], [60, 107]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#7a2a8a"/>`).join('')}
+      <path d="M16 124 Q60 116 104 124 M18 138 Q60 130 102 138" stroke="#3a3a3a" stroke-width="4" fill="none"/></svg>`;
+    const ACCORDION = `<svg viewBox="0 0 110 160" width="0.69em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M42 106 h12 l-1 46 h-10Z" fill="#2a2a3a"/><path d="M40 150 h15 v7 h-17Z" fill="#141010"/></g><g class="sc-legs-f"><path d="M58 106 h12 l1 46 h-10Z" fill="#33334a"/><path d="M58 150 h15 v7 h-17Z" fill="#141010"/></g>
+      <path d="M38 48 Q56 42 74 48 L76 108 H36Z" fill="#f2ead6"/><path d="M40 48 L56 64 L72 48" stroke="#c0392b" stroke-width="5" fill="none"/><rect x="36" y="100" width="40" height="8" fill="#2a2a3a"/>
+      <g class="sc-vy-bellows"><rect x="26" y="62" width="14" height="38" rx="2" fill="#c0392b"/><rect x="72" y="62" width="14" height="38" rx="2" fill="#c0392b"/><path d="M40 62 L44 100 M46 62 L50 100 M52 62 L56 100 M58 62 L62 100 M64 62 L68 100" stroke="#1a1a1a" stroke-width="3"/><path d="M40 62 H72 V100 H40Z" fill="none" stroke="#e8c15a" stroke-width="2"/>
+        ${[68, 74, 80, 86, 92].map((y) => `<rect x="76" y="${y}" width="8" height="3" fill="#f2ead6"/>`).join('')}</g>
+      <circle cx="56" cy="28" r="13" fill="#ecc4a0"/><path d="M44 34 q12 8 24 0" stroke="#3a2418" stroke-width="4" fill="none"/><circle cx="51" cy="26" r="1.6" fill="#111"/><circle cx="61" cy="26" r="1.6" fill="#111"/>
+      <path d="M40 20 Q56 6 72 20 L74 22 H38Z" fill="#e8d098"/><path d="M38 21 H74" stroke="#2a2a3a" stroke-width="3"/><path d="M34 22 H78" stroke="#e8d098" stroke-width="3"/></svg>`;
+    const GRAPES = (c = '#5a2a6a') => `<svg viewBox="0 0 40 70" width="0.57em" height="1em"><path d="M20 0 V12" stroke="#5a3a1e" stroke-width="2.5"/><path d="M20 10 q14 -8 20 2 q-12 6 -20 -2Z" fill="#5f8a2a"/>
+      ${[[20, 18], [12, 18], [28, 18], [16, 26], [24, 26], [8, 26], [32, 26], [12, 34], [20, 34], [28, 34], [16, 42], [24, 42], [20, 50], [12, 50]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5.5" fill="${c}"/><circle cx="${x - 1.6}" cy="${y - 1.6}" r="1.6" fill="#fff" opacity="0.35"/>`).join('')}</svg>`;
+    const GLASS = `<svg viewBox="0 0 40 90" width="0.444em" height="1em"><path d="M6 4 Q4 40 20 46 Q36 40 34 4Z" fill="rgba(240,248,255,0.35)" stroke="#e8f0f4" stroke-width="2"/><path d="M7 22 Q8 42 20 44 Q32 42 33 22Z" fill="#8a1424"/><path d="M20 46 V82 M8 86 Q20 80 32 86" stroke="#e8f0f4" stroke-width="3" fill="none"/></svg>`;
+    const nonna = (line, sunset) => {
+      const d = el(NONNA, { left: '0', top: '66vh', fontSize: `${0.28 * innerHeight}px` }, 22000);
+      d.classList.add('sc-vy-walker', 'slow', 'sc-face-l');
+      d.animate([{ transform: 'translateX(104vw)' }, { transform: 'translateX(82vw)', offset: 0.22 }, { transform: 'translateX(82vw)', offset: 0.45 }, { transform: 'translateX(-12vw)' }], { duration: 21000, fill: 'forwards' });
+      later(() => d.classList.add('stop'), 4600);
+      later(() => say(line || pick(sunset ? ['Mangia! It’s getting late.', 'Who wants more pasta?', 'Che bella serata!'] : ['Mangia, mangia!', 'You’re too thin. Eat!', 'These grapes, from my own vines!', 'Another glass? Of course.']), 82, 69, 'vy r'), 5000);
+      later(() => d.classList.remove('stop'), 9400);
+    };
+    const vespa = () => { const right = Math.random() < 0.5; drift(VESPA, { from: [right ? -16 : 104, 74], to: [right ? 106 : -16, 74], dur: 4.2, size: 0.2 * innerHeight / 0.706 }).classList.add('sc-vy-vespa', 'blk', right ? 'sc-face-r' : 'sc-face-l'); cue('vespa'); };
+    const stomp = () => {
+      el(STOMPER, { left: '78vw', bottom: '9vh', fontSize: '24vh' }, 8000).classList.add('sc-vy-stomp', 'blk');
+      for (let i = 0; i < 5; i++) later(() => burst(['●', '•', '●'], { x: 84, y: 82, n: 10, spread: 5, size: [6, 14], colors: ['#6a1a5a', '#8a2a7a', '#4a1040'], rise: [-14, -5], fall: [2, 12] }), 1400 + i * 900);
+      cue('splash', 1500); cue('splash', 3300);
+    };
+    const accordion = () => {
+      const right = Math.random() < 0.5;
+      const d = drift(ACCORDION, { from: [right ? -10 : 104, 67], to: [right ? 104 : -10, 67], dur: 19, size: 0.28 * innerHeight });
+      d.classList.add('sc-vy-walker', right ? 'sc-face-r' : 'sc-face-l');
+      shower(12, 0.7, () => { const r = d.getBoundingClientRect(); drift(pick(['♪', '♫', '♬']), { from: [((r.left + r.width / 2) / innerWidth) * 100, ((r.top + r.height * 0.3) / innerHeight) * 100], to: [((r.left + r.width / 2) / innerWidth) * 100 + rand(-6, 6), rand(30, 50)], dur: rand(3, 5), size: rand(24, 32), opacity: 0.85, extra: { color: '#7a1f2b' } }); });
+    };
+    const clink = () => {
+      el(GLASS, { left: '74vw', bottom: '-2vh', fontSize: '18vh', '--r': '16deg' }, 3200).classList.add('sc-bh-up', 'blk');
+      el(GLASS, { left: '80vw', bottom: '-2vh', fontSize: '18vh', '--r': '-16deg', animationDelay: '0.1s' }, 3200).classList.add('sc-bh-up', 'blk');
+      cue('clink', 1100);
+      later(() => burst(['✨', '•'], { x: 79, y: 74, n: 8, spread: 4, size: [10, 16], colors: ['#ffe8a0', '#ffffff'], rise: [-8, -2], fall: [0, 6] }), 1100);
+    };
+    function vineyardScene(sunset) {
+      const watch = watchRoom({
+        drink: (list) => { say(pick([`Salute, ${who(list)}!`, `Cin cin, ${who(list)}!`, `Alla salute, ${who(list)}!`]), 84, 62, 'vy r'); clink(); },
+        finish: (p) => { inFront(`<b>Alla goccia!</b><small>${esc(p.name)}</small>`, { left: '0', right: '26vw', top: '28vh' }, 3400).classList.add('sc-quote', 'sc-vy-shout'); clink(); stomp(); cue('cheer', 600); },
+        end: () => {
+          cue('pop');
+          burst(['🍾', '✨', '🎉', '🍇'], { x: 36, y: 40, n: 26, spread: 30 });
+          inFront('<b>Bravi!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-quote', 'sc-vy-shout');
+          later(() => nonna(pick(['Bravi, bravi! Now eat.', 'Champions! More wine!', 'Who won? Everybody eats.']), sunset), 1200);
+          later(accordion, 3000);
+        },
+      });
+      return {
+        decor() {
+          watch(null);
+          // Bunches hanging from the pergola, swaying (by the heading's left and in the gap).
+          for (const [x, s, d] of [[4, 9, 0], [9.5, 7, -1.3], [66, 10, -0.6], [70.5, 7.5, -2]]) el(GRAPES(pick(['#5a2a6a', '#4a2a6a', '#6a2a5a'])), { left: `${x}vw`, top: '6vh', fontSize: `${s}vh`, animationDelay: `${d}s` }).classList.add('sc-vy-bunch', 'blk');
+          if (sunset) for (let i = 0; i < 8; i++) el('', { left: `${rand(0, 100)}vw`, top: `${rand(40, 85)}vh`, animation: `sc-fly ${rand(4, 7).toFixed(1)}s ease-in-out -${rand(0, 6).toFixed(1)}s infinite alternate`, '--sx': `${rand(-10, 10)}vw`, '--sy': `${rand(-8, 8)}vh` }).classList.add('sc-firefly');
+          else for (let i = 0; i < 2; i++) el('<span>🦋</span>', { left: `${[3, 68][i]}vw`, top: `${[52, 62][i]}vh`, fontSize: '26px', animationDelay: `-${i * 3}s` }).classList.add('sc-vy-butterfly');
+        },
+        update: (s) => watch(s),
+        moments: [
+          () => nonna(null, sunset),
+          vespa,
+          stomp,
+          accordion,
+          () => flock(SWALLOW, sunset ? { n: [7, 11] } : {}),
+          () => { const right = Math.random() < 0.5; drift(BOAR, { from: [right ? -12 : 104, 80], to: [right ? 104 : -12, 80], dur: 7, size: 0.16 * innerHeight / 0.615 }).classList.add('sc-vy-boar', 'blk', right ? 'sc-face-r' : 'sc-face-l'); cue('thud', 200); cue('thud', 900); },
+          clink,
+          () => { burst(['🍷', '✨', '🍇'], { x: 4, y: 82, n: 14, spread: 10, size: [18, 28] }); cue('clink'); },
+          () => { const x = rand(3, 12); drift(GRAPES(), { from: [x, 8], to: [x, 92], dur: 1.2, size: 50, spin: 90, extra: { animationTimingFunction: 'ease-in' } }).classList.add('blk'); cue('thud', 1200); },
+          ...(sunset
+            ? [fireflies, () => popup('🦉', { x: 2, bottom: 2, size: 60, life: 5000 }), () => { for (let i = 0; i < 2; i++) later(() => el('', { left: `${rand(10, 60)}vw`, top: `${rand(3, 12)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 800); }]
+            : [() => flutter('🦋', 2), () => flutter('🐝', 1), () => crossing('🐕', { y: 92, dur: 8, size: 50 })]),
+        ],
+      };
+    }
+    SCENES.vineyard = vineyardScene(false);
+    SCENES.vineyardSunset = vineyardScene(true);
+
+    SCENES.lighthouse = lighthouseScene('night');
+    SCENES.lighthouseDay = lighthouseScene('day');
+    SCENES.lighthouseFog = lighthouseScene('fog');
+    SCENES.storm = lighthouseScene('storm');
+  }
+
+  // ---------- The five regular rooms: dive, tavern, club, castle, jazz ----------
+  // Their background art is drawn whole (diveBar, tavernInn, clubFloor, greatHall and jazzStage in
+  // lib/roomStyles.js); what moves is laid over it here, found by its place in the art's 1600 x 900.
+  // Each room has its people (the barman, the barmaid, the DJ, the king, the band) busy all the
+  // time, its lights and fires alive, moments every so often, and an eye on the game: someone
+  // drinking, and the game won.
+  {
+    // Where a point of the art is on screen, in vw/vh (the art covers the screen, centred on the
+    // room's `focus` across: see roomStyles.js), and an art length in px.
+    const scale5 = () => Math.max(innerWidth / 1600, innerHeight / 900);
+    const at5 = (x, y) => {
+      const s = scale5();
+      const f = window.ROOM_STYLES?.STYLES?.[current]?.focus ?? 0.5;
+      return [(((innerWidth - 1600 * s) * f + x * s) / innerWidth) * 100, (((innerHeight - 900 * s) / 2 + y * s) / innerHeight) * 100];
+    };
+    const px5 = (n) => n * scale5();
+    // Something put on the art: its top left at (x, y), `w` wide (its drawing is 1em wide).
+    const put = (html, x, y, w, cls = [], life = 0, extra = {}) => {
+      const [l, t] = at5(x, y);
+      const d = el(html, { left: `${l}vw`, top: `${t}vh`, fontSize: `${px5(w)}px`, ...extra }, life);
+      d.classList.add('blk', ...cls);
+      return d;
+    };
+    // A soft light (over a sign, a fire, a candle), centred on (x, y).
+    const light = (x, y, w, h, color, cls = [], life = 0) => {
+      const [l, t] = at5(x - w / 2, y - h / 2);
+      const d = el('', { left: `${l}vw`, top: `${t}vh`, width: `${px5(w)}px`, height: `${px5(h)}px`, background: `radial-gradient(closest-side, ${color}, transparent)` }, life);
+      d.classList.add('sc5-light', ...cls);
+      return d;
+    };
+    // A flame standing on (x, y), `h` tall.
+    const flame = (x, y, h, cls = []) => {
+      const [l, t] = at5(x, y);
+      const d = el('', { left: `${l}vw`, top: `${t}vh`, width: `${px5(h * 0.62)}px`, height: `${px5(h)}px`, marginLeft: `${-px5(h * 0.31)}px`, marginTop: `${-px5(h)}px`, animationDelay: `-${rand(0, 1).toFixed(2)}s` });
+      d.classList.add('sc-flame', 'sc5-flame', ...cls);
+      return d;
+    };
+    // Someone walking across the floor (drawn facing right), `h` px tall, feet at `y` vh.
+    const walk = (svg, { h, y = 99, dur, cls = [], right = Math.random() < 0.5 }) => {
+      const w = ((h * 0.43) / innerWidth) * 100;
+      const top = y - (h / innerHeight) * 100;
+      const d = drift(svg, { from: [right ? -w - 2 : 102, top], to: [right ? 102 : -w - 2, top], dur, size: h });
+      d.classList.add('blk', 'sc5-walk', ...cls, right ? 'sc-face-r' : 'sc-face-l');
+      return d;
+    };
+    // Words over the table, in the room's own lettering.
+    const quote5 = (text, cls, top = '30vh', life = 3000) => inFront(`<b>${text}</b>`, { left: '0', right: '26vw', top }, life).classList.add('sc-quote', 'sc5-say', cls);
+
+    // A person, simply drawn, facing right (60 x 140): legs that stride, a back arm, the body,
+    // the front arm (holding something), the head; `dress` for a skirt to the ankle.
+    const FOLK = ({ skin = '#e2b48a', hair = '#3a2414', top = '#7a2a1a', bottom = '#2a2a3a', shoes = '#1a1410', hat = '', hold = '', dress = false, arm = 'M34 46 Q44 62 46 76', back = 'M26 46 Q20 64 22 80' } = {}) => `<svg viewBox="0 0 60 140" width="0.43em" height="1em" overflow="visible">
+      ${dress ? `<g class="sc-legs-b"><path d="M27 108 V134" stroke="${skin}" stroke-width="5"/><path d="M23 135 h8" stroke="${shoes}" stroke-width="5" stroke-linecap="round"/></g><g class="sc-legs-f"><path d="M33 108 V134" stroke="${skin}" stroke-width="5"/><path d="M31 135 h8" stroke="${shoes}" stroke-width="5" stroke-linecap="round"/></g>`
+        : `<g class="sc-legs-b"><path d="M26 92 L25 130" stroke="${bottom}" stroke-width="10" stroke-linecap="round"/><path d="M22 134 h11" stroke="${shoes}" stroke-width="6" stroke-linecap="round"/></g><g class="sc-legs-f"><path d="M34 92 L35 130" stroke="${bottom}" stroke-width="10" stroke-linecap="round"/><path d="M32 134 h11" stroke="${shoes}" stroke-width="6" stroke-linecap="round"/></g>`}
+      <path d="${back}" stroke="${top}" stroke-width="7" fill="none" stroke-linecap="round"/>
+      ${dress ? `<path d="M21 44 Q30 38 39 44 L50 112 Q30 118 10 112Z" fill="${top}"/>` : `<path d="M20 44 Q30 38 40 44 L42 96 H18Z" fill="${top}"/>`}
+      <g class="sc5-arm"><path d="${arm}" stroke="${top}" stroke-width="7" fill="none" stroke-linecap="round"/>${hold}</g>
+      <rect x="27" y="34" width="7" height="8" fill="${skin}"/><circle cx="31" cy="26" r="11" fill="${skin}"/><path d="M20 26 Q20 12 31 12 Q42 12 42 22 Q34 18 26 22 Q24 28 20 26Z" fill="${hair}"/><circle cx="37" cy="25" r="1.4" fill="#1a1010"/>
+      ${hat}</svg>`;
+
+    // What the people here do when the game does something: someone drinks, the game's won. Each
+    // room says what (`on.drink(who)`, `on.over(winner's name or null)`).
+    let seen5 = null;
+    let lastDrink5 = 0;
+    const watch5 = (s, on) => {
+      const now = { no: s?.gameNo, phase: s?.phase, drinks: Object.fromEntries((s?.players || []).map((p) => [p.id, p.drinks || 0])) };
+      const was = seen5;
+      seen5 = now;
+      // The first look (the TV just came on, or a new game): nothing to react to yet.
+      if (!s || !was || was.no !== now.no) return;
+      const who = (s.players || []).filter((p) => now.drinks[p.id] > (was.drinks[p.id] ?? Infinity)).map((p) => ({ name: esc(p.name), n: now.drinks[p.id] - was.drinks[p.id] }));
+      if (who.length && Date.now() - lastDrink5 > 2500) {
+        lastDrink5 = Date.now();
+        on.drink?.(who);
+      }
+      if (now.phase === 'over' && was.phase !== 'over') {
+        const w = s.game?.winnerId ?? s.game?.winner;
+        const p = s.players?.find((x) => x.id === w);
+        on.over?.(p ? esc(p.name) : null);
+      }
+    };
+    const sips = (who) => who.slice(0, 3).map((w) => `${w.name} +${w.n}`).join(' · ') + (who.length > 3 ? ' …' : '');
+
+    // ----- The dive bar -----
+    // The barman behind the bar (from the waist up, cut off where the bar is), polishing a glass.
+    const BARMAN = `<svg viewBox="0 0 90 120" width="1em" height="1.33em" overflow="visible">
+      <path d="M14 120 Q12 70 28 58 Q45 50 62 58 Q78 70 76 120Z" fill="#e8e4dc"/><path d="M30 60 L45 120 L60 60" fill="#1a1a1e"/><path d="M28 58 q-4 30 2 62 M62 58 q4 30 -2 62" stroke="#1a1a1e" stroke-width="5" fill="none"/>
+      <path d="M60 58 q10 6 10 26 l-8 2 q0 -18 -6 -24Z" fill="#c8b8a0"/>
+      <g class="sc5-polish"><path d="M26 66 Q14 86 30 96 L46 92" stroke="#e8e4dc" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M42 84 l3 -16 h14 l3 16Z" fill="#cfe6ee" opacity="0.7"/><path d="M40 86 q10 6 22 -2 l-2 10 q-10 4 -18 -2Z" fill="#f4f0e8"/></g>
+      <rect x="39" y="44" width="12" height="12" fill="#d8a078"/><ellipse cx="45" cy="32" rx="15" ry="17" fill="#e0a882"/><path d="M30 30 Q30 14 45 14 Q60 14 60 30 Q58 22 45 22 Q32 22 30 30Z" fill="#c89070"/>
+      <path d="M34 38 q11 6 22 0 q-4 8 -11 8 q-7 0 -11 -8Z" fill="#5a3420"/><circle cx="39" cy="30" r="1.8" fill="#1a1010"/><circle cx="51" cy="30" r="1.8" fill="#1a1010"/><path d="M36 25 h6 M48 25 h6" stroke="#5a3420" stroke-width="2"/></svg>`;
+    const PINT = `<svg viewBox="0 0 30 40" width="1em" height="1.33em"><path d="M4 6 L8 38 H22 L26 6Z" fill="rgba(255,190,70,0.9)" stroke="#fff8e0" stroke-width="1.5"/><path d="M3 4 Q15 -2 27 4 V9 H3Z" fill="#fffaf0"/><path d="M9 12 v20" stroke="#fff" stroke-width="2" opacity="0.5"/></svg>`;
+    // A regular, weaving his way to the bathroom out back.
+    const DRUNK = FOLK({ top: '#4a5a3a', bottom: '#3a3028', hair: '#7a5a3a', hold: '<path d="M46 76 l2 -14 h6 l2 14Z" fill="#6a3a1a"/>', hat: '<path d="M18 16 Q31 4 44 16 L46 20 H16Z" fill="#2a4a6a"/>' });
+    // Where the bulbs are on the string of lights along the ceiling (see diveBar).
+    const BULBS = [];
+    for (let i = 0; i < 4; i++) for (let k = 1; k < 8; k++) { const t = k / 8; BULBS.push([i * 400 + t * 400, 99 + 4 * t * (1 - t) * 58]); }
+    // Chalked up on the scoreboard under the dartboard.
+    const chalk = (text) => { const d = put(`<b>${text}</b>`, 24, 486, 126, ['sc5-chalk'], 6500); d.style.width = `${px5(126)}px`; d.style.height = `${px5(94)}px`; };
+    // The BEER sign sputters out; the barman thumps the wall and it comes back on.
+    const sputter = () => { put('', 22, 152, 166, ['sc5-sputter'], 2600, { width: `${px5(166)}px`, height: `${px5(76)}px` }); cue('thud', 2200); };
+    const slidePint = (to = 1440) => {
+      const [x0, y] = at5(1084, 668);
+      const [x1] = at5(to, 668);
+      el(PINT, { left: `${x0}vw`, top: `${y}vh`, fontSize: `${px5(24)}px`, '--dx': `${x1 - x0}vw`, animation: 'sc-slide 3.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards' }, 3800).classList.add('blk');
+      cue('slide', 100);
+    };
+    const pour = () => {
+      const b = layer.querySelector('.sc5-barman');
+      b?.classList.add('pour');
+      later(() => b?.classList.remove('pour'), 1600);
+      later(() => slidePint(), 900);
+    };
+    SCENES.dive = {
+      decor() {
+        seen5 = null;
+        light(105, 190, 260, 150, 'rgba(255, 154, 42, 0.32)', ['sc5-buzz']);
+        light(1100, 312, 220, 340, 'rgba(255, 58, 36, 0.3)', ['sc5-buzz', 'b']);
+        // The fan's blades going round (the art has them as a blur).
+        put(`<svg viewBox="-160 -20 320 40" width="1em" height="0.125em"><g transform="scale(1 0.14)"><g class="sc-blades">${[0, 72, 144, 216, 288].map((a) => `<path transform="rotate(${a})" d="M14 -10 L150 -18 Q158 0 150 18 L14 10Z" fill="#3a2a20" stroke="#1a120c" stroke-width="6"/>`).join('')}</g></g></svg>`, 650, 106, 300, ['sc-fan', 'sc5-fan']);
+        // Some of the lights twinkling (a dead one too, now and then).
+        BULBS.forEach(([x, y], i) => { if (i % 3 === 0) light(x, y, 36, 36, pick(['rgba(255,74,74,0.7)', 'rgba(255,210,63,0.7)', 'rgba(74,212,255,0.7)', 'rgba(255,138,216,0.7)']), ['sc5-twinkle']).style.animationDelay = `-${rand(0, 6).toFixed(1)}s`; });
+        // The jukebox's lights going round.
+        light(84, 690, 170, 130, 'rgba(255, 74, 200, 0.4)', ['sc5-juke']);
+        light(84, 690, 170, 130, 'rgba(74, 212, 255, 0.35)', ['sc5-juke', 'b']);
+        put(BARMAN, 984, 578, 90, ['sc5-barman']);
+        put('<b>z</b><b>z</b><b>z</b>', 1520, 610, 40, ['sc5-zzz']);
+        el('', { left: '-20vw', top: '8vh', width: '140vw', height: '50vh' }).classList.add('sc5-haze');
+      },
+      update: (s) => watch5(s, {
+        drink: (who) => { pour(); chalk(sips(who)); },
+        over: (name) => { cue('clink'); cue('cheer', 300); slidePint(1300); later(() => slidePint(1460), 700); quote5(name ? `Next round’s on ${name}!` : 'Another round!', 'dive'); },
+      }),
+      moments: [
+        // A dart flies in and sticks in the board; the score's chalked up.
+        () => {
+          const [x, y] = at5(70, 380);
+          el(DART, { left: '-12vw', top: `${y}vh`, fontSize: `${px5(60)}px`, '--dx': `${x + 12}vw`, '--dy': '0vh', '--spin': '0deg', animation: 'sc-drift 0.45s ease-out forwards' }, 7000);
+          cue('thud', 450);
+          later(() => chalk(pick(['60!', '26…', 'BULL!', '180?!', 'T20'])), 900);
+        },
+        sputter,
+        // The barman pulls a pint and slides it down the bar.
+        pour,
+        () => { const right = Math.random() < 0.5; drift(MOUSE, { from: [right ? -6 : 104, 95], to: [right ? 104 : -6, 95], dur: rand(3, 4.5), size: 50 }).classList.add('sc-mouse', right ? 'sc-face-r' : 'sc-face-l'); },
+        // A fly bothers the regular asleep at the end of the bar.
+        () => { const [x, y] = at5(1440, 640); el(FLY, { left: `${x}vw`, top: `${y}vh`, fontSize: '16px' }, 9000).classList.add('sc-fly'); },
+        // The jukebox kicks in: notes, its lights going faster.
+        () => { const [x, y] = at5(84, 640); notes(x, y, '#ff8ad8', 7); layer.querySelectorAll('.sc5-juke').forEach((j) => { j.classList.add('loud'); later(() => j.classList.remove('loud'), 8000); }); cue('chord'); },
+        () => walk(DRUNK, { h: px5(170), y: 99.5, dur: rand(14, 18), cls: ['sc5-drunk'] }),
+        () => { slide('🍺', { y: 91, size: 48 }); cue('slide', 200); },
+        () => crossing('🎱', { y: 94, dur: 3.5, size: 34, bob: false, cls: ['roll'] }),
+        () => popup('🪳', { x: rand(2, 8), bottom: 1, size: 34, life: 3500 }),
+      ],
+    };
+
+    // ----- The tavern -----
+    // The barmaid behind the counter, wiping a tankard.
+    const BARMAID = `<svg viewBox="0 0 90 120" width="1em" height="1.33em" overflow="visible">
+      <path d="M14 120 Q14 72 28 62 Q45 54 62 62 Q76 72 76 120Z" fill="#f0e4c8"/><path d="M26 76 Q45 70 64 76 L68 120 H22Z" fill="#6a2a1a"/><path d="M34 78 L56 100 M56 78 L34 100" stroke="#e8c070" stroke-width="2"/>
+      <g class="sc5-wipe"><path d="M64 70 Q78 84 66 96 L52 94" stroke="#f0e4c8" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M36 100 v-22 h18 v22Z" fill="#a8a8ae"/><path d="M54 82 q8 0 8 8 q0 8 -8 8" stroke="#8a8a90" stroke-width="3" fill="none"/><path d="M40 94 q12 -6 22 4 l-4 8 q-10 -6 -18 -4Z" fill="#e8dcc0"/></g>
+      <rect x="39" y="46" width="12" height="12" fill="#f0c8a0"/><ellipse cx="45" cy="34" rx="14" ry="16" fill="#f0c8a0"/><path d="M30 34 Q28 14 45 14 Q62 14 60 34 Q66 52 58 62 Q60 40 54 26 Q44 32 36 26 Q30 40 32 62 Q24 50 30 34Z" fill="#a0441a"/>
+      <path d="M30 22 Q45 8 60 22 Q45 18 30 22Z" fill="#e8dcc0"/><circle cx="40" cy="34" r="1.7" fill="#1a1010"/><circle cx="50" cy="34" r="1.7" fill="#1a1010"/><path d="M41 41 q4 3 8 0" stroke="#a04040" stroke-width="1.5" fill="none"/><circle cx="37" cy="39" r="3" fill="#e89a8a" opacity="0.5"/><circle cx="53" cy="39" r="3" fill="#e89a8a" opacity="0.5"/></svg>`;
+    // The bard: feathered cap, a lute.
+    const LUTE = '<path d="M40 70 L66 54" stroke="#5a3418" stroke-width="3"/><ellipse cx="40" cy="74" rx="10" ry="8" transform="rotate(-30 40 74)" fill="#c08040" stroke="#5a3418" stroke-width="1.5"/><circle cx="40" cy="74" r="2.5" fill="#3a2010"/>';
+    const BARD = FOLK({ top: '#2a6a4a', bottom: '#8a2a2a', hair: '#c88a3a', arm: 'M34 46 Q42 60 40 70', hold: LUTE, hat: '<path d="M18 18 Q31 6 44 16 L46 20 H16Z" fill="#8a2a2a"/><path d="M42 14 Q56 0 50 -6 Q48 8 40 14Z" fill="#f0e4c8"/>' });
+    const SERVING = FOLK({ dress: true, top: '#6a2a1a', skin: '#f0c8a0', hair: '#a0441a', arm: 'M34 46 Q46 56 52 52', hold: '<path d="M46 52 v-12 h10 v12Z M58 52 v-12 h10 v12Z M52 40 v-12 h10 v12Z" fill="#a8a8ae" stroke="#6a6a70"/><path d="M46 40 h10 M58 40 h10 M52 28 h10" stroke="#fffaf0" stroke-width="3"/>' });
+    const OWL = `<svg viewBox="0 0 40 50" width="1em" height="1.25em"><path d="M8 50 Q2 30 8 16 L6 4 L14 12 Q20 8 26 12 L34 4 L32 16 Q38 30 32 50Z" fill="#0c0a10"/>
+      <g class="sc5-blink"><circle cx="15" cy="22" r="5" fill="#ffd23f"/><circle cx="25" cy="22" r="5" fill="#ffd23f"/><circle cx="15" cy="22" r="2" fill="#120a00"/><circle cx="25" cy="22" r="2" fill="#120a00"/></g><path d="M18 28 l2 4 l2 -4Z" fill="#c8902a"/></svg>`;
+    // A log settles in the fire: a shower of sparks, the room lit up a moment.
+    const hearthFlare = () => {
+      cue('thud');
+      const [x, y] = at5(136, 800);
+      burst(['•', '●', '•'], { x, y, n: 18, spread: 5, size: [4, 9], colors: ['#ffd23f', '#ff8a1a', '#fff0a8'], rise: [-30, -12], fall: [-20, -4] });
+      light(136, 760, 420, 420, 'rgba(255, 140, 40, 0.35)', ['sc5-flash'], 1600);
+    };
+    SCENES.tavern = {
+      decor() {
+        seen5 = null;
+        el(LANTERN, { left: '3vw', top: '9vh', fontSize: '70px' }).classList.add('sc-lantern');
+        el(LANTERN, { left: '30vw', top: '6vh', fontSize: '56px', animationDelay: '-1.4s' }).classList.add('sc-lantern');
+        // The fire: flames dancing in the hearth, its light on the room.
+        light(136, 700, 520, 520, 'rgba(255, 130, 40, 0.28)', ['sc5-fireglow']);
+        flame(100, 850, 120);
+        flame(140, 850, 170, ['b']);
+        flame(178, 850, 110);
+        // The chandelier's candles, and the one in the window.
+        [-100, -60, -20, 20, 60, 100].forEach((d) => flame(800 + d, 110 + Math.abs(d) / 12, 16, ['small']));
+        flame(1146, 424, 14, ['small']);
+        // Steam off the pot.
+        for (let i = 0; i < 3; i++) put('', 130 + i * 14, 610, 30, ['sc5-steam'], 0, { width: `${px5(30)}px`, height: `${px5(30)}px`, animationDelay: `-${i * 1.3}s` });
+        put(BARMAID, 1030, 688, 90, ['sc5-barmaid']);
+      },
+      update: (s) => watch5(s, {
+        drink: (who) => {
+          const b = layer.querySelector('.sc5-barmaid');
+          b?.classList.add('cheers');
+          later(() => b?.classList.remove('cheers'), 1800);
+          cue('clink', 300);
+          quote5(`Huzzah! ${sips(who)}`, 'tavern', '22vh', 2600);
+        },
+        over: (name) => { cue('cheer'); cue('clink', 300); notes(...at5(1100, 760), '#e3b23c', 5); burst(['🍺', '🍻', '✨'], { x: 36, y: 40, n: 18, spread: 26 }); quote5(name ? `A toast to ${name}!` : 'A toast!', 'tavern'); },
+      }),
+      moments: [
+        () => embers(6, () => { const [x, y] = at5(136, 780); return [x + rand(-3, 3), y]; }),
+        hearthFlare,
+        // The bard strolls through, playing.
+        () => {
+          const d = walk(BARD, { h: px5(160), y: 99.5, dur: 18 });
+          cue('harp', 600);
+          shower(14, 1.1, () => { const r = d.getBoundingClientRect(); const x = ((r.left + r.width / 2) / innerWidth) * 100; const y = (r.top / innerHeight) * 100; drift(pick(['♪', '♫']), { from: [x, y], to: [x + rand(-4, 4), y - 20], dur: 4, size: 24, opacity: 0.8, extra: { color: '#e3b23c' } }); });
+        },
+        // Another barmaid carries a tray of tankards across.
+        () => { walk(SERVING, { h: px5(160), y: 99.5, dur: 13 }); cue('clink', 1500); },
+        // The tavern cat goes for a stroll.
+        () => { const right = Math.random() < 0.5; drift(CAT, { from: [right ? -10 : 108, 90], to: [right ? 108 : -10, 90], dur: rand(14, 18), size: rand(70, 90) }).classList.add('sc-cat', right ? 'sc-face-r' : 'sc-face-l'); cue('meow', rand(3000, 6000)); },
+        // An owl on the window sill, blinking in.
+        () => put(OWL, 1062, 236, 34, ['sc5-owl'], 7000),
+        () => notes(4, 80, '#e3b23c'),
+        () => { slide('🍺', { y: 91, size: 50 }); cue('slide', 200); },
+        () => { for (let i = 0; i < 2; i++) crossing('🎲', { y: 94 - i * 2, dur: 2.6 + i * 0.4, size: 32, bob: false, cls: ['roll'] }); cue('dice', 300); },
+        // The dog, asleep on the rug by the fire.
+        () => { const [x] = at5(360, 0); el('<span>🐕</span><b>z</b><b>z</b><b>z</b>', { left: `${x}vw`, bottom: '0.5vh', fontSize: '56px' }, 9000).classList.add('sc-sleeper'); },
+      ],
+    };
+
+    // ----- The club -----
+    // The DJ behind the decks: cap on backwards, headphones, a hand on the deck, nodding along.
+    const DJ = `<svg viewBox="0 0 110 110" width="1em" height="1em" overflow="visible">
+      <path d="M22 110 Q20 66 38 56 Q55 50 72 56 Q90 66 88 110Z" fill="#1a1a2a"/><path d="M40 70 h30 v20 h-30Z" fill="#ff2bd6" opacity="0.8"/><path d="M48 76 l7 8 l7 -8" stroke="#1a1a2a" stroke-width="3" fill="none"/>
+      <g class="sc5-djarm l"><path d="M34 62 Q18 84 30 104" stroke="#1a1a2a" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="31" cy="104" r="6" fill="#c8906a"/></g>
+      <g class="sc5-djarm r"><path d="M76 62 Q92 84 80 104" stroke="#1a1a2a" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="79" cy="104" r="6" fill="#c8906a"/></g>
+      <g class="sc5-nod"><rect x="49" y="42" width="12" height="12" fill="#b07a58"/><ellipse cx="55" cy="32" rx="15" ry="17" fill="#c8906a"/><path d="M40 28 Q40 12 55 12 Q70 12 70 28Z" fill="#29f0ff"/><path d="M38 28 h-8 v-5 h10Z" fill="#29f0ff"/>
+        <path d="M38 32 Q38 6 55 6 Q72 6 72 32" stroke="#2a2a34" stroke-width="4" fill="none"/><rect x="33" y="27" width="9" height="15" rx="4" fill="#2a2a34"/><rect x="68" y="27" width="9" height="15" rx="4" fill="#2a2a34"/>
+        <path d="M46 34 h7 M57 34 h7" stroke="#111" stroke-width="3"/><path d="M50 42 q5 3 10 0" stroke="#5a2a1a" stroke-width="1.5" fill="none"/></g></svg>`;
+    // The crowd on the dance floor, heads and shoulders, a few hands up, bouncing to the beat.
+    const CROWD = (() => {
+      let s = '';
+      for (let i = 0; i < 14; i++) {
+        const x = 30 + i * 62 + (i % 2) * 14;
+        const h = 60 + ((i * 37) % 30);
+        const up = i % 4 === 1;
+        s += `<g class="sc5-bob" style="animation-delay:-${((i * 0.13) % 0.47).toFixed(2)}s"><path d="M${x - 24} 160 Q${x - 26} ${160 - h + 22} ${x} ${160 - h + 18} Q${x + 26} ${160 - h + 22} ${x + 24} 160Z" fill="#05040a"/><circle cx="${x}" cy="${160 - h}" r="14" fill="#05040a"/>${up ? `<path d="M${x - 16} ${190 - h} L${x - 26} ${110 - h} M${x + 16} ${190 - h} L${x + 28} ${112 - h}" stroke="#05040a" stroke-width="9" stroke-linecap="round"/>` : ''}</g>`;
+      }
+      return `<svg viewBox="0 0 900 160" width="1em" height="0.178em" overflow="visible">${s}</svg>`;
+    })();
+    const BOTTLE_GIRL = FOLK({ dress: true, top: '#0e0e14', skin: '#d8a078', hair: '#1a1010', arm: 'M34 46 Q44 34 46 18', hold: '<path d="M42 20 l2 -14 h4 l2 14 v10 h-8Z" fill="#1a3a2a"/><g class="sc5-sparkler"><path d="M46 6 V-6" stroke="#ccc" stroke-width="1.5"/><circle cx="46" cy="-8" r="5" fill="#fff6c0"/></g>' });
+    // The CO2 cannons either side of the booth.
+    const co2 = () => {
+      for (const [x, y] of [[1080, 760], [1500, 560]]) put('', x - 40, y - 340, 80, ['sc5-co2'], 2400, { width: `${px5(80)}px`, height: `${px5(340)}px` });
+      cue('wind');
+    };
+    // The drop: the DJ's hands go up, the airhorn, the crowd jumps.
+    const drop = () => {
+      const dj = layer.querySelector('.sc5-dj');
+      dj?.classList.add('up');
+      later(() => dj?.classList.remove('up'), 3600);
+      cue('airhorn');
+      later(() => { layer.querySelector('.sc5-crowd')?.classList.add('jump'); el('', { inset: '0' }, 1500).classList.add('sc-strobe'); co2(); burst(['🎉', '✨', '🟪', '🟦'], { x: rand(10, 30), y: 12, n: 30, spread: 34 }); }, 900);
+      later(() => layer.querySelector('.sc5-crowd')?.classList.remove('jump'), 4200);
+    };
+    const glowsticks = () => { for (let i = 0; i < 6; i++) later(() => drift('', { from: [rand(2, 30), 98], to: [rand(10, 60), rand(10, 30)], dur: rand(1.6, 2.4), size: 8, spin: rand(-720, 720) }).classList.add('sc-glowstick', pick(['g', 'p', 'b'])), i * 250); };
+    SCENES.club = {
+      gap: [14, 28],
+      decor() {
+        seen5 = null;
+        // The moving heads' beams, swinging through the haze.
+        [[120, '#ff2bd6', 7], [430, '#9b5cff', 9], [1170, '#29f0ff', 8], [1480, '#ff2bd6', 6.5]].forEach(([x, c, dur], i) => {
+          const [l, t] = at5(x, 84);
+          el('', { left: `${l}vw`, top: `${t}vh`, width: `${px5(220)}px`, height: '130vh', marginLeft: `${-px5(110)}px`, background: `linear-gradient(${c}55, ${c}00 85%)`, animationDuration: `${dur}s`, animationDelay: `-${i * 1.7}s` }).classList.add('sc5-beam', i % 2 ? 'r' : 'l');
+        });
+        // The mirror ball's glint, and its sparkles slowly going round the walls.
+        light(800, 104, 50, 50, 'rgba(255,255,255,0.9)', ['sc5-glint']);
+        el('', { left: '0', top: '10vh', width: 'calc(100vw + 960px)', height: '70vh' }).classList.add('sc5-sparkles');
+        // The level meters on the booth, jumping to the beat.
+        for (let c = 0; c < 16; c++) {
+          const [l, t] = at5(1094 + c * 24.5, 784);
+          el('<i></i>', { left: `${l}vw`, top: `${t}vh`, width: `${px5(18)}px`, height: `${px5(108)}px` }).classList.add('sc5-eq');
+          layer.lastElementChild.firstElementChild.style.animationDuration = `${(0.3 + ((c * 7) % 5) * 0.05).toFixed(2)}s`;
+        }
+        // The speakers thumping.
+        for (const [x, y, r] of [[77, 817, 50], [1550, 813, 34]]) light(x, y, r * 2.4, r * 2.4, 'rgba(155, 92, 255, 0.45)', ['sc5-thump']);
+        put(DJ, 1150, 630, 110, ['sc5-dj']);
+        put(CROWD, 150, 742, 900, ['sc5-crowd']);
+      },
+      update: (s) => watch5(s, {
+        drink: (who) => { quote5(`SHOTS! ${sips(who)}`, 'club', '22vh', 2400); cue('pop'); glowsticks(); },
+        over: (name) => { drop(); later(() => quote5(name ? `${name}!!!` : 'WINNER!', 'club'), 900); },
+      }),
+      moments: [
+        // The disco ball drops from the ceiling, spins with lights everywhere, and goes back up.
+        () => {
+          const ball = el('<div class="sc-ball-string"></div><div class="sc-ball"></div>', { left: 'calc(50% - 40px)', top: '0' }, 14000);
+          ball.classList.add('sc-disco');
+          for (let i = 0; i < 10; i++) {
+            el('', {
+              left: `${rand(5, 95)}vw`, top: `${rand(10, 90)}vh`,
+              background: pick(['#ff2bd6', '#29f0ff', '#ffffff', '#9b5cff', '#ffd23f']),
+              animation: `sc-spot ${rand(3, 6)}s ease-in-out ${rand(0.8, 2)}s infinite alternate, sc-fade-out 1s 12.5s forwards`,
+              '--sx': `${rand(-30, 30)}vw`, '--sy': `${rand(-25, 25)}vh`,
+            }, 14000).classList.add('sc-spot');
+          }
+        },
+        // Lasers sweeping the room from the corners.
+        () => {
+          for (let i = 0; i < 6; i++) {
+            const left = i % 2 === 0;
+            el('', { [left ? 'left' : 'right']: '0', bottom: '0', background: pick(['#ff2bd6', '#29f0ff', '#3dff7a']), animationDelay: `${i * 0.25}s`, '--from': `${left ? 12 : -12}deg`, '--to': `${left ? 68 : -68}deg` }, 6000).classList.add('sc-laser', left ? 'l' : 'r');
+          }
+        },
+        drop,
+        () => el(HANDS, { left: '0', bottom: '-2vh', fontSize: '100vw' }, 7000).classList.add('sc-hands', 'blk'),
+        co2,
+        // Bottle service: a bottle with a sparkler in it, carried through the club.
+        () => { walk(BOTTLE_GIRL, { h: px5(170), y: 99.5, dur: 12 }); cue('pop', 400); },
+        () => { burst(['🎉', '✨', '🟪', '🟦', '🟨', '🟩'], { x: rand(10, 30), y: 12, n: 34, spread: 34 }); cue('pop'); },
+        glowsticks,
+      ],
+    };
+
+    // ----- The castle -----
+    // The king on his throne: crown, beard, ermine, his goblet (raised for a toast).
+    const KING = `<svg viewBox="0 0 150 230" width="1em" height="1.53em" overflow="visible">
+      <path d="M38 230 V196 Q40 176 52 170 H98 Q110 176 112 196 V230Z" fill="#7a1020"/><path d="M50 230 V204 M100 230 V204" stroke="#5a0c18" stroke-width="6"/><path d="M44 226 h22 M84 226 h22" stroke="#2a1a10" stroke-width="8" stroke-linecap="round"/>
+      <path d="M36 196 Q32 120 50 100 Q75 88 100 100 Q118 120 114 196Z" fill="#a01a2a"/><path d="M75 100 V196" stroke="#d4af37" stroke-width="3"/>
+      <path d="M46 104 Q75 124 104 104 Q100 96 75 94 Q50 96 46 104Z" fill="#f4f0e8"/>${[56, 68, 82, 94].map((x) => `<path d="M${x} 104 v6" stroke="#1a1a1a" stroke-width="2.5"/>`).join('')}
+      <path d="M40 114 Q22 150 36 176 L50 172 Q42 148 52 124Z" fill="#a01a2a"/><circle cx="44" cy="176" r="7" fill="#e8b890"/>
+      <g class="sc5-toast"><path d="M108 116 Q128 140 116 168" stroke="#a01a2a" stroke-width="13" fill="none" stroke-linecap="round"/><circle cx="114" cy="170" r="7" fill="#e8b890"/>
+        <g class="sc5-cup"><path d="M104 150 h22 q0 18 -11 20 q-11 -2 -11 -20Z" fill="#d4af37"/><path d="M115 170 v8 M108 180 h14" stroke="#d4af37" stroke-width="3"/><path d="M106 152 h18" stroke="#6a0c18" stroke-width="3"/></g></g>
+      <rect x="67" y="78" width="16" height="16" fill="#e0b088"/><ellipse cx="75" cy="64" rx="19" ry="21" fill="#e8b890"/>
+      <path d="M56 66 Q56 102 75 104 Q94 102 94 66 Q88 78 75 78 Q62 78 56 66Z" fill="#c8c0b4"/><path d="M66 72 q9 -4 18 0" stroke="#a8a094" stroke-width="3" fill="none"/>
+      <circle cx="68" cy="60" r="2.2" fill="#1a1010"/><circle cx="82" cy="60" r="2.2" fill="#1a1010"/><path d="M63 54 h8 M79 54 h8" stroke="#c8c0b4" stroke-width="3"/><circle cx="75" cy="68" r="4" fill="#d89878"/>
+      <path d="M56 46 V28 L64 38 L70 22 L75 36 L80 22 L86 38 L94 28 V46Z" fill="#d4af37" stroke="#8a6a14" stroke-width="1.5"/><circle cx="75" cy="40" r="3" fill="#c8303f"/><circle cx="63" cy="42" r="2.4" fill="#3a6ad8"/><circle cx="87" cy="42" r="2.4" fill="#3a8a4a"/></svg>`;
+    const JESTER = FOLK({ top: '#c8303f', bottom: '#d4af37', hair: '#3a2414', arm: 'M34 46 Q46 40 50 30', hat: '<path d="M20 20 Q14 2 2 4 Q12 8 16 18Z M42 20 Q50 0 62 4 Q50 8 46 20Z M20 20 Q31 10 42 20Z" fill="#c8303f"/><path d="M20 20 Q31 -4 40 18Z" fill="#d4af37"/><circle cx="2" cy="4" r="3" fill="#d4af37"/><circle cx="62" cy="4" r="3" fill="#d4af37"/><circle cx="31" cy="-2" r="3" fill="#d4af37"/>' });
+    // A scroll unrolled along the top with the king's word on it.
+    const decree = (html, life = 5200) => {
+      const [l, t] = at5(220, 22);
+      el(`<div class="sc5-scroll-in"><small>By royal decree</small><b>${html}</b></div>`, { left: `${l}vw`, top: `${t}vh`, minWidth: `${px5(340)}px` }, life).classList.add('sc5-scroll');
+      cue('fanfare');
+    };
+    const toast = () => { const k = layer.querySelector('.sc5-king'); k?.classList.add('sc5-raise'); later(() => k?.classList.remove('sc5-raise'), 2400); };
+    SCENES.castle = {
+      decor() {
+        seen5 = null;
+        for (const [x, y] of [[70, 306], [1190, 438]]) { light(x, y - 20, 300, 300, 'rgba(255, 140, 40, 0.3)', ['sc5-fireglow']); flame(x, y, 44); }
+        [-80, -48, -16, 16, 48, 80].forEach((d) => flame(800 + d, 117 + Math.abs(d) / 12, 14, ['small']));
+        // (Not .sc-banner: that's the eggs' welcome, which fades away.)
+        el(BANNER('#8e1b1b'), { left: '8vw', top: '0', fontSize: '150px' }).classList.add('sc5-banner');
+        el(BANNER('#1b3f8e'), { left: '26vw', top: '0', fontSize: '120px' }).classList.add('sc5-banner', 'b');
+        put(KING, 1266, 610, 148, ['sc5-king']);
+      },
+      update: (s) => watch5(s, {
+        drink: (who) => { decree(sips(who).replace(/ \+(\d+)/g, ' drinks $1')); toast(); },
+        over: (name) => { toast(); cue('fanfare'); cue('cheer', 600); later(() => burst(['👑', '✨', '🍷'], { x: 36, y: 40, n: 18, spread: 26 }), 300); quote5(name ? `Long live King ${name}!` : 'Long live the king!', 'castle'); },
+      }),
+      moments: [
+        () => embers(5, () => { const [x, y] = at5(pick([70, 1190]), 280); return [x + rand(-1, 1), y]; }),
+        bats,
+        () => {
+          const right = Math.random() < 0.5;
+          drift(DRAGON, { from: [right ? -30 : 115, rand(2, 6)], to: [right ? 115 : -30, rand(1, 8)], dur: rand(9, 12), size: rand(240, 300) }).classList.add('sc-dragon', 'blk', right ? 'sc-face-r' : 'sc-face-l');
+          cue('roar', 2500);
+        },
+        () => {
+          const right = Math.random() < 0.5;
+          drift(KNIGHT, { from: [right ? -8 : 104, 78], to: [right ? 104 : -8, 78], dur: rand(16, 20), size: 150 }).classList.add('sc-knight', right ? 'sc-face-r' : 'sc-face-l');
+          cue('clank');
+        },
+        // The suit of armour isn't empty: eyes in the visor, looking round.
+        () => { put('<i></i><i></i>', 70, 480, 30, ['sc5-armoureyes'], 5200); cue('clank', 3600); },
+        // The king raises his goblet to the court.
+        () => { toast(); cue('cheer', 600); },
+        // A dragon passes the window, its fire lighting up the night.
+        () => {
+          const [l, t] = at5(1046, 150);
+          el(`<div class="sc5-windragon sc-dragon">${DRAGON}</div>`, { left: `${l}vw`, top: `${t}vh`, width: `${px5(108)}px`, height: `${px5(410)}px`, fontSize: `${px5(90)}px` }, 6000).classList.add('sc5-window');
+          later(() => light(1100, 330, 260, 420, 'rgba(255, 140, 40, 0.5)', ['sc5-flash'], 1600), 2600);
+          cue('roar', 2600);
+        },
+        // The jester cartwheels across the hall.
+        () => { walk(JESTER, { h: px5(150), y: 99, dur: 9, cls: ['sc5-tumble'] }); cue('spin', 400); },
+        () => { for (let i = 0; i < 3; i++) toss(pick(['🔴', '🟡', '🔵']), { x: 4 + i * 1.6, y: 80, size: 22, height: 16, spins: 1, delay: i * 0.43 }); el('<span>🤹</span>', { left: '3vw', bottom: '2vh', fontSize: '64px' }, 4200); },
+        () => crossing('🐀', { y: 95, dur: 4, size: 38 }),
+        () => { el('📯', { left: '2vw', top: '12vh', fontSize: '70px', animation: 'sc-herald 4s ease-in-out forwards' }, 4200); cue('fanfare', 400); },
+      ],
+    };
+
+    // ----- The jazz club -----
+    // The pianist, from behind, at the keys; the drummer behind his kit with the brushes.
+    const PIANIST = `<svg viewBox="0 0 100 130" width="1em" height="1.3em" overflow="visible">
+      <rect x="6" y="112" width="88" height="10" rx="3" fill="#2a1a14"/><path d="M14 122 v8 M86 122 v8" stroke="#2a1a14" stroke-width="5"/>
+      <path d="M22 114 Q16 64 34 52 Q50 46 66 52 Q84 64 78 114Z" fill="#141016"/><path d="M50 50 V114" stroke="#000" stroke-width="2" opacity="0.6"/>
+      <g class="sc5-play"><path d="M28 60 Q14 78 22 92" stroke="#141016" stroke-width="11" fill="none" stroke-linecap="round"/></g><g class="sc5-play b"><path d="M72 60 Q86 78 78 92" stroke="#141016" stroke-width="11" fill="none" stroke-linecap="round"/></g>
+      <rect x="44" y="34" width="12" height="14" fill="#8a5a3a"/><ellipse cx="50" cy="26" rx="15" ry="17" fill="#1a1010"/><path d="M36 30 Q50 40 64 30 Q62 44 50 46 Q38 44 36 30Z" fill="#7a4a2a"/></svg>`;
+    const DRUMMER = `<svg viewBox="0 0 90 100" width="1em" height="1.11em" overflow="visible">
+      <path d="M18 100 Q16 60 32 52 Q45 46 58 52 Q74 60 72 100Z" fill="#2a2a3a"/><path d="M36 54 L45 70 L54 54" fill="#e8e0d0"/>
+      <g class="sc5-brush"><path d="M30 60 Q14 74 6 88" stroke="#2a2a3a" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M6 88 l-14 4" stroke="#d8c8a0" stroke-width="3"/></g>
+      <g class="sc5-brush b"><path d="M60 60 Q76 74 84 86" stroke="#2a2a3a" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M84 86 l14 -6" stroke="#d8c8a0" stroke-width="3"/></g>
+      <rect x="39" y="38" width="12" height="12" fill="#6a4028"/><ellipse cx="45" cy="28" rx="14" ry="16" fill="#7a4a30"/><path d="M30 24 Q30 8 45 8 Q60 8 60 24 Q52 16 45 16 Q38 16 30 24Z" fill="#1a1010"/>
+      <circle cx="40" cy="28" r="1.8" fill="#1a1010"/><circle cx="50" cy="28" r="1.8" fill="#1a1010"/><path d="M40 37 q5 3 10 0" stroke="#3a1a10" stroke-width="1.5" fill="none"/><path d="M28 20 h34 v4 h-34Z" fill="#2a2a3a"/></svg>`;
+    const SINGER = FOLK({ dress: true, top: '#c8a040', skin: '#a06a48', hair: '#1a1010', arm: 'M34 46 Q44 54 40 30', back: 'M26 46 Q14 56 10 44', hat: '<path d="M18 24 Q14 8 30 8 Q46 8 44 24 Q50 34 42 44 Q44 22 31 18 Q20 22 22 40 Q12 34 18 24Z" fill="#1a1010"/><circle cx="20" cy="30" r="2" fill="#fff"/>' });
+    const SAX = FOLK({ top: '#2a1a2a', bottom: '#1a1018', skin: '#8a5a3a', hair: '#1a1010', arm: 'M34 46 Q42 58 36 66', hold: '<path d="M36 30 Q34 56 36 70 Q38 82 48 80 Q54 76 52 68" stroke="#e3b04b" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M48 64 q8 -4 8 8 q-6 2 -8 -8Z" fill="#e3b04b"/>', hat: '<path d="M16 18 Q31 12 46 18 L44 14 Q31 2 18 14Z" fill="#1a1010"/>' });
+    const WAITER = FOLK({ top: '#f4f0e8', bottom: '#141016', hair: '#1a1010', arm: 'M34 46 Q46 52 50 44', hold: '<path d="M38 44 h28" stroke="#c8c8cc" stroke-width="3"/><path d="M42 30 l6 8 l6 -8Z M54 30 l6 8 l6 -8Z" fill="rgba(220,240,255,0.7)" stroke="#fff"/><path d="M48 38 v6 M60 38 v6" stroke="#fff"/><circle cx="46" cy="33" r="1.6" fill="#7a9a3a"/>', hat: '<path d="M28 44 l3 4 l3 -4Z" fill="#141016"/>' });
+    // Someone steps up to the mic in the spotlight (the singer, the sax), and the notes rise.
+    const onStage = (svg, life, sound) => {
+      const [l] = at5(14, 0);
+      const d = el(`<span>${svg}</span>`, { left: `${l}vw`, bottom: `${100 - at5(0, 880)[1]}vh`, fontSize: `${px5(190)}px`, animation: `sc-popup ${life / 1000}s ease-in-out forwards` }, life);
+      d.classList.add('blk', 'sc5-onstage');
+      cue(sound);
+      notes(...at5(120, 600), '#e3b23c', life / 1000 - 2);
+      return d;
+    };
+    SCENES.jazz = {
+      decor() {
+        seen5 = null;
+        light(100, 640, 360, 640, 'rgba(255, 240, 200, 0.16)', ['sc5-spotbreathe']);
+        for (let i = 0; i < 3; i++) el('', { left: `${-10 + i * 12}vw`, top: `${20 + i * 18}vh`, width: '40vw', height: '30vh', animationDelay: `-${i * 9}s` }).classList.add('sc5-smoke');
+        light(1100, 440, 220, 200, 'rgba(255, 70, 60, 0.25)', ['sc5-fireglow']);
+        put(PIANIST, 1240, 596, 100, ['sc5-pianist']);
+        put(DRUMMER, 1490, 640, 84, ['sc5-drummer']);
+      },
+      update: (s) => watch5(s, {
+        drink: (who) => { walk(WAITER, { h: px5(170), y: 99.5, dur: 11 }); cue('clink', 2000); quote5(`Cheers, darling · ${sips(who)}`, 'jazz', '22vh', 2800); },
+        over: (name) => { cue('cheer'); cue('snaps', 400); burst(['🌹', '🌹', '✨'], { x: 20, y: 70, n: 18, spread: 20 }); el('', { left: '20vw', top: '-10vh' }, 8000).classList.add('sc-spotlight'); quote5(name ? `Bravo, ${name}!` : 'Bravo!', 'jazz'); },
+      }),
+      moments: [
+        () => smoke(),
+        () => el('', { left: '20vw', top: '-10vh' }, 8000).classList.add('sc-spotlight'),
+        () => shower(7, 0.7, () => drift(pick(['♪', '♫', '♬']), { from: [rand(2, 12), 80], to: [rand(2, 40), rand(10, 30)], dur: rand(6, 9), size: rand(22, 34), spin: rand(-30, 30), opacity: 0.7, extra: { color: '#e3b23c' } })),
+        () => onStage(SINGER, 10000, 'chord'),
+        () => onStage(SAX, 9000, 'chord').classList.add('sax'),
+        // A run on the piano.
+        () => { const p = layer.querySelector('.sc5-pianist'); p?.classList.add('run'); later(() => p?.classList.remove('run'), 4000); notes(...at5(1300, 640), '#e3b23c', 4); cue('chord'); },
+        // The drummer's rimshot.
+        () => { const d = layer.querySelector('.sc5-drummer'); d?.classList.add('hit'); later(() => d?.classList.remove('hit'), 1200); cue('rimshot'); },
+        // A waiter crosses with a tray of martinis.
+        () => { walk(WAITER, { h: px5(170), y: 99.5, dur: 11 }); cue('clink', 2500); },
+        () => { cue('snaps'); for (let i = 0; i < 4; i++) later(() => popup('🫰', { x: rand(2, 14), bottom: rand(4, 20), size: 40, life: 1600 }), i * 400); },
+        () => { crossing('💃', { y: 90, dur: 14, size: 64 }); later(() => crossing('🕺', { y: 90, dur: 14, size: 64 }), 600); },
+        () => crossing('😎', { y: 94, dur: 9, size: 40, bob: true }),
+      ],
+    };
+  }
+
+  // ---------- The diner, the tiki bar, the speakeasy, the casino and the saloon ----------
+  // Each lines up with its drawing in lib/roomStyles.js (dinerArt, tikiBeach, speakeasyArt,
+  // casinoArt and saloonArt: 1600 x 900, scaled to cover the screen, see artAt): the jukebox's
+  // tubes glow over the jukebox, the peephole opens in the door, the reels spin in the slot
+  // machine, the batwing doors swing in the doorway. Something's always going on quietly (steam,
+  // lights, smoke, dust in the sun), there's a moment every so often, and the room reacts when
+  // someone drinks or a game ends. All in a closure of its own, so none of its names meet anyone
+  // else's.
+  (() => {
+    // One unit of the drawing on the screen, in px.
+    const unit = () => Math.max(innerWidth / 1600, innerHeight / 900);
+    // Something laid over the drawing: its top left at (x, y) of the drawing, `w` units wide (the
+    // html is an svg 1em wide).
+    const onArt = (html, x, y, w, life, ...cls) => {
+      const [l, t] = artAt(x, y);
+      const d = el(html, { left: `${l}vw`, top: `${t}vh`, fontSize: `${(w * unit()).toFixed(1)}px` }, life);
+      d.classList.add('blk', ...cls);
+      return d;
+    };
+    // A box over part of the drawing (the window, the doorway, the jackpot board).
+    const box = (x, y, w, h, life, ...cls) => {
+      const [l, t] = artAt(x, y);
+      const u = unit();
+      const d = el('', { left: `${l}vw`, top: `${t}vh`, width: `${(w * u).toFixed(1)}px`, height: `${(h * u).toFixed(1)}px` }, life);
+      d.classList.add(...cls);
+      return d;
+    };
+    const listOf = (names) => (names.length < 2 ? names[0] || '' : `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`);
+    const quote = (text, cls, life = 3200, top = '28vh') => inFront(`<b>${text}</b>`, { left: '0', right: '26vw', top }, life).classList.add('sc-quote', cls);
+    // Who's drunk since the last look, and whether a game has just ended. One reaction at a time:
+    // a round where everyone drinks gets one, not six.
+    function watcher() {
+      let was = null;
+      let quiet = 0;
+      const look = (s) => {
+        if (!s?.players) return null;
+        const now = { no: s.gameNo, phase: s.phase, drinks: Object.fromEntries(s.players.map((p) => [p.id, p.drinks || 0])) };
+        const prev = was;
+        was = now;
+        // The first look (the TV just came on) or a new game: nothing to react to yet.
+        if (!prev || prev.no !== now.no) return null;
+        const over = now.phase === 'over' && prev.phase !== 'over';
+        let drank = s.players.filter((p) => (p.drinks || 0) > (prev.drinks[p.id] ?? (p.drinks || 0)));
+        if (drank.length && Date.now() < quiet) drank = [];
+        if (drank.length || over) quiet = Date.now() + 6000;
+        return drank.length || over ? { over, who: listOf(drank.map((p) => esc(p.name))) } : null;
+      };
+      look.reset = () => { was = null; quiet = 0; };
+      return look;
+    }
+    // A drawing going along the floor, `h` vh tall (`ar` its width over its height), feet at
+    // `y` vh: off one side and across to the other. Drawn facing right.
+    const walk = (svg, { ar, h, y = 99, dur, cls = [] }) => {
+      const right = Math.random() < 0.5;
+      const size = (h / 100) * innerHeight * ar;
+      const w = (size / innerWidth) * 100;
+      const d = drift(svg, { from: [right ? -w - 2 : 102, y - h], to: [right ? 102 : -w - 2, y - h], dur, size });
+      d.classList.add('blk', right ? 'sc-face-r' : 'sc-face-l', ...cls);
+      return d;
+    };
+    // A drawing popping up from the bottom, `h` vh tall, at x vw.
+    const rise = (svg, { x, h, ar, life = 6000 }) => popup(svg, { x, bottom: 0, size: (h / 100) * innerHeight * ar, life });
+
+    // ---------- The diner ----------
+    // The carhop on roller skates, a tray held high (a burger and a shake): legs pushing, ponytail
+    // swinging. Faces right.
+    const CARHOP = `<svg viewBox="0 0 120 200" width="1em" height="1.667em" overflow="visible">
+      <g class="dn-leg b"><path d="M68 126 L80 174" stroke="#f2c9a5" stroke-width="7" stroke-linecap="round"/><path d="M71 176 h20 q5 0 5 5 v3 h-25Z" fill="#fff"/><circle cx="75" cy="189" r="5" fill="#e63946"/><circle cx="90" cy="189" r="5" fill="#e63946"/></g>
+      <g class="dn-arm"><path d="M52 62 Q42 80 46 98" stroke="#f2c9a5" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+      <path class="dn-pony" d="M54 32 Q34 32 32 54 Q40 46 50 44Z" fill="#7a3a1a"/>
+      <path d="M50 58 Q64 53 78 58 L76 92 H52Z" fill="#fff"/><path d="M56 57 L64 66 L72 57" fill="none" stroke="#e63946" stroke-width="4"/>
+      <path d="M52 88 H76 L94 128 Q64 138 34 128Z" fill="#e63946"/>${[[44, 122], [58, 112], [74, 124], [84, 114], [66, 100]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fff"/>`).join('')}
+      <path d="M58 90 H72 L76 122 H56Z" fill="#fff"/>
+      <g class="dn-leg f"><path d="M60 126 L54 174" stroke="#f2c9a5" stroke-width="7" stroke-linecap="round"/><path d="M45 176 h20 q5 0 5 5 v3 h-25Z" fill="#fff"/><circle cx="49" cy="189" r="5" fill="#e63946"/><circle cx="64" cy="189" r="5" fill="#e63946"/></g>
+      <circle cx="64" cy="40" r="13" fill="#f2c9a5"/><path d="M51 39 Q51 24 66 25 Q77 26 77 35 Q70 30 58 33Z" fill="#7a3a1a"/><path d="M55 27 L78 23 L75 16 L60 18Z" fill="#e63946"/>
+      <circle cx="71" cy="39" r="1.7" fill="#2a1a10"/><path d="M68 46 q4 3 7 -1" stroke="#c1121f" stroke-width="1.6" fill="none"/><circle cx="72" cy="44" r="2.6" fill="#ff8a8a" opacity="0.5"/>
+      <path d="M76 62 Q92 56 96 34" stroke="#f2c9a5" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <ellipse cx="98" cy="30" rx="24" ry="4" fill="#cfd6dc"/><path d="M84 28 q7 -15 15 0Z" fill="#c8842e"/><rect x="84" y="25" width="15" height="3" fill="#6a3a1a"/><path d="M104 28 l2 -18 h10 l2 18Z" fill="#ffb3c6"/><circle cx="111" cy="8" r="3" fill="#c1121f"/><path d="M109 10 l4 -12" stroke="#fff" stroke-width="2"/></svg>`;
+    // The short-order cook: paper hat, a big moustache, the spatula up.
+    const COOK = `<svg viewBox="0 0 120 170" width="1em" height="1.417em" overflow="visible">
+      <path d="M28 172 Q26 112 60 104 Q94 112 92 172Z" fill="#f4f4f0"/><path d="M42 118 H78 L82 172 H38Z" fill="#fff" stroke="#d8d4cc"/><circle cx="52" cy="140" r="4" fill="#e63946" opacity="0.45"/><circle cx="68" cy="154" r="3" fill="#c8842e" opacity="0.5"/>
+      <path d="M32 124 Q16 142 32 162" stroke="#f4f4f0" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <g class="dn-spatula"><path d="M88 122 Q106 110 104 88" stroke="#f4f4f0" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="104" cy="84" r="7" fill="#f2c9a5"/><path d="M104 80 V48" stroke="#5a3a20" stroke-width="5"/><rect x="93" y="30" width="22" height="20" rx="2" fill="#b9c0c8"/></g>
+      <rect x="54" y="92" width="12" height="14" fill="#f2c9a5"/><circle cx="60" cy="74" r="24" fill="#f2c9a5"/>
+      <circle cx="51" cy="70" r="2.8" fill="#2a1a10"/><circle cx="69" cy="70" r="2.8" fill="#2a1a10"/><circle cx="45" cy="80" r="4" fill="#ff8a8a" opacity="0.45"/><circle cx="75" cy="80" r="4" fill="#ff8a8a" opacity="0.45"/>
+      <path d="M43 84 Q52 77 60 84 Q68 77 77 84 Q68 91 60 86 Q52 91 43 84Z" fill="#5a3018"/><path d="M54 91 q6 5 12 0" stroke="#8a2a1a" stroke-width="2" fill="none"/>
+      <path d="M37 56 Q28 30 47 30 Q51 11 66 18 Q81 9 87 28 Q99 34 85 56Z" fill="#fff"/><rect x="37" y="50" width="48" height="10" rx="3" fill="#f0ebe2"/></svg>`;
+    // The Bel Air going by outside, headlights on (as in the window; faces right).
+    const BELAIR = `<svg viewBox="0 -16 250 62" width="1em" height="0.248em"><path d="M174 16 L250 -6 V44 L174 26Z" fill="#fff6c8" opacity="0.4"/>
+      <path d="M0 30 L10 16 Q30 4 60 6 L96 4 Q120 4 132 16 L170 14 L176 30Z" fill="${'#ff7a9a'}"/><path d="M40 8 L56 -10 H100 L114 8Z" fill="#ff7a9a"/><path d="M48 6 L60 -6 H96 L106 6Z" fill="#cfeef8" opacity="0.85"/>
+      <path d="M150 16 L176 6 L172 20Z" fill="#e0607e"/><rect x="-2" y="26" width="180" height="6" rx="3" fill="#e8ecef"/><path d="M10 20 H170" stroke="#f4f4f4" stroke-width="3"/>
+      ${[34, 140].map((x) => `<circle cx="${x}" cy="32" r="11" fill="#1e1a24"/><circle cx="${x}" cy="32" r="6" fill="#f4f4f4"/>`).join('')}<circle cx="173" cy="22" r="4" fill="#fffbe0"/><circle cx="2" cy="24" r="3" fill="#ff3a3a"/></svg>`;
+    // Over the jukebox's arch: its bubble tubes changing colour, bubbles going up them.
+    const JUKE = `<svg viewBox="0 0 128 340" width="1em" height="2.656em" overflow="visible"><path class="dn-tube a" d="M10 330 V66 A54 54 0 0 1 118 66 V330" fill="none" stroke="#ff7ab0" stroke-width="13"/><path class="dn-tube b" d="M10 330 V66 A54 54 0 0 1 118 66 V330" fill="none" stroke="#7af0ff" stroke-width="13"/>
+      ${[10, 118].map((x) => [0, 1, 2, 3].map((i) => `<circle class="dn-bub" cx="${x}" cy="322" r="2.6" fill="#fff" style="animation-delay:-${(i * 0.9 + (x > 50 ? 0.45 : 0)).toFixed(2)}s"/>`).join('')).join('')}</svg>`;
+    // The clock's second hand, the coffee's steam, the pot that keeps it bottomless.
+    const SECONDS = `<svg viewBox="0 0 100 100" width="1em" height="1em"><g class="dn-sec"><path d="M50 58 V14" stroke="#e63946" stroke-width="2"/><circle cx="50" cy="50" r="3" fill="#e63946"/></g></svg>`;
+    const STEAM = `<svg viewBox="0 0 40 70" width="1em" height="1.75em" overflow="visible">${[10, 24].map((x, i) => `<path class="dn-steam" style="animation-delay:-${i * 1.3}s" d="M${x} 66 q-6 -10 0 -20 q6 -10 0 -20 q-6 -10 0 -20" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>`).join('')}</svg>`;
+    const POT = `<svg viewBox="0 0 60 70" width="1em" height="1.167em" overflow="visible"><path d="M46 22 q14 4 12 22 l-6 2" stroke="#1a1a1a" stroke-width="5" fill="none"/><path d="M14 20 h30 l-2 8 q14 10 12 30 q-2 10 -24 10 q-22 0 -24 -10 q-2 -20 12 -30Z" fill="#e6f4fa" opacity="0.7" stroke="#fff"/>
+      <path d="M6 50 q2 16 24 16 q22 0 24 -16Z" fill="#4a2a12"/><rect x="12" y="12" width="34" height="9" rx="3" fill="#1a1a1a"/><path d="M14 22 l-11 -5 l3 8Z" fill="#1a1a1a"/><rect x="18" y="30" width="5" height="26" rx="2" fill="#fff" opacity="0.6"/></svg>`;
+
+    let dinerSaw = null;
+    const orderUp = (text = 'Order up!') => { el(`${SERVICE_BELL}<b>${text}</b>`, { left: '13vw', top: '11vh', fontSize: '56px' }, 3500).classList.add('sc-orderup'); cue('clink'); };
+    const jukeParty = (secs = 9) => {
+      const j = layer.querySelector('.dn-juke');
+      j?.classList.add('party');
+      later(() => j?.classList.remove('party'), secs * 1000);
+      const [x, y] = artAt(1098, 560);
+      notes(x - 2, y, '#ff5c8a', secs - 2);
+    };
+    const carhop = () => walk(CARHOP, { ar: 0.6, h: 30, dur: rand(7, 9), cls: ['dn-carhop'] });
+    // The cook pops up bottom left and flips a burger.
+    const cook = () => {
+      const h = 26;
+      const size = (h / 100) * innerHeight / 1.417;
+      rise(COOK, { x: 1, h, ar: 1 / 1.417, life: 5200 });
+      const x = 1 + ((size * 0.87) / innerWidth) * 100;
+      later(() => { toss('🍔', { x: x - 1.4, y: 100 - h - 4, size: 40, height: 16, spins: 1 }); cue('sizzle'); }, 900);
+      later(() => orderUp(), 3600);
+    };
+    // The Bel Air drives past outside the window, and its headlights sweep the room.
+    const carPast = () => {
+      const life = 7000;
+      const pane = box(24, 118, 492, 280, life, 'dn-pane');
+      const right = Math.random() < 0.5;
+      pane.innerHTML = `<div class="dn-car${right ? '' : ' l'}" style="font-size:${(250 * unit()).toFixed(1)}px">${BELAIR}</div>`;
+      cue('car');
+      later(() => el('', { left: '0', top: '0', width: '100vw', height: '100vh' }, 3600).classList.add('dn-sweep', right ? 'r' : 'l'), 2200);
+    };
+    // Bottomless coffee: the pot comes over and tops up the cup on the counter.
+    const refill = () => {
+      onArt(POT, 1430, 576, 52, 4300, 'dn-pour');
+      later(() => onArt('<i></i>', 1424, 622, 6, 1500, 'dn-stream'), 1400);
+      cue('slide', 1300);
+    };
+    // A gumball drops out of the machine and rolls off across the floor.
+    const gumball = () => {
+      const [x, y] = artAt(76, 752);
+      el('', { left: `${x}vw`, top: `${y}vh`, background: `radial-gradient(circle at 35% 30%, #fff, ${pick(['#ff4d6d', '#ffd23f', '#29c0e0', '#7ad06a'])} 45%)`, '--dx': `${rand(30, 60)}vw`, '--dy': `${artAt(0, 878)[1] - y}vh` }, 6200).classList.add('dn-gum');
+      cue('thud', 700);
+    };
+    SCENES.diner = {
+      decor() {
+        dinerSaw = watcher();
+        el('<span>OPEN</span>', { left: '2vw', top: '28vh' }).classList.add('sc-sign', 'open');
+        el(FAN, { left: '14vw', top: '0', fontSize: '230px' }).classList.add('sc-fan', 'blk');
+        onArt(JUKE, 1034, 530, 128, 0, 'dn-juke');
+        onArt(SECONDS, 1048, 158, 100);
+        onArt(STEAM, 1410, 596, 40, 0, 'dn-cupsteam');
+      },
+      update(s) {
+        const e = dinerSaw?.(s);
+        if (!e) return;
+        if (e.over) {
+          jukeParty(10);
+          carhop();
+          burst(['🍒', '⭐', '🍔', '🥤'], { x: artAt(1098, 0)[0], y: artAt(0, 560)[1], n: 22, spread: 20 });
+          quote('Pie for everyone!', 'dn');
+          cue('cheer', 300);
+        } else {
+          orderUp(`Order up, ${e.who}!`);
+          if (Math.random() < 0.5) later(refill, 800);
+        }
+      },
+      moments: [
+        carhop,
+        cook,
+        carPast,
+        refill,
+        gumball,
+        () => { cue('clink'); jukeParty(9); later(() => crossing('💃🕺', { y: 90, dur: 10, size: 56 }), 1500); },
+        () => crossing('🛼', { y: 94, dur: 3.2, size: 46, bob: false }),
+        () => popup('🥤', { x: 3, bottom: 2, size: 60, life: 4500 }),
+        () => orderUp(),
+        () => layer.querySelector('.sc-sign.open')?.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.3 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1400, easing: 'steps(1)' }),
+      ],
+    };
+
+    // ---------- The tiki bar ----------
+    // A hula dancer: grass skirt swishing, hips swaying, arms telling the story; a hibiscus in her
+    // hair.
+    const HULA = `<svg viewBox="0 0 100 210" width="1em" height="2.1em" overflow="visible">
+      <path d="M32 24 Q50 2 68 24 L78 84 Q50 74 22 84Z" fill="#2a160c"/>
+      <g class="tk-arms"><path d="M40 62 Q22 58 10 44 Q4 38 -4 40" stroke="#c98a5a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M60 62 Q78 60 90 48 Q96 42 104 44" stroke="#c98a5a" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+      <path d="M40 56 h20 l3 50 h-26Z" fill="#c98a5a"/><circle cx="44" cy="74" r="6" fill="#6b4524"/><circle cx="56" cy="74" r="6" fill="#6b4524"/>
+      ${Array.from({ length: 9 }, (_, i) => `<circle cx="${(38 + Math.sin(i / 2.6) * 0 + i * 3).toFixed(1)}" cy="${(60 + Math.sin((i / 8) * Math.PI) * 8).toFixed(1)}" r="3.4" fill="${['#ff5a8a', '#ffd24a', '#fff0f4'][i % 3]}"/>`).join('')}
+      <circle cx="50" cy="36" r="14" fill="#c98a5a"/><path d="M36 34 Q38 18 50 18 Q63 18 65 34 Q58 26 50 26 Q42 26 36 34Z" fill="#2a160c"/>
+      <path d="M43 37 q3 2 6 0 M51 37 q3 2 6 0" stroke="#2a160c" stroke-width="1.6" fill="none"/><path d="M45 44 q5 4 10 0" stroke="#8a2a1a" stroke-width="1.8" fill="none"/>
+      ${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="64" cy="22" rx="3.5" ry="6" fill="#ff4a7a" transform="rotate(${a} 64 28)"/>`).join('')}<circle cx="64" cy="28" r="2" fill="#ffd24a"/>
+      <g class="tk-hips"><path d="M44 150 L40 204 M56 150 L60 204" stroke="#c98a5a" stroke-width="8" stroke-linecap="round"/>
+        <g class="tk-skirt">${Array.from({ length: 22 }, (_, i) => `<path d="M${34 + i * 1.5} 106 L${(28 + i * 2.1).toFixed(1)} 164" stroke="${['#9ab64a', '#c8b45a', '#7a9a3a', '#d8c070'][i % 4]}" stroke-width="2.4"/>`).join('')}</g>
+        <rect x="33" y="102" width="34" height="7" rx="3" fill="#e8572a"/>${[38, 46, 54, 62].map((x) => `<circle cx="${x}" cy="105" r="3" fill="#ffd24a"/>`).join('')}</g></svg>`;
+    // A fire dancer, in silhouette, spinning his flaming staff.
+    const FIRE_DANCER = `<svg viewBox="0 0 140 220" width="1em" height="1.571em" overflow="visible">
+      <radialGradient id="vn-tkfg"><stop offset="0" stop-color="#ffb050" stop-opacity="0.45"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient><circle class="tk-fglow" cx="70" cy="60" r="90" fill="url(#vn-tkfg)"/>
+      <g fill="#1a0c06"><path d="M52 200 L60 136 H80 L88 200 H78 L70 150 L62 200Z"/><path d="M56 104 H84 L90 140 H50Z" fill="#7a1a10"/><path d="M58 70 Q70 64 82 70 L84 106 H56Z"/><circle cx="70" cy="56" r="11"/>
+        <path d="M58 74 L44 62 L62 50 M82 74 L96 62 L78 50" stroke="#1a0c06" stroke-width="7" fill="none" stroke-linecap="round"/></g>
+      <g class="tk-staff"><path d="M8 50 H132" stroke="#4a2a12" stroke-width="5"/><path d="M8 50 A62 62 0 0 1 36 2 M132 50 A62 62 0 0 1 104 98" stroke="#ff8a1a" stroke-width="9" fill="none" opacity="0.35" stroke-linecap="round"/>
+        ${[8, 132].map((x) => `<circle cx="${x}" cy="50" r="12" fill="#ff7a1a"/><circle cx="${x}" cy="50" r="7" fill="#ffe08a"/>`).join('')}</g></svg>`;
+    // An outrigger canoe on the horizon, its paddler stroking. Faces right.
+    const OUTRIGGER = `<svg viewBox="0 0 120 50" width="1em" height="0.417em" overflow="visible"><g fill="#1a0e1a"><path d="M4 34 Q60 44 116 30 L110 40 Q60 50 10 42Z"/><ellipse cx="54" cy="20" rx="34" ry="3"/>
+      <path d="M40 22 L36 36 M70 22 L72 34" stroke="#1a0e1a" stroke-width="2.5"/><circle cx="76" cy="10" r="5"/><path d="M70 16 h12 l2 18 h-16Z"/></g>
+      <g class="tk-paddle"><path d="M80 18 L60 46" stroke="#1a0e1a" stroke-width="2.5"/><path d="M58 44 l-4 8 l6 -2Z" fill="#1a0e1a"/></g></svg>`;
+    // The tiki bar's volcano, out on the horizon (its crater at 1000, 132 of the drawing) goes
+    // off: a rumble, the crater flares, lava bursts up and falls back, a plume of smoke rises.
+    function eruption() {
+      const [x, y] = artAt(1000, 132);
+      cue('rumble');
+      el('', { left: `${x}vw`, top: `${y}vh` }, 7000).classList.add('sc-crater');
+      later(() => {
+        cue('boom');
+        burst(['●', '●', '•'], { x, y, n: 40, spread: 6, size: [6, 14], colors: ['#ffd23f', '#ff8a1a', '#ff4a1a'], rise: [-24, -10], fall: [16, 34] });
+        for (let i = 0; i < 5; i++) later(() => drift('', { from: [x - 1, y - 2], to: [x - 6 + i * 2, y - 26], dur: 6, size: 10 }).classList.add('sc-plume'), i * 300);
+      }, 1400);
+    }
+    let tikiSaw = null;
+    const hula = (life = 9000) => { rise(HULA, { x: 3.2, h: 34, ar: 1 / 2.1, life }); cue('drum', 400); later(() => notes(6, 70, '#ffd24a', 5), 800); };
+    const fireDancer = () => { rise(FIRE_DANCER, { x: 82, h: 30, ar: 1 / 1.571, life: 8000 }); cue('drum'); cue('drum', 1200); };
+    const tikiEyes = () => { onArt('<i></i><i></i>', 1196, 636, 88, 4600, 'tk-eyes'); cue('drum'); cue('drum', 700); cue('drum', 1400); };
+    SCENES.tiki = {
+      decor() {
+        tikiSaw = watcher();
+        for (const left of ['2vw', '9vw']) {
+          el(TORCH, { left, bottom: '0', fontSize: '220px' }).classList.add('sc-tikitorch');
+          el('<div class="sc-flame"></div>', { left: `calc(${left} + 6px)`, bottom: 'calc(220px - 18px)' }).classList.add('sc-torch');
+        }
+        // The paper lanterns along the thatch glow and gutter, each in its own time.
+        for (let i = 0; i < 11; i++) {
+          const [x, y] = artAt(140 + i * 140, 146);
+          el('', { left: `${x}vw`, top: `${y}vh`, width: `${(70 * unit()).toFixed(0)}px`, height: `${(70 * unit()).toFixed(0)}px`, animationDuration: `${rand(2.5, 4.5).toFixed(1)}s`, animationDelay: `-${rand(0, 4).toFixed(1)}s` }).classList.add('tk-lantern');
+        }
+        // The sea washing up the sand, and glints on the water (seen by the sidebar).
+        onArt(`<svg viewBox="0 0 330 30" width="1em" height="0.091em" overflow="visible"><path d="M0 14 Q40 6 80 14 T160 12 T240 10 T330 8" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="40 10 18 12"/></svg>`, 1010, 562, 330, 0, 'tk-foam');
+        for (let i = 0; i < 6; i++) onArt('<i></i>', 1030 + rand(0, 130), 440 + rand(0, 110), 18, 0, 'tk-glint').style.animationDelay = `-${rand(0, 5).toFixed(1)}s`;
+      },
+      update(s) {
+        const e = tikiSaw?.(s);
+        if (!e) return;
+        if (e.over) {
+          hula(10000);
+          later(fireDancer, 600);
+          burst(['🌺', '🌸', '🌼', '🍍'], { x: 36, y: 40, n: 24, spread: 30 });
+          quote('Mahalo!', 'tk', 3400);
+          cue('cheer', 300);
+        } else {
+          quote(`Okole maluna, ${e.who}!`, 'tk');
+          toss('🥥', { x: 6, y: 80, size: 40, height: 16, spins: 2 });
+          cue('drum', 200);
+        }
+      },
+      moments: [
+        () => {
+          const right = Math.random() < 0.5;
+          drift(PARROT, { from: [right ? -10 : 110, rand(6, 14)], to: [right ? 110 : -10, rand(4, 18)], dur: rand(7, 9), size: rand(60, 80) }).classList.add(right ? 'sc-face-r' : 'sc-face-l');
+          cue('squawk', 1200);
+        },
+        // One coconut drops, then another... then the whole bunch comes down into a big pile, which
+        // sits there a while.
+        () => {
+          const SIZE = 38;
+          // The pile: rows of 5, 4, 3, 2, 1 coconuts, the bottom row on the floor in the corner.
+          const slots = [];
+          for (let row = 0; row < 5; row++) {
+            for (let i = 0; i < 5 - row; i++) slots.push({ left: `calc(13vw + ${(i + row / 2) * (SIZE - 4)}px)`, bottom: `${row * (SIZE - 8)}px` });
+          }
+          // The first two land in the middle of the bottom row; the rest fill the pile in order.
+          const order = [slots[2], slots[1], ...slots.filter((_, i) => i !== 1 && i !== 2)];
+          const times = [0, 1700, ...order.slice(2).map((_, i) => 3600 + i * 140 + rand(0, 80))];
+          order.forEach((slot, i) => later(() => {
+            const left = 14000 - times[i];
+            el(COCONUT, { ...slot, fontSize: `${SIZE}px`, '--spin': `${rand(-200, 200)}deg`, animation: `sc-coconut 0.75s ease-in forwards, sc-fade-out 0.8s ${(left - 900) / 1000}s forwards` }, left);
+            if (i < 2 || i % 3 === 0) cue('thud', 600); // as it lands
+          }, times[i]));
+        },
+        fireflies,
+        () => crossing('🦀', { y: 95, dur: 7, size: 40 }),
+        () => el('🦎', { left: '1vw', top: '30vh', fontSize: '46px', animation: 'sc-gecko 6s ease-in-out forwards' }, 6200),
+        tikiEyes,
+        () => { const [, y] = artAt(0, 436); walk(OUTRIGGER, { ar: 2.4, h: 4.5, y, dur: rand(26, 32), cls: ['tk-canoe'] }); },
+        () => hula(),
+        fireDancer,
+        () => {
+          for (let i = 0; i < pick([1, 2, 3]); i++) { const [x, y] = artAt(1060 + i * 26, 520); el(DOLPHIN, { left: `${x}vw`, top: `${y}vh`, fontSize: `${(60 * unit()).toFixed(0)}px`, animationDelay: `${i * 0.5}s` }, 4000).classList.add('sc-dolphin'); }
+          cue('splash', 1500);
+        },
+        () => { const [x, y] = artAt(1100, 452); el('<i></i><i></i><i></i>', { left: `${x}vw`, top: `${y}vh` }, 3000).classList.add('sc-spout'); },
+        () => { for (let i = 0; i < pick([1, 2]); i++) later(() => el('', { left: `${rand(20, 60)}vw`, top: `${rand(3, 10)}vh`, animation: 'sc-shoot 1.1s ease-out forwards' }, 1300).classList.add('sc-star'), i * 900); },
+        () => flock(SWALLOW),
+        // The volcano goes off. Peaceful most of the time: one moment in about fourteen.
+        eruption,
+      ],
+    };
+
+    // ---------- The speakeasy ----------
+    // The peephole in the door (over the drawing's): its brass cover slides back, a pair of eyes.
+    const PEEP = `<svg viewBox="0 0 64 22" width="1em" height="0.344em"><rect width="64" height="22" rx="2" fill="#120804"/>
+      <g class="sp-eyes"><ellipse cx="22" cy="11" rx="6" ry="4" fill="#f2efe6"/><ellipse cx="42" cy="11" rx="6" ry="4" fill="#f2efe6"/><g class="sp-pupils"><circle cx="22" cy="11" r="2.4" fill="#111"/><circle cx="42" cy="11" r="2.4" fill="#111"/></g><path d="M15 6 q7 -4 14 0 M35 6 q7 -4 14 0" stroke="#3a2a1a" stroke-width="2" fill="none"/></g>
+      <g class="sp-cover"><rect width="64" height="22" rx="2" fill="#6b3a1c" stroke="#b08d45" stroke-width="2"/></g></svg>`;
+    // A flapper doing the Charleston: bob and headband, feather, fringe flying, pearls swinging.
+    const FLAPPER = `<svg viewBox="0 0 100 210" width="1em" height="2.1em" overflow="visible">
+      <g class="sp-legb"><path d="M54 128 L64 176 L58 200" stroke="#e8c8a8" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M52 198 h14 l2 5 h-18Z" fill="#141010"/></g>
+      <g class="sp-armb"><path d="M58 62 L70 80 L82 66" stroke="#f0d2b4" stroke-width="5" fill="none" stroke-linecap="round"/></g>
+      <path d="M38 58 Q50 52 62 58 L64 112 H36Z" fill="#d9ad52"/>
+      <g class="sp-fringe">${Array.from({ length: 14 }, (_, i) => `<path d="M${34 + i * 2.4} 104 L${(32 + i * 2.7).toFixed(1)} 138" stroke="${i % 2 ? '#e8c46a' : '#b88a32'}" stroke-width="2.4"/>`).join('')}</g>
+      <rect x="34" y="100" width="32" height="6" fill="#8a1a2a"/>
+      <g class="sp-pearls">${Array.from({ length: 9 }, (_, i) => `<circle cx="${(50 + Math.sin(i / 2.8) * 6).toFixed(1)}" cy="${60 + i * 4}" r="2" fill="#f4f0e6"/>`).join('')}</g>
+      <g class="sp-legf"><path d="M44 128 L36 176 L44 200" stroke="#f0d2b4" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M40 198 h14 l2 5 h-18Z" fill="#141010"/></g>
+      <g class="sp-armf"><path d="M42 62 L28 76 L20 60" stroke="#f0d2b4" stroke-width="5" fill="none" stroke-linecap="round"/></g>
+      <rect x="46" y="44" width="8" height="10" fill="#f0d2b4"/><circle cx="51" cy="36" r="12" fill="#f0d2b4"/><path d="M38 40 Q36 20 52 20 Q66 22 64 40 L60 34 Q52 30 42 34Z" fill="#141010"/>
+      <rect x="38" y="28" width="26" height="4" fill="#c9ccd1"/><path d="M42 28 Q34 6 46 0 Q42 14 46 28Z" fill="#f4f0e6"/><circle cx="57" cy="37" r="1.5" fill="#141010"/><path d="M56 43 q3 1 5 -1" stroke="#b01a2a" stroke-width="2" fill="none"/></svg>`;
+    // The bartender, shaking a cocktail over his shoulder: moustache, bow tie, sleeve garters.
+    const BARTENDER = `<svg viewBox="0 0 120 170" width="1em" height="1.417em" overflow="visible">
+      <path d="M26 172 Q24 112 60 104 Q96 112 94 172Z" fill="#f4f0e6"/><path d="M40 108 L60 140 L80 108 L86 172 H34Z" fill="#1a1414"/><circle cx="56" cy="150" r="2" fill="#b08d45"/><circle cx="56" cy="162" r="2" fill="#b08d45"/>
+      <path d="M50 110 l10 6 l10 -6 v10 l-10 -6 l-10 6Z" fill="#8a1a2a"/>
+      <g class="sp-shake"><path d="M30 124 Q14 104 34 84 M90 124 Q106 104 86 84" stroke="#f4f0e6" stroke-width="12" fill="none" stroke-linecap="round"/><rect x="22" y="98" width="12" height="6" fill="#8a1a2a" transform="rotate(-40 28 101)"/><rect x="86" y="98" width="12" height="6" fill="#8a1a2a" transform="rotate(40 92 101)"/>
+        <circle cx="36" cy="80" r="7" fill="#f0d2b4"/><circle cx="84" cy="80" r="7" fill="#f0d2b4"/><path d="M78 82 L86 40 H96 L92 82Z" fill="#c9ccd1"/><path d="M86 40 l3 -10 h4 l3 10Z" fill="#9aa0a8"/><rect x="82" y="50" width="4" height="26" fill="#fff" opacity="0.5"/></g>
+      <rect x="54" y="92" width="12" height="14" fill="#f0d2b4"/><circle cx="60" cy="74" r="22" fill="#f0d2b4"/><path d="M38 70 Q38 50 60 50 Q82 50 82 70 Q72 58 60 62 Q48 58 38 70Z" fill="#1a1010"/><path d="M60 52 V62" stroke="#3a2a20" stroke-width="1.5"/>
+      <circle cx="52" cy="72" r="2.5" fill="#1a1010"/><circle cx="68" cy="72" r="2.5" fill="#1a1010"/><path d="M42 84 Q52 78 60 84 Q68 78 78 84 Q80 76 74 78 Q66 80 60 82 Q54 80 46 78 Q40 76 42 84Z" fill="#1a1010"/></svg>`;
+    // A gangster in a pinstripe suit and a fedora, a violin case under his arm. Faces right.
+    const GANGSTER = `<svg viewBox="0 0 90 200" width="0.45em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M40 118 h12 l2 64 h-12Z" fill="#2a2a32"/><path d="M40 180 h18 q6 0 6 6 h-24Z" fill="#f4f0e6"/></g>
+      <path d="M30 56 Q45 48 60 56 L64 122 H26Z" fill="#33333c"/>${[34, 40, 46, 52, 58].map((x) => `<path d="M${x} 56 V122" stroke="#55556a" stroke-width="1"/>`).join('')}<path d="M45 56 L40 80 L45 122" stroke="#1a1a20" stroke-width="2" fill="none"/><path d="M42 58 L45 74 L48 58Z" fill="#c0392b"/>
+      <g class="sc-legs-f"><path d="M34 118 h12 l2 64 h-12Z" fill="#33333c"/><path d="M34 180 h18 q6 0 6 6 h-24Z" fill="#f4f0e6"/></g>
+      <path d="M58 60 Q70 80 66 100" stroke="#33333c" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M58 92 Q82 84 86 100 Q90 112 78 116 Q66 120 60 110Z" fill="#141010"/>
+      <rect x="40" y="40" width="10" height="12" fill="#e2b48a"/><circle cx="47" cy="34" r="12" fill="#e2b48a"/><circle cx="53" cy="32" r="1.6" fill="#141010"/><path d="M52 40 h5" stroke="#6a3a2a" stroke-width="1.5"/>
+      <path d="M26 26 Q47 32 70 24 Q62 22 58 22 L56 8 Q47 4 38 8 L36 22 Q30 22 26 26Z" fill="#2a2a30"/><rect x="36" y="18" width="21" height="4" fill="#0e0e10"/></svg>`;
+    let speakSaw = null;
+    const knock = () => {
+      cue('knock');
+      later(() => {
+        const peep = layer.querySelector('.sp-peep');
+        peep?.classList.add('peek');
+        later(() => peep?.classList.remove('peek'), 5200);
+      }, 900);
+    };
+    const bartender = () => {
+      rise(BARTENDER, { x: 77, h: 26, ar: 1 / 1.417, life: 6000 });
+      later(() => cue('shaker'), 700);
+      later(() => { slide('🍸', { y: 72, size: 44 }); cue('slide'); }, 3800);
+    };
+    const flapper = () => walk(FLAPPER, { ar: 1 / 2.1, h: 30, dur: rand(10, 13), cls: ['sp-flapper'] });
+    SCENES.speakeasy = {
+      decor() {
+        speakSaw = watcher();
+        el(BULB, { left: '22vw', top: '-2vh', fontSize: '150px' }).classList.add('sc-bulb');
+        el(GRAMOPHONE, { left: '1vw', bottom: '9vh', fontSize: '130px' }).classList.add('sc-gramophone', 'blk');
+        onArt(PEEP, 1066, 556, 64, 0, 'sp-peep');
+        // The sconces' light trembling, smoke hanging and drifting under the ceiling.
+        for (const [x, y] of [[86, 230], [1098, 220], [1500, 220]]) box(x - 110, y - 130, 220, 260, 0, 'sp-glow').style.animationDelay = `-${rand(0, 3).toFixed(1)}s`;
+        for (const [top, dur] of [[4, 70], [22, 95]]) el('', { left: '-40vw', top: `${top}vh`, animationDuration: `${dur}s` }).classList.add('sp-haze');
+      },
+      update(s) {
+        const e = speakSaw?.(s);
+        if (!e) return;
+        if (e.over) {
+          quote('The cat’s pajamas!', 'sp', 3400);
+          flapper();
+          later(flapper, 1800);
+          notes(4, 78, '#d9ad52', 7);
+          cue('cheer', 300);
+        } else {
+          quote(`Bottoms up, ${e.who}.`, 'sp');
+          slide('🥃', { y: 72, size: 44 });
+          cue('slide');
+        }
+      },
+      moments: [
+        () => smoke(),
+        knock,
+        () => { el('', { inset: '0' }, 6000).classList.add('sc-police'); cue('siren'); later(() => quote('Cheese it, the cops!', 'sp', 2600, '30vh'), 800); },
+        flapper,
+        bartender,
+        () => walk(GANGSTER, { ar: 0.45, h: 30, dur: rand(13, 16), cls: ['sp-walker'] }),
+        () => { onArt('<b>ring-a-ling!</b>', 1180, 586, 90, 3400, 'sp-ring'); cue('beep'); cue('beep', 700); cue('beep', 1600); },
+        () => notes(3, 78, '#d9ad52', 6),
+        () => { slide('🍸', { y: 72, size: 44 }); cue('slide'); },
+        () => { el('<span>🍸</span>', { left: '12vw', top: '22vh', fontSize: '44px' }, 4000).classList.add('sc-shaker'); cue('shaker'); },
+      ],
+    };
+
+    // ---------- The casino ----------
+    // Lucky 7's reels (over the drawing's reel window): a strip of symbols for each, spinning.
+    const SYMS = [
+      '<text x="14" y="33" font-family="Georgia, serif" font-size="30" font-weight="900" text-anchor="middle" fill="#c1121f">7</text>',
+      '<rect x="4" y="14" width="20" height="14" rx="2" fill="#141414"/><text x="14" y="25" font-family="Arial, sans-serif" font-size="8" font-weight="900" text-anchor="middle" fill="#fff">BAR</text>',
+      '<circle cx="10" cy="27" r="6" fill="#c1121f"/><circle cx="19" cy="29" r="6" fill="#c1121f"/><path d="M10 21 Q14 11 22 9 M19 23 L22 9" stroke="#2a6a2a" stroke-width="2" fill="none"/>',
+      '<path d="M14 9 q-9 0 -9 14 l-3 6 h24 l-3 -6 q0 -14 -9 -14Z" fill="#e3b23c"/><circle cx="14" cy="32" r="3" fill="#e3b23c"/>',
+    ];
+    const REELS = `<svg viewBox="0 0 84 42" width="1em" height="0.5em"><rect width="84" height="42" fill="#fffaf0"/>${[0, 1, 2].map((i) => `<g transform="translate(${i * 28} 0)"><g class="cs-strip" style="transform:translateY(-${[0, 42, 84][i]}px)">${[...SYMS, ...SYMS].map((s, j) => `<g transform="translate(0 ${j * 42})">${s}</g>`).join('')}</g></g>`).join('')}<path d="M28 0V42M56 0V42" stroke="#c8b89a" stroke-width="2"/><rect width="84" height="42" fill="url(#vn-reelshade)"/><defs><linearGradient id="vn-reelshade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.35"/><stop offset="0.3" stop-color="#000" stop-opacity="0"/><stop offset="0.7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/></linearGradient></defs></svg>`;
+    // A cocktail waitress with a tray of martinis. Faces right.
+    const WAITRESS = `<svg viewBox="0 0 90 200" width="0.45em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M42 118 L44 180" stroke="#e8c0a0" stroke-width="7" stroke-linecap="round"/><path d="M40 182 h14 l-2 6 h-10Z" fill="#141010"/></g>
+      <path d="M32 60 Q45 54 58 60 L62 122 H28Z" fill="#141010"/><path d="M28 120 H62 M34 60 Q45 74 56 60" stroke="#e0b450" stroke-width="2.5" fill="none"/>
+      <g class="sc-legs-f"><path d="M36 118 L32 180" stroke="#f0d2b4" stroke-width="7" stroke-linecap="round"/><path d="M28 182 h14 l-2 6 h-10Z" fill="#141010"/></g>
+      <path d="M56 64 Q70 60 72 36" stroke="#f0d2b4" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="32" rx="18" ry="3" fill="#c9ccd1"/>
+      ${[62, 72, 82].map((x) => `<path d="M${x - 6} 18 L${x} 26 L${x + 6} 18Z" fill="#e8f4f0" opacity="0.8"/><path d="M${x} 26 V31" stroke="#e8f4f0" stroke-width="1.5"/><circle cx="${x}" cy="21" r="1.8" fill="#6a8a2a"/>`).join('')}
+      <path d="M34 64 Q26 84 30 100" stroke="#f0d2b4" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <rect x="40" y="44" width="9" height="12" fill="#f0d2b4"/><circle cx="46" cy="36" r="12" fill="#f0d2b4"/><path d="M33 38 Q32 20 46 20 Q60 20 58 34 Q50 26 40 30Z" fill="#8a3a1a"/><circle cx="38" cy="20" r="8" fill="#8a3a1a"/>
+      <circle cx="52" cy="36" r="1.6" fill="#141010"/><path d="M51 42 q3 1 5 -1" stroke="#c1121f" stroke-width="2" fill="none"/></svg>`;
+    // The King himself, or near enough: the quiff, gold shades, white jumpsuit studded with gold,
+    // pointing at someone in the crowd. Faces right.
+    const ELVIS = `<svg viewBox="0 0 100 200" width="0.5em" height="1em" overflow="visible">
+      <g class="sc-legs-b"><path d="M48 118 l6 0 l10 66 h-14Z" fill="#e8e4dc"/><path d="M48 182 h18 l2 6 h-20Z" fill="#141010"/></g>
+      <path d="M36 58 Q50 50 64 58 L66 122 H34Z" fill="#fbf8f0"/><path d="M38 56 L50 80 L62 56 L58 50 L50 62 L42 50Z" fill="#fbf8f0" stroke="#e0b450" stroke-width="1.5"/>
+      ${[[44, 90], [56, 90], [50, 100], [42, 72], [58, 72]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#e0b450"/>`).join('')}<rect x="34" y="108" width="32" height="8" fill="#e0b450"/><rect x="45" y="106" width="10" height="12" rx="2" fill="#f6dc8a"/>
+      <g class="sc-legs-f"><path d="M38 118 h10 l2 62 l6 4 h-22 l4 -4Z" fill="#fbf8f0"/><path d="M32 182 h20 l2 6 h-22Z" fill="#141010"/></g>
+      <g class="cs-point"><path d="M62 62 Q80 50 92 30" stroke="#fbf8f0" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="93" cy="28" r="4.5" fill="#f0d2b4"/></g>
+      <path d="M38 62 Q28 84 34 104" stroke="#fbf8f0" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <rect x="45" y="42" width="10" height="12" fill="#f0d2b4"/><circle cx="51" cy="34" r="12" fill="#f0d2b4"/><path d="M36 34 Q32 10 52 12 Q68 12 70 24 Q62 18 52 22 Q44 22 42 36Z" fill="#141010"/><path d="M40 34 V44" stroke="#141010" stroke-width="4"/>
+      <path d="M48 31 h14 v5 q-4 3 -7 0 h-2 q-3 3 -5 0Z" fill="#e0b450"/><path d="M53 41 q4 2 6 -1" stroke="#8a2a1a" stroke-width="2" fill="none"/></svg>`;
+    let casinoSaw = null;
+    let lastHit = null;
+    let pulling = false;
+    // Pull Lucky 7's handle: the reels spin and stop one by one. Now and then three of a kind.
+    const pull = (win = Math.random() < 0.2) => {
+      const reels = layer.querySelector('.cs-reels');
+      const knob = layer.querySelector('.cs-knob');
+      if (!reels || pulling) return;
+      pulling = true;
+      knob?.classList.remove('pull');
+      void knob?.offsetWidth;
+      knob?.classList.add('pull');
+      cue('spin', 200);
+      const strips = [...reels.querySelectorAll('.cs-strip')];
+      const sym = win ? Math.floor(Math.random() * 4) : -1;
+      const ends = strips.map((_, i) => (win ? sym : i === 2 ? 2 : 0));
+      if (!win && Math.random() < 0.5) ends[2] = 1 + Math.floor(Math.random() * 3);
+      strips.forEach((s, i) => later(() => { s.style.transform = ''; s.classList.add('spin'); }, 300 + i * 60));
+      strips.forEach((s, i) => later(() => { s.classList.remove('spin'); s.style.transform = `translateY(-${ends[i] * 42}px)`; cue('thud'); }, 1700 + i * 600));
+      later(() => {
+        pulling = false;
+        if (!win) return;
+        const [x, y] = artAt(1098, 826);
+        burst(['🪙', '🪙', '💰', '✨'], { x, y, n: 26, spread: 14, rise: [-30, -10], fall: [10, 20] });
+        inFront('<b>JACKPOT!</b>', { left: '0', right: '26vw', top: '30vh' }, 3000).classList.add('sc-oneeighty', 'cs');
+        layer.querySelector('.cs-board')?.classList.add('win');
+        later(() => layer.querySelector('.cs-board')?.classList.remove('win'), 3000);
+        cue('jackpot');
+        cue('cheer', 300);
+      }, 3300);
+    };
+    // The roulette wheel (bottom left, over the drawing's) spins, the ball runs round and drops.
+    const roulette = () => {
+      const n = Math.floor(Math.random() * 37);
+      const ring = (c, off) => `<ellipse class="cs-pockets" cx="150" cy="800" rx="96" ry="32" fill="none" stroke="${c}" stroke-width="18" stroke-dasharray="9 9" stroke-dashoffset="${off}"/>`;
+      const w = onArt(`<svg viewBox="0 746 300 108" width="1em" height="0.36em">${ring('#c0182a', 0)}${ring('#141414', 9)}<ellipse cx="150" cy="800" rx="60" ry="20" fill="#8a5a24"/><ellipse cx="150" cy="796" rx="16" ry="6" fill="#e0b450"/><circle class="cs-rball" cx="0" cy="0" r="4.5" fill="#fff"/></svg>`, 0, 746, 300, 7000, 'cs-wheel');
+      for (const p of w.querySelectorAll('.cs-pockets')) p.animate([{ strokeDashoffset: p.getAttribute('stroke-dashoffset') }, { strokeDashoffset: Number(p.getAttribute('stroke-dashoffset')) - 720 }], { duration: 5200, easing: 'cubic-bezier(0.2, 0.6, 0.35, 1)', fill: 'forwards' });
+      const K = 60;
+      const turns = 3.6 + Math.random();
+      const frames = Array.from({ length: K + 1 }, (_, k) => { const t = k / K; const a = turns * Math.PI * 2 * (1 - (1 - t) ** 2.4); const r = t > 0.8 ? 1 - (t - 0.8) * 1.6 : 1; return { transform: `translate(${(150 + Math.cos(a) * 82 * r).toFixed(1)}px, ${(800 - Math.sin(a) * 27 * r).toFixed(1)}px)` }; });
+      w.querySelector('.cs-rball').animate(frames, { duration: 5200, fill: 'forwards' });
+      cue('spin');
+      later(() => {
+        const colour = n === 0 ? 'Green' : REDS.includes(n) ? 'Red' : 'Black';
+        inFront(`<b>${n} ${colour}!</b>`, { left: '3vw', bottom: '17vh' }, 3400).classList.add('sc-verdict', 'win');
+        cue('clink');
+      }, 5300);
+    };
+    // A quick shuffle, top left of the floor: the cards riffling over from one hand to the other.
+    const shuffle = () => {
+      for (let i = 0; i < 12; i++) el('', { left: '4vw', top: '66vh', animationDelay: `${(i * 0.09).toFixed(2)}s` }, 3600).classList.add('cs-card');
+      cue('snaps');
+    };
+    // The progressive jackpot, always going up.
+    let jackpot = 1000000;
+    const tick = () => {
+      const b = layer?.querySelector('.cs-board b');
+      if (!b) return;
+      jackpot += Math.floor(rand(3, 90));
+      b.textContent = `$${jackpot.toLocaleString('en-US')}`;
+      later(tick, rand(1800, 4200));
+    };
+    SCENES.casino = {
+      decor() {
+        casinoSaw = watcher();
+        lastHit = null;
+        pulling = false;
+        jackpot = 1000000 + Math.floor(rand(0, 40000));
+        // The jackpot board's bulbs chasing, its number ticking up.
+        const u = unit();
+        for (const y of [160, 273]) {
+          const b = box(14, y, 240, 9, 0, 'cs-bulbs');
+          b.innerHTML = '<i></i>';
+          Object.assign(b.firstChild.style, { left: `${(-40 * u).toFixed(1)}px`, backgroundSize: `${(40 * u).toFixed(1)}px 100%`, backgroundPosition: `${(30 * u).toFixed(1)}px 50%` });
+          b.style.setProperty('--p', `${(20 * u).toFixed(1)}px`);
+        }
+        const board = box(26, 220, 216, 44, 0, 'cs-board');
+        board.innerHTML = '<b></b>';
+        board.style.fontSize = `${(33 * u).toFixed(1)}px`;
+        tick();
+        // Lucky 7: its reels, the handle's knob, the light on top; the chandelier twinkling.
+        onArt(REELS, 1056, 634, 84, 0, 'cs-reels');
+        onArt('<svg viewBox="0 0 24 24" width="1em" height="1em"><circle cx="12" cy="12" r="11" fill="#c1121f"/><circle cx="8" cy="8" r="3" fill="#fff" opacity="0.7"/></svg>', 1150, 584, 24, 0, 'cs-knob');
+        onArt('<i></i>', 1068, 516, 60, 0, 'cs-toplight');
+        for (let i = 0; i < 7; i++) onArt('✦', 1030 + rand(0, 130), 40 + rand(0, 110), 14, 0, 'cs-twinkle').style.animationDelay = `-${rand(0, 4).toFixed(1)}s`;
+        // Smoke curling up off the cigar in the ashtray.
+        const puff = () => later(() => { const [x, y] = artAt(1296, 800); drift('', { from: [x, y], to: [x + rand(-2, 1), y - rand(14, 22)], dur: 5, size: 10 }).classList.add('cs-smoke'); puff(); }, rand(900, 1700));
+        puff();
+      },
+      update(s) {
+        const g = s?.gameType === 'slevens' ? s.game : null;
+        if (g?.hit && g.rollNo !== lastHit) {
+          const first = lastHit === null;
+          lastHit = g.rollNo;
+          if (!first) {
+            inFront('<b>WINNER!</b>', { left: '0', right: '26vw', top: '30vh' }, 2400).classList.add('sc-oneeighty', 'ton', 'cs');
+            burst(['🔴', '⚫', '🟢', '🔵'], { x: 36, y: 46, n: 16, spread: 24, size: [16, 24] });
+            cue('clink');
+          }
+        } else if (g && lastHit === null) lastHit = g.rollNo ?? 0;
+        const e = casinoSaw?.(s);
+        if (!e) return;
+        if (e.over) {
+          later(() => pull(true), 300);
+          quote('The house drinks!', 'cs', 3000);
+        } else {
+          quote(`Drinks on the house, ${e.who}!`, 'cs');
+          burst(['🔴', '⚫', '🟢', '🔵', '🪙'], { x: 6, y: 80, n: 14, spread: 10, size: [16, 26] });
+          cue('clink');
+        }
+      },
+      moments: [
+        () => pull(),
+        () => pull(),
+        roulette,
+        rollDice,
+        shuffle,
+        () => walk(WAITRESS, { ar: 0.45, h: 30, dur: rand(11, 14) }),
+        () => { walk(ELVIS, { ar: 0.5, h: 32, dur: 12 }); later(() => quote('Thank you. Thank you very much.', 'cs', 3400, '20vh'), 5000); },
+        () => fall(['🪙', '💰', '🎲', '♠️', '♥️'], 7, 0.6),
+        () => { burst(['🃏', '🂡', '🂮', '🃁'], { x: 6, y: 80, n: 14, spread: 18, size: [28, 40] }); },
+        () => { burst(['🍾', '🫧', '✨', '🫧'], { x: 4, y: 78, n: 18, spread: 14 }); cue('pop'); },
+      ],
+    };
+
+    // ---------- The saloon ----------
+    // The batwing doors (over the drawing's doorway): louvred, swinging on their hinges.
+    const door = (x0, w, side) => `<g class="sl-door ${side}"><path d="M${x0} 58 Q${x0 + w / 2} ${side === 'l' ? 46 : 70} ${x0 + w} 50 V138 H${x0}Z" fill="#6a3e1c" stroke="#3a2210" stroke-width="2"/>${[66, 76, 86, 96, 106, 116, 126].map((y) => `<path d="M${x0 + 5} ${y} H${x0 + w - 5}" stroke="#3a2210" stroke-width="2.5"/>`).join('')}<path d="M${x0 + w / 2} 60 V136" stroke="#8a5a2a" stroke-width="2"/></g>`;
+    const DOORS = `<svg viewBox="0 0 116 174" width="1em" height="1.5em" overflow="visible">${door(0, 57, 'l')}${door(59, 57, 'r')}</svg>`;
+    // A stranger, backlit in the doorway; a rider going by in the street.
+    const STRANGER = `<svg viewBox="0 0 60 150" width="1em" height="2.5em"><g fill="#1a0c04"><path d="M4 26 Q30 34 56 26 Q48 22 44 22 L42 6 Q30 0 18 6 L16 22 Q12 22 4 26Z"/><circle cx="30" cy="34" r="9"/><path d="M14 46 Q30 40 46 46 L54 120 L44 150 H36 L30 120 L24 150 H16 L6 120Z"/></g></svg>`;
+    const RIDER = `<svg viewBox="0 0 100 80" width="1em" height="0.8em" overflow="visible"><g fill="#4a2a14"><path d="M20 40 Q40 32 70 36 Q80 26 88 22 L94 26 L90 34 Q84 40 80 48 Q60 56 30 52 Q18 50 20 40Z"/><path d="M20 42 Q8 44 4 56 Q12 50 22 48Z"/>
+      <g class="sc-legs-f"><path d="M70 48 L76 74 L72 76 L64 50Z"/><path d="M60 50 L58 76 L54 76 L54 50Z"/></g><g class="sc-legs-b"><path d="M32 50 L24 74 L20 74 L26 48Z"/><path d="M40 52 L42 76 L38 76 L34 52Z"/></g>
+      <path d="M44 34 L46 12 H56 L58 34Z"/><circle cx="51" cy="8" r="5"/><path d="M40 6 Q51 10 62 6 Q56 4 56 2 L52 -4 L46 2 Q44 4 40 6Z"/></g></svg>`;
+    const PIANO_KEYS = `<svg viewBox="0 0 244 26" width="1em" height="0.107em">${[1, 3, 4, 7, 9, 12, 14, 15, 18, 20, 22].map((k, i) => `<rect class="sl-key" x="${(k * 10.2 + 1).toFixed(1)}" y="0" width="8.5" height="26" fill="#000" opacity="0" style="animation-duration:${(1.1 + (i % 4) * 0.37).toFixed(2)}s;animation-delay:-${(i * 0.29).toFixed(2)}s"/>`).join('')}</svg>`;
+    let saloonSaw = null;
+    const doorsSwing = () => {
+      const d = layer.querySelector('.sl-doors');
+      if (!d) return;
+      d.classList.remove('swing');
+      void d.offsetWidth;
+      d.classList.add('swing');
+      cue('creak');
+    };
+    const behindDoors = (html, cls, life) => {
+      const p = box(1040, 550, 116, 174, life, 'sl-pane');
+      p.innerHTML = html;
+      p.firstElementChild.classList.add(cls);
+      layer.querySelector('.sl-doors')?.before(p);
+      return p;
+    };
+    // A stranger walks in: there in the doorway, the piano stops, the doors swing... and on it goes.
+    const stranger = () => {
+      const piano = layer.querySelectorAll('.sl-piano, .sl-roll');
+      behindDoors(`<div style="font-size:${(56 * unit()).toFixed(1)}px">${STRANGER}</div>`, 'sl-stranger', 5200);
+      piano.forEach((p) => p.classList.add('stop'));
+      later(doorsSwing, 2600);
+      later(() => quote('…', 'sl', 1800, '32vh'), 900);
+      later(() => piano.forEach((p) => p.classList.remove('stop')), 4800);
+    };
+    const rider = () => { behindDoors(`<div style="font-size:${(70 * unit()).toFixed(1)}px">${RIDER}</div>`, Math.random() < 0.5 ? 'sl-rider' : 'sl-rider-l', 6200); cue('gallop', 500); };
+    // The player piano breaks into a rag: the keys go like the clappers, notes fly.
+    const rag = () => {
+      const piano = layer.querySelector('.sl-piano');
+      piano?.classList.add('fast');
+      later(() => piano?.classList.remove('fast'), 6000);
+      const [x, y] = artAt(1300, 640);
+      notes(x, y, '#e8b84a', 6);
+    };
+    SCENES.saloon = {
+      decor() {
+        saloonSaw = watcher();
+        el(POSTER(), { left: '2vw', top: '14vh', fontSize: '130px' }).classList.add('sc-poster');
+        onArt(DOORS, 1040, 550, 116, 0, 'sl-doors');
+        // The player piano playing itself: the keys going down, the roll turning.
+        onArt(PIANO_KEYS, 1204, 672, 244, 0, 'sl-piano');
+        const u = unit();
+        const roll = box(1290, 608, 72, 40, 0, 'sl-roll');
+        roll.style.backgroundSize = `${(10 * u).toFixed(1)}px ${(7 * u).toFixed(1)}px`;
+        roll.style.setProperty('--h', `${(-7 * u * 6).toFixed(1)}px`);
+        // The lantern by the door flickering, dust floating in the sunbeams, the hound asleep.
+        box(1028, 130, 140, 140, 0, 'sl-lamp');
+        for (let i = 0; i < 16; i++) {
+          const t = rand(0.05, 0.95);
+          const [x, y] = artAt(200 + t * 500 + rand(0, 260), 120 + t * 660);
+          el('', { left: `${x}vw`, top: `${y}vh`, animationDuration: `${rand(9, 16).toFixed(1)}s`, animationDelay: `-${rand(0, 16).toFixed(1)}s` }).classList.add('sl-mote');
+        }
+        const [zx, zy] = artAt(1462, 812);
+        el('<b>z</b><b>z</b><b>z</b>', { left: `${zx}vw`, top: `${zy}vh` }).classList.add('sc-sleeper', 'sl-zzz');
+      },
+      update(s) {
+        // The poster's always the host.
+        const host = s?.players?.find((p) => p.id === s.hostId);
+        const poster = layer?.querySelector('.sc-poster');
+        const key = host ? `${host.avatar}|${host.name}|${host.color}` : '';
+        if (poster && host && poster.dataset.key !== key) {
+          poster.dataset.key = key;
+          poster.innerHTML = POSTER(host.avatar || '🤠', host.name, host.color);
+        }
+        const e = saloonSaw?.(s);
+        if (!e) return;
+        if (e.over) {
+          quote('YEE-HAW!', 'sl', 3000);
+          for (let i = 0; i < 3; i++) later(() => { cue('bang'); inFront('<b>BANG!</b>', { left: `${rand(4, 50)}vw`, top: `${rand(6, 20)}vh` }, 1800).classList.add('sc-bang'); }, 400 + i * 500);
+          for (let i = 0; i < 3; i++) toss('🤠', { x: 8 + i * 22, y: 80, size: 44, height: 24, spins: 2, delay: i * 0.3 });
+          cue('cheer', 300);
+        } else {
+          quote(`Drink up, ${e.who}!`, 'sl');
+          slide('🥃', { y: 91, size: 42 });
+          cue('slide');
+        }
+      },
+      moments: [
+        () => drift(TUMBLEWEED, { from: [-12, rand(86, 90)], to: [112, rand(86, 90)], dur: rand(7, 10), size: rand(56, 80), spin: 1080 }).classList.add('sc-tumble'),
+        // A shootout: two gunslingers square up across the floor, a tumbleweed rolls between
+        // them... one draws, BANG, and the other keels over. The winner blows the smoke away.
+        () => {
+          const lefty = Math.random() < 0.5;
+          const a = el(GUNSLINGER('#7a2a1a', '#3b2512'), { left: '2vw', bottom: '0', fontSize: '150px' }, 9000);
+          const b = el(GUNSLINGER('#2a4a6a', '#e8dcc0'), { right: '3vw', bottom: '0', fontSize: '150px' }, 9000);
+          a.classList.add('sc-slinger', 'blk');
+          b.classList.add('sc-slinger', 'blk', 'sc-face-l');
+          later(() => drift(TUMBLEWEED, { from: [-12, 90], to: [112, 90], dur: 4.5, size: 54, spin: 1080 }).classList.add('sc-tumble'), 900);
+          const [winner, loser] = lefty ? [a, b] : [b, a];
+          later(() => { winner.classList.add('draw'); cue('bang'); inFront('<b>BANG!</b>', { left: lefty ? '12vw' : '60vw', bottom: '20vh' }, 1800).classList.add('sc-bang'); }, 4200);
+          later(() => loser.classList.add('down'), 4450);
+          later(() => winner.classList.add('smoke'), 5400);
+        },
+        () => { el(HAWK, { left: '14vw', top: '4vh', fontSize: '70px' }, 12000).classList.add('sc-hawk'); cue('hawk', 1500); },
+        () => drift(HAT, { from: [-10, 88], to: [110, 80], dur: rand(5, 7), size: 60, spin: 540 }),
+        () => { slide('🥃', { y: 91, size: 42 }); cue('slide', 200); },
+        () => { crossing('🐍', { y: 95, dur: 9, size: 44 }); cue('rattle', 500); },
+        () => drift('➰', { from: [-10, rand(10, 16)], to: [110, rand(6, 14)], dur: rand(5, 7), size: 60, spin: 1080, opacity: 0.85 }),
+        stranger,
+        rider,
+        rag,
+      ],
+    };
+  })();
 
   // Plays a moment, then waits a while before the next.
   function schedule(scene) {
