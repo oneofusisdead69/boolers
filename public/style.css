@@ -1188,9 +1188,18 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
    off the end of the table; its shadow runs along the table under it. A rim-out spins off
    sideways first. */
 .bp-fly3d.handoff.out, .bp-fly3d.handoff.rim { animation: bp-show 0.01s linear var(--land) both; }
-.bp-bounce { animation: bp-away 1s linear var(--land) both; }
-.bp-hop { animation: bp-hops 1s linear var(--land) both; }
-.bp-bounce-shadow { fill: rgba(0, 0, 0, 0.35); animation: bp-shadow 1s linear var(--land) both; }
+.bp-bounce { animation: bp-away 1s linear var(--after, var(--land)) both; }
+.bp-hop { animation: bp-hops 1s linear var(--after, var(--land)) both; }
+.bp-bounce-shadow { fill: rgba(0, 0, 0, 0.35); animation: bp-shadow 1s linear var(--after, var(--land)) both; }
+/* Off a cup: it pings up off the rim and drops onto the table beside it (--kx, --ky), then
+   bounces away as above. */
+.bp-kick { animation: bp-kick 0.45s linear var(--land) both; }
+.bp-kick .bp-bounce-shadow { opacity: 0; animation: bp-show 0.01s linear var(--after) both, bp-shadow 1s linear var(--after) both; }
+@keyframes bp-kick {
+  0% { translate: 0 0; animation-timing-function: ease-out; }
+  40% { translate: calc(var(--kx) * 0.45) calc(var(--ky) * 0.2 - 26px); animation-timing-function: ease-in; }
+  100% { translate: var(--kx) var(--ky); }
+}
 .bp-fly3d.rim .bp-bounce { animation-name: bp-away-rim; }
 @keyframes bp-away {
   0% { translate: 0 0; scale: 1; opacity: 1; }
