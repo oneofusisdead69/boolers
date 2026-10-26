@@ -3722,9 +3722,9 @@
     const COOL_CAT = figure({ skin: 'brown', hair: 'short', hairColor: 'black', hat: 'beret', beard: 'goatee', face: 'shades', top: '#1a1a20', neck: 'scarf', accent2: '#e3b23c', bottom: '#2a2a30', pose: 'walk' });
     // Someone steps up to the mic in the spotlight (the singer, the sax), and the notes rise.
     const onStage = (svg, life, sound) => {
-      // (Just behind the mic, at x 140 in the art.)
-      const [l] = at5(34, 0);
-      const d = el(`<span>${svg}</span>`, { left: `${l}vw`, bottom: `${100 - at5(0, 880)[1]}vh`, fontSize: `${px5(190)}px`, animation: `sc-popup ${life / 1000}s ease-in-out forwards` }, life);
+      // (Just behind the mic, at x 140 in the art, on the stage's boards.)
+      const [l] = at5(12, 0);
+      const d = el(`<span>${svg}</span>`, { left: `${l}vw`, bottom: `${100 - at5(0, 850)[1]}vh`, fontSize: `${px5(228)}px`, animation: `sc-popup ${life / 1000}s ease-in-out forwards` }, life);
       d.classList.add('blk', 'sc5-onstage');
       cue(sound);
       notes(...at5(120, 600), '#e3b23c', life / 1000 - 2);
@@ -3736,9 +3736,10 @@
         light(100, 640, 360, 640, 'rgba(255, 240, 200, 0.16)', ['sc5-spotbreathe']);
         for (let i = 0; i < 3; i++) el('', { left: `${-10 + i * 12}vw`, top: `${20 + i * 18}vh`, width: '40vw', height: '30vh', animationDelay: `-${i * 9}s` }).classList.add('sc5-smoke');
         light(1100, 440, 220, 200, 'rgba(255, 70, 60, 0.25)', ['sc5-fireglow']);
-        // The pianist on his bench in front of the keys (the art's 88 units to the metre).
-        put(PIANIST, 1228, 733, 70, ['sc5-pianist']);
-        put(DRUMMER, 1400, 690, 200, ['sc5-drummer']);
+        // The pianist on his bench in front of the keys (the piano's 128 units to the metre), the
+        // drummer behind his kit (drawn at 88 and scaled 1.3 in the art: see jazzStage).
+        put(PIANIST, 1072.5, 714.7, 101.8, ['sc5-pianist']);
+        put(DRUMMER, 1327.8, 632, 260, ['sc5-drummer']);
       },
       update: (s) => watch5(s, {
         drink: (who) => { walk(WAITER, { h: px5(170), y: 99.5, dur: 11 }); cue('clink', 2000); quote5(`Cheers, darling · ${sips(who)}`, 'jazz', '22vh', 2800); },
