@@ -600,6 +600,8 @@
   Object.assign(HAT_COLOR, { souwester: '#e8b81a', jester: '#c8303f', spacehelmet: '#c8d0dc', weldmask: '#2a3038', antennae: '#6ad86a', hibiscus: '#ff4a7a' });
   Object.assign(PROPS, {
     // A golden goblet of wine (the king's).
+    // One of the drinks the players pick for themselves (the emoji, given as propColor).
+    emoji: (c = '🍷') => `<text x="0" y="-1" font-size="17" text-anchor="middle">${c}</text>`,
     goblet: (c = '#d4af37') => `${inked('M0 -5 V1.5 M-3.5 2 H3.5', c, 1.8)}<path d="M-5.5 -15 H5.5 Q5.5 -6 0 -5 Q-5.5 -6 -5.5 -15Z" fill="${c}" ${ink}/><path d="M-4.6 -13.4 H4.6" stroke="#6a0c18" stroke-width="2"/><circle cx="0" cy="-9" r="1.3" fill="#c8303f"/>`,
     // A sword, point up; a heater shield (a knight's), its cross in gold.
     sword: (c = '#d8dde3') => `<path d="M-1.7 -6 V-34 L0 -37.5 L1.7 -34 V-6Z" fill="${c}" ${ink}/>${inked('M-6 -5 H6', '#d9ad52', 2.4)}${inked('M0 -3.6 V2.6', '#6a4424', 2.4)}<circle cx="0" cy="4" r="2" fill="#d9ad52" ${ink}/>`,
@@ -765,7 +767,7 @@
     buttons: ({ cx }) => [[48, '#d62828'], [57, '#2a8a4a'], [66, '#d62828']].map(([y, c]) => `<circle cx="${cx + 1}" cy="${y}" r="2.2" fill="${c}" ${ink}/>`).join(''),
   });
   // Drinks and things that glow keep their colours in the silhouettes (see lit()).
-  for (const k of ['pint', 'stein', 'tankard', 'wine', 'coupe', 'martini', 'bottle', 'can', 'redcup', 'sparkler', 'shake', 'goblet', 'horn', 'lamp', 'jack']) {
+  for (const k of ['pint', 'stein', 'tankard', 'wine', 'coupe', 'martini', 'bottle', 'can', 'redcup', 'sparkler', 'shake', 'goblet', 'emoji', 'horn', 'lamp', 'jack']) {
     const f = PROPS[k];
     PROPS[k] = (...a) => lit(f(...a));
   }
@@ -3950,13 +3952,14 @@
     // falling from his knees to his feet on the dais, just in front of the throne; over him the
     // ermine capelet (its tails a jagged hem), his spade beard, and his lap (seen from the front his
     // thighs come at us, so it's short, the knees just below the seat and wider than the shins).
-    // His near hand on the throne's arm; the goblet in his far hand, raised on .sc5-raise.
+    // His near hand on the throne's arm; in his far hand his wine (a 🍷, one of the drinks the
+    // players pick), raised on .sc5-raise.
     // (The kit's arm and goblet turn on .sc5-raise, the goblet the other way to stay upright.)
     const KING_W = 1.3;
     const kingPart = (d) => silhouette(`<path d="${d}"/>`, KING_W).replace('class="fg"', `class="fg" style="--fg-w:${KING_W}"`);
     const KING = `<svg viewBox="-60 -180 120 200" width="1em" height="1.667em" overflow="visible">
       ${kingPart('M-19 -48 L-20 -14 Q-22 -3 -26 4 Q-13 6.5 0 5.5 Q13 6.5 26 4 Q22 -3 20 -14 L19 -48Z M-16 3 Q-17 9 -10 10 Q-4 10 -3 4Z M16 3 Q17 9 10 10 Q4 10 3 4Z')}
-      ${figureAt(0, 16.8, 175, { hairColor: 'grey', beard: 'beard', hat: 'crown', neck: 'ermine', build: 'stout', facing: 'front', crop: 'waist', arms: [[18, 30], [10, 40]], holding: 'goblet', hooks: { armF: 'sc5-toast', propF: 'sc5-cup' } })}
+      ${figureAt(0, 16.8, 175, { hairColor: 'grey', beard: 'beard', hat: 'crown', neck: 'ermine', build: 'stout', facing: 'front', crop: 'waist', arms: [[18, 30], [10, 40]], holding: 'emoji', propColor: '🍷', hooks: { armF: 'sc5-toast', propF: 'sc5-cup' } })}
       ${kingPart('M-6 -124.5 Q-16 -122 -20.5 -112 Q-23 -105 -21 -99 L-18 -100.5 L-15 -97.5 L-12 -99.5 L-8 -96.5 L-4 -98.5 L0 -96 L4 -98.5 L8 -96.5 L12 -99.5 L15 -97.5 L18 -100.5 L21 -99 Q23 -105 20.5 -112 Q16 -122 6 -124.5 Q0 -121 -6 -124.5Z')}
       ${kingPart('M-7.8 -133 Q-9 -121 -4.5 -112.5 Q-1.5 -108.5 0 -107 Q1.5 -108.5 4.5 -112.5 Q9 -121 7.8 -133 Q0 -127.5 -7.8 -133Z')}
       ${kingPart('M-21 -66 Q-26 -62 -26.5 -53 Q-26.5 -45 -18 -44 Q-8 -43.5 -2.5 -46.5 L0 -49 L2.5 -46.5 Q8 -43.5 18 -44 Q26.5 -45 26.5 -53 Q26 -62 21 -66 Q0 -70 -21 -66Z')}</svg>`;
