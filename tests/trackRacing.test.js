@@ -185,3 +185,59 @@ test('weather: picked for each race, fitted to the room, and bots finish in ever
     t2.cleanup();
   }
 });
+
+test('cars: a look is checked against the lists, and anything unknown is the plain car', () => {
+  const t = setup(game, 2);
+  t.act(0, 'car', { body: 'van', paint: game.PAINTS[2], stripe: game.PAINTS[9], extra: 'keg' });
+  assert.deepStrictEqual(t.room.game.looks.p0, { body: 'van', paint: game.PAINTS[2], stripe: game.PAINTS[9], extra: 'keg' });
+  t.act(1, 'car', { body: 'tank', paint: 'red', stripe: '<script>', extra: 'rocket', speed: 999 });
+  assert.deepStrictEqual(t.room.game.looks.p1, { body: 'sports', paint: null, stripe: null, extra: 'none' }, 'nothing it does not know');
+  t.act(1, 'car', { body: 'trolley', extra: 'number' });
+  assert.deepStrictEqual(t.room.game.looks.p1, { body: 'trolley', paint: null, stripe: null, extra: 'number' });
+  // Everyone sees everyone's car (with their seat, for the number); the plain one if not picked.
+  const v = t.view(1);
+  assert.strictEqual(v.looks.p0.body, 'van');
+  assert.strictEqual(v.looks.p1.n, 2);
+  assert.deepStrictEqual(v.myLook, t.room.game.looks.p1);
+  assert.strictEqual(t.view(0).looks.p1.extra, 'number');
+  const fresh = setup(game, 2);
+  assert.strictEqual(fresh.view(0).myLook, null, 'nobody has picked yet');
+  assert.strictEqual(fresh.view(0).looks.p1.body, 'sports');
+  assert.deepStrictEqual(game.waitingOn(fresh.room), ['p0', 'p1'], 'picking a car is up to you: the bets are what count');
+  t.cleanup();
+  fresh.cleanup();
+});
+
+test('cars: kept from race to race, and not changed mid-race; it makes no difference to the driving', () => {
+  const t = setup(game, 3, { track: 'bar', laps: 2 });
+  t.act(0, 'car', { body: 'hotrod', extra: 'flames' });
+  t.act(1, 'car', { body: 'buggy', extra: 'cone' });
+  startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+  t.act(0, 'car', { body: 'pickup' });
+  assert.strictEqual(t.room.game.looks.p0.body, 'hotrod', 'not while racing');
+  runRace(t);
+  assert.ok(['payout', 'results'].includes(t.room.game.phase));
+  // After the flag (the results screen's "Edit car") it can change again.
+  t.act(1, 'car', { body: 'van', extra: 'spoiler' });
+  t.room.game.phase = 'results';
+  t.act(0, 'nextRace');
+  assert.strictEqual(t.room.game.race, 2);
+  assert.deepStrictEqual(t.room.game.looks.p0, { body: 'hotrod', paint: null, stripe: null, extra: 'flames' });
+  assert.strictEqual(t.room.game.looks.p1.body, 'van');
+  assert.strictEqual(t.view(2).looks.p0.body, 'hotrod');
+  // Every car the same circle on the track, whatever it looks like.
+  assert.ok(t.room.game.cars.every((c) => Object.keys(c).sort().join() === Object.keys(t.room.game.cars[0]).sort().join()));
+  t.cleanup();
+});
+
+test('cars: a bot picks one of its own before it bets', () => {
+  const t = setup(game, 2);
+  t.room.players[1].bot = 'npc';
+  const move = t.bot(1);
+  assert.strictEqual(move.type, 'car');
+  game.handle(t.room, t.player(1), move, t.ctx);
+  const look = t.room.game.looks.p1;
+  assert.ok(game.BODIES.includes(look.body) && game.EXTRAS.includes(look.extra));
+  assert.strictEqual(t.bot(1).type, 'bet', 'then its bet');
+  t.cleanup();
+});

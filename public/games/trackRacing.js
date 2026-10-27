@@ -820,57 +820,50 @@
     else c.rect(x, y, w, h);
   }
 
-  // A little car, nose along +x, in its driver's colour.
-  function drawCar(c, car, look, { label, mine, honk, lamps }) {
+  // A car from above (its picture: spriteOf), nose along +x, at its place on the track.
+  function drawCar(c, car, id, { label, mine, honk, lamps, big }) {
     const [x, y, a, flags] = car;
+    const look = PB.look(id);
     c.save();
     c.translate(x, y);
     c.rotate(a);
-    c.scale(1.2, 1.2);
+    if (big) c.scale(1.25, 1.25); // (the TV: big enough to tell a trolley from a van)
     if (lamps) {
       // Headlights: a pool of light ahead (the gradient's in the car's own frame, so one does all).
       if (!c.trBeam) {
-        c.trBeam = c.createLinearGradient(12, 0, 64, 0);
+        c.trBeam = c.createLinearGradient(14, 0, 66, 0);
         c.trBeam.addColorStop(0, 'rgba(255, 240, 190, 0.55)');
         c.trBeam.addColorStop(1, 'rgba(255, 240, 190, 0)');
       }
       c.fillStyle = c.trBeam;
       c.beginPath();
-      c.moveTo(12, -5);
-      c.lineTo(64, -20);
-      c.lineTo(64, 20);
-      c.lineTo(12, 5);
+      c.moveTo(14, -6);
+      c.lineTo(66, -24);
+      c.lineTo(66, 24);
+      c.lineTo(14, 6);
       c.fill();
     }
     c.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    roundRect(c, -11, -4, 24, 13, 4);
+    roundRect(c, -13, -6, 28, 16, 5);
     c.fill();
-    c.fillStyle = '#111';
-    for (const [wx, wy] of WHEELS) c.fillRect(wx - 3.5, wy - 2.2, 7, 4.4);
-    c.fillStyle = look.color;
-    roundRect(c, -12, -6, 24, 12, 4);
-    c.fill();
-    c.lineWidth = mine ? 2 : 1;
-    c.strokeStyle = mine ? '#fff' : 'rgba(0, 0, 0, 0.55)';
-    c.stroke();
-    c.fillStyle = 'rgba(15, 25, 45, 0.85)';
-    roundRect(c, 1.5, -4.5, 5, 9, 1.5);
-    c.fill();
-    roundRect(c, -8.5, -4, 3, 8, 1);
-    c.fill();
-    c.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    c.fillRect(-5, -1, 6, 2);
+    // Your own car glows white (on your phone's map).
+    if (mine) {
+      c.shadowColor = '#fff';
+      c.shadowBlur = 6;
+    }
+    c.drawImage(spriteOf(id), -SPRITE.x, -SPRITE.y, SPRITE.x * 2, SPRITE.y * 2);
+    c.shadowBlur = 0;
     if (flags & 8) {
       c.fillStyle = '#ff2a2a';
-      c.fillRect(-12.5, -5, 2, 3);
-      c.fillRect(-12.5, 2, 2, 3);
+      c.fillRect(-15, -6, 2.4, 3.4);
+      c.fillRect(-15, 2.6, 2.4, 3.4);
     }
     c.restore();
     if (label) {
       c.font = '15px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
       c.textAlign = 'center';
       c.textBaseline = 'middle';
-      c.fillText(look.avatar, x, y - 19);
+      c.fillText(look.avatar, x, y - (big ? 25 : 21));
     }
     if (honk) {
       c.font = 'bold 13px system-ui, sans-serif';
@@ -882,7 +875,6 @@
       c.fillText('BEEP!', x + 20, y - 26);
     }
   }
-  const WHEELS = [[-7, -6.5], [7, -6.5], [-7, 6.5], [7, 6.5]];
 
   // ---------- Where the cars are ----------
 
@@ -958,6 +950,8 @@
       drawStatic(bg, tr, scale, scale, { scenery: !mini || el.clientWidth > 300 });
       return { el, fg, marks, scale, mini };
     });
+    spriteGen++; // (each car's picture is looked at again: someone may have changed theirs)
+    paintPics();
     fp.attach(s);
     kick();
   }
@@ -1003,7 +997,7 @@
             m.fill();
           }
         }
-        drawCar(c, car, PB.look(id), { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900, lamps });
+        drawCar(c, car, id, { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900, lamps, big: PB.isTV });
       }
     }
     if (fp.el) fp.frame(s, cars, ids, ms || now);
@@ -1149,6 +1143,24 @@
       gl_FragColor = vec4(mix(washed(c.rgb * uLight), uHaze, vFog), 1.0);
     }`;
 
+  // A shader program, and where its uniforms and attributes are (null if it won't compile).
+  function program(gl, vs, fsrc) {
+    const p = gl.createProgram();
+    for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fsrc]]) {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(sh)); return null; }
+      gl.attachShader(p, sh);
+    }
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
+    const u = {};
+    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name] = gl.getUniformLocation(p, name); }
+    return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC'), aT: gl.getAttribLocation(p, 'aT') };
+  }
+
   // Building models: triangles of [x, y, z, r, g, b, tint].
   const LIGHT = [0.45, -0.35, 0.82];
   const shade = (nx, ny, nz) => 0.58 + 0.42 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
@@ -1182,19 +1194,31 @@
         }
         if (tops) m.quad(P(-hl, -hw, z1), P(hl, -hw, z1), P(hl, hw, z1), P(-hl, hw, z1), col, t);
       },
+      // A triangle, coloured as it comes.
+      tri,
       // A cylinder, or a cone (r1 0), with n sides.
-      cyl(x, y, z0, z1, r0, r1, col, n = 8) {
+      cyl(x, y, z0, z1, r0, r1, col, n = 8, t = 0) {
         for (let i = 0; i < n; i++) {
           const a0 = (i / n) * Math.PI * 2;
           const a1 = ((i + 1) / n) * Math.PI * 2;
           const p = (a, r, z) => [x + Math.cos(a) * r, y + Math.sin(a) * r, z];
-          if (r1 > 0) m.quad(p(a0, r0, z0), p(a1, r0, z0), p(a1, r1, z1), p(a0, r1, z1), col);
+          if (r1 > 0) m.quad(p(a0, r0, z0), p(a1, r0, z0), p(a1, r1, z1), p(a0, r1, z1), col, t);
           else {
             const am = (a0 + a1) / 2;
             const k = shade(Math.cos(am) * 0.8, Math.sin(am) * 0.8, 0.6);
-            tri(p(a0, r0, z0), p(a1, r0, z0), [x, y, z1], col.map((q) => q * k), 0);
+            tri(p(a0, r0, z0), p(a1, r0, z0), [x, y, z1], col.map((q) => q * k), t);
           }
-          if (r1 > 0) tri([x, y, z1], p(a0, r1, z1), p(a1, r1, z1), col.map((q) => q * shade(0, 0, 1)), 0);
+          if (r1 > 0) tri([x, y, z1], p(a0, r1, z1), p(a1, r1, z1), col.map((q) => q * shade(0, 0, 1)), t);
+        }
+      },
+      // A cylinder lying along x (a keg on its side), centred on (x, y, z), ends and all.
+      drum(x, y, z, hl, r, col, n = 10) {
+        const p = (a, u) => [x + u, y + Math.cos(a) * r, z + Math.sin(a) * r];
+        for (let i = 0; i < n; i++) {
+          const a0 = (i / n) * Math.PI * 2;
+          const a1 = ((i + 1) / n) * Math.PI * 2;
+          m.quad(p(a0, -hl), p(a1, -hl), p(a1, hl), p(a0, hl), col);
+          for (const u of [-hl, hl]) tri([x + u, y, z], p(a0, u), p(a1, u), col.map((q) => q * shade(1, 0, 0)), 0);
         }
       },
     };
@@ -1276,24 +1300,284 @@
     return [f(0), f(8), f(4)];
   }
 
-  // A car, nose along +x, its right side +y: the body in the driver's colour (tint 1).
-  function carModel() {
+  // ---------- The cars ----------
+  //
+  // Each driver picks their car (games/trackRacing.js: the body, a paint, a stripe, one extra),
+  // and every screen builds it from the same few boxes: in 3D from the car, and from above on the
+  // TV, the maps and the garage's preview (the same model, drawn flat: see flatModel). Nose along
+  // +x, its right side +y; the body in the paint (tint 1, so one model does any colour), the
+  // stripe and the extras in their own colours.
+  const PLAIN = { body: 'sports', paint: null, stripe: null, extra: 'none', n: 0 };
+  const BODY_NAMES = { sports: '🏎️ Sports car', pickup: '🛻 Pickup', van: '🚐 Minibus', buggy: '🏖️ Beach buggy', hotrod: '🔥 Hot rod', trolley: '🛒 Trolley' };
+  const EXTRA_NAMES = { none: 'Nothing', spoiler: '✈️ Spoiler', keg: '🛢️ A keg', flames: '🔥 Flames', number: '#️⃣ Your number', cone: '🚧 Traffic cone' };
+  const lookOf = (id, s = PB.state) => s?.game?.looks?.[id] || PLAIN;
+  const paintOf = (id, s = PB.state) => lookOf(id, s).paint || PB.look(id).color;
+
+  const WHITE = [1, 1, 1];
+  const GLASS = [0.08, 0.1, 0.16];
+  const TYRE = [0.07, 0.07, 0.08];
+  const CHROME = [0.72, 0.74, 0.78];
+  const DARK = [0.13, 0.13, 0.15];
+  // Tail lights (tint 2: the brake lights) and headlights (tint 4: lit at night), both sides.
+  function lights(m, tail, nose, y, z0, z1) {
+    for (const s of [-y, y]) m.box(tail - 0.15, s, 0, 0.2, 1.6, z0, z1, [1, 0.3, 0.25], 2, false);
+    for (const s of [-y, y]) m.box(nose + 0.15, s, 0, 0.2, 1.5, z0 - 0.4, z1 - 0.4, [1, 0.97, 0.85], 4, false);
+  }
+  const wheels = (m, spots) => { for (const [x, y, hl, hw, h] of spots) m.box(x, y, 0, hl, hw, 0, h, TYRE); };
+  // Each body, built into m; what it says back is where the extras go: the roof (x, z, half its
+  // length and width), the tail (x) and how high a spoiler stands on it, the bonnet (from x0 to x1
+  // at z, half as wide) and the sides (for flames), where a keg rides, the back for a number, and
+  // the flat tops a stripe runs over ([x, half length, z, half width]).
+  const BODIES = {
+    sports(m, look) {
+      m.box(0, 0, 0, 14, 7, 1.6, 5.6, WHITE, 1);
+      m.box(10.5, 0, 0, 4.5, 6.2, 1.6, 4.4, WHITE, 1);
+      m.box(-2, 0, 0, 6.5, 5.6, 5.6, 9.4, GLASS);
+      m.box(-2.5, 0, 0, 5, 5.7, 9.4, 9.9, WHITE, 1);
+      if (look.extra !== 'spoiler') {
+        m.box(-13.4, 0, 0, 1.4, 7.4, 8, 9, WHITE, 1);
+        for (const y of [-4.5, 4.5]) m.box(-13, y, 0, 0.6, 0.6, 5.6, 8, TYRE);
+      }
+      wheels(m, [[-8.5, -7.4, 3.3, 1.5, 5], [8.5, -7.4, 3.3, 1.5, 5], [-8.5, 7.4, 3.3, 1.5, 5], [8.5, 7.4, 3.3, 1.5, 5]]);
+      lights(m, -14, 15, 4.6, 3.6, 5.2);
+      m.box(15.1, 0, 0, 0.2, 4.5, 2, 3.4, [0.12, 0.12, 0.14], 0, false);
+      return { roof: [-2.5, 9.9, 5, 5.7], tail: -14, deck: 5.6, hood: [4.6, 14, 5.6, 6], side: [-12, 12, 2, 5.4, 7], keg: [-2.5, 9.9, true], back: [-14, 3.4], tops: [[-2.5, 5, 9.9, 5.7], [9.3, 4.7, 5.6, 7], [-11, 3, 5.6, 7]] };
+    },
+    // A cab up front and an open bed behind, on big tyres.
+    pickup(m) {
+      m.box(0, 0, 0, 15, 7, 2.2, 5.4, WHITE, 1);
+      m.box(10.5, 0, 0, 4.5, 6.8, 5.4, 6.8, WHITE, 1);
+      m.box(2.5, 0, 0, 3.5, 6.8, 5.4, 11.6, WHITE, 1);
+      m.box(2.5, 0, 0, 3.6, 6.9, 7.6, 10.8, GLASS);
+      m.box(-8.4, 0, 0, 6.6, 5.9, 5.4, 5.6, DARK);
+      for (const y of [-6.5, 6.5]) m.box(-8.4, y, 0, 6.6, 0.5, 5.4, 8, WHITE, 1);
+      m.box(-14.6, 0, 0, 0.4, 7, 5.4, 8, WHITE, 1);
+      m.box(15.1, 0, 0, 0.3, 5.5, 2.4, 4.6, CHROME, 0, false);
+      wheels(m, [[-9, -7.6, 3.8, 1.8, 6], [9, -7.6, 3.8, 1.8, 6], [-9, 7.6, 3.8, 1.8, 6], [9, 7.6, 3.8, 1.8, 6]]);
+      lights(m, -15, 15, 5, 4.6, 6.2);
+      return { roof: [2.5, 11.6, 3.5, 6.8], tail: -15, deck: 8, hood: [6, 14.6, 6.8, 6.4], side: [-14, 14, 2.6, 5.2, 7], keg: [-8.4, 5.6, false], back: [-15, 6.6], tops: [[2.5, 3.5, 11.6, 6.8], [10.5, 4.5, 6.8, 6.8]] };
+    },
+    // A tall box with a band of windows all round.
+    van(m) {
+      m.box(0, 0, 0, 14.5, 7, 1.8, 12.6, WHITE, 1);
+      m.box(0.8, 0, 0, 13.9, 7.1, 7.8, 11.2, GLASS);
+      m.box(-14.6, 0, 0, 0.1, 5, 8, 11, GLASS, 0, false);
+      m.box(14.6, 0, 0, 0.3, 6, 2.2, 4.4, [0.85, 0.85, 0.88], 0, false);
+      wheels(m, [[-9.5, -7.3, 3, 1.4, 4.6], [9.5, -7.3, 3, 1.4, 4.6], [-9.5, 7.3, 3, 1.4, 4.6], [9.5, 7.3, 3, 1.4, 4.6]]);
+      lights(m, -14.5, 14.5, 5, 4.8, 6.6);
+      return { roof: [-0.5, 12.6, 11, 6.6], tail: -14.5, deck: 12.6, hood: [9, 14.2, 12.6, 6], side: [-13, 13, 2.4, 7.4, 7], keg: [-0.5, 12.6, true], back: [-14.5, 4], tops: [[0, 14.5, 12.6, 7]] };
+    },
+    // An open tub with a roll bar, fat tyres at the back, the engine out in the open.
+    buggy(m) {
+      m.box(-1, 0, 0, 11, 6, 2.6, 5.4, WHITE, 1);
+      m.box(11, 0, 0, 3.6, 5, 2.6, 4.6, WHITE, 1);
+      for (const x of [-4, 2.5]) m.box(x, 0, 0, 2, 4.4, 5.4, 6.6, DARK);
+      for (const x of [-4, 2.5]) m.box(x - 1.8, 0, 0, 0.5, 4.4, 6.6, 9.6, DARK);
+      for (const y of [-5, 5]) m.box(-6.8, y, 0, 0.5, 0.5, 5.4, 11.4, DARK);
+      m.box(-6.8, 0, 0, 0.55, 5.5, 11, 11.8, DARK);
+      m.box(-12.6, 0, 0, 1.6, 3.2, 3, 6.4, CHROME);
+      wheels(m, [[9.5, -6.8, 2.8, 1.4, 4.6], [9.5, 6.8, 2.8, 1.4, 4.6], [-8, -7.4, 4.2, 2.2, 7.2], [-8, 7.4, 4.2, 2.2, 7.2]]);
+      lights(m, -12, 14.6, 3.8, 3.6, 5);
+      return { roof: [-6.8, 11.8, 0.6, 5.5], tail: -12, deck: 5.4, hood: [6, 14.4, 5.4, 4.6], side: [-11, 9, 2.8, 5.2, 6], keg: [-9.6, 6.4, false], back: [-14.3, 4.6], tops: [[-1, 11, 5.4, 6], [11, 3.6, 4.6, 5]] };
+    },
+    // A long bonnet with the engine poking out of it, a chopped little cab, big wheels at the back.
+    hotrod(m) {
+      m.box(0, 0, 0, 14, 5.2, 2.2, 5.6, WHITE, 1);
+      m.box(6, 0, 0, 8, 4.4, 5.6, 7.2, WHITE, 1);
+      m.box(4.8, 0, 0, 3, 3, 7.2, 9.2, CHROME);
+      for (const y of [-1.6, 1.6]) m.cyl(3, y, 9.2, 11.2, 0.7, 0.7, CHROME, 6);
+      m.box(14.3, 0, 0, 0.4, 3.6, 2.4, 7, CHROME);
+      for (const y of [-5.8, 5.8]) m.box(3, y, 0, 6.5, 0.5, 2, 2.9, CHROME);
+      m.box(-7, 0, 0, 4.5, 5.2, 5.6, 11, WHITE, 1);
+      m.box(-6.6, 0, 0, 4.2, 5.3, 8, 10.2, GLASS);
+      for (const y of [-6.4, 6.4]) m.box(-8.5, y, 0, 4.6, 1.4, 4.4, 7.6, WHITE, 1);
+      wheels(m, [[10, -6, 2.6, 1.3, 4.6], [10, 6, 2.6, 1.3, 4.6], [-8.5, -6.6, 4, 2, 7.2], [-8.5, 6.6, 4, 2, 7.2]]);
+      lights(m, -14, 14.5, 3.4, 3.6, 5.2);
+      return { roof: [-7, 11, 4.5, 5.2], tail: -14, deck: 5.6, hood: [-1.5, 13.6, 7.2, 4.4], side: [-12, 13, 2.6, 5.4, 5.2], keg: [-7, 11, true], back: [-14, 3.4], tops: [[-7, 4.5, 11, 5.2], [10.5, 3.5, 7.2, 4.4]] };
+    },
+    // A shopping trolley: a wire basket on castors, plastic panels and handle in the paint, and
+    // its driver sitting in it in a helmet.
+    trolley(m) {
+      for (const y of [-5, 5]) m.box(0, y, 0, 12, 0.4, 1.8, 2.4, CHROME);
+      m.box(1, 0, 0, 11.6, 6.4, 4.6, 5.2, WHITE, 1);
+      for (const y of [-6.5, 6.5]) m.box(1, y, 0, 11.6, 0.25, 5.2, 8.6, WHITE, 1);
+      m.box(12.5, 0, 0, 0.25, 6.4, 5.2, 8.6, WHITE, 1);
+      for (let x = -10; x <= 12; x += 2.75) for (const y of [-6.5, 6.5]) m.box(x, y, 0, 0.18, 0.18, 8.6, 12.8, CHROME, 0, false);
+      for (let y = -5.2; y <= 5.2; y += 2.6) for (const x of [-10.6, 12.6]) m.box(x, y, 0, 0.18, 0.18, 5.2, 12.8, CHROME, 0, false);
+      for (const z of [10.6, 12.8]) {
+        for (const y of [-6.5, 6.5]) m.box(1, y, 0, 11.7, 0.3, z - 0.3, z + 0.3, CHROME);
+        for (const x of [-10.6, 12.6]) m.box(x, 0, 0, 0.3, 6.6, z - 0.3, z + 0.3, CHROME);
+      }
+      for (const y of [-5.5, 5.5]) m.box(-12, y, 0, 1.4, 0.3, 12.8, 13.4, CHROME);
+      m.box(-13.4, 0, 0, 0.6, 6.4, 12.8, 14.2, WHITE, 1);
+      m.cyl(-1.5, 0, 5.2, 10, 3.4, 3.4, [0.85, 0.66, 0.5], 8);
+      m.cyl(-1.5, 0, 10, 13.6, 3, 3, WHITE, 8, 1);
+      m.box(1.4, 0, 0, 0.3, 2.4, 11.2, 12.6, GLASS);
+      wheels(m, [[-10, -5, 1.6, 0.8, 2.2], [11, -5, 1.6, 0.8, 2.2], [-10, 5, 1.6, 0.8, 2.2], [11, 5, 1.6, 0.8, 2.2]]);
+      lights(m, -10.6, 12.6, 4, 5.6, 7.4);
+      return { roof: [6, 12.8, 5, 6.4], tail: -10.6, deck: 13.4, hood: [4, 12.6, 5.2, 5.6], side: [-10, 12, 5.4, 8.4, 6.5], keg: [6.5, 5.2, false], back: [-10.8, 7], tops: [[1, 11.6, 5.2, 6.4], [-13.4, 0.6, 14.2, 6.4]] };
+    },
+  };
+
+  // A number in seven-segment bars, in a square (u across, v up) centred on 0, ~3 tall each.
+  const SEGS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
+  function digitBars(n, put) {
+    const text = String(n);
+    const w = 1.5, h = 1.4, t = 0.28; // half width, half height, half thickness
+    const bars = { a: [0, h, w, t], d: [0, -h, w, t], g: [0, 0, w, t], f: [-w, h / 2, t, h / 2 + t], b: [w, h / 2, t, h / 2 + t], e: [-w, -h / 2, t, h / 2 + t], c: [w, -h / 2, t, h / 2 + t] };
+    [...text].forEach((ch, k) => {
+      const du = (k - (text.length - 1) / 2) * (w * 2 + 1.1);
+      for (const seg of SEGS[ch] || '') { const [u, v, hu, hv] = bars[seg]; put(u + du, v, hu, hv); }
+    });
+  }
+
+  // The whole car: its body, the stripe, the extra. Its shadow too, but not for the views from
+  // above (they draw their own, off to one side).
+  function carModel(look = PLAIN, { shadow = true } = {}) {
     const m = mesher();
-    const white = [1, 1, 1];
-    const glass = [0.08, 0.1, 0.16];
-    const tyre = [0.07, 0.07, 0.08];
-    m.quad([-15, -9, 0.15], [16, -9, 0.15], [16, 9, 0.15], [-15, 9, 0.15], [0.05, 0.05, 0.06]); // its shadow
-    m.box(0, 0, 0, 14, 7, 1.6, 5.6, white, 1);
-    m.box(10.5, 0, 0, 4.5, 6.2, 1.6, 4.4, white, 1);
-    m.box(-2, 0, 0, 6.5, 5.6, 5.6, 9.4, glass);
-    m.box(-2.5, 0, 0, 5, 5.7, 9.4, 9.9, white, 1);
-    m.box(-13.4, 0, 0, 1.4, 7.4, 8, 9, white, 1);
-    for (const y of [-4.5, 4.5]) m.box(-13, y, 0, 0.6, 0.6, 5.6, 8, tyre);
-    for (const [x, y] of [[-8.5, -7.4], [8.5, -7.4], [-8.5, 7.4], [8.5, 7.4]]) m.box(x, y, 0, 3.3, 1.5, 0, 5, tyre);
-    for (const y of [-4.6, 4.6]) m.box(-14.15, y, 0, 0.2, 1.7, 3.6, 5.2, [1, 0.3, 0.25], 2, false);
-    m.box(15.1, 0, 0, 0.2, 4.5, 2, 3.4, [0.12, 0.12, 0.14], 0, false);
-    for (const y of [-4.6, 4.6]) m.box(15.2, y, 0, 0.2, 1.6, 3, 4.6, [1, 0.97, 0.85], 4, false); // headlights
-    return new Float32Array(m.v);
+    if (shadow) m.quad([-15, -9, 0.15], [16, -9, 0.15], [16, 9, 0.15], [-15, 9, 0.15], [0.05, 0.05, 0.06]);
+    const at = (BODIES[look.body] || BODIES.sports)(m, look);
+    const stripe = look.stripe ? rgb(look.stripe) : null;
+    // Twin stripes nose to tail over every flat top.
+    if (stripe) for (const [x, hl, z, hw] of at.tops) for (const y of [-hw * 0.28, hw * 0.28]) m.box(x, y, 0, hl + 0.05, hw * 0.13, z, z + 0.12, stripe);
+    const [rx, rz, rl, rw] = at.roof;
+    if (look.extra === 'spoiler') {
+      const wing = stripe || DARK;
+      const x = at.tail + 1.4;
+      for (const y of [-4, 4]) m.box(x, y, 0, 0.5, 0.5, at.deck, at.deck + 3.4, DARK);
+      m.box(x - 0.2, 0, 0, 1.8, 7.6, at.deck + 3.2, at.deck + 4.2, wing);
+      for (const y of [-7.6, 7.6]) m.box(x - 0.2, y, 0, 1.9, 0.2, at.deck + 2.4, at.deck + 4.6, DARK);
+    } else if (look.extra === 'keg') {
+      // Lying along the car on a roof rack (or in the back), so from behind it's a keg's end.
+      const [kx, kz, rack] = at.keg;
+      if (rack) {
+        for (const y of [-rw + 0.6, rw - 0.6]) m.box(rx, y, 0, rl, 0.35, kz, kz + 1, DARK);
+        for (const x of [rx - rl + 1, rx + rl - 1]) m.box(x, 0, 0, 0.35, rw - 0.4, kz + 0.6, kz + 1, DARK);
+      }
+      const z = kz + (rack ? 1 : 0.1) + 2.7;
+      m.drum(kx, 0, z, 3.6, 2.7, CHROME, 10);
+      for (const x of [kx - 2.6, kx + 2.6]) m.drum(x, 0, z, 0.4, 2.85, DARK, 10);
+      m.box(kx, 0, 0, 0.6, 0.6, z + 2.6, z + 3.6, DARK);
+    } else if (look.extra === 'cone') {
+      const z = rz + 0.05;
+      const orange = [1, 0.42, 0.08];
+      m.box(rx, 0, 0, 2.6, 2.6, z, z + 0.6, orange);
+      m.cyl(rx, 0, z + 0.6, z + 2.6, 2.1, 1.55, orange, 8);
+      m.cyl(rx, 0, z + 2.6, z + 3.7, 1.55, 1.15, WHITE, 8);
+      m.cyl(rx, 0, z + 3.7, z + 6.4, 1.15, 0, orange, 8);
+    } else if (look.extra === 'number') {
+      // A white roundel on the roof, and a plate on the back: the driver's seat number.
+      const n = look.n || 1;
+      const z = rz + 0.05;
+      m.box(rx, 0, 0, Math.min(rl, 3.4), Math.min(rw, 2.6 + String(n).length * 1.4), z, z + 0.15, WHITE);
+      digitBars(n, (u, v, hu, hv) => m.box(rx + v, u, 0, hv, hu, z + 0.15, z + 0.3, DARK));
+      const [bx, bz] = at.back;
+      m.box(bx - 0.1, 0, 0, 0.12, 1.4 + String(n).length * 1.5, bz - 2, bz + 2, WHITE);
+      digitBars(n, (u, v, hu, hv) => m.box(bx - 0.3, u, 0, 0.1, hu, bz + v - hv, bz + v + hv, DARK));
+    } else if (look.extra === 'flames') {
+      // Flames licking back over the bonnet, and along both sides.
+      const [x0, x1, z, hw] = at.hood;
+      const len = x1 - x0;
+      const up = shade(0, 0, 1);
+      for (let k = 0; k < 5; k++) {
+        const y = -hw * 0.8 + (k * hw * 1.6) / 4;
+        const reach = len * (k % 2 ? 0.62 : 0.92);
+        const bend = (k - 2) * 0.5;
+        m.tri([x1 - 0.3, y - 1.3, z + 0.1], [x1 - 0.3, y + 1.3, z + 0.1], [x1 - reach, y + bend, z + 0.1], [1 * up, 0.42 * up, 0.05 * up]);
+        m.tri([x1 - 0.3, y - 0.6, z + 0.16], [x1 - 0.3, y + 0.6, z + 0.16], [x1 - reach * 0.55, y + bend * 0.6, z + 0.16], [1 * up, 0.85 * up, 0.2 * up]);
+      }
+      const [sx0, sx1, sz0, sz1, sw] = at.side;
+      for (const y of [-sw - 0.06, sw + 0.06]) {
+        for (let k = 0; k < 3; k++) {
+          const zc = sz0 + ((k + 0.5) * (sz1 - sz0)) / 3;
+          const reach = (sx1 - sx0) * (k === 1 ? 0.75 : 0.5);
+          m.tri([sx1, y, zc - (sz1 - sz0) / 6], [sx1, y, zc + (sz1 - sz0) / 6], [sx1 - reach, y, zc + 0.6], [0.95, 0.4, 0.05]);
+        }
+      }
+    }
+    return { v: new Float32Array(m.v), top: Math.max(rz, ...at.tops.map((t) => t[2])) + ({ keg: 7, cone: 6.4, spoiler: 0 }[look.extra] || 0) };
+  }
+  const meshKey = (look) => `${look.body}:${look.stripe}:${look.extra}:${look.extra === 'number' ? look.n : ''}`;
+
+  // A model drawn with a 2D canvas: each triangle flat, back to front. `place(x, y, z, out, k)`
+  // puts a corner on the canvas (out[k], out[k + 1]) and says how far off it is. The colours are
+  // worked out once (the paint in, for tint 1); each frame only the corners move.
+  function flatModel(v, paint) {
+    const n = v.length / 21;
+    const tint = rgb(paint, [0.9, 0.3, 0.3]);
+    const fill = [];
+    for (let i = 0; i < n; i++) {
+      const o = i * 21;
+      const t = v[o + 6];
+      let col = [v[o + 3], v[o + 4], v[o + 5]];
+      if (t > 1.5 && t < 2.5) col = mix(col.map((q) => q * 0.45), [1, 0.15, 0.1], 0.35);
+      else if (t > 0.5 && t < 1.5) col = col.map((q, j) => q * tint[j]);
+      fill.push(hex(col));
+    }
+    const order = Array.from({ length: n }, (_, i) => i);
+    const fm = { v, n, fill, order, xy: new Float32Array(n * 6), depth: new Float32Array(n), area: new Float32Array(n) };
+    fm.cmp = (a, b) => fm.depth[b] - fm.depth[a];
+    return fm;
+  }
+  function drawFlat(c, fm, place) {
+    const { v, xy, depth, area } = fm;
+    for (let i = 0; i < fm.n; i++) {
+      const o = i * 21;
+      depth[i] = (place(v[o], v[o + 1], v[o + 2], xy, i * 6) + place(v[o + 7], v[o + 8], v[o + 9], xy, i * 6 + 2) + place(v[o + 14], v[o + 15], v[o + 16], xy, i * 6 + 4)) / 3;
+      const k = i * 6;
+      area[i] = (xy[k + 2] - xy[k]) * (xy[k + 5] - xy[k + 1]) - (xy[k + 4] - xy[k]) * (xy[k + 3] - xy[k + 1]);
+    }
+    fm.order.sort(fm.cmp);
+    c.lineWidth = 0.6;
+    c.lineJoin = 'round';
+    for (const i of fm.order) {
+      if (Math.abs(area[i]) < 0.05) continue; // (seen edge on)
+      const k = i * 6;
+      c.fillStyle = c.strokeStyle = fm.fill[i];
+      c.beginPath();
+      c.moveTo(xy[k], xy[k + 1]);
+      c.lineTo(xy[k + 2], xy[k + 3]);
+      c.lineTo(xy[k + 4], xy[k + 5]);
+      c.closePath();
+      c.fill();
+      c.stroke(); // (so the seams don't show)
+    }
+  }
+
+  // Each car seen from above, painted once into a little picture (redone when its look or paint
+  // changes: checked once per screen drawn, not every frame).
+  const SPRITE_K = 4; // pixels a unit
+  const SPRITE = { x: 18, y: 12 }; // half its size, in units
+  const sprites = {}; // id -> { key, cv, gen }
+  let spriteGen = 0;
+  function spriteOf(id) {
+    const have = sprites[id];
+    if (have && have.gen === spriteGen) return have.cv;
+    const look = lookOf(id);
+    const paint = paintOf(id);
+    const key = `${meshKey(look)}:${paint}`;
+    if (have && have.key === key) { have.gen = spriteGen; return have.cv; }
+    const cv = document.createElement('canvas');
+    cv.width = SPRITE.x * 2 * SPRITE_K;
+    cv.height = SPRITE.y * 2 * SPRITE_K;
+    const fm = flatModel(carModel(look, { shadow: false }).v, paint);
+    drawFlat(cv.getContext('2d'), fm, (x, y, z, out, k) => {
+      out[k] = (x + SPRITE.x) * SPRITE_K;
+      out[k + 1] = (y + SPRITE.y) * SPRITE_K;
+      return -z;
+    });
+    sprites[id] = { key, cv, gen: spriteGen };
+    return cv;
+  }
+
+  // Little pictures of the cars in the lists (bets, standings, results): <canvas data-carpic>.
+  function carPic(id) { return `<canvas class="tr-carpic" data-carpic="${esc(id)}" width="${SPRITE.x * 2 * 2}" height="${SPRITE.y * 2 * 2}" aria-hidden="true"></canvas>`; }
+  function paintPics(root = document) {
+    root.querySelectorAll('canvas[data-carpic]').forEach((cv) => {
+      const c = cv.getContext('2d');
+      c.clearRect(0, 0, cv.width, cv.height);
+      c.drawImage(spriteOf(cv.dataset.carpic), 0, 0, cv.width, cv.height);
+    });
   }
 
   // The sky all the way round: the room's colours, hills, a treeline, a few lights far off.
@@ -1411,11 +1695,34 @@
       const el = document.querySelector('.tr-view');
       if (!el) { this.el = null; return; }
       if (!this.cv) this.create();
+      this.models(s);
       el.prepend(this.cv, this.hud);
       this.el = el;
       this.w = 0; // sized on the next frame
     },
     detach() { this.el = null; this.last = 0; },
+
+    // Each car's model, built when the screen is (a car only changes between races), and the
+    // chase cam lifted over your own if it's a tall one (a minibus, a keg on the roof).
+    models(s) {
+      const gl = this.gl;
+      if (!gl || this.failed) return;
+      this.meshes ||= {};
+      this.lift = 0;
+      for (const id of s.game.carIds || []) {
+        const look = lookOf(id, s);
+        const key = meshKey(look);
+        let have = this.meshes[id];
+        if (!have || have.key !== key) {
+          const { v, top } = carModel(look);
+          have ||= this.meshes[id] = { buf: gl.createBuffer() };
+          gl.bindBuffer(gl.ARRAY_BUFFER, have.buf);
+          gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
+          Object.assign(have, { key, count: v.length / 7, top });
+        }
+        if (id === s.me) this.lift = Math.max(0, Math.min(9, (have.top - 10) * 0.9));
+      }
+    },
 
     create() {
       this.cv = document.createElement('canvas');
@@ -1431,22 +1738,7 @@
     // Shaders and buffers (again after the phone takes the GPU away and gives it back).
     setup() {
       const gl = this.gl;
-      const prog = (vs, fsrc) => {
-        const p = gl.createProgram();
-        for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fsrc]]) {
-          const sh = gl.createShader(type);
-          gl.shaderSource(sh, src);
-          gl.compileShader(sh);
-          if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(sh)); return null; }
-          gl.attachShader(p, sh);
-        }
-        gl.linkProgram(p);
-        if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
-        const u = {};
-        const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
-        for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name] = gl.getUniformLocation(p, name); }
-        return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC'), aT: gl.getAttribLocation(p, 'aT') };
-      };
+      const prog = (vs, fsrc) => program(gl, vs, fsrc);
       this.ground = prog(GROUND_VS, GROUND_FS);
       this.model = prog(MODEL_VS, MODEL_FS);
       this.sprite = prog(PROP_VS, PROP_FS);
@@ -1454,11 +1746,13 @@
       this.quadBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-      const car = carModel();
+      const car = carModel().v;
       this.carBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.carBuf);
       gl.bufferData(gl.ARRAY_BUFFER, car, gl.STATIC_DRAW);
       this.carCount = car.length / 7;
+      for (const id in this.meshes) gl.deleteBuffer(this.meshes[id].buf);
+      this.meshes = {};
       this.aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
       this.key = '';
       this.quick = '';
@@ -1587,7 +1881,7 @@
       cam.shake *= Math.exp(-dt * 5);
       const wobble = cam.shake * Math.sin(ms * 0.05) + (car[3] & 2 && cam.speed > 25 ? 0.25 * Math.sin(ms * 0.09) : 0);
       const back = portrait ? 38 : 54;
-      const height = portrait ? 30 : 18;
+      const height = (portrait ? 30 : 18) + (this.lift || 0);
       const F0 = Math.cos(cam.yaw);
       const F1 = Math.sin(cam.yaw);
       cam.x = car[0] - F0 * back;
@@ -1732,11 +2026,15 @@
       for (let i = 0; i < cars.length; i++) {
         const c = cars[i];
         if (!c || !ids[i]) continue;
+        // (Not one right under the camera: on the grid it hangs over the car behind yours.)
+        if (i !== mine && (c[0] - cam.x) ** 2 + (c[1] - cam.y) ** 2 < 400) continue;
         const col = this.colour(ids[i]);
         gl.uniform4f(M.u.uM, c[0], c[1], Math.cos(c[2]), Math.sin(c[2]));
         gl.uniform3f(M.u.uTint, col[0], col[1], col[2]);
         gl.uniform1f(M.u.uBrake, c[3] & 8 ? 1 : 0);
-        draw(this.carBuf, this.carCount);
+        const mesh = this.meshes?.[ids[i]];
+        if (mesh) draw(mesh.buf, mesh.count);
+        else draw(this.carBuf, this.carCount);
       }
       gl.disableVertexAttribArray(M.aP);
       gl.disableVertexAttribArray(M.aC);
@@ -1769,11 +2067,12 @@
       this.fall(s, wx, car, ms);
     },
 
+    // The car's paint (its driver's own colour, unless they picked another).
     colour(id) {
-      const look = PB.look(id);
+      const paint = lookOf(id).paint || PB.look(id).color;
       const c = (this.colours ||= {})[id];
-      if (c && c.from === look.color) return c.rgb;
-      this.colours[id] = { from: look.color, rgb: rgb(look.color, [0.9, 0.3, 0.3]) };
+      if (c && c.from === paint) return c.rgb;
+      this.colours[id] = { from: paint, rgb: rgb(paint, [0.9, 0.3, 0.3]) };
       return this.colours[id].rgb;
     },
 
@@ -1965,7 +2264,7 @@
         c.rotate(-car[2] - Math.PI / 2);
         c.translate(-car[0], -car[1]);
       }
-      for (let i = 0; i < cars.length; i++) if (cars[i] && ids[i]) drawCar(c, cars[i], PB.look(ids[i]), { label: ids[i] !== s.me, mine: ids[i] === s.me, honk: now - (honked[ids[i]] || -1e9) < 900, lamps: wx.lamps });
+      for (let i = 0; i < cars.length; i++) if (cars[i] && ids[i]) drawCar(c, cars[i], ids[i], { label: ids[i] !== s.me, mine: ids[i] === s.me, honk: now - (honked[ids[i]] || -1e9) < 900, lamps: wx.lamps });
       this.fall(s, wx, car, performance.now());
     },
   };
@@ -2019,7 +2318,7 @@
     const g = s.game;
     return placesNow(s).map((r) => `
       <div class="tr-row ${r.id === s.me && !PB.isTV ? 'me' : ''}">
-        <b class="tr-pos">${r.place}</b>${PB.avatar(r.id, 'sm')}<span class="tr-name">${esc(PB.state.players.find((p) => p.id === r.id)?.name || '?')}
+        <b class="tr-pos">${r.place}</b>${PB.avatar(r.id, 'sm')}${carPic(r.id)}<span class="tr-name">${esc(PB.state.players.find((p) => p.id === r.id)?.name || '?')}
           <small class="tr-lap">${r.done ? '🏁 Finished' : s.phase === 'race' ? `Lap ${r.lap}/${g.laps}` : g.wins[r.id] ? `🏆×${g.wins[r.id]}` : ''}</small></span>
         <span class="tr-backers">${backers(s, r.id).map((id) => `${PB.avatar(id, 'sm')}<i>${g.bets[id].sips}</i>`).join('')}</span>
       </div>`).join('');
@@ -2034,6 +2333,7 @@
     if (key === boardKey) return;
     boardKey = key;
     el.innerHTML = boardRows(s);
+    paintPics(el);
   }
 
   // ---------- Steering ----------
@@ -2220,6 +2520,187 @@
     </div>`;
   }
 
+  // ---------- Your car ----------
+  //
+  // The garage: pick a body, a paint, a stripe and an extra, with the car turning slowly above
+  // (its own model, drawn flat: see flatModel). Each tap goes straight to the server, and into
+  // this phone's memory, so the next game starts with the same car (sent as soon as it starts).
+  const SAVED = 'tr-car';
+  const saved = () => { try { return JSON.parse(localStorage.getItem(SAVED) || 'null'); } catch { return null; } };
+  let carDraft = null; // what the garage shows (yours, as far as this phone knows)
+  let garageOpen = null; // null: open if you've never picked a car on this phone
+  let editing = false; // the results screen: "Edit car" tapped (till the next race)
+  let autoSent = false;
+
+  let seenLook = '';
+  function myDraft(s) {
+    const g = s.game;
+    // (What the server has wins when it changes: this car was picked on another screen, or a
+    // reload. Pass and play: whoever's holding the phone.)
+    const theirs = JSON.stringify(g.myLook);
+    if (!carDraft || PB.passAndPlay || theirs !== seenLook) {
+      seenLook = theirs;
+      carDraft = { ...PLAIN, ...(g.myLook || (!PB.passAndPlay && saved()) || {}) };
+    }
+    return carDraft;
+  }
+
+  function garage(s) {
+    const g = s.game;
+    const look = myDraft(s);
+    const parts = g.carParts || { bodies: Object.keys(BODY_NAMES), extras: Object.keys(EXTRA_NAMES), paints: [] };
+    const open = garageOpen ?? !saved();
+    const own = PB.look(s.me).color;
+    const chips = (k, list, names) => list.map((v) => `<button class="${look[k] === v ? 'selected' : ''}" data-tr="look" data-k="${k}" data-v="${esc(v)}">${esc(names[v] || v)}</button>`).join('');
+    const swatches = (k, first) => [[null, first], ...parts.paints.map((c) => [c, ''])].map(([v, label]) => `<button class="tr-swatch ${look[k] === v ? 'selected' : ''} ${v ? '' : 'none'}" data-tr="look" data-k="${k}" data-v="${esc(v || '')}" style="--sw:${esc(v || (k === 'paint' ? own : 'transparent'))}" aria-label="${esc(label || v)}">${label ? `<span>${esc(label)}</span>` : ''}</button>`).join('');
+    return `<details class="card tr-garage" ${open ? 'open' : ''}>
+      <summary>🔧 Your car <small>${esc(BODY_NAMES[look.body] || '')}${look.extra !== 'none' ? ` · ${esc(EXTRA_NAMES[look.extra] || '')}` : ''}</small></summary>
+      <div class="tr-garage-in">
+        <div class="tr-preview" role="img" aria-label="Your car"></div>
+        <div class="tr-garage-opts">
+          <h3>Body</h3><div class="tr-chips">${chips('body', parts.bodies, BODY_NAMES)}</div>
+          <h3>Paint</h3><div class="tr-swatches">${swatches('paint', 'Yours')}</div>
+          <h3>Stripes</h3><div class="tr-swatches">${swatches('stripe', 'None')}</div>
+          <h3>Extra</h3><div class="tr-chips">${chips('extra', parts.extras, EXTRA_NAMES)}</div>
+        </div>
+      </div>
+    </details>`;
+  }
+
+  // A tap in the garage: the car changes here at once, and goes to the server.
+  function pickPart(s, k, v) {
+    const look = myDraft(s);
+    look[k] = v || null;
+    const send = { body: look.body, paint: look.paint, stripe: look.stripe, extra: look.extra };
+    if (!PB.passAndPlay) { try { localStorage.setItem(SAVED, JSON.stringify(send)); } catch {} }
+    PB.act('car', send);
+  }
+
+  // A new game: this phone's car, as it was last time (it's only remembered once it's picked).
+  function sendSaved(s) {
+    if (autoSent || PB.isTV || PB.passAndPlay || s.game.myLook || s.phase === 'race' || s.phase === 'countdown') return;
+    autoSent = true;
+    const look = saved();
+    if (look) PB.act('car', look);
+  }
+
+  // The preview: the car turning slowly, seen from a little above. Its own small WebGL canvas
+  // (the same model shader as the view from the car), kept for the visit and moved into the
+  // garage each time it's drawn. With no WebGL, the model drawn flat (good enough to pick by).
+  const preview = { cv: null, gl: null, M: null, buf: null, count: 0, key: '', tint: [1, 1, 1], fm: null, yaw: 0.6, frame: null, at: 0, vp: new Float32Array(16), flat: false };
+  function startPreview(s) {
+    const box = document.querySelector('.tr-preview');
+    if (!box) return;
+    if (!preview.cv) {
+      preview.cv = document.createElement('canvas');
+      preview.gl = preview.cv.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true });
+      preview.M = preview.gl && program(preview.gl, MODEL_VS, MODEL_FS);
+      preview.flat = !preview.M;
+      if (!preview.flat) preview.buf = preview.gl.createBuffer();
+    }
+    box.append(preview.cv);
+    const look = { ...myDraft(s), n: lookOf(s.me, s).n };
+    const paint = look.paint || PB.look(s.me).color;
+    const key = `${meshKey(look)}:${paint}`;
+    if (key !== preview.key) {
+      preview.key = key;
+      const { v } = carModel(look, { shadow: !preview.flat });
+      if (preview.flat) preview.fm = flatModel(v, paint);
+      else {
+        const gl = preview.gl;
+        gl.bindBuffer(gl.ARRAY_BUFFER, preview.buf);
+        gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
+        preview.count = v.length / 7;
+        preview.tint = rgb(paint, [0.9, 0.3, 0.3]);
+      }
+    }
+    if (!preview.frame) preview.frame = requestAnimationFrame(drawPreview);
+  }
+  const placePreview = (x, y, z, out, k) => {
+    const { ca, sa, cx, cy, S } = preview;
+    const xr = x * ca - y * sa;
+    const yr = x * sa + y * ca;
+    out[k] = cx + xr * S;
+    out[k + 1] = cy - (z * 0.86 + yr * 0.5) * S;
+    return yr * 0.86 - z * 0.5;
+  };
+  function drawPreview(ms) {
+    preview.frame = null;
+    const cv = preview.cv;
+    if (!cv || !cv.isConnected || document.hidden) return;
+    const w = cv.clientWidth;
+    const h = cv.clientHeight;
+    if (!w || !h) { preview.frame = requestAnimationFrame(drawPreview); return; }
+    const k = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w * k) || cv.height !== Math.round(h * k)) { cv.width = Math.round(w * k); cv.height = Math.round(h * k); }
+    const dt = Math.min(0.1, (ms - (preview.at || ms)) / 1000);
+    preview.at = ms;
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) preview.yaw += dt * 0.7;
+    const W = cv.width;
+    const H = cv.height;
+    if (preview.flat) {
+      const c = cv.getContext('2d');
+      if (c) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, W, H);
+        preview.ca = Math.cos(preview.yaw);
+        preview.sa = Math.sin(preview.yaw);
+        preview.S = Math.min(W / 40, H / 30);
+        preview.cx = W / 2;
+        preview.cy = H * 0.6;
+        drawFlat(c, preview.fm, placePreview);
+      }
+      preview.frame = requestAnimationFrame(drawPreview);
+      return;
+    }
+    // The camera goes round the car, a little above it, looking at its middle.
+    const gl = preview.gl;
+    const M = preview.M;
+    const D = 58;
+    const ex = Math.cos(preview.yaw) * D, ey = Math.sin(preview.yaw) * D, ez = 30;
+    let f0 = -ex, f1 = -ey, f2 = 5 - ez;
+    const fl = Math.hypot(f0, f1, f2);
+    f0 /= fl; f1 /= fl; f2 /= fl;
+    const rl = Math.hypot(f0, f1);
+    const r0 = -f1 / rl, r1 = f0 / rl; // (r2 0: the camera doesn't roll)
+    const u0 = -f2 * r1, u1 = f2 * r0, u2 = f0 * r1 - f1 * r0;
+    const focal = Math.min(W * 1.5, H * 2.3);
+    const fx = focal / (W / 2);
+    const fy = focal / (H / 2);
+    const near = 2, far = 400;
+    const A = (far + near) / (far - near);
+    const B = (-2 * far * near) / (far - near);
+    const m = preview.vp;
+    m[0] = fx * r0; m[4] = fx * r1; m[8] = 0; m[12] = -fx * (r0 * ex + r1 * ey);
+    m[1] = fy * u0; m[5] = fy * u1; m[9] = fy * u2; m[13] = -fy * (u0 * ex + u1 * ey + u2 * ez);
+    m[2] = A * f0; m[6] = A * f1; m[10] = A * f2; m[14] = -A * (f0 * ex + f1 * ey + f2 * ez) + B;
+    m[3] = f0; m[7] = f1; m[11] = f2; m[15] = -(f0 * ex + f1 * ey + f2 * ez);
+    gl.viewport(0, 0, W, H);
+    gl.clearColor(0, 0, 0, 0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(M.p);
+    gl.uniformMatrix4fv(M.u.uVP, false, m);
+    gl.uniform4f(M.u.uM, 0, 0, 1, 0);
+    gl.uniform3f(M.u.uTint, preview.tint[0], preview.tint[1], preview.tint[2]);
+    gl.uniform3f(M.u.uLamp, 0.2, 1, 0.35);
+    gl.uniform3f(M.u.uCam, ex, ey, ez);
+    gl.uniform3f(M.u.uHaze, 0, 0, 0);
+    gl.uniform3f(M.u.uLight, 1, 1, 1);
+    gl.uniform1f(M.u.uFar, 1e5);
+    gl.uniform1f(M.u.uBrake, 0);
+    gl.uniform1f(M.u.uGlow, 0);
+    gl.uniform1f(M.u.uHead, 0);
+    gl.uniform1f(M.u.uMute, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, preview.buf);
+    gl.enableVertexAttribArray(M.aP);
+    gl.enableVertexAttribArray(M.aC);
+    gl.vertexAttribPointer(M.aP, 3, gl.FLOAT, false, 28, 0);
+    gl.vertexAttribPointer(M.aC, 4, gl.FLOAT, false, 28, 12);
+    gl.drawArrays(gl.TRIANGLES, 0, preview.count);
+    preview.frame = requestAnimationFrame(drawPreview);
+  }
+
   // Betting: whose car, and how many sips.
   let draft = null;
   let draftFor = null;
@@ -2237,7 +2718,7 @@
       <div class="card tr-place-bet">
         <div class="tr-pick">${g.racers.map((id) => `
           <button class="${draft.car === id ? 'selected' : ''}" data-tr="pick" data-car="${esc(id)}">
-            ${PB.avatar(id)}<span>${esc(name(id))}${id === s.me ? ' (you)' : ''}</span>
+            <span class="tr-pick-car">${PB.avatar(id)}${carPic(id)}</span><span>${esc(name(id))}${id === s.me ? ' (you)' : ''}</span>
             <small>${g.wins[id] ? `🏆×${g.wins[id]} ` : ''}${backers(s, id).map((b) => PB.avatar(b, 'sm')).join('')}</small>
           </button>`).join('')}</div>
         <div class="ld-qty">
@@ -2250,7 +2731,7 @@
         </button>
         <p class="center muted">Lose: drink your bet. Win: hand out ${g.multiplier === 2 ? 'double it' : 'your bet'}.${g.lastSips ? ` Last place drinks ${PB.plural(g.lastSips, 'sip')}.` : ''}</p>
       </div>
-      ${g.racers.includes(s.me) ? `<div class="card tr-ready">${tiltNote()}</div>` : ''}
+      ${g.racers.includes(s.me) ? `${garage(s)}<div class="card tr-ready">${tiltNote()}</div>` : ''}
       ${missing.length ? `<p class="center muted">Still betting: ${missing.map((p) => esc(name(p.id))).join(', ')}</p>` : ''}
       ${s.isHost
         ? `<button data-act="startRace" ${anyBets ? '' : 'disabled'} ${missing.length ? `data-confirm="${missing.length} still betting. Start anyway?"` : ''}>${anyBets ? '🚦 Start the race' : 'Waiting for bets'}</button>`
@@ -2286,8 +2767,9 @@
       ${PB.isTV ? '' : s.isHost
         ? `<button data-act="nextRace" ${s.phase === 'payout' ? 'class="secondary" data-confirm="Some winners haven\'t handed out their sips. Start the next race anyway?"' : ''}>🏁 Next race</button>`
         : `<p class="center muted">${esc(name(s.hostId))} starts the next race…</p>`}
+      ${PB.isTV ? '' : editing ? garage(s) : '<button class="secondary tr-small tr-edit-car" data-tr="garage">🔧 Edit car</button>'}
       <div class="card tr-results"><h2>🏁 Race ${g.race}</h2>${g.result.map((r, i) => `
-        <div class="tr-row ${r.id === s.me && !PB.isTV ? 'me' : ''}"><b class="tr-pos">${i + 1}</b>${PB.avatar(r.id, 'sm')}<span class="tr-name">${esc(PB.state.players.find((p) => p.id === r.id)?.name || '?')}
+        <div class="tr-row ${r.id === s.me && !PB.isTV ? 'me' : ''}"><b class="tr-pos">${i + 1}</b>${PB.avatar(r.id, 'sm')}${carPic(r.id)}<span class="tr-name">${esc(PB.state.players.find((p) => p.id === r.id)?.name || '?')}
           <small class="tr-lap">${fmt(r.time)}${g.last === r.id ? ` · last: 🍺 ${g.lastSips}` : ''}</small></span></div>`).join('')}</div>
       ${s.tv && !PB.isTV ? '' : stage(s)}
       ${PB.isTV ? '' : PB.feed(4)}`;
@@ -2320,6 +2802,7 @@
       live ? null : [g.bets, g.payout, g.drank, g.result, s.players.map((p) => [p.id, p.name, p.connected, p.avatar, p.color]), s.feed.length && s.feed[s.feed.length - 1].id, PB.handOut.alloc],
       PB.isTV && s.phase === 'countdown' ? g.count : '',
       s.phase === 'betting' ? draft : '',
+      live ? '' : [g.looks, carDraft, garageOpen, editing],
     ]);
   }
 
@@ -2332,6 +2815,11 @@
       draftFor = null;
       lastKey = '';
       lastMine = { place: 0, lap: 0, done: false };
+      carDraft = null;
+      seenLook = '';
+      garageOpen = null;
+      editing = false;
+      autoSent = false;
     },
     // Racing, the phone is all view, wheel and pedals.
     get fullscreen() {
@@ -2370,7 +2858,11 @@
     afterRender(s) {
       if (s.game.race !== snapRace) { snaps = []; snapRace = s.game.race; }
       if (s.phase === 'betting') lastMine = { place: 0, lap: 0, done: false };
+      if (s.phase === 'race') editing = false;
+      sendSaved(s);
       attachViews();
+      startPreview(s);
+      document.querySelector('.tr-garage')?.addEventListener('toggle', (e) => { garageOpen = e.target.open; });
       bindControls();
       if (driving()) setSteer();
       document.querySelectorAll('[data-tr]').forEach((b) => {
@@ -2378,6 +2870,8 @@
           const what = b.dataset.tr;
           if (what === 'horn') { e.preventDefault(); PB.act('honk'); return; }
           if (what === 'pick') draft.car = b.dataset.car;
+          else if (what === 'look') pickPart(s, b.dataset.k, b.dataset.v);
+          else if (what === 'garage') { editing = true; garageOpen = true; }
           else if (what === 'sips') draft.sips = Math.min(s.game.maxBet, Math.max(1, draft.sips + Number(b.dataset.step)));
           else if (what === 'tilt-enable') return askTilt();
           else if (what === 'buttons') setMode('buttons');

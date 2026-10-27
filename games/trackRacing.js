@@ -16,6 +16,7 @@ const betting = require('../lib/betting');
 const { LEVELS } = require('../lib/bots');
 const { shuffle, pick, clamp, steady } = require('../lib/random');
 const { optionValues } = require('../lib/options');
+const { COLORS } = require('../lib/looks');
 
 // ---------- Tracks ----------
 // The world is 1000 × 625 units (a 16:10 screen). Each track is a closed loop through these
@@ -168,6 +169,27 @@ const CAR = {
 const turnRate = (speed) => CAR.turn * clamp(Math.abs(speed) / 60, 0, 1) * (1 - CAR.turnFast * clamp(speed / CAR.top, 0, 1));
 
 const carOf = (g, id) => g.cars.find((c) => c.id === id);
+
+// ---------- Cars ----------
+// What each car looks like is up to its driver (a 🔧 panel on the phone while the bets go on, or
+// after a race): the body, the paint (their own colour unless they pick another), a stripe in a
+// second colour, and one extra on it. Purely for show: every car has the same circle to bump with
+// and the same handling. Kept per player for the whole game, so it lasts from race to race.
+const BODIES = ['sports', 'pickup', 'van', 'buggy', 'hotrod', 'trolley'];
+const EXTRAS = ['none', 'spoiler', 'keg', 'flames', 'number', 'cone'];
+const PAINTS = [...COLORS, '#f4f4f4', '#26262b']; // the players' colours, and white and black
+const CAR_LOOK = { body: 'sports', paint: null, stripe: null, extra: 'none' }; // paint null: the driver's own colour
+
+// A look as a phone sent it, cleaned: anything unknown falls back to the plain car's (an old
+// phone's saved choice still works if a body's been dropped since).
+function carLook(a = {}) {
+  return {
+    body: BODIES.includes(a.body) ? a.body : CAR_LOOK.body,
+    paint: PAINTS.includes(a.paint) ? a.paint : null,
+    stripe: PAINTS.includes(a.stripe) ? a.stripe : null,
+    extra: EXTRAS.includes(a.extra) ? a.extra : CAR_LOOK.extra,
+  };
+}
 
 // ---------- Weather ----------
 // Each race has its own, picked here when it's set up so every screen shows the same. Mostly it's
@@ -575,6 +597,7 @@ module.exports = {
       race: 0,
       wins: {},
       lastOrder: null,
+      looks: {}, // id -> their car's look (see carLook), once they've picked one
     });
     newRace(room, ctx);
   },
@@ -599,6 +622,12 @@ module.exports = {
       g.honks.push(me);
       return 'quiet';
     }
+    if (action.type === 'car') {
+      // Not while the cars are on the grid or racing (what you're driving stays put till the flag).
+      if (g.phase === 'countdown' || g.phase === 'race') return 'quiet';
+      g.looks[me] = carLook(action);
+      return undefined;
+    }
     if (action.type === 'bet' && g.phase === 'betting') {
       betting.bet(g, me, action.car, action.sips, g.racers);
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
@@ -617,6 +646,8 @@ module.exports = {
     const g = room.game;
     const host = room.hostId === me.id;
     if (g.phase === 'betting') {
+      // A car of its own first (any old one), then its bet.
+      if (!g.looks[me.id] && !g.bets[me.id]) return { type: 'car', body: pick(BODIES), paint: Math.random() < 0.5 ? null : pick(PAINTS), stripe: Math.random() < 0.5 ? null : pick(PAINTS), extra: pick(EXTRAS) };
       if (!g.bets[me.id]) return { type: 'bet', car: botPick(room, g, me, skill), sips: betting.botSips(g.maxBet, skill) };
       const waiting = ctx.connectedPlayers(room).some((p) => !g.bets[p.id]);
       return host && !waiting ? { type: 'startRace' } : null;
@@ -685,6 +716,11 @@ module.exports = {
       last: g.last,
       lastSips: g.lastSips,
       wins: g.wins,
+      // Everyone's car (the plain one for anyone who hasn't picked), with their seat for a number
+      // on it; and what this phone picked, if it has (or it sends the one it remembers).
+      looks: Object.fromEntries(room.players.map((p) => [p.id, { ...(g.looks[p.id] || CAR_LOOK), n: g.order.indexOf(p.id) + 1 || room.players.indexOf(p) + 1 }])),
+      myLook: g.looks[player.id] || null,
+      carParts: { bodies: BODIES, extras: EXTRAS, paints: PAINTS },
     };
   },
 
@@ -694,6 +730,10 @@ module.exports = {
   standings,
   tick,
   pickWeather,
+  carLook,
+  BODIES,
+  EXTRAS,
+  PAINTS,
   WEATHERS,
   WIDTH,
   BAND,
