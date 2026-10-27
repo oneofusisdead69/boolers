@@ -23,6 +23,8 @@
   const FULL_LOCK = 40; // degrees of tilt for full steering
   const SEND_GAP = 66; // ms between steering updates to the server
   const BARRIER = 7; // the tyre wall stands this far past the edge the cars bounce off
+  const SPOTS = 8; // places round the lap for the room's own props
+  const SPOT_R = 20; // room for one (no prop is wider than twice this)
 
   // ---------- Colours ----------
 
@@ -45,6 +47,24 @@
   function palette() {
     return { accent: css('--accent', '#e53950'), rim: css('--rim', '#d8d8d8'), bg: rgb(css('--bg', '#14111f')), card: rgb(css('--card', '#221d33')), card2: rgb(css('--card-2', '#2d2644')), accentRgb: rgb(css('--accent', '#e53950')), felt: feltColours() };
   }
+
+  // ---------- Weather ----------
+  //
+  // Each race's weather comes with the state (the server picks it: games/trackRacing.js). From the
+  // car: `light` on everything (with the room's colours still in the sky, mixed toward `sky`), the
+  // haze it fades into and how far off (`far`), colours washed out (`mute`), the asphalt wet and
+  // shining (`wet`), headlights (`lamps`: the barriers' white tyres and the gantry glow too),
+  // snow on the verges and trees, and rain or snow falling (`fall`). On the TV, the same as a tint
+  // and a layer of rain or snow over the track (style.css: .tr-wx, .tr-fall).
+  const WX = {
+    clear: { light: [1, 1, 1], far: 700 },
+    sunset: { light: [1.06, 0.84, 0.7], sky: ['#2a2450', '#ff8a4a'], haze: [0.93, 0.6, 0.45], far: 700 },
+    night: { light: [0.32, 0.36, 0.52], sky: ['#02040a', '#0e1830'], haze: [0.03, 0.04, 0.08], far: 620, lamps: true, flat: 'rgba(8, 12, 40, 0.55)' },
+    rain: { light: [0.62, 0.66, 0.72], sky: ['#262c34', '#5a626c'], haze: [0.34, 0.37, 0.41], far: 480, wet: 1, fall: 'rain', flat: 'rgba(30, 40, 60, 0.3)' },
+    fog: { light: [0.86, 0.87, 0.89], sky: ['#9aa2aa', '#c4c8cc'], haze: [0.72, 0.74, 0.76], far: 230, mute: 0.45, flat: 'rgba(200, 205, 210, 0.4)' },
+    snow: { light: [0.9, 0.93, 1.02], sky: ['#6d7a8c', '#d8dee6'], haze: [0.8, 0.83, 0.88], far: 460, mute: 0.15, snow: true, fall: 'snow' },
+  };
+  const weatherOf = (s = PB.state) => (WX[s?.game?.weather] ? s.game.weather : 'clear');
 
   // The same random scenery on every screen.
   function seeded(text) {
@@ -167,6 +187,28 @@
       const y = ys[i] + ny[i] * d * side;
       if (inside(x, y, 8) && near(x, y) > edge + BARRIER + 6 && free(x, y, 7)) props.push({ kind: 'tyres', x, y, r: 7 });
     }
+    // The room's own props (see VENUE_PROPS): a spot every so often round the lap, just behind the
+    // barrier on one side or the other, wherever there's room (nudged on down the track if not).
+    // `bx, by` is the foot of the barrier behind it and `ox, oy` the way out from the track; the
+    // prop stands as far out from there as it's wide, so it never leans into the tyres.
+    const every = Math.floor(N / SPOTS);
+    let made = 0;
+    for (let k = 0; k < SPOTS; k++) {
+      let done = false;
+      for (let t = 0; t < every * 0.6 && !done; t++) {
+        const i = at(startI + Math.round(every * (k + 0.5)) + t);
+        for (const side of k % 2 ? [1, -1] : [-1, 1]) {
+          if (!walls[side > 0 ? 1 : 0].ok[i]) continue;
+          const base = edge + BARRIER + 5;
+          const x = xs[i] + nx[i] * (base + SPOT_R) * side;
+          const y = ys[i] + ny[i] * (base + SPOT_R) * side;
+          if (!inside(x, y, SPOT_R) || near(x, y) < base + SPOT_R - 1 || !free(x, y, SPOT_R)) continue;
+          props.push({ kind: 'venue', which: made++ % 2, x, y, r: SPOT_R, bx: xs[i] + nx[i] * base * side, by: ys[i] + ny[i] * base * side, ox: nx[i] * side, oy: ny[i] * side });
+          done = true;
+          break;
+        }
+      }
+    }
     for (let k = 0; k < 900 && props.length < 110; k++) {
       const x = 12 + rand() * (W - 24);
       const y = 12 + rand() * (H - 24);
@@ -214,7 +256,8 @@
     c.clearRect(0, 0, tr.world.w, tr.world.h);
     c.lineJoin = 'round';
     c.lineCap = 'round';
-    c.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    const snow = WX[weatherOf()].snow;
+    c.fillStyle = `rgba(0, 0, 0, ${snow ? 0.14 : 0.42})`;
     c.fillRect(0, 0, tr.world.w, tr.world.h);
     // Inside the barriers, the felt (grass) shows through, a little lighter.
     c.globalCompositeOperation = 'destination-out';
@@ -224,6 +267,13 @@
     c.lineWidth = (edge + BARRIER) * 2;
     c.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     c.stroke(path);
+    // Snow: white over the grass, and greyer beyond the barriers (under what's there already).
+    if (snow) {
+      c.globalCompositeOperation = 'destination-over';
+      c.fillStyle = '#e9eef4';
+      c.fillRect(0, 0, tr.world.w, tr.world.h);
+      c.globalCompositeOperation = 'source-over';
+    }
     // Gravel on the outside of the bends.
     const quads = (from, to, test, style) => {
       c.beginPath();
@@ -302,6 +352,7 @@
   // The scenery seen from above (the TV and the phones' maps).
   function drawScenery(c, tr, sh, pal) {
     const greens = ['#2f7d3a', '#3c8f45', '#2a6b34', '#4d9a3e'];
+    const snowy = WX[weatherOf()].snow;
     for (const p of sh.props) {
       if (p.kind === 'tyres') {
         for (const [dx, dy] of [[-3, -2], [3, -2], [0, 3]]) {
@@ -323,11 +374,28 @@
         c.beginPath();
         c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         c.fill();
-        c.fillStyle = 'rgba(255, 255, 255, 0.14)';
+        if (snowy) {
+          c.fillStyle = 'rgba(250, 252, 255, 0.45)';
+          c.fill();
+        }
+        c.fillStyle = snowy ? 'rgba(250, 252, 255, 0.8)' : 'rgba(255, 255, 255, 0.14)';
         c.beginPath();
         c.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.5, 0, Math.PI * 2);
         c.fill();
       }
+    }
+    // The room's props, standing up (the way the TV's scenery shows things), each over its shadow.
+    const art = propArt(pal);
+    for (const p of sh.props) {
+      if (p.kind !== 'venue') continue;
+      const it = art.items[p.which] || art.items[0];
+      const [x, y] = propAt(p, it);
+      const size = Math.min(it.size, 40);
+      c.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      c.beginPath();
+      c.ellipse(x + 3, y + size * 0.38, it.half * 0.9, it.half * 0.4, 0, 0, Math.PI * 2);
+      c.fill();
+      c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, x - size / 2, y - size / 2 - (it.lift ? 8 : 0), size, size);
     }
     if (sh.stand) {
       const s = sh.stand;
@@ -371,6 +439,381 @@
     c.stroke();
   }
 
+  // ---------- The room's own props ----------
+  //
+  // Beside the track, a few times round the lap, a thing or two from the room you're racing in:
+  // giant beer bottles and a BAR sign at the dive, a tiki and palms at the tiki bar, a Christmas
+  // tree and a snowman at Christmas. Each is an emoji, or a few shapes drawn after the room's own
+  // art (the frat's ΒΩΩΛ board, the saloon's wanted poster with the host on it), painted once into
+  // one picture for the room, a square each. From above (the TV, the maps) they're drawn standing
+  // up, like the TV's scenery; from the car they're cut-outs that turn to face you (see fp).
+  //
+  // Each: [emoji or drawing (ART), height, how much of its square's width it fills, how high it
+  // floats]. Tall thin ones fill less of it; none is wider than SPOT_R * 2.
+  const VENUE_PROPS = {
+    classic: [['🏆', 32, 0.8], ['🏁', 34, 0.85]],
+    dive: [['bottle', 48, 0.34], ['neon:BAR', 34, 1]],
+    tavern: [['keg', 30, 0.66], ['🍺', 34, 0.85]],
+    club: [['mirrorball', 44, 0.8], ['🍸', 32, 0.8]],
+    castle: [['banner', 52, 0.6], ['shield', 34, 0.85]],
+    jazz: [['🎷', 38, 0.8], ['neon:♫', 34, 1]],
+    diner: [['jukebox', 40, 0.64], ['🍔', 30, 0.9]],
+    tiki: [['🗿', 40, 0.7], ['🌴', 46, 0.85]],
+    speakeasy: [['door', 40, 0.6], ['🥃', 28, 0.85]],
+    casino: [['🎲', 30, 0.9], ['roulette', 38, 0.8]],
+    saloon: [['🌵', 44, 0.7], ['wanted', 40, 0.62]],
+    pirate: [['wheel', 36, 0.9], ['chest', 28, 0.86]],
+    beerhall: [['keg', 30, 0.66], ['🥨', 30, 0.9]],
+    space: [['🪐', 40, 0.95, 18], ['🛰️', 30, 0.9, 26]],
+    lighthouse: [['lighthouse', 80, 0.3], ['⚓', 32, 0.8]],
+    vineyard: [['cypress', 64, 0.24], ['wine', 30, 0.66]],
+    frat: [['frat', 38, 1], ['cups', 34, 0.9]],
+    garage: [['⛽', 36, 0.8], ['tyres', 34, 0.5]],
+    chateau: [['⛲', 38, 0.9], ['topiary', 40, 0.5]],
+    christmas: [['🎄', 50, 0.8], ['⛄', 36, 0.7]],
+    halloween: [['🎃', 30, 0.9], ['tomb', 32, 0.46]],
+    stpatricks: [['whisky', 30, 0.66], ['stone', 50, 0.4]],
+  };
+  const CELL = 256; // pixels a prop's square
+
+  // The room the race is in (an easter egg or a mood is still its room).
+  function venueOf(s = PB.state) {
+    const look = s?.look || s?.style || 'classic';
+    const room = window.ROOM_STYLES?.roomOf ? ROOM_STYLES.roomOf(look) : look;
+    return VENUE_PROPS[room] ? room : 'classic';
+  }
+
+  // Where a prop stands: out from the barrier by as much as it's wide.
+  function propAt(p, it) {
+    const out = it.half + 0.5;
+    return [p.bx + p.ox * out, p.by + p.oy * out];
+  }
+
+  // The drawings, on a square 100 across, standing on its bottom edge, centred.
+  const fillRound = (c, x, y, w, h, r, col) => { c.fillStyle = col; roundRect(c, x, y, w, h, r); c.fill(); };
+  const poly = (c, col, d) => { c.fillStyle = col; c.fill(new Path2D(d)); };
+  const write = (c, text, x, y, font, col) => { c.font = font; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = col; c.fillText(text, x, y); };
+  const glow = (c, col, blur) => { c.shadowColor = col; c.shadowBlur = blur * (CELL / 100); };
+  function barrel(c, wood, hoop, label) {
+    poly(c, wood, 'M22 12 Q12 55 22 99 H78 Q88 55 78 12Z');
+    c.strokeStyle = 'rgba(0, 0, 0, 0.28)';
+    c.lineWidth = 1.4;
+    for (const x of [34, 50, 66]) c.stroke(new Path2D(`M${x} 13 Q${x + (x - 50) * 0.3} 55 ${x} 98`));
+    for (const y of [22, 88]) fillRound(c, 16, y - 3, 68, 6, 2, hoop);
+    poly(c, 'rgba(255, 255, 255, 0.12)', 'M26 14 Q18 55 26 97 H32 Q26 55 32 14Z');
+    c.fillStyle = '#c69a62';
+    c.beginPath();
+    c.ellipse(50, 12, 28, 6, 0, 0, Math.PI * 2);
+    c.fill();
+    if (label) { fillRound(c, 30, 44, 40, 20, 2, '#efe2bf'); write(c, label, 50, 54.5, 'bold 10px Georgia, serif', '#3b2512'); }
+  }
+  const ART = {
+    // The dive: a beer bottle, the label in the room's colour.
+    bottle(c, pal) {
+      fillRound(c, 43, 3, 14, 6, 2, '#d8b040');
+      poly(c, '#6e3a12', 'M45 8 H55 V34 Q66 42 66 54 V96 Q66 99 62 99 H38 Q34 99 34 96 V54 Q34 42 45 34Z');
+      fillRound(c, 38, 50, 4, 42, 2, 'rgba(255, 255, 255, 0.25)');
+      fillRound(c, 34, 58, 32, 24, 0, pal.accent);
+      write(c, 'BEER', 50, 70.5, 'bold 10px system-ui, sans-serif', '#fff');
+    },
+    // A neon sign on two posts: the word (or a note) in tubes of the room's colour.
+    neon(c, pal, text) {
+      for (const x of [20, 76]) fillRound(c, x, 58, 4, 42, 1, '#2a2622');
+      fillRound(c, 4, 18, 92, 46, 6, '#141018');
+      c.font = `bold ${text.length > 1 ? 34 : 40}px "Arial Black", Impact, system-ui, sans-serif`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.lineJoin = 'round';
+      glow(c, pal.accent, 6);
+      c.lineWidth = 4;
+      c.strokeStyle = pal.accent;
+      c.strokeText(text, 50, 43);
+      c.shadowBlur = 0;
+      c.lineWidth = 1.4;
+      c.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      c.strokeText(text, 50, 43);
+    },
+    keg: (c) => barrel(c, '#8a5a2e', '#3a3836'),
+    wine: (c) => barrel(c, '#6e2a2a', '#2e2a28', 'VINO'),
+    whisky: (c) => barrel(c, '#7a4a22', '#2a2826', 'WHISKY'),
+    // The club's mirror ball, hung from an arm on a pole, glinting.
+    mirrorball(c) {
+      fillRound(c, 16, 4, 4, 96, 1, '#3a3a44');
+      fillRound(c, 16, 4, 42, 4, 1, '#3a3a44');
+      fillRound(c, 55, 6, 2, 16, 1, '#9a9aa8');
+      c.save();
+      c.beginPath();
+      c.arc(56, 46, 24, 0, Math.PI * 2);
+      c.clip();
+      c.fillStyle = '#b8bcc8';
+      c.fillRect(30, 20, 52, 52);
+      const rand = seeded('mirrorball');
+      for (let y = 22; y < 70; y += 6) for (let x = 32; x < 80; x += 6) { c.fillStyle = `rgba(255, 255, 255, ${rand() * 0.6})`; c.fillRect(x, y, 5, 5); }
+      c.fillStyle = 'rgba(30, 20, 60, 0.35)';
+      c.fillRect(56, 20, 30, 52);
+      c.restore();
+      c.fillStyle = '#fff';
+      for (const [x, y, r] of [[44, 34, 5], [66, 58, 3.5], [80, 26, 4]]) poly(c, '#fff', `M${x} ${y - r} L${x + r * 0.3} ${y - r * 0.3} L${x + r} ${y} L${x + r * 0.3} ${y + r * 0.3} L${x} ${y + r} L${x - r * 0.3} ${y + r * 0.3} L${x - r} ${y} L${x - r * 0.3} ${y - r * 0.3}Z`);
+    },
+    // The castle's banner (the TV scenery's gonfalon, in the room's colour, a crown on it).
+    banner(c, pal) {
+      fillRound(c, 48, 2, 4, 98, 1, '#3a2a1a');
+      fillRound(c, 20, 6, 60, 4, 1, '#e8c15a');
+      c.save();
+      c.translate(21, 6);
+      c.scale(0.97, 0.62);
+      const cloth = new Path2D('M2 5 H58 V100 L44 118 L30 102 L16 118 L2 100Z');
+      c.fillStyle = pal.accent;
+      c.fill(cloth);
+      c.lineWidth = 3;
+      c.strokeStyle = '#e8c15a';
+      c.stroke(cloth);
+      c.restore();
+      emoji(c, '👑', 26, 50, 40);
+    },
+    shield(c) { emoji(c, '⚔️', 78, 50, 52); emoji(c, '🛡️', 60, 50, 66); },
+    // The diner's jukebox: the arch of coloured lights, the record window, the grille.
+    jukebox(c) {
+      poly(c, '#8a2a1e', 'M18 99 V42 Q18 4 50 4 Q82 4 82 42 V99Z');
+      c.lineWidth = 4;
+      ['#ff4d6d', '#ffd23f', '#29f0ff'].forEach((col, k) => {
+        const r = 26 - k * 5;
+        c.strokeStyle = col;
+        c.beginPath();
+        c.moveTo(50 - r, 74);
+        c.lineTo(50 - r, 42);
+        c.arc(50, 42, r, Math.PI, 0);
+        c.lineTo(50 + r, 74);
+        c.stroke();
+      });
+      fillRound(c, 38, 34, 24, 16, 3, '#ffe9b0');
+      fillRound(c, 34, 76, 32, 18, 2, '#2a1a14');
+      c.fillStyle = '#c9a050';
+      for (let x = 37; x < 66; x += 5) c.fillRect(x, 78, 1.6, 14);
+      fillRound(c, 14, 94, 72, 6, 2, '#c9ccd1');
+    },
+    // The speakeasy's door: the slot (someone's looking out), the knob, a lamp over it.
+    door(c) {
+      fillRound(c, 20, 10, 60, 90, 2, '#22160e');
+      fillRound(c, 26, 16, 48, 84, 1, '#5a3418');
+      c.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      c.lineWidth = 1.6;
+      c.strokeRect(32, 46, 36, 20);
+      c.strokeRect(32, 72, 36, 22);
+      fillRound(c, 38, 26, 24, 9, 1, '#0a0604');
+      fillRound(c, 43, 29, 4, 3, 1, '#ffd27a');
+      fillRound(c, 53, 29, 4, 3, 1, '#ffd27a');
+      c.fillStyle = '#d4af37';
+      c.beginPath();
+      c.arc(66, 62, 3, 0, Math.PI * 2);
+      c.fill();
+      glow(c, '#ffc860', 6);
+      fillRound(c, 44, 1, 12, 7, 3, '#ffd27a');
+      c.shadowBlur = 0;
+    },
+    // A roulette wheel stood on its edge.
+    roulette(c) {
+      poly(c, '#5a3418', 'M38 78 H62 L70 99 H30Z');
+      c.fillStyle = '#6a3a1a';
+      c.beginPath();
+      c.arc(50, 44, 40, 0, Math.PI * 2);
+      c.fill();
+      for (let k = 0; k < 18; k++) {
+        c.fillStyle = k === 0 ? '#1a8a3a' : k % 2 ? '#c8202e' : '#141414';
+        c.beginPath();
+        c.moveTo(50, 44);
+        c.arc(50, 44, 34, (k / 18) * Math.PI * 2, ((k + 1) / 18) * Math.PI * 2);
+        c.fill();
+      }
+      c.fillStyle = '#d4af37';
+      c.beginPath();
+      c.arc(50, 44, 15, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#8a6a20';
+      c.beginPath();
+      c.arc(50, 44, 5, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath();
+      c.arc(66, 22, 3, 0, Math.PI * 2);
+      c.fill();
+    },
+    // The saloon's wanted poster (as in its scenery): the host's face, dead or alive.
+    wanted(c, pal, text, s) {
+      fillRound(c, 47, 60, 6, 40, 1, '#5a3a1e');
+      c.save();
+      c.translate(20, 2);
+      c.scale(1, 0.84);
+      poly(c, '#e7d3a6', 'M2 2 H58 V80 L52 82 L46 79 L38 82 L30 79 L22 82 L14 79 L8 82 L2 80Z');
+      c.strokeStyle = '#a8875a';
+      c.lineWidth = 0.8;
+      c.strokeRect(6, 6, 48, 70);
+      write(c, 'WANTED', 30, 15, 'bold 11px Georgia, serif', '#3b2512');
+      const host = s?.hostId ? PB.look(s.hostId) : null;
+      emoji(c, host?.avatar || '🤠', 20, 30, 48);
+      write(c, String((s?.hostId && name(s.hostId)) || 'The Host').toUpperCase().slice(0, 12), 30, 61, 'bold 7px Georgia, serif', '#3b2512');
+      write(c, 'DEAD OR ALIVE · $500', 30, 71, '6px Georgia, serif', '#6b4524');
+      c.restore();
+    },
+    // The pirate's ship's wheel on its post, and a treasure chest, open.
+    wheel(c) {
+      poly(c, '#4a2c14', 'M44 74 H56 L62 99 H38Z');
+      c.strokeStyle = '#7a4a22';
+      c.lineCap = 'round';
+      c.lineWidth = 5;
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        c.beginPath();
+        c.moveTo(50, 42);
+        c.lineTo(50 + Math.cos(a) * 42, 42 + Math.sin(a) * 42);
+        c.stroke();
+      }
+      c.lineWidth = 6;
+      c.strokeStyle = '#8a5a2a';
+      c.beginPath();
+      c.arc(50, 42, 30, 0, Math.PI * 2);
+      c.stroke();
+      c.fillStyle = '#d4af37';
+      c.beginPath();
+      c.arc(50, 42, 8, 0, Math.PI * 2);
+      c.fill();
+    },
+    chest(c) {
+      poly(c, '#5e3818', 'M16 54 L20 24 Q50 12 82 24 L84 54Z');
+      const rand = seeded('chest');
+      for (let k = 0; k < 26; k++) {
+        c.fillStyle = rand() < 0.5 ? '#ffd23f' : '#e8a820';
+        c.beginPath();
+        c.arc(20 + rand() * 60, 46 + rand() * 10, 4, 0, Math.PI * 2);
+        c.fill();
+      }
+      fillRound(c, 12, 56, 76, 43, 3, '#7a4a22');
+      for (const x of [22, 74]) fillRound(c, x, 56, 5, 43, 0, '#c9a050');
+      fillRound(c, 45, 62, 10, 12, 2, '#d4af37');
+      emoji(c, '💎', 14, 64, 44);
+    },
+    // The lighthouse: red and white, its lamp lit, the beams going out.
+    lighthouse(c) {
+      c.fillStyle = 'rgba(255, 236, 160, 0.6)';
+      c.fill(new Path2D('M50 16 L2 6 L2 26Z M50 16 L98 6 L98 26Z'));
+      c.save();
+      const tower = new Path2D('M37 98 L43 24 H57 L63 98Z');
+      c.clip(tower);
+      for (let y = 24; y < 98; y += 12) { c.fillStyle = (y / 12) % 2 < 1 ? '#f4f1ea' : '#c8302e'; c.fillRect(30, y, 40, 12); }
+      c.restore();
+      fillRound(c, 39, 21, 22, 4, 1, '#222');
+      glow(c, '#ffe9a0', 8);
+      fillRound(c, 43, 10, 14, 11, 1, '#fff2b0');
+      c.shadowBlur = 0;
+      poly(c, '#c8302e', 'M41 11 L50 2 L59 11Z');
+      fillRound(c, 32, 94, 36, 6, 1, '#8a8a8a');
+    },
+    // The vineyard's cypress, tall and dark.
+    cypress(c) {
+      fillRound(c, 48, 86, 4, 14, 1, '#5a3a1e');
+      poly(c, '#1f4a28', 'M50 2 Q63 30 61 60 Q59 84 50 90 Q41 84 39 60 Q37 30 50 2Z');
+      poly(c, 'rgba(255, 255, 255, 0.1)', 'M50 4 Q43 30 42 60 Q42 80 48 88 Q46 60 50 4Z');
+    },
+    // The frat's ΒΩΩΛ board (from the basement wall), and a pyramid of red cups.
+    frat(c) {
+      for (const x of [8, 88]) fillRound(c, x, 30, 4, 70, 1, '#3a2414');
+      fillRound(c, 2, 24, 96, 40, 4, '#1b3f8e');
+      c.lineWidth = 3;
+      c.strokeStyle = '#d4af37';
+      c.stroke();
+      write(c, 'ΒΩΩΛ', 50, 45, 'bold 27px Georgia, serif', '#f4f4f4');
+    },
+    cups(c) {
+      for (const [x, y] of [[22, 72], [50, 72], [78, 72], [36, 44], [64, 44], [50, 16]]) {
+        poly(c, '#d62828', `M${x - 13} ${y} H${x + 13} L${x + 9} ${y + 27} H${x - 9}Z`);
+        fillRound(c, x - 14, y - 1, 28, 4, 2, '#f4f4f4');
+        c.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        c.fillRect(x - 11, y + 9, 22, 1.4);
+        c.fillStyle = 'rgba(255, 255, 255, 0.22)';
+        c.fillRect(x - 9, y + 4, 3, 20);
+      }
+    },
+    // The garage's stack of tyres, in its colour.
+    tyres(c, pal) {
+      for (let k = 0; k < 5; k++) {
+        const y = 82 - k * 16;
+        fillRound(c, 26 - (k === 4 ? 2 : 0), y, 48, 17, 7, '#161616');
+        fillRound(c, 30, y + 7, 40, 3, 1, k % 2 ? pal.accent : '#3a3a3a');
+      }
+    },
+    // The château's topiary: a clipped ball on a stem, in a pot.
+    topiary(c) {
+      poly(c, '#b5562a', 'M34 82 H66 L61 99 H39Z');
+      fillRound(c, 32, 80, 36, 5, 1, '#c86a3a');
+      fillRound(c, 48, 50, 4, 32, 1, '#5a3a1e');
+      c.fillStyle = '#2f6e34';
+      c.beginPath();
+      c.arc(50, 34, 22, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = 'rgba(255, 255, 255, 0.14)';
+      c.beginPath();
+      c.arc(43, 27, 11, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#2a6230';
+      c.beginPath();
+      c.arc(50, 70, 9, 0, Math.PI * 2);
+      c.fill();
+    },
+    // Halloween's tombstone, and the Highlands' standing stone.
+    tomb(c) {
+      poly(c, '#8a8f96', 'M26 99 V40 Q26 12 50 12 Q74 12 74 40 V99Z');
+      poly(c, 'rgba(0, 0, 0, 0.18)', 'M62 15 Q74 22 74 40 V99 H66 V40 Q66 24 62 15Z');
+      write(c, 'RIP', 50, 46, 'bold 16px Georgia, serif', '#3a3e44');
+      poly(c, '#3c6a2a', 'M20 99 L26 88 L30 96 L36 86 L40 99Z M60 99 L66 86 L70 96 L76 88 L80 99Z');
+    },
+    stone(c) {
+      poly(c, '#7d8085', 'M34 99 L30 62 Q32 22 46 8 Q60 4 64 24 Q70 60 68 99Z');
+      poly(c, 'rgba(0, 0, 0, 0.2)', 'M58 8 Q64 12 64 24 Q70 60 68 99 H58 Q62 60 58 8Z');
+      c.fillStyle = '#8a9a5a';
+      for (const [x, y, r] of [[40, 40, 3], [46, 64, 4], [38, 80, 2.5], [54, 30, 2]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+    },
+  };
+  // An emoji, sized and standing on (x, y) at the bottom of its glyph.
+  function emoji(c, ch, size, x, y) {
+    c.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif`;
+    c.textAlign = 'left';
+    c.textBaseline = 'alphabetic';
+    const m = c.measureText(ch);
+    const w = (m.actualBoundingBoxLeft || 0) + (m.actualBoundingBoxRight || size);
+    c.fillStyle = '#000';
+    c.fillText(ch, x - w / 2 + (m.actualBoundingBoxLeft || 0), y - (m.actualBoundingBoxDescent || 0));
+  }
+
+  // The room's props, painted once (a square each, side by side), and how big each stands.
+  let propCache = null;
+  function propArt(pal = palette()) {
+    const s = PB.state;
+    const venue = venueOf(s);
+    const host = venue === 'saloon' && s?.hostId ? `${PB.look(s.hostId).avatar}${name(s.hostId)}` : '';
+    const key = `${venue}:${pal.accent}:${host}`;
+    if (propCache?.key === key) return propCache;
+    const list = VENUE_PROPS[venue];
+    const cv = document.createElement('canvas');
+    cv.width = CELL * 2;
+    cv.height = CELL;
+    const c = cv.getContext('2d');
+    const items = list.map(([what, size, wide, lift = 0], cell) => {
+      c.save();
+      c.translate(cell * CELL, 0);
+      c.scale(CELL / 100, CELL / 100);
+      // (Inside its square, with a little room round it, so the next one doesn't bleed in.)
+      c.translate(3, 3);
+      c.scale(0.94, 0.94);
+      const [kind, text] = what.split(':');
+      if (ART[kind]) ART[kind](c, pal, text, s);
+      else emoji(c, what, 84, 50, 99);
+      c.restore();
+      return { cell, size, lift, half: Math.min(SPOT_R, (size * wide) / 2) };
+    });
+    propCache = { key, cv, items };
+    return propCache;
+  }
+
   function roundRect(c, x, y, w, h, r) {
     c.beginPath();
     if (c.roundRect) c.roundRect(x, y, w, h, r);
@@ -378,12 +821,27 @@
   }
 
   // A little car, nose along +x, in its driver's colour.
-  function drawCar(c, car, look, { label, mine, honk }) {
+  function drawCar(c, car, look, { label, mine, honk, lamps }) {
     const [x, y, a, flags] = car;
     c.save();
     c.translate(x, y);
     c.rotate(a);
     c.scale(1.2, 1.2);
+    if (lamps) {
+      // Headlights: a pool of light ahead (the gradient's in the car's own frame, so one does all).
+      if (!c.trBeam) {
+        c.trBeam = c.createLinearGradient(12, 0, 64, 0);
+        c.trBeam.addColorStop(0, 'rgba(255, 240, 190, 0.55)');
+        c.trBeam.addColorStop(1, 'rgba(255, 240, 190, 0)');
+      }
+      c.fillStyle = c.trBeam;
+      c.beginPath();
+      c.moveTo(12, -5);
+      c.lineTo(64, -20);
+      c.lineTo(64, 20);
+      c.lineTo(12, 5);
+      c.fill();
+    }
     c.fillStyle = 'rgba(0, 0, 0, 0.35)';
     roundRect(c, -11, -4, 24, 13, 4);
     c.fill();
@@ -524,6 +982,7 @@
     for (let i = 0; i < cars.length; i++) order[i] = i;
     // The leader on top.
     order.sort((a, b) => (cars[b][4] || 0) - (cars[a][4] || 0));
+    const lamps = !!WX[weatherOf(s)].lamps;
     for (const v of views) {
       const c = v.fg.getContext('2d');
       c.setTransform(1, 0, 0, 1, 0, 0);
@@ -544,7 +1003,7 @@
             m.fill();
           }
         }
-        drawCar(c, car, PB.look(id), { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900 });
+        drawCar(c, car, PB.look(id), { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900, lamps });
       }
     }
     if (fp.el) fp.frame(s, cars, ids, ms || now);
@@ -554,7 +1013,8 @@
   function stage(s, { mini = false } = {}) {
     const g = s.game;
     return `<div class="tr-stage ${mini ? 'mini' : ''}" data-race="${g.race}">
-      <canvas class="tr-bg"></canvas><canvas class="tr-marks"></canvas><canvas class="tr-fg"></canvas>
+      <canvas class="tr-bg"></canvas><canvas class="tr-marks"></canvas><div class="tr-wx tr-wx-${weatherOf(s)}"></div><canvas class="tr-fg"></canvas>
+      ${WX[weatherOf(s)].fall ? `<div class="tr-fall tr-fall-${WX[weatherOf(s)].fall}"></div>` : ''}
       ${mini ? '' : countHtml(s)}
     </div>`;
   }
@@ -565,6 +1025,27 @@
   // driving screen is drawn they're moved into it, so the textures and models stay loaded.
 
   const GROUND_VS = 'attribute vec2 aP; void main() { gl_Position = vec4(aP, 0.0, 1.0); }';
+  // The weather's light on a spot on the ground (or a model): the sky's (uLight), and at night the
+  // cars' headlights (uCars: each car's x, y and which way it points; uHead 1 when they're on).
+  const LIGHT_GLSL = `
+    uniform vec3 uLight;
+    uniform float uHead, uMute;
+    uniform vec4 uCars[8];
+    vec3 lit(vec2 w) {
+      vec3 l = uLight;
+      if (uHead > 0.5) {
+        for (int i = 0; i < 8; i++) {
+          vec4 c = uCars[i];
+          vec2 d = w - c.xy;
+          float a = dot(d, c.zw);
+          if (a < -4.0 || a > 170.0 || c.z * c.z + c.w * c.w < 0.5) continue;
+          float s = abs(d.x * c.w - d.y * c.z);
+          l += vec3(1.0, 0.9, 0.7) * 1.6 * (1.0 - a / 170.0) * (1.0 - smoothstep(0.5, 1.0, s / (a * 0.42 + 8.0)));
+        }
+      }
+      return l;
+    }
+    vec3 washed(vec3 c) { return mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uMute); }`;
   // Each pixel's ray from the camera, to where it meets the ground (or the sky, above the horizon).
   const GROUND_FS = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -574,8 +1055,9 @@
     #endif
     uniform sampler2D uGround, uSky;
     uniform vec2 uC, uWorld;
-    uniform float uFocal, uFar;
+    uniform float uFocal, uFar, uWet;
     uniform vec3 uCam, uF, uR, uU, uHaze, uOut;
+    ${LIGHT_GLSL}
     void main() {
       vec2 p = (gl_FragCoord.xy - uC) / uFocal;
       vec3 d = uF + uR * p.x + uU * p.y;
@@ -590,27 +1072,40 @@
       vec2 w = uCam.xy + d.xy * t;
       vec2 uv = w / uWorld;
       vec3 col = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? uOut : texture2D(uGround, uv).rgb;
+      if (uWet > 0.0) {
+        // Wet: the asphalt (grey, dark) darker still, with the sky shining in it, more so far off.
+        float hi = max(col.r, max(col.g, col.b));
+        float tarmac = (1.0 - smoothstep(0.03, 0.09, hi - min(col.r, min(col.g, col.b)))) * (1.0 - smoothstep(0.3, 0.5, hi));
+        vec3 sky = texture2D(uSky, vec2(atan(d.y, d.x) / 6.2831853, 0.9)).rgb;
+        col = mix(col, col * 0.62 + sky * 0.45 * (1.0 - smoothstep(0.05, 0.5, -d.z / hl)), tarmac * uWet);
+      }
+      col = washed(col * lit(w));
       float f = clamp((t * hl - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
       gl_FragColor = vec4(mix(col, uHaze, f * f), 1.0);
     }`;
   // Models: a colour each corner (the light baked in), and a tint: 1 the car's own colour, 2 a
-  // brake light, 3 the start lights. Cars are placed by uM (x, y, cos, sin of their heading).
+  // brake light, 3 the start lights, 4 lit up at night (the headlights, the barriers' white
+  // tyres, the gantry). Cars are placed by uM (x, y, cos, sin of their heading).
   const MODEL_VS = `
     attribute vec3 aP;
     attribute vec4 aC;
     uniform mat4 uVP;
     uniform vec4 uM;
     uniform vec3 uTint, uLamp, uCam;
-    uniform float uBrake, uFar;
+    uniform float uBrake, uFar, uGlow;
     varying vec3 vC;
     varying float vFog;
+    ${LIGHT_GLSL}
     void main() {
       vec3 w = vec3(uM.x + uM.z * aP.x - uM.w * aP.y, uM.y + uM.w * aP.x + uM.z * aP.y, aP.z);
       vec3 c = aC.rgb;
-      if (aC.a > 2.5) c *= uLamp;
-      else if (aC.a > 1.5) c = mix(c * 0.45, vec3(1.0, 0.15, 0.1), uBrake);
-      else if (aC.a > 0.5) c *= uTint;
-      vC = c;
+      vec3 l = lit(w.xy);
+      if (aC.a > 3.5) c *= mix(l, vec3(1.0), uGlow);
+      else if (aC.a > 2.5) c *= uLamp;
+      else if (aC.a > 1.5) c = mix(c * 0.45 * mix(l, vec3(1.0), uGlow), vec3(1.0, 0.15, 0.1), max(uBrake, uGlow * 0.6));
+      else if (aC.a > 0.5) c *= uTint * l;
+      else c *= l;
+      vC = washed(c);
       float f = clamp((distance(w.xy, uCam.xy) - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
       vFog = f * f;
       gl_Position = uVP * vec4(w, 1.0);
@@ -621,6 +1116,38 @@
     varying vec3 vC;
     varying float vFog;
     void main() { gl_FragColor = vec4(mix(vC, uHaze, vFog), 1.0); }`;
+  // The room's props: cut-outs standing on the ground, turned to face the camera (about the
+  // upright, so they stay standing). Each corner: where it stands (x, y), how far to the side and
+  // how high it is (aP), and where it is in the picture (aT). All of them, one draw.
+  const PROP_VS = `
+    attribute vec4 aP;
+    attribute vec2 aT;
+    uniform mat4 uVP;
+    uniform vec2 uSide;
+    uniform vec3 uCam;
+    uniform float uFar;
+    varying vec2 vT;
+    varying float vFog;
+    void main() {
+      vec3 w = vec3(aP.xy + uSide * aP.z, aP.w);
+      vT = aT;
+      float f = clamp((distance(w.xy, uCam.xy) - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
+      vFog = f * f;
+      gl_Position = uVP * vec4(w, 1.0);
+    }`;
+  const PROP_FS = `
+    precision mediump float;
+    uniform sampler2D uArt;
+    uniform vec3 uHaze, uLight;
+    uniform float uMute;
+    vec3 washed(vec3 c) { return mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uMute); }
+    varying vec2 vT;
+    varying float vFog;
+    void main() {
+      vec4 c = texture2D(uArt, vT);
+      if (c.a < 0.5) discard;
+      gl_FragColor = vec4(mix(washed(c.rgb * uLight), uHaze, vFog), 1.0);
+    }`;
 
   // Building models: triangles of [x, y, z, r, g, b, tint].
   const LIGHT = [0.45, -0.35, 0.82];
@@ -675,7 +1202,7 @@
   }
 
   // The barriers, the scenery and the gantry, as one model.
-  function sceneModel(tr, sh, pal) {
+  function sceneModel(tr, sh, pal, wx) {
     const m = mesher();
     const rim = rgb(pal.rim, [0.85, 0.85, 0.85]);
     const black = [0.09, 0.09, 0.1];
@@ -689,7 +1216,7 @@
         const y = (w.y[i] + w.y[j]) / 2;
         const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
         const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.3;
-        m.box(x, y, a, hl, 3, 0, H, i % 2 ? black : rim);
+        m.box(x, y, a, hl, 3, 0, H, i % 2 ? black : rim, i % 2 ? 0 : 4);
       }
     }
     const greens = [[0.18, 0.49, 0.23], [0.24, 0.56, 0.27], [0.16, 0.42, 0.2], [0.3, 0.6, 0.24]];
@@ -701,9 +1228,10 @@
         }
       } else if (p.kind === 'tree') {
         const col = greens[Math.floor(p.tone * greens.length)];
+        const top = wx.snow ? mix(col, [0.95, 0.97, 1], 0.75) : col.map((c) => c * 1.12);
         m.cyl(p.x, p.y, 0, p.h * 0.35, 1.6, 1.4, [0.4, 0.27, 0.15], 6);
-        m.cyl(p.x, p.y, p.h * 0.25, p.h * 0.75, p.r, 0, col, 7);
-        m.cyl(p.x, p.y, p.h * 0.5, p.h, p.r * 0.72, 0, col.map((c) => c * 1.12), 7);
+        m.cyl(p.x, p.y, p.h * 0.25, p.h * 0.75, p.r, 0, wx.snow ? mix(col, [0.95, 0.97, 1], 0.35) : col, 7);
+        m.cyl(p.x, p.y, p.h * 0.5, p.h, p.r * 0.72, 0, top, 7);
       }
     }
     if (sh.stand) {
@@ -725,7 +1253,7 @@
       const back = s.depth / 2;
       m.box(s.x + nx * back, s.y + ny * back, s.a, s.len / 2, 1.2, 0, 26, grey);
       for (const u of [-s.len / 2 + 2, 0, s.len / 2 - 2]) m.box(s.x - nx * (back - 3) + ca * u, s.y - ny * (back - 3) + sa * u, s.a, 0.8, 0.8, 0, 26, grey);
-      m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, pal.accentRgb);
+      m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, pal.accentRgb, 4);
     }
     // The gantry: posts either side of the start line, a beam across, five lights.
     const i = sh.startI;
@@ -734,7 +1262,7 @@
     const post = [0.85, 0.85, 0.87];
     for (const side of [-1, 1]) m.box(sh.xs[i] + sh.nx[i] * span * side, sh.ys[i] + sh.ny[i] * span * side, a, 1.8, 1.8, 0, 36, post);
     m.box(sh.xs[i], sh.ys[i], a, 2.4, span + 2, 30, 38, [0.15, 0.15, 0.17]);
-    m.box(sh.xs[i] - Math.cos(a) * 2.6, sh.ys[i] - Math.sin(a) * 2.6, a, 0.3, span - 4, 31, 37, pal.accentRgb, 0, false);
+    m.box(sh.xs[i] - Math.cos(a) * 2.6, sh.ys[i] - Math.sin(a) * 2.6, a, 0.3, span - 4, 31, 37, pal.accentRgb, 4, false);
     for (let k = -2; k <= 2; k++) {
       m.box(sh.xs[i] - Math.cos(a) * 3.2 + sh.nx[i] * k * 6, sh.ys[i] - Math.sin(a) * 3.2 + sh.ny[i] * k * 6, a, 0.5, 2, 32.2, 35.8, [1, 1, 1], 3, false);
     }
@@ -764,17 +1292,24 @@
     for (const [x, y] of [[-8.5, -7.4], [8.5, -7.4], [-8.5, 7.4], [8.5, 7.4]]) m.box(x, y, 0, 3.3, 1.5, 0, 5, tyre);
     for (const y of [-4.6, 4.6]) m.box(-14.15, y, 0, 0.2, 1.7, 3.6, 5.2, [1, 0.3, 0.25], 2, false);
     m.box(15.1, 0, 0, 0.2, 4.5, 2, 3.4, [0.12, 0.12, 0.14], 0, false);
+    for (const y of [-4.6, 4.6]) m.box(15.2, y, 0, 0.2, 1.6, 3, 4.6, [1, 0.97, 0.85], 4, false); // headlights
     return new Float32Array(m.v);
   }
 
   // The sky all the way round: the room's colours, hills, a treeline, a few lights far off.
-  function skyCanvas(pal) {
+  // The sky's colours: the room's, or mostly the weather's.
+  function skyColours(pal, wx) {
+    const top = mix(pal.bg, [0, 0, 0], 0.2);
+    const horizon = mix(mix(pal.card2, pal.accentRgb, 0.22), [1, 1, 1], 0.12);
+    if (!wx.sky) return [top, horizon];
+    return [mix(top, rgb(wx.sky[0]), 0.8), mix(horizon, rgb(wx.sky[1]), 0.8)];
+  }
+  function skyCanvas(pal, wx) {
     const cv = document.createElement('canvas');
     cv.width = 1024;
     cv.height = 256;
     const c = cv.getContext('2d');
-    const top = mix(pal.bg, [0, 0, 0], 0.2);
-    const horizon = mix(mix(pal.card2, pal.accentRgb, 0.22), [1, 1, 1], 0.12);
+    const [top, horizon] = skyColours(pal, wx);
     const g = c.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, hex(top));
     g.addColorStop(0.6, hex(mix(top, horizon, 0.55)));
@@ -782,8 +1317,9 @@
     c.fillStyle = g;
     c.fillRect(0, 0, 1024, 256);
     const rand = seeded('sky');
+    const stars = !wx.sky || wx.lamps ? 1 : 0; // (none through cloud, fog or a sunset)
     for (let k = 0; k < 60; k++) {
-      c.fillStyle = `rgba(255, 255, 255, ${0.15 + rand() * 0.45})`;
+      c.fillStyle = `rgba(255, 255, 255, ${(0.15 + rand() * 0.45) * stars})`;
       c.fillRect(rand() * 1024, rand() * 150, 1.5, 1.5);
     }
     // Whole numbers of waves round the 1024 pixels, so the join doesn't show.
@@ -837,10 +1373,15 @@
     const sh = shapeOf(tr);
     c.setTransform(sx, 0, 0, sy, 0, 0);
     c.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    const art = propArt(pal);
     for (const p of sh.props) {
       if (p.kind === 'stand') continue;
       c.beginPath();
-      c.arc(p.x + 2, p.y + 2, p.r + 1.5, 0, Math.PI * 2);
+      if (p.kind === 'venue') {
+        const it = art.items[p.which] || art.items[0];
+        const [x, y] = propAt(p, it);
+        c.ellipse(x + 2, y + 2, it.half * 0.8, it.half * 0.8, 0, 0, Math.PI * 2);
+      } else c.arc(p.x + 2, p.y + 2, p.r + 1.5, 0, Math.PI * 2);
       c.fill();
     }
     return cv;
@@ -862,6 +1403,9 @@
     vp: new Float32Array(16),
     cam: { x: 0, y: 0, z: 12, yaw: 0, roll: 0, speed: 0, px: 0, py: 0, pa: 0, race: -1, shake: 0, t: 0, f: [1, 0, 0], r: [0, 1, 0], u: [0, 0, 1], focal: 1 },
     avatars: {}, // id -> canvas
+    heads: new Float32Array(32), // the cars' headlights (see LIGHT_GLSL)
+    drops: null, // rain or snow falling over the view: x, y (0 to 1) and how fast, each
+    wasAt: new Float32Array(16), // where each car was last frame, for the spray
 
     attach(s) {
       const el = document.querySelector('.tr-view');
@@ -901,11 +1445,12 @@
         const u = {};
         const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
         for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name] = gl.getUniformLocation(p, name); }
-        return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC') };
+        return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC'), aT: gl.getAttribLocation(p, 'aT') };
       };
       this.ground = prog(GROUND_VS, GROUND_FS);
       this.model = prog(MODEL_VS, MODEL_FS);
-      if (!this.ground || !this.model) return false;
+      this.sprite = prog(PROP_VS, PROP_FS);
+      if (!this.ground || !this.model || !this.sprite) return false;
       this.quadBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -924,7 +1469,7 @@
     load(s, ms) {
       const tr = s.game.track;
       // (The room's colours are looked at again now and then: its stylesheet can come in late.)
-      const quick = `${tr.id}:${s.look || s.style}`;
+      const quick = `${tr.id}:${s.look || s.style}:${weatherOf(s)}`;
       if (quick === this.quick && ms - this.checked < 1500) return;
       this.quick = quick;
       this.checked = ms;
@@ -951,15 +1496,40 @@
       if (this.groundTex) gl.deleteTexture(this.groundTex);
       if (this.skyTex) gl.deleteTexture(this.skyTex);
       this.groundTex = texture(groundCanvas(tr, pal), false, true);
-      this.skyTex = texture(skyCanvas(pal), true, false);
-      const scene = sceneModel(tr, shapeOf(tr), pal);
+      const wx = WX[weatherOf(s)];
+      this.wx = wx;
+      this.skyTex = texture(skyCanvas(pal, wx), true, false);
+      const sh = shapeOf(tr);
+      const scene = sceneModel(tr, sh, pal, wx);
       this.sceneBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.sceneBuf);
       gl.bufferData(gl.ARRAY_BUFFER, scene, gl.STATIC_DRAW);
       this.sceneCount = scene.length / 7;
-      const horizon = mix(mix(pal.card2, pal.accentRgb, 0.22), [1, 1, 1], 0.12);
-      this.haze = horizon;
-      this.out = mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
+      // The room's props: their picture, and a cut-out each (two triangles: x, y, how far to the
+      // side, how high, and where in the picture).
+      const art = propArt(pal);
+      if (this.propTex) gl.deleteTexture(this.propTex);
+      this.propTex = texture(art.cv, false, true);
+      const v = [];
+      for (const p of sh.props) {
+        if (p.kind !== 'venue') continue;
+        const it = art.items[p.which] || art.items[0];
+        const [x, y] = propAt(p, it);
+        const u0 = (it.cell + 0.005) / 2;
+        const u1 = (it.cell + 0.995) / 2;
+        const h = it.size / 2;
+        const z0 = it.lift;
+        const z1 = it.lift + it.size;
+        for (const [o, z, u, t] of [[-h, z0, u0, 1], [h, z0, u1, 1], [h, z1, u1, 0], [-h, z0, u0, 1], [h, z1, u1, 0], [-h, z1, u0, 0]]) v.push(x, y, o, z, u, t);
+      }
+      this.propBuf ||= gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.propBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+      this.propCount = v.length / 6;
+      const [, horizon] = skyColours(pal, wx);
+      this.haze = wx.haze ? mix(horizon, wx.haze, 0.85) : horizon;
+      this.out = wx.snow ? [0.78, 0.81, 0.86] : mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
+      this.propLight = mix(wx.light, [1, 1, 1], 0.3);
       this.lamp = [0.25, 0.05, 0.05];
     },
 
@@ -1083,7 +1653,26 @@
       const cam = this.cam;
       const W = this.cv.width;
       const H = this.cv.height;
-      const far = 700;
+      const wx = this.wx;
+      const far = wx.far;
+      // The weather's light, for the ground and the models alike: the cars' headlights at night.
+      const heads = this.heads;
+      heads.fill(0);
+      if (wx.lamps) {
+        for (let i = 0; i < cars.length && i < 8; i++) {
+          if (!cars[i] || !ids[i]) continue;
+          heads[i * 4] = cars[i][0];
+          heads[i * 4 + 1] = cars[i][1];
+          heads[i * 4 + 2] = Math.cos(cars[i][2]);
+          heads[i * 4 + 3] = Math.sin(cars[i][2]);
+        }
+      }
+      const weather = (P) => {
+        gl.uniform3f(P.u.uLight, wx.light[0], wx.light[1], wx.light[2]);
+        gl.uniform1f(P.u.uHead, wx.lamps ? 1 : 0);
+        gl.uniform1f(P.u.uMute, wx.mute || 0);
+        gl.uniform4fv(P.u['uCars[0]'], heads);
+      };
       gl.viewport(0, 0, W, H);
       gl.disable(gl.DEPTH_TEST);
       gl.depthMask(false);
@@ -1106,6 +1695,8 @@
       gl.uniform3f(G.u.uU, cam.u[0], cam.u[1], cam.u[2]);
       gl.uniform3f(G.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
       gl.uniform3f(G.u.uOut, this.out[0], this.out[1], this.out[2]);
+      gl.uniform1f(G.u.uWet, wx.wet || 0);
+      weather(G);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.enableVertexAttribArray(G.aP);
       gl.vertexAttribPointer(G.aP, 2, gl.FLOAT, false, 0, 0);
@@ -1121,6 +1712,8 @@
       gl.uniform3f(M.u.uCam, cam.x, cam.y, cam.z);
       gl.uniform1f(M.u.uFar, far);
       gl.uniform3f(M.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
+      gl.uniform1f(M.u.uGlow, wx.lamps ? 1 : 0);
+      weather(M);
       // The start lights: red through the countdown, then green.
       const lit = s.phase === 'countdown' ? 1 : 0;
       gl.uniform3f(M.u.uLamp, lit ? 1 : 0.2, lit ? 0.12 : 1, lit ? 0.1 : 0.35);
@@ -1147,7 +1740,33 @@
       }
       gl.disableVertexAttribArray(M.aP);
       gl.disableVertexAttribArray(M.aC);
+      // The room's props, turned to face the camera: all of them in one go.
+      if (this.propCount) {
+        const P = this.sprite;
+        gl.useProgram(P.p);
+        gl.uniformMatrix4fv(P.u.uVP, false, this.vp);
+        const side = Math.hypot(cam.r[0], cam.r[1]) || 1;
+        gl.uniform2f(P.u.uSide, cam.r[0] / side, cam.r[1] / side);
+        gl.uniform3f(P.u.uCam, cam.x, cam.y, cam.z);
+        gl.uniform1f(P.u.uFar, far);
+        gl.uniform3f(P.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
+        gl.uniform3f(P.u.uLight, this.propLight[0], this.propLight[1], this.propLight[2]);
+        gl.uniform1f(P.u.uMute, wx.mute || 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.propTex);
+        gl.uniform1i(P.u.uArt, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.propBuf);
+        gl.enableVertexAttribArray(P.aP);
+        gl.enableVertexAttribArray(P.aT);
+        gl.vertexAttribPointer(P.aP, 4, gl.FLOAT, false, 24, 0);
+        gl.vertexAttribPointer(P.aT, 2, gl.FLOAT, false, 24, 16);
+        gl.drawArrays(gl.TRIANGLES, 0, this.propCount);
+        gl.disableVertexAttribArray(P.aP);
+        gl.disableVertexAttribArray(P.aT);
+      }
       this.labels(s, cars, ids, mine, ms);
+      this.spray(s, cars, ids, ms);
+      this.fall(s, wx, car, ms);
     },
 
     colour(id) {
@@ -1206,6 +1825,85 @@
       }
     },
 
+    // Rain: spray thrown up behind the cars going at a lick.
+    spray(s, cars, ids, ms) {
+      const dt = (ms - (this.sprayAt || ms)) / 1000;
+      this.sprayAt = ms;
+      if (!this.wx.wet || s.phase !== 'race' || dt <= 0 || dt > 0.25) return;
+      const c = this.hud.getContext('2d');
+      c.fillStyle = 'rgba(222, 230, 240, 0.16)';
+      c.beginPath();
+      for (let i = 0; i < cars.length && i < 8; i++) {
+        const car = cars[i];
+        if (!car || !ids[i]) continue;
+        const v = Math.hypot(car[0] - this.wasAt[i * 2], car[1] - this.wasAt[i * 2 + 1]) / dt;
+        this.wasAt[i * 2] = car[0];
+        this.wasAt[i * 2 + 1] = car[1];
+        if (v < 40 || v > 400) continue;
+        const ca = Math.cos(car[2]);
+        const sa = Math.sin(car[2]);
+        for (let k = 0; k < 3; k++) {
+          if (!this.project(car[0] - ca * (17 + k * 9), car[1] - sa * (17 + k * 9), 3 + k * 2) || at.d > 400) continue;
+          const r = Math.min(26 * this.k, at.s * (4 + k * 3) * Math.min(1, v / 150));
+          c.moveTo(at.x + r, at.y);
+          c.ellipse(at.x, at.y, r, r * 0.55, 0, 0, Math.PI * 2);
+        }
+      }
+      c.fill();
+    },
+
+    // Rain or snow falling past (over the view from the car, or the map): the same few hundred
+    // numbers moved along each frame, all drawn in one go. Turning sweeps them sideways.
+    fall(s, wx, car, ms) {
+      if (!wx.fall) return;
+      const rain = wx.fall === 'rain';
+      const n = rain ? 110 : 150;
+      if (!this.drops || this.drops.length !== n * 3) {
+        this.drops = new Float32Array(n * 3);
+        const rand = seeded('drops');
+        for (let i = 0; i < n * 3; i++) this.drops[i] = rand();
+      }
+      const dt = Math.min(0.1, Math.max(0, (ms - (this.fallAt || ms)) / 1000));
+      this.fallAt = ms;
+      let turn = car[2] - (this.fallYaw ?? car[2]);
+      turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+      this.fallYaw = car[2];
+      const speed = Math.min(1, this.cam.speed / 175);
+      const c = this.hud.getContext('2d');
+      const W = this.hud.width;
+      const H = this.hud.height;
+      const k = this.k || 1;
+      const d = this.drops;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.beginPath();
+      for (let i = 0; i < n; i++) {
+        const sp = 0.5 + d[i * 3 + 2] * 0.5;
+        let x = d[i * 3] - turn * 0.8;
+        let y = d[i * 3 + 1] + dt * sp * (rain ? 1.5 + speed : 0.16 + speed * 0.3);
+        if (!rain) x += Math.sin(ms * 0.0013 + i) * 0.0006;
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        d[i * 3] = x;
+        d[i * 3 + 1] = y;
+        if (rain) {
+          const len = (0.025 + 0.035 * speed) * H * sp;
+          c.moveTo(x * W, y * H);
+          c.lineTo(x * W - len * 0.12, y * H + len);
+        } else {
+          const r = (1 + sp * 2) * k;
+          c.rect(x * W - r, y * H - r, r * 2, r * 2);
+        }
+      }
+      if (rain) {
+        c.lineWidth = Math.max(1, k);
+        c.strokeStyle = 'rgba(205, 218, 238, 0.42)';
+        c.stroke();
+      } else {
+        c.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        c.fill();
+      }
+    },
+
     // An avatar in a bubble of its driver's colour, drawn once.
     avatar(id) {
       const look = PB.look(id);
@@ -1238,12 +1936,13 @@
     // No WebGL: the map from above, turned so the car points up the screen, close in.
     flat(s, cars, ids, car, portrait) {
       const tr = s.game.track;
-      if (!this.flatBg || this.flatKey !== tr.id) {
+      const flatKey = `${tr.id}:${venueOf(s)}:${weatherOf(s)}`;
+      if (!this.flatBg || this.flatKey !== flatKey) {
         this.flatBg = document.createElement('canvas');
         this.flatBg.width = tr.world.w * 2;
         this.flatBg.height = tr.world.h * 2;
         drawStatic(this.flatBg, tr, 2, 2);
-        this.flatKey = tr.id;
+        this.flatKey = flatKey;
       }
       const c = this.hud.getContext('2d');
       const W = this.hud.width;
@@ -1257,7 +1956,17 @@
       c.translate(-car[0], -car[1]);
       c.drawImage(this.flatBg, 0, 0, tr.world.w, tr.world.h);
       const now = performance.now();
-      for (let i = 0; i < cars.length; i++) if (cars[i] && ids[i]) drawCar(c, cars[i], PB.look(ids[i]), { label: ids[i] !== s.me, mine: ids[i] === s.me, honk: now - (honked[ids[i]] || -1e9) < 900 });
+      const wx = WX[weatherOf(s)];
+      if (wx.flat || wx.snow) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.fillStyle = wx.flat || 'rgba(255, 255, 255, 0.1)';
+        c.fillRect(0, 0, W, H);
+        c.setTransform(z, 0, 0, z, W / 2, H * 0.68);
+        c.rotate(-car[2] - Math.PI / 2);
+        c.translate(-car[0], -car[1]);
+      }
+      for (let i = 0; i < cars.length; i++) if (cars[i] && ids[i]) drawCar(c, cars[i], PB.look(ids[i]), { label: ids[i] !== s.me, mine: ids[i] === s.me, honk: now - (honked[ids[i]] || -1e9) < 900, lamps: wx.lamps });
+      this.fall(s, wx, car, performance.now());
     },
   };
 

@@ -160,3 +160,28 @@ test('honks: racers only, not too often', () => {
   assert.deepStrictEqual(t.room.game.honks, [], 'too soon');
   t.cleanup();
 });
+
+test('weather: picked for each race, fitted to the room, and bots finish in every kind', () => {
+  const t = setup(game, 3, { track: 'pretzel', laps: 2 });
+  const g = t.room.game;
+  assert.ok(game.WEATHERS[g.weather], 'a race has weather');
+  assert.strictEqual(game.view(t.room, t.player(0)).weather, g.weather);
+  assert.ok(t.room.feed.some((f) => f.text.startsWith(`${game.WEATHERS[g.weather].emoji} ${game.WEATHERS[g.weather].label} at The Pretzel`)), 'announced');
+  const many = (room) => new Set(Array.from({ length: 300 }, () => game.pickWeather(room)));
+  assert.deepStrictEqual([...many({ style: 'christmas' })], ['snow']);
+  assert.ok(!many({ style: 'tiki' }).has('snow'), 'no snow at the tiki bar');
+  assert.deepStrictEqual([...many({ style: 'lighthouse', mood: 'storm' })], ['rain']);
+  assert.deepStrictEqual([...many({ style: 'stpatricks', mood: 'stpatricksFog' })], ['fog']);
+  assert.deepStrictEqual([...many({ style: 'vineyard', mood: 'vineyardSunset' })], ['sunset']);
+  assert.ok(many({ style: 'dive' }).size >= 4, 'anything can happen at the dive');
+  t.cleanup();
+  for (const weather of Object.keys(game.WEATHERS)) {
+    const t2 = setup(game, 3, { track: 'pretzel', laps: 2 });
+    t2.room.game.weather = weather;
+    startRace(t2, [['p0', 1], ['p1', 1], ['p2', 1]]);
+    for (const p of t2.room.players) p.bot = 'npc';
+    runRace(t2);
+    for (const r of t2.room.game.result) assert.ok(r.time != null && r.time / 2 < 32, `${weather}: ${r.id} finished (${r.time})`);
+    t2.cleanup();
+  }
+});
