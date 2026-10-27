@@ -169,6 +169,36 @@ const turnRate = (speed) => CAR.turn * clamp(Math.abs(speed) / 60, 0, 1) * (1 - 
 
 const carOf = (g, id) => g.cars.find((c) => c.id === id);
 
+// ---------- Weather ----------
+// Each race has its own, picked here when it's set up so every screen shows the same. Mostly it's
+// just the look of it; on rain and snow the tyres grip a little less and the brakes take a little
+// longer (`grip`, `brake`: shares of the dry figures).
+const WEATHERS = {
+  clear: { emoji: '☀️', label: 'Clear skies', says: 'perfect racing weather.' },
+  sunset: { emoji: '🌇', label: 'Sunset', says: 'mind the glare.' },
+  night: { emoji: '🌙', label: 'Night racing', says: 'headlights on!' },
+  rain: { emoji: '🌧️', label: 'Rain', says: 'it’s slippery!', grip: 0.85, brake: 0.88 },
+  fog: { emoji: '🌫️', label: 'Fog', says: 'you can’t see a thing.' },
+  snow: { emoji: '❄️', label: 'Snow', says: 'easy on the corners!', grip: 0.78, brake: 0.82 },
+};
+// Rooms with weather of their own (their moods in lib/roomStyles.js) race in the one they're in
+// now: the Lighthouse's fog, the Highlands' rain, the château at night...
+const MOOD_ROOMS = ['lighthouse', 'stpatricks', 'vineyard', 'chateau'];
+const MOOD_WEATHER = { lighthouse: 'night', lighthouseFog: 'fog', storm: 'rain', stpatricksRain: 'rain', stpatricksFog: 'fog', vineyardSunset: 'sunset', chateauNight: 'night' };
+const NIGHT_ROOMS = ['space', 'club', 'speakeasy', 'halloween', 'jazz'];
+const HOT_ROOMS = ['tiki', 'saloon', 'vineyard', 'space']; // (no snow)
+function pickWeather(room) {
+  const style = room.style === 'storm' ? 'lighthouse' : room.style || 'classic'; // (an old saved room)
+  if (style === 'christmas') return 'snow';
+  if (MOOD_ROOMS.includes(style)) return MOOD_WEATHER[room.mood] || MOOD_WEATHER[room.style] || 'clear';
+  const odds = NIGHT_ROOMS.includes(style)
+    ? { night: 6, clear: 1, rain: 1, fog: 1 }
+    : { clear: 5, sunset: 2, night: 2, rain: 2, fog: 1.5, snow: HOT_ROOMS.includes(style) ? 0 : 0.5 };
+  let r = Math.random() * Object.values(odds).reduce((a, b) => a + b, 0);
+  for (const [w, n] of Object.entries(odds)) if ((r -= n) < 0) return w;
+  return 'clear';
+}
+
 function gridCars(room, g) {
   const tr = trackOf(g.trackId);
   // The first race's grid is drawn at random; after that the last race's winner starts at the back.
@@ -215,8 +245,11 @@ function newRace(room, ctx) {
   g.last = null;
   g.bumps = [];
   g.honks = [];
+  g.weather = pickWeather(room);
   betting.reset(g);
   g.phase = 'betting';
+  const wx = WEATHERS[g.weather];
+  ctx.log(room, `${wx.emoji} ${wx.label} at ${trackOf(g.trackId).name}: ${wx.says}`);
 }
 
 function countdown(room, ctx) {
@@ -302,10 +335,11 @@ function moveCar(g, tr, c, dt) {
   const racing = g.phase === 'race' && c.finished == null;
   // After the line a car rolls to a stop on its own.
   const gas = racing ? c.gas : 0;
+  const wx = WEATHERS[g.weather] || WEATHERS.clear;
   const brake = racing ? c.brake : c.finished != null ? 0.4 : 0;
   if (gas) fwd += CAR.accel * dt * (fwd < 0 ? 2 : 1);
   if (brake) {
-    if (fwd > 5) fwd -= CAR.brake * dt;
+    if (fwd > 5) fwd -= CAR.brake * (wx.brake || 1) * dt;
     else if (racing) fwd = Math.max(-CAR.topReverse, fwd - CAR.reverse * dt);
     else fwd *= 0.8;
   }
@@ -319,7 +353,8 @@ function moveCar(g, tr, c, dt) {
   c.a = Math.atan2(Math.sin(c.a), Math.cos(c.a));
   // The tyres kill sideways slide: less of it at full lock and speed (a drift), and on the grass.
   const load = Math.abs(steer) * clamp(fwd / CAR.top, 0, 1);
-  const grip = Math.max(1.5, CAR.grip - (CAR.grip - CAR.gripDrift) * load * load * 1.3 - (brake && racing ? 2 : 0) - (c.grass ? 2.5 : 0));
+  const wet = wx.grip || 1;
+  const grip = Math.max(1.5, (CAR.grip - (CAR.grip - CAR.gripDrift) * load * load * 1.3) * wet - (brake && racing ? 2 : 0) - (c.grass ? 2.5 : 0));
   side *= Math.exp(-grip * dt);
   c.drift = Math.abs(side) > 38;
   const nx = Math.cos(c.a);
@@ -630,6 +665,7 @@ module.exports = {
       ...betting.view(g, player.id),
       race: g.race,
       laps: g.laps,
+      weather: g.weather || 'clear',
       count: g.count,
       tickMs: TICK_MS,
       track: {
@@ -657,6 +693,8 @@ module.exports = {
   locate,
   standings,
   tick,
+  pickWeather,
+  WEATHERS,
   WIDTH,
   BAND,
 };

@@ -1349,3 +1349,18 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 .tr-modes .tr-small { padding: 5px 10px; font-size: 0.78rem; background: rgba(0, 0, 0, 0.5); color: #fff; border-color: transparent; }
 .tr-modes .tr-enable { padding: 7px 12px; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
 .tr-drive.port .tr-modes { top: auto; bottom: calc(var(--pad-b) + 120px); max-width: 90%; }
+/* The race's weather on the track from above: a tint under the cars (night, dusk, fog, rain), and
+   rain or snow falling over everything (a tile of drops slid down the screen, so it costs nothing). */
+.tr-wx, .tr-fall { position: absolute; inset: 0; pointer-events: none; }
+.tr-wx-sunset { background: linear-gradient(160deg, rgba(255, 140, 60, 0.28), rgba(120, 40, 120, 0.22)); mix-blend-mode: multiply; }
+.tr-wx-night { background: radial-gradient(ellipse at center, rgba(10, 16, 48, 0.5), rgba(4, 6, 20, 0.72)); }
+.tr-wx-rain { background: rgba(30, 44, 66, 0.32); }
+.tr-wx-fog { background: radial-gradient(ellipse at center, rgba(215, 220, 226, 0.3), rgba(215, 220, 226, 0.62)); }
+.tr-wx-snow { background: rgba(200, 215, 235, 0.12); }
+.tr-fall { overflow: hidden; }
+.tr-fall::before { content: ''; position: absolute; left: -120px; right: 0; top: -240px; bottom: 0; animation: tr-fall 0.5s linear infinite; }
+.tr-fall-rain::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='240'%3E%3Cg stroke='%23d8e4f4' stroke-opacity='0.5' stroke-width='1.4'%3E%3Cpath d='M14 10 l10 20M60 70 l10 20M100 30 l10 20M36 140 l10 20M84 180 l10 20M112 120 l10 20M8 200 l10 20'/%3E%3C/g%3E%3C/svg%3E"); }
+.tr-fall-snow::before { animation-duration: 6s; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='240'%3E%3Cg fill='%23fff' fill-opacity='0.85'%3E%3Ccircle cx='14' cy='20' r='2.4'/%3E%3Ccircle cx='70' cy='60' r='1.8'/%3E%3Ccircle cx='104' cy='110' r='2.8'/%3E%3Ccircle cx='40' cy='150' r='2'/%3E%3Ccircle cx='90' cy='200' r='2.4'/%3E%3Ccircle cx='20' cy='222' r='1.6'/%3E%3C/g%3E%3C/svg%3E"); }
+@keyframes tr-fall { to { transform: translate3d(120px, 240px, 0); } }
+.tr-stage.mini .tr-fall { display: none; }
+@media (prefers-reduced-motion: reduce) { .tr-fall::before { animation: none; } }
