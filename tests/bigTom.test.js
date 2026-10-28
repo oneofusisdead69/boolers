@@ -246,13 +246,21 @@ test('bots write, answer, vote (never on their own), draw a real PNG and hand ou
   t.cleanup();
 });
 
-// ---------- Best question of the round, and the question bank ----------
+// ---------- Best question of the game, and the question bank ----------
 
 const { createQuestionBank, normalise, keyOf, winner, weight } = require('../lib/questionBank');
 
-// Plays round 1 up to its summary, with the questions given (one per player).
-function toSummary(t, n, questions) {
-  for (let i = 0; i < n; i++) t.act(i, 'question', { text: questions[i] });
+// What each player sends in a round: their own text, 'generate' (tap Generate, send it as it
+// is), or a function that edits the suggestion before sending it.
+function send(t, i, q) {
+  if (typeof q === 'string' && q !== 'generate') return t.act(i, 'question', { text: q });
+  t.act(i, 'generate');
+  const s = t.view(i).suggestion;
+  t.act(i, 'question', { text: q === 'generate' ? s : q(s) });
+}
+// Plays one round to its summary, with these questions (one per player).
+function round(t, n, questions) {
+  for (let i = 0; i < n; i++) send(t, i, questions[i]);
   answerAll(t, n);
   const g = t.room.game;
   for (let k = 0; k < g.matchups.length; k++) {
@@ -261,15 +269,30 @@ function toSummary(t, n, questions) {
     t.act(0, 'next');
   }
   assert.strictEqual(g.phase, 'summary');
+}
+// Plays the whole game to the final results: `rounds` is each round's questions (the same every
+// round if only one is given).
+function toFinal(t, n, ...rounds) {
+  const g = t.room.game;
+  for (let r = 0; r < game.ROUNDS; r++) {
+    round(t, n, rounds[r] || rounds[rounds.length - 1]);
+    assert.strictEqual(g.poll, null, 'no poll between rounds');
+    assert.strictEqual(t.view(0).poll, null, 'no poll between rounds');
+    t.act(0, 'nextRound');
+  }
+  for (let i = 0; i < n; i++) t.act(i, 'drawing', { image: PNG });
+  t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'final');
   return g;
 }
 const QS = ['Worst thing to find in a sock', 'A bad name for a hamster', 'The real reason Kevin left', 'Never say this to a goose'];
+const QS2 = ['What Kevin keeps in the shed', 'The worst wedding toast', 'A terrible pub name', 'Why the goose is angry'];
 
-test('poll: every player gets the round\'s questions, no names, one pick each; the TV only a count', () => {
+test('poll: only at the end, over every question players wrote all game; no names; one pick each; the TV only a count', () => {
   const t = setup(game, 4);
-  const g = toSummary(t, 4, QS);
+  const g = toFinal(t, 4, QS, QS2, QS); // round 3 asks round 1's again: once in the poll
   const v = t.view(0).poll;
-  assert.deepStrictEqual(v.options.slice().sort(), QS.slice().sort());
+  assert.deepStrictEqual(v.options.slice().sort(), [...QS, ...QS2].sort());
   assert.strictEqual(v.myPick, null);
   assert.deepStrictEqual([v.picked, v.of], [0, 4]);
   t.act(1, 'bestQuestion', { pick: '2' });
@@ -282,19 +305,70 @@ test('poll: every player gets the round\'s questions, no names, one pick each; t
   const tv = game.view(t.room, { id: '__tv' }, t.ctx).poll;
   assert.strictEqual(tv.options, null, 'the TV gets no list');
   assert.strictEqual(tv.picked, 1);
-  assert.ok(!JSON.stringify(t.view(0).poll).includes('p1'), 'nobody sees who picked what');
+  assert.ok(!JSON.stringify(t.view(0).poll).match(/p\d|Player/), 'nobody sees who picked or wrote what');
   t.cleanup();
+});
+
+test('poll: only questions players wrote; not Generate\'s sent as they are, nor bots\'', () => {
+  const t = setup(game, 4);
+  t.room.players[3].bot = 'baller';
+  const bot = 'The worst thing to text your ex at 3am'; // one of the bots' own
+  const g = toFinal(t, 4, [QS[0], 'generate', 'generate', bot], ['generate', QS[1], 'generate', 'generate']);
+  assert.deepStrictEqual(g.poll.options.slice().sort(), [QS[0], QS[1]].sort());
+  assert.ok(g.matchups.some((m) => m.author === 'p0'), 'the generated ones were asked all the same');
+  t.cleanup();
+});
+
+test('poll: an edited suggestion is written only if a word changed (case, spaces, punctuation don\'t count)', () => {
+  const t = setup(game, 4);
+  const g = toFinal(t, 4, [
+    (s) => `  ${s.toUpperCase().replace(/[^\w\s]/g, '')}?!  `, // tidied up: still Generate's
+    (s) => `${s} at a funeral`, // a word added: written
+    (s) => s.split(' ').slice(1).join(' '), // a word dropped: written
+    'generate',
+  ]);
+  const options = g.poll.options;
+  assert.strictEqual(options.length, 2 * game.ROUNDS, 'two written each round');
+  assert.ok(options.some((q) => q.endsWith('at a funeral')));
+  assert.ok(!options.some((q) => q.endsWith('?!')), 'tidying a suggestion is not writing it');
+  // A built-in question typed out word for word isn't the player's either.
+  const t2 = setup(game, 3);
+  const g2 = toFinal(t2, 3, [NORMAL[0].toLowerCase(), 'Mine, all mine', 'generate']);
+  assert.deepStrictEqual(g2.poll.options, ['Mine, all mine']);
+  t.cleanup();
+  t2.cleanup();
+});
+
+test('poll: no questions written, no poll; one written, still asked (with None of these)', () => {
+  const t = setup(game, 3);
+  const g = toFinal(t, 3, ['generate', 'generate', 'generate']);
+  assert.strictEqual(g.poll, null);
+  assert.strictEqual(t.view(0).poll, null);
+  t.act(0, 'bestQuestion', { pick: '0' });
+  assert.notStrictEqual(t.bot(1)?.type, 'bestQuestion', 'nothing for a bot to pick');
+  t.act(0, 'playAgain');
+  assert.strictEqual(g.phase, 'write');
+  t.cleanup();
+
+  const bank = createQuestionBank({ kind: 'memory' });
+  const t2 = setup(game, 3, {}, { bank });
+  const g2 = toFinal(t2, 3, ['Just the one', 'generate', 'generate'], ['generate', 'generate', 'generate']);
+  assert.deepStrictEqual(t2.view(1).poll.options, ['Just the one']);
+  t2.act(0, 'bestQuestion', { pick: '0' }).act(1, 'bestQuestion', { pick: '0' }).act(2, 'bestQuestion', { pick: 'none' });
+  assert.strictEqual(g2.poll.closed, true);
+  assert.deepStrictEqual(bank.list().map((e) => [e.text, e.votes, e.nones]), [['Just the one', 2, 1]]);
+  t2.cleanup();
 });
 
 test('poll: a clear winner goes in the bank; "None of these" beating it keeps it out', () => {
   const bank = createQuestionBank({ kind: 'memory' });
   const t = setup(game, 4, {}, { bank });
-  const g = toSummary(t, 4, QS);
+  const g = toFinal(t, 4, QS);
   const at = (q) => String(g.poll.options.indexOf(q));
   t.act(0, 'bestQuestion', { pick: at(QS[1]) });
   t.act(1, 'bestQuestion', { pick: at(QS[1]) });
   t.act(2, 'bestQuestion', { pick: 'none' });
-  assert.strictEqual(bank.list().length, 0, 'not counted until everyone has picked or the round moves on');
+  assert.strictEqual(bank.list().length, 0, 'not counted until everyone has picked or the host moves on');
   t.act(3, 'bestQuestion', { pick: at(QS[0]) });
   assert.strictEqual(g.poll.closed, true, 'everyone picked: counted');
   assert.deepStrictEqual(bank.list().map((e) => [e.text, e.mode, e.votes, e.shown, e.picked, e.nones]), [[QS[1], 'normal', 2, 1, 1, 1]]);
@@ -304,7 +378,7 @@ test('poll: a clear winner goes in the bank; "None of these" beating it keeps it
   // None of these wins: nothing saved.
   const bank2 = createQuestionBank({ kind: 'memory' });
   const t2 = setup(game, 4, {}, { bank: bank2 });
-  const g2 = toSummary(t2, 4, QS);
+  const g2 = toFinal(t2, 4, QS);
   t2.act(0, 'bestQuestion', { pick: String(g2.poll.options.indexOf(QS[1])) });
   t2.act(1, 'bestQuestion', { pick: String(g2.poll.options.indexOf(QS[1])) });
   t2.act(2, 'bestQuestion', { pick: 'none' });
@@ -313,26 +387,73 @@ test('poll: a clear winner goes in the bank; "None of these" beating it keeps it
   t2.cleanup();
 });
 
-test('poll: never holds the game up; the host moves on and it counts what it has', () => {
+test('poll: only the poll\'s questions have their bank scores updated; Generate\'s can\'t be voted in', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  bank.record({ mode: 'normal', questions: [{ text: 'Saved one', votes: 2 }], none: 0 });
+  bank.record({ mode: 'normal', questions: [{ text: QS[2], votes: 2 }], none: 0 });
+  bank.chance = 1;
+  const t = setup(game, 4, {}, { bank });
+  // p3 gets 'Saved one' from Generate and sends it; the others write theirs (QS[2] is saved already).
+  const g = toFinal(t, 4, [QS[0], QS[1], QS[2], 'generate'], ['generate', 'generate', 'generate', 'generate']);
+  assert.ok(g.used.includes('Saved one'), 'the saved one was asked');
+  assert.ok(!g.poll.options.includes('Saved one'), 'but not in the poll');
+  const at = String(g.poll.options.indexOf(QS[2]));
+  for (let i = 0; i < 4; i++) t.act(i, 'bestQuestion', { pick: at });
+  const e = (q) => bank.list().find((x) => x.text === q);
+  assert.deepStrictEqual([e('Saved one').shown, e('Saved one').votes], [1, 2], 'untouched');
+  assert.deepStrictEqual([e(QS[2]).shown, e(QS[2]).votes, e(QS[2]).picked], [2, 6, 2]);
+  assert.strictEqual(bank.list().length, 2);
+  t.cleanup();
+});
+
+test('poll: never holds the game up; play again or back to the lobby counts what it has', () => {
   const bank = createQuestionBank({ kind: 'memory' });
   const t = setup(game, 4, {}, { bank });
-  const g = toSummary(t, 4, QS);
-  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'only the host, for the next round');
+  const g = toFinal(t, 4, QS);
+  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'only the host, to play again');
   const at = String(g.poll.options.indexOf(QS[3]));
   t.act(1, 'bestQuestion', { pick: at });
   t.act(2, 'bestQuestion', { pick: at });
-  t.act(0, 'nextRound');
+  t.act(0, 'playAgain');
   assert.strictEqual(g.phase, 'write');
-  assert.strictEqual(g.round, 2);
+  assert.strictEqual(g.round, 1);
   assert.strictEqual(g.poll, null);
   assert.deepStrictEqual(bank.list().map((e) => e.text), [QS[3]]);
+  // The new game's poll starts afresh: only what's written in it.
+  toFinal(t, 4, ['Brand new', 'generate', 'generate', 'generate']);
+  assert.deepStrictEqual(t.view(0).poll.options, ['Brand new']);
+  t.cleanup();
+
+  // Back to the lobby (the server calls stop before it ends the game).
+  const bank2 = createQuestionBank({ kind: 'memory' });
+  const t2 = setup(game, 4, {}, { bank: bank2 });
+  const g2 = toFinal(t2, 4, QS);
+  const at2 = String(g2.poll.options.indexOf(QS[0]));
+  t2.act(0, 'bestQuestion', { pick: at2 }).act(3, 'bestQuestion', { pick: at2 });
+  game.stop(t2.room, t2.ctx);
+  t2.ctx.endGame(t2.room);
+  assert.strictEqual(t2.room.game, null);
+  assert.deepStrictEqual(bank2.list().map((e) => e.text), [QS[0]]);
+  t2.cleanup();
+});
+
+test('poll: someone leaving doesn\'t hold it open', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  const t = setup(game, 4, {}, { bank });
+  const g = toFinal(t, 4, QS);
+  const at = String(g.poll.options.indexOf(QS[1]));
+  for (let i = 0; i < 3; i++) t.act(i, 'bestQuestion', { pick: at });
+  assert.strictEqual(g.poll.closed, false);
+  t.disconnect(3);
+  assert.strictEqual(g.poll.closed, true);
+  assert.deepStrictEqual(bank.list().map((e) => e.text), [QS[1]]);
   t.cleanup();
 });
 
 test('poll: bots pick too (a question or none), but only humans\' picks go in the bank', () => {
   const bank = createQuestionBank({ kind: 'memory' });
   const t = setup(game, 4, {}, { bank });
-  const g = toSummary(t, 4, QS);
+  const g = toFinal(t, 4, QS);
   t.room.players[3].bot = 'baller';
   t.room.players[2].bot = 'npc';
   const seen = new Set();
@@ -347,7 +468,7 @@ test('poll: bots pick too (a question or none), but only humans\' picks go in th
     t.act(i, 'bestQuestion', { pick: String(g.poll.options.indexOf(QS[0])) });
     assert.strictEqual(t.bot(i, 0.6), null, 'once is enough');
   }
-  t.act(0, 'nextRound');
+  t.act(0, 'playAgain');
   assert.deepStrictEqual(bank.list(), [], 'two bot votes save nothing');
   t.cleanup();
 });
@@ -356,12 +477,12 @@ test('pass and play (no bank): no poll, and Generate uses the built-in list', ()
   const t = setup(game, 3, {}, { bank: null });
   t.act(0, 'generate');
   assert.ok(NORMAL.includes(t.view(0).suggestion));
-  const g = toSummary(t, 3, QS);
+  const g = toFinal(t, 3, QS);
   assert.strictEqual(g.poll, null);
   assert.strictEqual(t.view(0).poll, null);
   t.act(0, 'bestQuestion', { pick: '0' });
-  t.act(0, 'nextRound');
-  assert.strictEqual(g.round, 2);
+  t.act(0, 'playAgain');
+  assert.strictEqual(g.round, 1);
   t.cleanup();
 });
 
@@ -372,12 +493,12 @@ test('a broken bank never breaks the game', () => {
   assert.ok(NORMAL.includes(t.view(0).suggestion), 'falls back to the built-in list');
   const err = console.error;
   console.error = () => {};
-  const g = toSummary(t, 3, QS);
+  const g = toFinal(t, 3, QS);
   for (let i = 0; i < 3; i++) t.act(i, 'bestQuestion', { pick: '0' });
   console.error = err;
   assert.strictEqual(g.poll.closed, true);
-  t.act(0, 'nextRound');
-  assert.strictEqual(g.round, 2);
+  t.act(0, 'playAgain');
+  assert.strictEqual(g.round, 1);
   t.cleanup();
 });
 
