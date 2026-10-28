@@ -7,6 +7,7 @@
 //   t.fireTimer();                                     // skip ahead to the current timer
 
 const { createContext } = require('../lib/context');
+const { createQuestionBank } = require('../lib/questionBank');
 
 function makeRoom(count) {
   return {
@@ -22,12 +23,15 @@ function makeRoom(count) {
   };
 }
 
-function setup(game, count, options = {}) {
+// As on the server, Big Tom gets a question bank: a fresh one in memory, unless `bank` is given
+// (null for none, as in pass and play).
+function setup(game, count, options = {}, { bank = createQuestionBank({ kind: 'memory' }) } = {}) {
   const room = makeRoom(count);
   const events = [];
   const ctx = createContext({
     emit: (r, playerId, event, data) => events.push({ playerId, event, data }),
     broadcast: () => {},
+    bank,
   });
   const opts = Object.fromEntries((game.options || []).map((o) => [o.id, o.default]));
   room.game = { type: game.id };

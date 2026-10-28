@@ -830,6 +830,11 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .bt-voters { display: flex; justify-content: center; gap: 3px; }
 .bt-results p { margin: 0; }
 .bt-results small { color: var(--muted); }
+.bt-poll { gap: 8px; }
+.bt-poll h2 { margin: 0; }
+.bt-poll button { padding: 14px 12px; border-radius: 12px; background: var(--card-2); color: var(--text); font-size: 1.02rem; font-weight: 700; text-align: left; line-height: 1.25; }
+.bt-poll button.bt-none { background: transparent; border: 2px dashed var(--card-2); color: var(--muted); text-align: center; }
+.bt-poll .bt-thanks { font-size: 1.1rem; font-weight: 700; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .hz-track.running .hz-emoji, .hz-track.running .hz-shadow { animation: none; } }
 .bt-canvas { width: 100%; aspect-ratio: 1; border-radius: 14px; background: #fff; touch-action: none; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
 .bt-palette { display: flex; justify-content: center; gap: 8px; }

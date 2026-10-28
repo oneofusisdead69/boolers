@@ -17,6 +17,7 @@ const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
 const { createBots, isBot } = require('./lib/bots');
 const { createRoomStore } = require('./lib/roomStore');
+const { createQuestionBank } = require('./lib/questionBank');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
 const GAMES = Object.fromEntries(
@@ -354,7 +355,13 @@ function signal(room, event, data) {
   for (const id of room.tvs || []) io.to(id).emit(event, data);
 }
 
-const ctx = createContext({ emit, broadcast, signal });
+// Big Tom's best questions, kept where the rooms are (beside the rooms file, or in Firestore).
+// BIG_TOM_BANK_CHANCE overrides how often Generate draws from it (1 to try it out).
+const questionBank = createQuestionBank({
+  file: path.join(path.dirname(process.env.ROOM_STORE_FILE || '.rooms.json'), '.bigTomBank.json'),
+  ...(process.env.BIG_TOM_BANK_CHANCE ? { chance: Number(process.env.BIG_TOM_BANK_CHANCE) } : {}),
+});
+const ctx = createContext({ emit, broadcast, signal, bank: questionBank });
 
 // Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
 // host's custom content (questions, rules…), if they wrote any.
@@ -815,7 +822,7 @@ async function retire(why, { delay = 0, exit = false } = {}) {
     retired = true;
     console.log(`Handing over (${why}): saving ${rooms.size} room(s)`);
     await new Promise((r) => setTimeout(r, delay));
-    await roomStore.flush();
+    await Promise.all([roomStore.flush(), questionBank.flush()]);
     // Tell every phone and TV to go (they reconnect at once, see app.js), then drop what's left.
     io.disconnectSockets(true);
     io.engine.close();
@@ -825,6 +832,8 @@ async function retire(why, { delay = 0, exit = false } = {}) {
   if (exit) setTimeout(() => process.exit(0), 1000);
 }
 
+// (The game doesn't wait for it: until it's in, Generate uses the built-in questions.)
+questionBank.load();
 roomStore.load({ games: GAMES, log: ctx.log }).then((saved) => {
   // Everyone gets the usual idle window to reconnect, counted from now.
   for (const r of saved) {
