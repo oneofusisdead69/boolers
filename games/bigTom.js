@@ -11,9 +11,10 @@
 // drink double and the winner hands out double. Most points (matchups won + final votes) is the
 // Big Tom champion.
 //
-// After each of the three rounds, everyone also picks the round's best question on their phone (or
-// "None of these"). A clear winner is saved in the question bank (lib/questionBank.js, ctx.bank),
-// and Generate sometimes draws from there in later games. The poll never holds the game up.
+// At the end of the game, everyone also picks the best question the players wrote themselves (not
+// ones from Generate, not bots'), or "None of these", on their phone. A clear winner is saved in the
+// question bank (lib/questionBank.js, ctx.bank), and Generate sometimes draws from there in later
+// games. The poll never holds the game up.
 
 const { shuffle, pick } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
@@ -32,6 +33,17 @@ const BIG_TOM = 'bigtom'; // the author of questions nobody wrote
 // ---------- Questions ----------
 
 const BANK_MODE = (g) => (g.nsfw ? 'nsfw' : 'normal');
+
+// A question's words, for telling whether a player wrote it: case, spacing and punctuation aside.
+const wordsOf = (s) => clean(s, 140).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+
+// Did a player write this themselves? Not if it's word for word what Generate came up with this
+// game (or one of the built-in list typed out): tapping Generate and sending it, or only fixing
+// its case, spacing or punctuation, isn't writing it. Changing, adding or dropping a word is.
+function isWritten(g, text) {
+  const words = wordsOf(text);
+  return Boolean(words) && !(g.generated || []).includes(words) && !g.pool.some((q) => wordsOf(q) === words);
+}
 
 // Every question asked or suggested this game, so Generate doesn't come up with one again.
 function markUsed(g, ...texts) {
@@ -57,6 +69,8 @@ function generate(g, ctx) {
   }
   q ||= pick(g.pool);
   markUsed(g, q);
+  g.generated ||= [];
+  if (!g.generated.includes(wordsOf(q))) g.generated.push(wordsOf(q));
   return q;
 }
 
@@ -68,6 +82,7 @@ function startRound(room, ctx) {
   g.round += 1;
   g.phase = 'write';
   g.questions = {};
+  g.typed = {}; // who wrote their own question this round (see isWritten)
   g.suggest = {};
   g.matchups = [];
   g.current = 0;
@@ -86,6 +101,11 @@ function startAnswering(room, ctx) {
     return { question: g.questions[author] || generate(g, ctx), author: writer, a: pair[0], b: pair[1], answers: {}, votes: {}, result: null };
   });
   markUsed(g, ...g.matchups.map((m) => m.question));
+  // The questions players wrote themselves, kept for the best-question poll at the end.
+  g.authored ||= [];
+  for (const m of g.matchups) {
+    if (m.author !== BIG_TOM && g.typed?.[m.author] && !g.authored.some((q) => wordsOf(q) === wordsOf(m.question))) g.authored.push(m.question);
+  }
   g.phase = 'answer';
   if (g.answerTime) ctx.setTimer(room, g.answerTime * 1000, () => startVoting(room, ctx));
   else ctx.clearTimer(room);
@@ -139,26 +159,24 @@ function reveal(room, ctx) {
   g.phase = 'reveal';
 }
 
-// ---------- Best question of the round ----------
+// ---------- Best question of the game ----------
 
-// The round's questions, in a random order and without who wrote them, for everyone to pick the
-// best (or "None of these"). Only where there's a bank to save the winner in (not pass and play,
-// where one phone going round can't ask everyone privately anyway).
+// The questions players wrote this game, in a random order and without who wrote them, for
+// everyone to pick the best (or "None of these"). None written: no poll. Only where there's a bank
+// to save the winner in (not pass and play, where one phone going round can't ask everyone
+// privately anyway).
 function openPoll(room, ctx) {
   const g = room.game;
-  const seen = new Set();
-  const options = g.matchups.map((m) => m.question).filter((q) => {
-    const k = q.toLowerCase();
-    return !seen.has(k) && seen.add(k);
-  });
-  g.poll = ctx.bank ? { options: shuffle(options), votes: {}, closed: false } : null;
+  const options = g.authored || [];
+  g.poll = ctx.bank && options.length ? { options: shuffle(options), votes: {}, closed: false } : null;
 }
 
 // Everyone here who hasn't picked yet.
 const pollWaiting = (room, ctx) => ctx.connectedPlayers(room).filter((p) => room.game.poll.votes[p.id] === undefined);
 
-// Counts the poll and hands it to the bank: once everyone's picked, or when the host moves on.
-// Bots' picks are random, so they're shown in the count but don't go in the bank.
+// Counts the poll and hands it to the bank: once everyone's picked, or when the host plays again
+// or ends the game (stop). Only the poll's questions go in, so only they have their scores
+// updated. Bots' picks are random, so they're shown in the count but don't go in the bank.
 function closePoll(room, ctx) {
   const p = room.game.poll;
   if (!p || p.closed) return;
@@ -231,6 +249,7 @@ function finalReveal(room, ctx) {
   g.finalResult = { counts, winners: tied ? [] : winners, losers: [...losers, ...blank] };
   if (g.finalResult.winners.length) ctx.log(room, `🎨 ${g.finalResult.winners.map((id) => ctx.name(room, id)).join(' & ')} won the final`);
   g.phase = 'final';
+  openPoll(room, ctx);
 }
 
 // ---------- Bots ----------
@@ -441,6 +460,8 @@ module.exports = {
       round: 0,
       wins: {},
       points: {},
+      generated: [], // the words of every question Generate came up with (see isWritten)
+      authored: [], // the questions players wrote themselves, for the poll at the end
     });
     startRound(room, ctx);
   },
@@ -456,6 +477,8 @@ module.exports = {
       const text = clean(action.text, 140);
       if (!text) return;
       g.questions[me] = text;
+      // Bots' questions are canned or generated: never theirs.
+      (g.typed ||= {})[me] = !player.bot && isWritten(g, text);
       if (ctx.connectedPlayers(room).every((p) => g.questions[p.id])) startAnswering(room, ctx);
     } else if (action.type === 'answer' && g.phase === 'answer') {
       const m = g.matchups[Number(action.m)];
@@ -480,8 +503,8 @@ module.exports = {
     } else if (action.type === 'next' && g.phase === 'reveal' && host) {
       g.current += 1;
       if (g.current < g.matchups.length) openMatchup(room, ctx);
-      else { g.phase = 'summary'; g.give = null; openPoll(room, ctx); }
-    } else if (action.type === 'bestQuestion' && g.phase === 'summary' && g.poll && !g.poll.closed && g.poll.votes[me] === undefined) {
+      else { g.phase = 'summary'; g.give = null; }
+    } else if (action.type === 'bestQuestion' && g.phase === 'final' && g.poll && !g.poll.closed && g.poll.votes[me] === undefined) {
       // One pick each, and it stays: an index into the poll's questions, or "none".
       const i = /^\d+$/.test(String(action.pick)) ? Number(action.pick) : -1;
       const choice = action.pick === 'none' ? 'none' : i >= 0 && i < g.poll.options.length ? i : null;
@@ -489,8 +512,6 @@ module.exports = {
       g.poll.votes[me] = choice;
       if (!pollWaiting(room, ctx).length) closePoll(room, ctx);
     } else if (action.type === 'nextRound' && g.phase === 'summary' && host) {
-      // The poll doesn't hold anyone up: whoever hasn't picked by now doesn't.
-      closePoll(room, ctx);
       if (g.round < ROUNDS) startRound(room, ctx);
       else startFinal(room, ctx);
     } else if (action.type === 'drawing' && g.phase === 'draw' && isImage(action.image)) {
@@ -502,6 +523,9 @@ module.exports = {
       g.finalVotes[me] = target;
       if (finalVoters(room, ctx).every((id) => g.finalVotes[id])) finalReveal(room, ctx);
     } else if (action.type === 'playAgain' && g.phase === 'final' && host) {
+      // The poll doesn't hold anyone up: whoever hasn't picked by now doesn't.
+      closePoll(room, ctx);
+      g.authored = [];
       g.round = 0;
       g.wins = {};
       g.points = {};
@@ -540,8 +564,8 @@ module.exports = {
     }
     // The host moves on once the winner has handed out their sips.
     if (g.phase === 'reveal' && host && !g.give) return { type: 'next' };
-    // The best question of the round: any one, or now and then none of them.
-    if (g.phase === 'summary' && g.poll && !g.poll.closed && g.poll.votes[me.id] === undefined) {
+    // The best question of the game: any one, or now and then none of them.
+    if (g.phase === 'final' && g.poll && !g.poll.closed && g.poll.votes[me.id] === undefined) {
       return { type: 'bestQuestion', pick: Math.random() < 0.2 ? 'none' : String(Math.floor(Math.random() * g.poll.options.length)) };
     }
     if (g.phase === 'summary' && host) return { type: 'nextRound' };
@@ -556,7 +580,7 @@ module.exports = {
 
   // Everyone here still to write, answer, vote or draw; the winner handing out; or the host, to
   // move on. (Only the players a phase waits for: the host's "move on" can hurry any of them.)
-  // The best-question poll waits for nobody: the host's next round goes ahead without it.
+  // The best-question poll waits for nobody: the host can play again or end the game without it.
   waitingOn(room) {
     const g = room.game;
     const here = room.players.filter((p) => p.connected).map((p) => p.id);
@@ -585,7 +609,12 @@ module.exports = {
       if (voters(room, ctx, m).every((id) => m.votes[id])) reveal(room, ctx);
     } else if (g.phase === 'draw' && here.length && here.every((p) => g.drawings[p.id])) startFinalVote(room, ctx);
     else if (g.phase === 'finalVote' && finalVoters(room, ctx).every((id) => g.finalVotes[id])) finalReveal(room, ctx);
-    else if (g.phase === 'summary' && g.poll && !g.poll.closed && here.length && !pollWaiting(room, ctx).length) closePoll(room, ctx);
+    else if (g.phase === 'final' && g.poll && !g.poll.closed && here.length && !pollWaiting(room, ctx).length) closePoll(room, ctx);
+  },
+
+  // Back to the lobby (or on to the next stop): the poll counts the picks it has.
+  stop(room, ctx) {
+    closePoll(room, ctx);
   },
 
   view(room, player, ctx) {
@@ -640,8 +669,8 @@ module.exports = {
       finalResult: g.phase === 'final' ? g.finalResult : null,
       results: g.phase === 'summary' ? g.matchups.map((x) => ({ question: x.question, a: x.a, b: x.b, winner: x.result?.winner ?? null })) : null,
       // The best-question poll: the questions for players to pick from (not the TV), and how many
-      // have picked. Nobody sees anyone else's pick.
-      poll: g.phase === 'summary' && g.poll ? {
+      // have picked. Nobody sees anyone else's pick, or who wrote what.
+      poll: g.phase === 'final' && g.poll ? {
         options: ctx.player(room, me) ? g.poll.options : null,
         myPick: g.poll.votes[me] ?? null,
         picked: Object.keys(g.poll.votes).filter((id) => ctx.turns.isActive(room, id)).length,

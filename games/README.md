@@ -40,6 +40,7 @@ module.exports = {
   handle(room, player, action, ctx) {},  // a phone sent { type, ...data }; validate everything
   check(room, ctx) {},                   // optional: a player left or disconnected
   onJoin(room, player, ctx) {},          // optional: someone joined mid-game
+  stop(room, ctx) {},                    // optional: the host is ending it (room.game still there)
   view(room, player, ctx) { return {} }, // what THIS player's phone may see (hide other hands!)
   waitingOn(room) { return [] },         // who the game is waiting on right now (see below)
 };

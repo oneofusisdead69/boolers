@@ -409,6 +409,8 @@ function startGame(room, gameId, mine = {}) {
 
 function stopGame(room, how) {
   gameEnded(room, how);
+  // A game can wrap up first (Big Tom counts its best-question poll).
+  if (room.game) GAMES[room.game.type]?.stop?.(room, ctx);
   ctx.endGame(room);
 }
 
