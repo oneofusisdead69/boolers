@@ -111,11 +111,24 @@
       ${PB.feed(3)}`;
   }
 
+  // Which question was the best? Just yours to answer (no names on them), one tap and it's in.
+  function pollCard(s) {
+    const p = s.game.poll;
+    if (!p?.options) return '';
+    const count = `<p class="center muted">🗳️ ${p.picked} of ${p.of} picked</p>`;
+    if (p.myPick !== null) return `<div class="card bt-poll"><p class="bt-thanks">🙏 Thanks! Your pick is in.</p><p class="muted">The best ones get saved for 🎲 Generate in future games.</p>${count}</div>`;
+    return `<div class="card bt-poll"><h2>Which question was the best?</h2>
+      ${p.options.map((q, i) => `<button data-act="bestQuestion" data-pick="${i}">${esc(q)}</button>`).join('')}
+      <button class="bt-none" data-act="bestQuestion" data-pick="none">None of these</button>
+      ${count}</div>`;
+  }
+
   function summaryScreen(s) {
     const g = s.game;
     const board = s.players.slice().sort((a, b) => (g.wins[b.id] || 0) - (g.wins[a.id] || 0));
     return `
       <div class="turn">🎤 Round ${g.round} of ${g.rounds} done${g.round >= g.rounds ? '<span>Next up: the final round. Grab a pen.</span>' : ''}</div>
+      ${pollCard(s)}
       <div class="card"><h2>Matchups won</h2><ul class="players">${board.map((p) => `
         <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.wins[p.id] || 0}</span></li>`).join('')}</ul></div>
       <div class="card bt-results"><h2>This round</h2>${g.results.map((r) => `
@@ -262,7 +275,8 @@
         const board = s.players.slice().sort((a, b) => (g.points[b.id] || 0) - (g.points[a.id] || 0));
         return `<div class="prompt bt-prompt">Round ${g.round} of ${g.rounds} done${g.round >= g.rounds ? ' · next: the final 🎨' : ''}</div>
           <div class="card"><h2>Points</h2><ul class="players">${board.map((p) => `
-            <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.points[p.id] || 0}</span></li>`).join('')}</ul></div>`;
+            <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.points[p.id] || 0}</span></li>`).join('')}</ul></div>
+          ${g.poll ? `<p class="center muted bt-poll-tv">🗳️ ${g.poll.picked} of ${g.poll.of} have picked the best question</p>` : ''}`;
       }
       case 'draw':
         return `<div class="prompt bt-prompt">🎨 ${esc(g.finalQuestion)}</div>

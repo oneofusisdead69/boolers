@@ -75,6 +75,7 @@ Everything else in `room.game` stays on the server unless `view` returns it.
 | `ctx.cards` | `newDeck({ jokers, decks })`, `draw(deck)`, `shuffle`, `color(card)`, `value(card, { aceLow })`, `label(card)` |
 | `ctx.dice` | `roll(count, sides)`, `sum(values)`, `isDouble(values)` |
 | `ctx.turns` | `next(room, order, currentId)`, `first(room, order)`; skip players who left |
+| `ctx.bank` | Big Tom's saved best questions (`lib/questionBank.js`): `draw(mode, used)`, `record(poll)`. Server only: `null` in pass and play, so check for it |
 
 Cards are `{ rank: 2..14, suit: 'S'|'H'|'D'|'C' }` (11=J, 12=Q, 13=K, 14=A).
 

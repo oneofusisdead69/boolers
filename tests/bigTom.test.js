@@ -245,3 +245,244 @@ test('bots write, answer, vote (never on their own), draw a real PNG and hand ou
   }
   t.cleanup();
 });
+
+// ---------- Best question of the round, and the question bank ----------
+
+const { createQuestionBank, normalise, keyOf, winner, weight } = require('../lib/questionBank');
+
+// Plays round 1 up to its summary, with the questions given (one per player).
+function toSummary(t, n, questions) {
+  for (let i = 0; i < n; i++) t.act(i, 'question', { text: questions[i] });
+  answerAll(t, n);
+  const g = t.room.game;
+  for (let k = 0; k < g.matchups.length; k++) {
+    const m = g.matchups[k];
+    for (let i = 0; i < n; i++) if (`p${i}` !== m.a && `p${i}` !== m.b) t.act(i, 'vote', { side: 'a' });
+    t.act(0, 'next');
+  }
+  assert.strictEqual(g.phase, 'summary');
+  return g;
+}
+const QS = ['Worst thing to find in a sock', 'A bad name for a hamster', 'The real reason Kevin left', 'Never say this to a goose'];
+
+test('poll: every player gets the round\'s questions, no names, one pick each; the TV only a count', () => {
+  const t = setup(game, 4);
+  const g = toSummary(t, 4, QS);
+  const v = t.view(0).poll;
+  assert.deepStrictEqual(v.options.slice().sort(), QS.slice().sort());
+  assert.strictEqual(v.myPick, null);
+  assert.deepStrictEqual([v.picked, v.of], [0, 4]);
+  t.act(1, 'bestQuestion', { pick: '2' });
+  t.act(1, 'bestQuestion', { pick: '0' }); // already picked: stays
+  t.act(2, 'bestQuestion', { pick: '9' }); // not a question
+  t.act(2, 'bestQuestion', { pick: null });
+  assert.deepStrictEqual(g.poll.votes, { p1: 2 });
+  assert.strictEqual(t.view(1).poll.myPick, 2);
+  assert.strictEqual(t.view(0).poll.picked, 1);
+  const tv = game.view(t.room, { id: '__tv' }, t.ctx).poll;
+  assert.strictEqual(tv.options, null, 'the TV gets no list');
+  assert.strictEqual(tv.picked, 1);
+  assert.ok(!JSON.stringify(t.view(0).poll).includes('p1'), 'nobody sees who picked what');
+  t.cleanup();
+});
+
+test('poll: a clear winner goes in the bank; "None of these" beating it keeps it out', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  const t = setup(game, 4, {}, { bank });
+  const g = toSummary(t, 4, QS);
+  const at = (q) => String(g.poll.options.indexOf(q));
+  t.act(0, 'bestQuestion', { pick: at(QS[1]) });
+  t.act(1, 'bestQuestion', { pick: at(QS[1]) });
+  t.act(2, 'bestQuestion', { pick: 'none' });
+  assert.strictEqual(bank.list().length, 0, 'not counted until everyone has picked or the round moves on');
+  t.act(3, 'bestQuestion', { pick: at(QS[0]) });
+  assert.strictEqual(g.poll.closed, true, 'everyone picked: counted');
+  assert.deepStrictEqual(bank.list().map((e) => [e.text, e.mode, e.votes, e.shown, e.picked, e.nones]), [[QS[1], 'normal', 2, 1, 1, 1]]);
+  assert.ok(!JSON.stringify(bank.list()).match(/p\d|Player|TEST/), 'no names or room codes');
+  t.cleanup();
+
+  // None of these wins: nothing saved.
+  const bank2 = createQuestionBank({ kind: 'memory' });
+  const t2 = setup(game, 4, {}, { bank: bank2 });
+  const g2 = toSummary(t2, 4, QS);
+  t2.act(0, 'bestQuestion', { pick: String(g2.poll.options.indexOf(QS[1])) });
+  t2.act(1, 'bestQuestion', { pick: String(g2.poll.options.indexOf(QS[1])) });
+  t2.act(2, 'bestQuestion', { pick: 'none' });
+  t2.act(3, 'bestQuestion', { pick: 'none' });
+  assert.deepStrictEqual(bank2.list(), []);
+  t2.cleanup();
+});
+
+test('poll: never holds the game up; the host moves on and it counts what it has', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  const t = setup(game, 4, {}, { bank });
+  const g = toSummary(t, 4, QS);
+  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'only the host, for the next round');
+  const at = String(g.poll.options.indexOf(QS[3]));
+  t.act(1, 'bestQuestion', { pick: at });
+  t.act(2, 'bestQuestion', { pick: at });
+  t.act(0, 'nextRound');
+  assert.strictEqual(g.phase, 'write');
+  assert.strictEqual(g.round, 2);
+  assert.strictEqual(g.poll, null);
+  assert.deepStrictEqual(bank.list().map((e) => e.text), [QS[3]]);
+  t.cleanup();
+});
+
+test('poll: bots pick too (a question or none), but only humans\' picks go in the bank', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  const t = setup(game, 4, {}, { bank });
+  const g = toSummary(t, 4, QS);
+  t.room.players[3].bot = 'baller';
+  t.room.players[2].bot = 'npc';
+  const seen = new Set();
+  for (let n = 0; n < 60; n++) {
+    const a = t.bot(3, 0.6);
+    assert.strictEqual(a.type, 'bestQuestion');
+    seen.add(a.pick === 'none' ? 'none' : 'question');
+    assert.ok(a.pick === 'none' || g.poll.options[Number(a.pick)]);
+  }
+  assert.deepStrictEqual([...seen].sort(), ['none', 'question']);
+  for (const i of [2, 3]) {
+    t.act(i, 'bestQuestion', { pick: String(g.poll.options.indexOf(QS[0])) });
+    assert.strictEqual(t.bot(i, 0.6), null, 'once is enough');
+  }
+  t.act(0, 'nextRound');
+  assert.deepStrictEqual(bank.list(), [], 'two bot votes save nothing');
+  t.cleanup();
+});
+
+test('pass and play (no bank): no poll, and Generate uses the built-in list', () => {
+  const t = setup(game, 3, {}, { bank: null });
+  t.act(0, 'generate');
+  assert.ok(NORMAL.includes(t.view(0).suggestion));
+  const g = toSummary(t, 3, QS);
+  assert.strictEqual(g.poll, null);
+  assert.strictEqual(t.view(0).poll, null);
+  t.act(0, 'bestQuestion', { pick: '0' });
+  t.act(0, 'nextRound');
+  assert.strictEqual(g.round, 2);
+  t.cleanup();
+});
+
+test('a broken bank never breaks the game', () => {
+  const bank = { chance: 1, draw() { throw new Error('down'); }, record() { throw new Error('down'); } };
+  const t = setup(game, 3, {}, { bank });
+  t.act(0, 'generate');
+  assert.ok(NORMAL.includes(t.view(0).suggestion), 'falls back to the built-in list');
+  const err = console.error;
+  console.error = () => {};
+  const g = toSummary(t, 3, QS);
+  for (let i = 0; i < 3; i++) t.act(i, 'bestQuestion', { pick: '0' });
+  console.error = err;
+  assert.strictEqual(g.poll.closed, true);
+  t.act(0, 'nextRound');
+  assert.strictEqual(g.round, 2);
+  t.cleanup();
+});
+
+test('Generate sometimes draws a saved question, of the same mode, never one already asked this game', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  bank.record({ mode: 'normal', questions: [{ text: 'Saved one', votes: 3 }], none: 0 });
+  bank.record({ mode: 'nsfw', questions: [{ text: 'Saved spicy', votes: 3 }], none: 0 });
+  bank.chance = 1;
+  const t = setup(game, 3, {}, { bank });
+  t.act(0, 'generate');
+  assert.strictEqual(t.view(0).suggestion, 'Saved one');
+  t.act(1, 'generate');
+  assert.ok(NORMAL.includes(t.view(1).suggestion), 'the only saved one is taken: the built-in list');
+  t.act(0, 'generate'); // again: still not the same one
+  assert.notStrictEqual(t.view(0).suggestion, 'Saved one');
+  t.cleanup();
+  const spicy = setup(game, 3, { questions: 'nsfw' }, { bank });
+  spicy.act(0, 'generate');
+  assert.strictEqual(spicy.view(0).suggestion, 'Saved spicy');
+  spicy.cleanup();
+  // A written question counts as asked too.
+  const t2 = setup(game, 3, {}, { bank });
+  t2.act(1, 'question', { text: '  saved ONE?  ' });
+  t2.act(0, 'generate');
+  assert.notStrictEqual(t2.view(0).suggestion, 'Saved one');
+  t2.cleanup();
+  // At the usual chance, mostly the built-in list.
+  bank.chance = 0.3;
+  let saved = 0;
+  for (let n = 0; n < 300; n++) {
+    const t3 = setup(game, 3, {}, { bank });
+    t3.act(0, 'generate');
+    if (t3.view(0).suggestion === 'Saved one') saved++;
+    t3.cleanup();
+  }
+  assert.ok(saved > 50 && saved < 140, `about 30% from the bank (${saved} / 300)`);
+});
+
+test('bank: the save rule', () => {
+  assert.strictEqual(winner([2, 0, 0], 0), 0, '2 votes, clear winner');
+  assert.strictEqual(winner([1, 0, 0], 0), -1, 'one vote is not enough');
+  assert.strictEqual(winner([2, 2, 0], 0), -1, 'a tie saves nothing');
+  assert.strictEqual(winner([0, 2, 1], 2), -1, 'has to beat None of these');
+  assert.strictEqual(winner([0, 3, 1], 2), 1);
+  assert.strictEqual(winner([0, 0], 3), -1);
+});
+
+test('bank: dedupes on case, spaces and a trailing question mark; caps the length', () => {
+  assert.strictEqual(normalise('  A  bad\n name  '), 'A bad name');
+  assert.strictEqual(normalise('x'.repeat(300)).length, 140);
+  assert.strictEqual(keyOf('normal', 'A bad name?'), keyOf('normal', ' a BAD  name '));
+  assert.notStrictEqual(keyOf('normal', 'A bad name'), keyOf('nsfw', 'A bad name'));
+  const bank = createQuestionBank({ kind: 'memory' });
+  bank.record({ mode: 'normal', questions: [{ text: 'A bad  name', votes: 2 }, { text: 'Other', votes: 0 }], none: 0 });
+  bank.record({ mode: 'normal', questions: [{ text: 'a BAD name?', votes: 3 }], none: 1 });
+  const list = bank.list('normal');
+  assert.strictEqual(list.length, 1);
+  assert.deepStrictEqual([list[0].text, list[0].votes, list[0].shown, list[0].picked, list[0].nones], ['A bad name', 5, 2, 2, 1]);
+});
+
+test('bank: draws by weight; a question that keeps being shown and not picked fades', () => {
+  const bank = createQuestionBank({ kind: 'memory' });
+  bank.record({ mode: 'normal', questions: [{ text: 'Loved', votes: 4 }], none: 0 });
+  bank.record({ mode: 'normal', questions: [{ text: 'Meh', votes: 2 }], none: 0 });
+  // Meh keeps coming up and losing to "None of these".
+  for (let n = 0; n < 4; n++) bank.record({ mode: 'normal', questions: [{ text: 'Meh', votes: 0 }, { text: 'New', votes: 0 }], none: 2 });
+  const [loved, meh] = ['Loved', 'Meh'].map((q) => bank.list().find((e) => e.text === q));
+  assert.ok(loved.weight > meh.weight * 10, `${loved.weight} vs ${meh.weight}`);
+  assert.ok(weight({ votes: 2, shown: 5, picked: 1, nones: 0 }) < weight({ votes: 2, shown: 2, picked: 1, nones: 0 }) / 4, 'the safety net');
+  assert.strictEqual(bank.list().find((e) => e.text === 'New'), undefined, 'never won: never saved');
+  const counts = { Loved: 0, Meh: 0 };
+  for (let n = 0; n < 500; n++) counts[bank.draw('normal')]++;
+  assert.ok(counts.Loved > counts.Meh * 5, JSON.stringify(counts));
+  assert.strictEqual(bank.draw('normal', ['loved', 'MEH?']), null, 'all used: nothing (the built-in list takes over)');
+  assert.strictEqual(bank.draw('nsfw'), null);
+});
+
+test('bank: memory keeps nothing across a restart; the file does', async () => {
+  const os = require('node:os');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const mem = createQuestionBank({ kind: 'memory' });
+  mem.record({ mode: 'normal', questions: [{ text: 'Kept in memory', votes: 2 }], none: 0 });
+  await mem.flush();
+  assert.strictEqual(mem.draw('normal'), 'Kept in memory');
+  const fresh = createQuestionBank({ kind: 'memory' });
+  await fresh.load();
+  assert.deepStrictEqual(fresh.list(), []);
+
+  const file = path.join(os.tmpdir(), `bigTomBank-${process.pid}.json`);
+  const a = createQuestionBank({ kind: 'file', file });
+  a.record({ mode: 'normal', questions: [{ text: 'On disk', votes: 2 }], none: 0 });
+  await a.flush();
+  const b = createQuestionBank({ kind: 'file', file });
+  await b.load();
+  assert.deepStrictEqual(b.list().map((e) => [e.text, e.votes, e.picked]), [['On disk', 2, 1]]);
+  fs.rmSync(file, { force: true });
+  // A file that can't be written: the game never hears about it.
+  const err = console.error;
+  const errors = [];
+  console.error = (...x) => errors.push(x.join(' '));
+  const bad = createQuestionBank({ kind: 'file', file: '/nonexistent-dir/bank.json' });
+  bad.record({ mode: 'normal', questions: [{ text: 'Lost', votes: 2 }], none: 0 });
+  await bad.flush();
+  console.error = err;
+  assert.ok(errors.some((e) => /Couldn't save/.test(e)));
+  assert.strictEqual(bad.draw('normal'), 'Lost', 'still drawn from memory');
+});
