@@ -156,6 +156,8 @@ again (things may have moved on) and plays it through the game's own `handle`, l
   bot(room, me, ctx, skill) { return { type: 'roll' }; },
 ```
 
+- Bots are asked again whenever the room is broadcast. A game that runs on the clock without
+  broadcasting (a race) can return `{ type: '_wait', delay }`: nothing now, but ask again then.
 - Return only moves the game would take now (whose turn, which phase). A move it won't take three
   times in a row makes the bot wait until the game changes, so a wrong guess never spins.
 - Skill is how good the bot is: how sound its choices are (bets, calls, bluffs) and how true its

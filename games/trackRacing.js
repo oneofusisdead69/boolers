@@ -6,8 +6,9 @@
 //
 // The server runs the race: phones send what their driver is doing ({ type: 'drive', steer, gas,
 // brake }, a few times a second and only when it changes), and a fixed-step simulation moves the
-// cars. Every tick the cars' positions go out to every screen with ctx.signal('cars'), not as a
-// whole new state; the full state is only re-sent when something changes (a lap, a finish).
+// cars, on the wall clock (see tick). Every tick the cars' positions go out to every screen with
+// ctx.signal('cars'), not as a whole new state: places and laps ride along in it. The full state
+// is only re-sent when a car finishes (its line in the feed, then the results).
 //
 // Bots drive inside the simulation (their bot() is far too slow to steer with): each step their
 // pedals and wheel come from the track ahead, steadier and faster the better the bot.
@@ -372,7 +373,7 @@ function countdown(room, ctx) {
   g.count -= 1;
   if (g.count > 0) return ctx.setTimer(room, COUNT_MS, () => countdown(room, ctx));
   g.phase = 'race';
-  g.clock = Date.now();
+  g.clock = Date.now() + TICK_MS; // when the first step is due (see tick)
   ctx.log(room, spooky(room) ? `👻 BOO! Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}, if you dare!` : `🏁 Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}!`);
   ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
 }
@@ -580,10 +581,15 @@ function tick(room, ctx) {
   const g = room.game;
   if (g.phase !== 'race') return undefined;
   const tr = trackOf(g.trackId);
-  // A slow server catches up (a step or two), but never races ahead of the clock.
+  // A fixed step on the wall clock: g.clock is when the next step is due. A timer is always a
+  // little late, so the next one is set for that step's time, not TICK_MS from now (chained 50 ms
+  // timers ran the race ~2 % slow, and the screens, drawing on the race's own clock, kept slipping
+  // behind it). A late tick catches up (a step or two); after a long stall the race just carries
+  // on from now rather than leaping ahead.
   const now = Date.now();
-  const steps = clamp(Math.round((now - g.clock) / TICK_MS), 1, 3);
-  g.clock = steps === 1 ? now : g.clock + steps * TICK_MS;
+  const due = Math.floor((now - g.clock) / TICK_MS) + 1;
+  const steps = clamp(due, 1, 3);
+  g.clock = due > 3 ? now + TICK_MS : g.clock + steps * TICK_MS;
   g.bumps = [];
   let news = false;
   for (let n = 0; n < steps; n++) {
@@ -595,7 +601,6 @@ function tick(room, ctx) {
     for (let k = 0; k < SUBSTEPS; k++) {
       for (const c of g.cars) {
         const what = moveCar(g, tr, c, DT / SUBSTEPS);
-        if (what === 'lap') news = true;
         if (what === 'finish') {
           c.finished = g.t;
           news = true;
@@ -616,8 +621,10 @@ function tick(room, ctx) {
     finish(room, ctx);
     return undefined;
   }
-  ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
-  // Only a lap or a finish needs the whole state sent again (the places and laps on the phones).
+  ctx.setTimer(room, Math.max(0, g.clock - Date.now()), () => tick(room, ctx));
+  // Only a finish needs the whole state sent again (its line in the feed). A lap doesn't: every
+  // screen has the laps and places from the 'cars' it gets anyway, and with a dozen cars a whole
+  // state for each lap of each was a broadcast every second or so.
   return news ? undefined : 'quiet';
 }
 
@@ -763,11 +770,15 @@ module.exports = {
       return host && !botsBetting && !peopleBetting ? { type: 'startRace' } : null;
     }
     if (g.phase === 'race') {
-      // A toot now and then: at whoever's in the way, or just because.
+      // A toot now and then: at whoever's in the way, or just because. The race doesn't broadcast
+      // (bots are asked again on every broadcast), so a bot with nothing to toot about looks again
+      // every couple of seconds, about as often as the laps used to wake it.
       const car = carOf(g, me.id);
-      if (!car || car.finished != null || g.t - car.honkAt < HONK_GAP_S + 1) return null;
+      if (!car || car.finished != null) return null;
+      const later = { type: '_wait', delay: 2000 + Math.random() * 1000 };
+      if (g.t - car.honkAt < HONK_GAP_S + 1) return later;
       const near = g.cars.some((c) => c !== car && Math.hypot(c.x - car.x, c.y - car.y) < 60);
-      return near || steady(me.id, g.race, Math.floor(g.t / 5)) < 0.5 ? { type: 'honk', delay: 300 } : null;
+      return near || steady(me.id, g.race, Math.floor(g.t / 5)) < 0.5 ? { type: 'honk', delay: 300 } : later;
     }
     if (g.phase === 'payout' && g.payout[me.id] && !g.payout[me.id].done) {
       const alloc = betting.botAlloc(room, me.id, g.payout[me.id].total);
@@ -821,9 +832,9 @@ module.exports = {
         world: WORLD,
         crossing: tr.crossing,
         // The centreline, every other sample (screens smooth it again), and on the hilly hard maps
-        // how high it is there too.
-        line: tr.xs.filter((_, i) => i % 2 === 0).map((x, i) => (tr.hilly ? [Math.round(x), Math.round(tr.ys[i * 2]), Math.round(tr.zs[i * 2] * 10) / 10] : [Math.round(x), Math.round(tr.ys[i * 2])])),
-        start: [Math.round(tr.xs[0]), Math.round(tr.ys[0]), Math.round(tr.dir[0] * 100) / 100],
+        // how high it is there too. (Made once per track: it's in every view of every broadcast.)
+        line: (tr.line ||= tr.xs.filter((_, i) => i % 2 === 0).map((x, i) => (tr.hilly ? [Math.round(x), Math.round(tr.ys[i * 2]), Math.round(tr.zs[i * 2] * 10) / 10] : [Math.round(x), Math.round(tr.ys[i * 2])]))),
+        start: (tr.start ||= [Math.round(tr.xs[0]), Math.round(tr.ys[0]), Math.round(tr.dir[0] * 100) / 100]),
       },
       racers: g.racers,
       carIds: g.cars.map((c) => c.id), // the order cars come in, in every 'cars' update
