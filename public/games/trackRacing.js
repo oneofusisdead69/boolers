@@ -3448,6 +3448,11 @@
       return window.Prefs.audio();
     },
     volume: () => window.Prefs?.get().volume ?? 0.7,
+    // The car itself (engine, tyres, knocks, passing cars) can be switched off on the race screen
+    // (🔈), remembered on the phone; the countdown, laps, finish and horn play either way.
+    carOn() {
+      try { return localStorage.getItem('tr-car-sound') !== 'off'; } catch { return true; }
+    },
 
     noiseBuf: null,
     noise(ac) {
@@ -3468,7 +3473,7 @@
       const gain = (v) => { const n = ac.createGain(); n.gain.value = v; return n; };
       const filter = (type, freq, q) => { const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; return f; };
       const master = gain(0);
-      master.gain.setTargetAtTime(this.volume() * 0.55, t, 0.05);
+      master.gain.setTargetAtTime(this.volume() * 0.22, t, 0.05);
       master.connect(ac.destination);
       // The engine: the note, a second one a hair off it (the beat makes it rough), the octave
       // below, through a low-pass that opens with the throttle; then a wobble in the loudness at
@@ -3530,7 +3535,7 @@
     drive(s, cars, ids, now) {
       const mine = ids.indexOf(s.me);
       const car = cars[mine];
-      const ac = car && this.audio();
+      const ac = car && this.carOn() && this.audio();
       if (!ac) { this.stop('no sound'); return; }
       if (this.g && this.g.race !== s.game.race) this.stop('new race');
       if (!this.g) {
@@ -3580,10 +3585,10 @@
       g.lumpDepth.gain.setTargetAtTime(e.lump * 0.5 * (1 - this.rpm), T, 0.05);
       // (Never darker than the low hundreds: a phone's speaker can't play the note itself, only
       // what's over it.)
-      g.tone.frequency.setTargetAtTime(e.tone * (500 + 900 * this.rpm + 1600 * foot * this.rpm) * (shifting ? 0.6 : 1), T, 0.04);
+      g.tone.frequency.setTargetAtTime(0.65 * e.tone * (500 + 900 * this.rpm + 1600 * foot * this.rpm) * (shifting ? 0.6 : 1), T, 0.04);
       // Quieter off the gas, and for a moment as it changes up.
       g.engine.gain.setTargetAtTime(e.loud * 0.32 * (0.4 + 0.45 * foot + 0.25 * this.rpm) * (shifting ? 0.45 : 1) * fade, T, shifting ? 0.02 : 0.06);
-      g.master.gain.setTargetAtTime(this.volume() * 0.55, T, 0.1);
+      g.master.gain.setTargetAtTime(this.volume() * 0.22, T, 0.1);
       // Tyres: a screech when the back's out (the server says so: flag 1) or you slide sideways
       // hard, or stand on the brakes flat out; on the grass, a rumble instead.
       const grass = !!(car[3] & 2);
@@ -3594,10 +3599,10 @@
       }
       if (skid > 0.1 && !g.skidding) this.stats.screech++;
       g.skidding = skid > 0.1;
-      g.screech.gain.setTargetAtTime(0.16 * skid, T, skid ? 0.03 : 0.08);
+      g.screech.gain.setTargetAtTime(0.07 * skid, T, skid ? 0.03 : 0.08);
       g.squeal.frequency.setTargetAtTime(1500 + 700 * skid, T, 0.05);
       const rough = grass && this.v > 4 ? Math.min(1, this.v / 60) : 0;
-      g.rumble.gain.setTargetAtTime(0.6 * rough, T, 0.06);
+      g.rumble.gain.setTargetAtTime(0.3 * rough, T, 0.06);
       g.shaker.frequency.setTargetAtTime(8 + this.v / 8, T, 0.1);
       if (g.rattle) {
         g.rattle.gain.setTargetAtTime(0.1 * Math.min(1, this.v / 70) + (grass ? 0.08 : 0), T, 0.06);
@@ -3714,7 +3719,7 @@
       if (now - this.hitAt < 150) return;
       this.hitAt = now;
       const k = 0.45 + 0.55 * Math.min(1, this.v / 150);
-      const o = this.out(0.8 * k, 0.35);
+      const o = this.carOn() && this.out(0.45 * k, 0.35);
       if (!o) return;
       this.note(o, { freq: 120, to: 42, len: 0.25, gain: 0.6 });
       this.note(o, { freq: 190, to: 90, type: 'triangle', len: 0.12, gain: 0.35 });
@@ -3726,7 +3731,7 @@
       } else this.stats.thud++;
     },
     whoosh(pan) {
-      const o = this.out(0.5, 0.6, pan * 0.7);
+      const o = this.carOn() && this.out(0.25, 0.6, pan * 0.7);
       if (!o) return;
       this.stats.whoosh++;
       this.hiss(o, { len: 0.5, freq: 2600, to: 700, q: 0.9, gain: 0.25 });
@@ -3790,6 +3795,7 @@
       <div class="tr-place"><b id="tr-place">${lastMine.place ? ordinal(lastMine.place) : '–'}</b><small>of ${g.racers.length}</small></div>
       <div class="tr-laps" id="tr-lap">${lastMine.done ? 'Finished!' : `Lap ${lastMine.lap || 1}/${g.laps}`}</div>
       <button class="tr-horn" data-tr="horn" aria-label="Horn">📯</button>
+      <button class="tr-horn tr-carsound" data-tr="carsound" aria-label="Car sounds">${sound.carOn() ? '🔈' : '🔇'}</button>
       ${PB.endButton('end-mini')}
     </div>`;
   }
@@ -4169,6 +4175,14 @@
         b.onclick = (e) => {
           const what = b.dataset.tr;
           if (what === 'horn') { e.preventDefault(); PB.act('honk'); return; }
+          if (what === 'carsound') {
+            e.preventDefault();
+            const on = !sound.carOn();
+            try { localStorage.setItem('tr-car-sound', on ? 'on' : 'off'); } catch {}
+            if (!on) sound.stop('muted');
+            b.textContent = on ? '🔈' : '🔇';
+            return;
+          }
           if (what === 'pick') draft.car = b.dataset.car;
           else if (what === 'look') pickPart(s, b.dataset.k, b.dataset.v);
           else if (what === 'garage') { editing = true; garageOpen = true; }
