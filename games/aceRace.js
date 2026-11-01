@@ -111,7 +111,10 @@ module.exports = {
     } else if (action.type === 'flip' && g.phase === 'race' && g.speed === 'manual' && host) {
       step(room, ctx);
     } else if (action.type === 'give') {
-      betting.give(room, ctx, me, action.alloc, `${SUIT_NAMES[g.winner]} won`);
+      betting.give(room, ctx, me, action, `${SUIT_NAMES[g.winner]} won`);
+    } else if (action.type === 'skipGive' && host) {
+      // Don't wait on a winner who's gone quiet: theirs go out at random now.
+      betting.skip(room, ctx);
     } else if (action.type === 'nextRace' && (g.phase === 'results' || g.phase === 'payout') && host) {
       newRace(room, ctx);
     }

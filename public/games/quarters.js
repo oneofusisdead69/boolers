@@ -125,10 +125,7 @@
     const g = s.game;
     if (s.phase !== 'give') return '';
     const rule = g.rule === g.last?.n ? '<div class="drink win"><div class="big">📜 Three in a row!</div><div class="sips">Make a rule</div></div>' : '';
-    const mine = g.turnId === s.me && !PB.isTV;
-    return `${rule}${mine
-      ? `<div class="card"><p class="center"><b>Sunk it! Who drinks ${PB.plural(g.sips, 'sip')}?</b></p>${PB.playerPicker('give', { exclude: [s.me] })}</div>`
-      : `<p class="center muted qt-wait">${esc(name(g.turnId))} is picking who drinks…</p>`}`;
+    return `${rule}${PB.giveSips(s, { from: g.turnId, sips: g.sips, key: `qt:${g.last?.n}`, title: '🪙 Sunk it!' })}`;
   }
 
   function render(s) {
@@ -162,7 +159,7 @@
     },
     stage: '.qt-view',
     tvTable: false,
-    tvStage: '.qt-view, .qt-last, .drink, .qt-wait, .qt-scores',
+    tvStage: '.qt-view, .qt-last, .drink, .qt-wait, .give-wait, .qt-scores',
     tvLeft: '.qt-scores',
     sounds(prev, s) {
       const n = s.game.last?.n;

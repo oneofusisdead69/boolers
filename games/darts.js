@@ -16,6 +16,7 @@ const { gauss, clamp } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
+const giving = require('../lib/give');
 
 // Clockwise from the top.
 const SECTORS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
@@ -92,16 +93,30 @@ function win(room, ctx, id) {
 function afterTurn(room, ctx) {
   const g = room.game;
   if (g.phase === 'over') return;
+  if (g.phase === 'give') ctx.clearTimer(room); // that one's handed out: its clock stops
   const give = g.gives.find((x) => ctx.turns.isActive(room, x.from));
   if (give) {
     g.give = give;
     g.gives = g.gives.filter((x) => x !== give);
     g.phase = 'give';
+    giveClock(room, ctx);
     return;
   }
   g.gives = [];
   g.give = null;
   nextThrower(room, ctx);
+}
+
+// Nobody waits forever on a giver: when the clock's up, or the host skips, theirs go out at random.
+function giveClock(room, ctx) {
+  const g = room.game;
+  const give = g.give;
+  giving.clock(room, ctx, () => g.phase === 'give' && g.give === give && autoGive(room, ctx));
+}
+function autoGive(room, ctx, skipped = false) {
+  const g = room.game;
+  giving.auto(room, ctx, g.give.from, g.give.sips, g.give.reason, { skipped });
+  afterTurn(room, ctx);
 }
 
 function nextThrower(room, ctx) {
@@ -375,9 +390,10 @@ module.exports = {
       else if (result === 'bust') endTurn(room, ctx, 'bust');
       else if (g.darts.length >= 3) endTurn(room, ctx);
     } else if (action.type === 'give' && g.phase === 'give' && g.give?.from === me) {
-      if (ctx.giveTo(room, me, action.targetId, g.give.sips, g.give.reason)) afterTurn(room, ctx);
+      // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
+      if (giving.give(room, ctx, me, action, g.give.sips, g.give.reason)) afterTurn(room, ctx);
     } else if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) {
-      afterTurn(room, ctx);
+      autoGive(room, ctx, true);
     }
   },
 
@@ -410,6 +426,8 @@ module.exports = {
       nextThrower(room, ctx);
     } else if (g.phase === 'give' && !ctx.turns.isActive(room, g.give.from)) {
       afterTurn(room, ctx);
+    } else if (g.phase === 'give' && !room.timer) {
+      giveClock(room, ctx); // (lost in a restart)
     } else if (g.phase === 'turnEnd' && !room.timer) {
       afterTurn(room, ctx);
     }

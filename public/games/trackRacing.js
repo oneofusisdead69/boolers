@@ -139,6 +139,7 @@
     const n = L.length;
     const xs = [];
     const ys = [];
+    const zs = []; // how high the road is (the hard maps' hills: 0 everywhere on the rest)
     for (let i = 0; i < n; i++) {
       const p0 = L[(i - 1 + n) % n];
       const p1 = L[i];
@@ -147,10 +148,13 @@
       const ay = (p0[1] + p1[1]) / 2;
       const bx = (p1[0] + p2[0]) / 2;
       const by = (p1[1] + p2[1]) / 2;
+      const az = ((p0[2] || 0) + (p1[2] || 0)) / 2;
+      const bz = ((p1[2] || 0) + (p2[2] || 0)) / 2;
       for (const t of [0, 0.5]) {
         const u = 1 - t;
         xs.push(u * u * ax + 2 * u * t * p1[0] + t * t * bx);
         ys.push(u * u * ay + 2 * u * t * p1[1] + t * t * by);
+        zs.push(u * u * az + 2 * u * t * (p1[2] || 0) + t * t * bz);
       }
     }
     const N = xs.length;
@@ -170,11 +174,20 @@
       return Math.sqrt(best);
     };
     const edge = tr.width / 2 + tr.band;
+    const hills = hillsOf(tr, { N, xs, ys, zs, nx, ny, bend, at, edge });
+    // (Where the loop crosses itself, only the road on your own level is in the way: the bridge's
+    // railings run on over the road below, and that road's barriers on under the bridge.)
+    const nearOn = (x, y, z) => {
+      if (!tr.crossing) return near(x, y);
+      let best = Infinity;
+      for (let i = 0; i < N; i++) if (Math.abs(zs[i] - z) < 10) best = Math.min(best, (xs[i] - x) ** 2 + (ys[i] - y) ** 2);
+      return Math.sqrt(best);
+    };
     // The barriers either side, except where one would fold back on itself (inside a hairpin).
     const walls = [-1, 1].map((side) => {
       const off = (edge + BARRIER) * side;
-      const w = { x: xs.map((x, i) => x + nx[i] * off), y: ys.map((y, i) => y + ny[i] * off) };
-      w.ok = w.x.map((x, i) => near(x, w.y[i]) > edge + BARRIER - 2);
+      const w = { x: xs.map((x, i) => x + nx[i] * off), y: ys.map((y, i) => y + ny[i] * off), z: zs.map((z, i) => z + hills.bank[i] * off) };
+      w.ok = w.x.map((x, i) => nearOn(x, w.y[i], zs[i]) > edge + BARRIER - 2);
       return w;
     });
     // The start line, and the grid behind it (as the server lines the cars up: games/trackRacing.js).
@@ -252,8 +265,184 @@
       if (d < edge + BARRIER + r + 6 || d > edge + 240 || !free(x, y, r)) continue;
       props.push({ kind: 'tree', x, y, r, h: 20 + rand() * 18, tone: rand() });
     }
-    shapes[key] = { N, xs, ys, nx, ny, head, bend, walls, startI, grid, stand, props };
+    shapes[key] = { N, xs, ys, zs, nx, ny, head, bend, walls, startI, grid, stand, props, ...hills };
+    // Everything off the road stands on the ground: up an embankment if it's beside a hill.
+    if (hills.hilly) {
+      for (const p of props) p.z = groundZ(shapes[key], p.x, p.y);
+      if (stand) stand.z = groundZ(shapes[key], stand.x, stand.y);
+    }
     return shapes[key];
+  }
+
+  // ---------- Hills (the hard maps) ----------
+  //
+  // A hard map's centreline comes with a height at each point (games/trackRacing.js). From the car
+  // the road is then a ribbon of its own (see roadModel), tilted into the sharp bends (`bank`: how
+  // much higher the road gets for each unit out to the right), with an embankment either side
+  // sloping down to the flat ground (out to `toe`, less where another part of the track is in the
+  // way: then it's a steep bank). Where the figure eight crosses itself, the upper leg is a bridge
+  // (`deck`): a slab on piers, nothing under it. On the flat tracks: all zeros, and none of it is
+  // drawn.
+  function hillsOf(tr, { N, xs, ys, zs, nx, ny, bend, at, edge }) {
+    const hilly = zs.some((z) => z > 0.05);
+    const bank = new Float32Array(N);
+    const deck = new Uint8Array(N);
+    const toe = [new Float32Array(N), new Float32Array(N)];
+    const top = edge + BARRIER + 4;
+    const ceil = new Float32Array(N).fill(1e4);
+    if (!hilly) return { hilly, bank, deck, toe, top, ceil };
+    const far = (i, j) => Math.min(Math.abs(i - j), N - Math.abs(i - j)) > 25;
+    if (tr.crossing) {
+      for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+          if (zs[i] - zs[j] > 12 && far(i, j) && (xs[i] - xs[j]) ** 2 + (ys[i] - ys[j]) ** 2 < (2 * (edge + BARRIER) + 16) ** 2) { deck[i] = 1; break; }
+        }
+      }
+      // (A little longer each end, so the embankment never reaches the road below.)
+      const was = deck.slice();
+      for (let i = 0; i < N; i++) if (was[i]) for (let k = -4; k <= 4; k++) deck[at(i + k)] = 1;
+      // Under the bridge: how high the camera can go there (the slab's underside, less a bit).
+      for (let i = 0; i < N; i++) {
+        for (let k = 0; k < N; k++) {
+          if (deck[k] && zs[k] - zs[i] > 12 && (xs[i] - xs[k]) ** 2 + (ys[i] - ys[k]) ** 2 < (edge + BARRIER + 40) ** 2) ceil[i] = Math.min(ceil[i], zs[k] - 7);
+        }
+      }
+    }
+    // Banked into the bends (not on the bridge), smoothed so it eases in and out.
+    const raw = bend.map((b, i) => (deck[i] ? 0 : -Math.max(-0.16, Math.min(0.16, b * 0.4))));
+    for (let i = 0; i < N; i++) {
+      let s = 0;
+      for (let k = -3; k <= 3; k++) s += raw[at(i + k)];
+      bank[i] = s / 7;
+    }
+    // How far out each embankment can go before it would run into another part of the track.
+    const clear = (x, y, i) => {
+      for (let j = 0; j < N; j += 1) {
+        if (!far(i, j)) continue;
+        if ((xs[j] - x) ** 2 + (ys[j] - y) ** 2 < (edge + BARRIER + 3) ** 2) return false;
+      }
+      return true;
+    };
+    for (let i = 0; i < N; i++) {
+      for (const [k, side] of [[0, -1], [1, 1]]) {
+        const h = Math.max(0, zs[i] + bank[i] * top * side);
+        let t = top + 3 + h * 1.7;
+        while (t > top + 1 && !clear(xs[i] + nx[i] * t * side, ys[i] + ny[i] * t * side, i)) t -= 4;
+        toe[k][i] = Math.max(top + 1, t);
+      }
+    }
+    return { hilly, bank, deck, toe, top, ceil };
+  }
+
+  // How high the ground is at a spot: up the embankments beside the hills, 0 out in the fields
+  // (and under the bridge).
+  function groundZ(sh, x, y) {
+    if (!sh.hilly) return 0;
+    let z = 0;
+    for (let i = 0; i < sh.N; i += 1) {
+      if (sh.deck[i] || sh.zs[i] <= z) continue;
+      const dx = x - sh.xs[i];
+      const dy = y - sh.ys[i];
+      const off = dx * sh.nx[i] + dy * sh.ny[i];
+      const along = Math.abs(dx * sh.ny[i] - dy * sh.nx[i]);
+      if (along > 8) continue;
+      const d = Math.abs(off);
+      const t = sh.toe[off < 0 ? 0 : 1][i];
+      const h = sh.zs[i] + sh.bank[i] * Math.max(-sh.top, Math.min(sh.top, off));
+      z = Math.max(z, d <= sh.top ? h : d < t ? (h * (t - d)) / (t - sh.top) : 0);
+    }
+    return z;
+  }
+
+  // Where a car is on the road, in 3D: its height, and how steep the road is under it (along the
+  // way it's pointing, and across). `hint` is where it was last time (a sample index, kept per
+  // car), so a car under the bridge stays on the road under it. Filled in, not made.
+  const onRoad = { z: 0, along: 0, across: 0, i: 0 };
+  function roadAt(sh, x, y, a, hint = -1) {
+    onRoad.z = 0; onRoad.along = 0; onRoad.across = 0; onRoad.i = 0;
+    if (!sh.hilly) return onRoad;
+    let best = Infinity;
+    let bi = 0;
+    const look = (i) => {
+      const d = (sh.xs[i] - x) ** 2 + (sh.ys[i] - y) ** 2;
+      if (d < best) { best = d; bi = i; }
+    };
+    if (hint >= 0) for (let k = -10; k <= 10; k++) look((((hint + k) % sh.N) + sh.N) % sh.N);
+    if (hint < 0 || best > (sh.top + 20) ** 2) {
+      const level = hint >= 0 ? sh.zs[hint] : null;
+      best = Infinity;
+      for (let i = 0; i < sh.N; i++) if (level == null || Math.abs(sh.zs[i] - level) < 15) look(i);
+      // (Nowhere near its own level: a new race, back on the grid. Anywhere, then.)
+      if (best > (sh.top + 20) ** 2) for (let i = 0; i < sh.N; i++) look(i);
+    }
+    // Between this sample and the next (or the one before), and out to the side.
+    const j = (bi + 1) % sh.N;
+    const dx = sh.xs[j] - sh.xs[bi];
+    const dy = sh.ys[j] - sh.ys[bi];
+    const len = Math.hypot(dx, dy) || 1;
+    const f = Math.max(-1, Math.min(1, ((x - sh.xs[bi]) * dx + (y - sh.ys[bi]) * dy) / (len * len)));
+    const k = f < 0 ? (bi - 1 + sh.N) % sh.N : j;
+    const g = Math.abs(f);
+    const z0 = sh.zs[bi] + (sh.zs[k] - sh.zs[bi]) * g;
+    const b = sh.bank[bi] + (sh.bank[k] - sh.bank[bi]) * g;
+    const off = Math.max(-sh.top, Math.min(sh.top, (x - sh.xs[bi]) * sh.nx[bi] + (y - sh.ys[bi]) * sh.ny[bi]));
+    const slope = (sh.zs[j] - sh.zs[(bi - 1 + sh.N) % sh.N]) / (2 * len);
+    const ca = Math.cos(a - sh.head[bi]);
+    const sa = Math.sin(a - sh.head[bi]);
+    onRoad.z = z0 + b * off;
+    onRoad.along = slope * ca + b * sa; // (rise per unit forward, for the car pointing at `a`)
+    onRoad.across = b * ca - slope * sa; // (rise per unit to its right)
+    onRoad.i = bi;
+    return onRoad;
+  }
+
+  // The road on the hills, from the car: a ribbon round the loop, five points across (each
+  // embankment's foot, the top of each bank, the middle), a little under the true height so what
+  // stands on it never flickers into it. Each corner: x, y, z, then how lit it is and 0 (the ground's
+  // picture, from above, on it), or on the bridge how far across the road it is and 1 (the deck
+  // is painted as it goes: see ROAD_FS). Built once a track.
+  function roadModel(sh) {
+    const v = [];
+    const sink = 0.25;
+    const put = (p, a, kind) => v.push(p[0], p[1], p[2] - sink, a, kind);
+    const flat = shade(0, 0, 1);
+    const lit = (a, b, d) => {
+      const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+      const wx = d[0] - a[0], wy = d[1] - a[1], wz = d[2] - a[2];
+      let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+      if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const len = Math.hypot(nx, ny, nz) || 1;
+      return Math.min(1.12, shade(nx / len, ny / len, nz / len) / flat);
+    };
+    const cross = (i) => {
+      const P = (off, z) => [sh.xs[i] + sh.nx[i] * off, sh.ys[i] + sh.ny[i] * off, z];
+      const h = (off) => sh.zs[i] + sh.bank[i] * off;
+      return [P(-sh.toe[0][i], 0), P(-sh.top, h(-sh.top)), P(0, h(0)), P(sh.top, h(sh.top)), P(sh.toe[1][i], 0)];
+    };
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      const A = cross(i);
+      const B = cross(j);
+      if (sh.deck[i] && sh.deck[j]) {
+        // The bridge's deck, out to its railings.
+        const span = sh.top - 2.5;
+        const D = (k, off) => [sh.xs[k] + sh.nx[k] * off, sh.ys[k] + sh.ny[k] * off, sh.zs[k] + 0.2];
+        const quads = [[-span, 0], [0, span]];
+        for (const [o0, o1] of quads) {
+          const a = D(i, o0), b = D(j, o0), c = D(j, o1), d = D(i, o1);
+          put(a, o0, 1); put(b, o0, 1); put(c, o1, 1);
+          put(a, o0, 1); put(c, o1, 1); put(d, o1, 1);
+        }
+        continue;
+      }
+      for (let s = 0; s < 4; s++) {
+        const a = A[s], b = B[s], c = B[s + 1], d = A[s + 1];
+        const k = lit(a, b, d);
+        put(a, k, 0); put(b, k, 0); put(c, k, 0);
+        put(a, k, 0); put(c, k, 0); put(d, k, 0);
+      }
+    }
+    return new Float32Array(v);
   }
 
   // Halloween's extras round a track (worked out once a track): jack-o'-lanterns along the fence,
@@ -409,7 +598,9 @@
   // The track, the grass beside it and the barriers round it (outside them is darker). `sx`, `sy`:
   // canvas pixels a unit. `scenery`: the trees and stands too, seen from above (the TV; the
   // first-person view builds them in 3D instead).
-  function drawStatic(cv, tr, sx, sy = sx, { scenery = true } = {}) {
+  // `under`: for the view from the car's ground (groundCanvas), where the bridge is a model of its
+  // own: the road under it is painted instead, in its shadow.
+  function drawStatic(cv, tr, sx, sy = sx, { scenery = true, under = false } = {}) {
     const c = cv.getContext('2d');
     const path = trackPath(tr.line);
     const sh = shapeOf(tr);
@@ -446,6 +637,8 @@
       c.fillRect(0, 0, tr.world.w, tr.world.h);
       c.globalCompositeOperation = 'source-over';
     }
+    // The hills cast their shadows (down and to the right, as the light comes from the top left).
+    if (sh.hilly && !under) hillShadow(c, sh);
     // Gravel on the outside of the bends.
     const quads = (from, to, test, style) => {
       c.beginPath();
@@ -477,6 +670,8 @@
       quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? 1 : 0), odd ? kerb : pal.accent);
       quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? -1 : 0), odd ? pal.accent : kerb);
     }
+    // The hills: lighter up high, darker down low, each slope lit as it faces.
+    if (sh.hilly && !under) hillTint(c, sh);
     // The start line, chequered, and the grid boxes behind it.
     const [stx, sty, sa] = tr.start;
     c.save();
@@ -513,13 +708,13 @@
         c.beginPath();
         for (let i = 0; i < sh.N; i++) {
           const j = (i + 1) % sh.N;
-          if (!w.ok[i] || !w.ok[j]) continue;
+          if (!w.ok[i] || !w.ok[j] || sh.deck[i]) continue;
           c.moveTo(w.x[i], w.y[i]);
           c.lineTo(w.x[j], w.y[j]);
         }
         c.stroke();
         for (let i = 0; i < sh.N; i++) {
-          if (!w.ok[i]) continue;
+          if (!w.ok[i] || sh.deck[i]) continue;
           c.fillStyle = i % 10 ? '#4a4258' : '#7a7090';
           const r = i % 10 ? 1.2 : 2.8;
           c.fillRect(w.x[i] - r, w.y[i] - r, r * 2, r * 2);
@@ -529,7 +724,7 @@
     // The tyre wall: tyres in the room's trim colour and black.
     for (const w of spooky ? [] : sh.walls) {
       for (let i = 0; i < sh.N; i++) {
-        if (!w.ok[i]) continue;
+        if (!w.ok[i] || sh.deck[i]) continue;
         c.fillStyle = i % 2 ? '#151515' : pal.rim;
         c.beginPath();
         c.arc(w.x[i], w.y[i], 4.6, 0, Math.PI * 2);
@@ -540,7 +735,178 @@
         c.fill();
       }
     }
+    // The figure eight's bridge over the road below (or, for the car's ground, that road in its
+    // shadow), and a ▲ at each sharp crest.
+    if (sh.hilly) bridgeAbove(c, tr, sh, pal, under, spooky);
+    if (sh.hilly && !under) crestMarks(c, sh);
     if (scenery) drawScenery(c, tr, sh, pal);
+  }
+
+  // ---------- The hills, from above ----------
+
+  // A strip along the road, from `from` to `to` out from the middle (negative: the left), for the
+  // samples `test` passes: one path.
+  function strip(c, sh, from, to, test, dx = 0, dy = 0) {
+    c.beginPath();
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      if (!test(i, j)) continue;
+      c.moveTo(sh.xs[i] + sh.nx[i] * from + dx, sh.ys[i] + sh.ny[i] * from + dy);
+      c.lineTo(sh.xs[j] + sh.nx[j] * from + dx, sh.ys[j] + sh.ny[j] * from + dy);
+      c.lineTo(sh.xs[j] + sh.nx[j] * to + dx, sh.ys[j] + sh.ny[j] * to + dy);
+      c.lineTo(sh.xs[i] + sh.nx[i] * to + dx, sh.ys[i] + sh.ny[i] * to + dy);
+      c.closePath();
+    }
+  }
+
+  function hillShadow(c, sh) {
+    c.fillStyle = 'rgba(0, 0, 0, 0.13)';
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      const z = (sh.zs[i] + sh.zs[j]) / 2;
+      if (z < 3) continue;
+      const d = z * 0.32;
+      // (Two passes, the second further out: a soft edge.)
+      for (const k of [0.6, 1]) {
+        c.beginPath();
+        const w = sh.top + (sh.deck[i] ? -2 : 2);
+        c.moveTo(sh.xs[i] - sh.nx[i] * w + d * k, sh.ys[i] - sh.ny[i] * w + d * k);
+        c.lineTo(sh.xs[j] - sh.nx[j] * w + d * k, sh.ys[j] - sh.ny[j] * w + d * k);
+        c.lineTo(sh.xs[j] + sh.nx[j] * w + d * k, sh.ys[j] + sh.ny[j] * w + d * k);
+        c.lineTo(sh.xs[i] + sh.nx[i] * w + d * k, sh.ys[i] + sh.ny[i] * w + d * k);
+        c.closePath();
+        c.fill();
+      }
+    }
+  }
+
+  function hillTint(c, sh) {
+    const max = Math.max(...sh.zs) || 1;
+    const w = sh.top - 4;
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      const z = (sh.zs[i] + sh.zs[j]) / 2;
+      // Up high a little lighter; slopes facing the light (top left) lighter, facing away darker.
+      const g = (sh.zs[j] - sh.zs[i]) / (Math.hypot(sh.xs[j] - sh.xs[i], sh.ys[j] - sh.ys[i]) || 1);
+      const face = -g * (Math.cos(sh.head[i]) + Math.sin(sh.head[i])) * 0.7;
+      const tone = (z / max - 0.45) * 0.36 + Math.max(-0.14, Math.min(0.14, face * 1.6));
+      c.fillStyle = tone > 0 ? `rgba(255, 250, 235, ${tone.toFixed(3)})` : `rgba(0, 0, 20, ${(-tone).toFixed(3)})`;
+      c.beginPath();
+      c.moveTo(sh.xs[i] - sh.nx[i] * w, sh.ys[i] - sh.ny[i] * w);
+      c.lineTo(sh.xs[j] - sh.nx[j] * w, sh.ys[j] - sh.ny[j] * w);
+      c.lineTo(sh.xs[j] + sh.nx[j] * w, sh.ys[j] + sh.ny[j] * w);
+      c.lineTo(sh.xs[i] + sh.nx[i] * w, sh.ys[i] + sh.ny[i] * w);
+      c.closePath();
+      c.fill();
+    }
+    // Contours: a faint line across the road every 8 units of height, as on a map.
+    c.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      if (Math.floor(sh.zs[i] / 8) === Math.floor(sh.zs[j] / 8)) continue;
+      c.moveTo(sh.xs[j] - sh.nx[j] * (w - 6), sh.ys[j] - sh.ny[j] * (w - 6));
+      c.lineTo(sh.xs[j] + sh.nx[j] * (w - 6), sh.ys[j] + sh.ny[j] * (w - 6));
+    }
+    c.stroke();
+  }
+
+  // Where the road goes over a sharp crest (you can't see over it, and you'll hop): a ▲ beside it.
+  function crestsOf(sh) {
+    if (sh.crests) return sh.crests;
+    sh.crests = [];
+    for (let i = 0; i < sh.N; i++) {
+      const a = sh.zs[(i - 5 + sh.N) % sh.N];
+      const b = sh.zs[(i + 5) % sh.N];
+      const z = sh.zs[i];
+      if (z >= sh.zs[(i - 1 + sh.N) % sh.N] && z > sh.zs[(i + 1) % sh.N] && z - Math.max(a, b) > 2.2 && !sh.deck[i]) sh.crests.push(i);
+    }
+    return sh.crests;
+  }
+  function crestMarks(c, sh) {
+    for (const i of crestsOf(sh)) {
+      for (const side of [-1, 1]) {
+        const off = (sh.top + 9) * side;
+        const x = sh.xs[i] + sh.nx[i] * off;
+        const y = sh.ys[i] + sh.ny[i] * off;
+        c.save();
+        c.translate(x, y);
+        c.beginPath();
+        c.moveTo(0, -9.5);
+        c.lineTo(8.5, 6);
+        c.lineTo(-8.5, 6);
+        c.closePath();
+        c.fillStyle = '#ffd23a';
+        c.strokeStyle = '#1a1a1a';
+        c.lineWidth = 1.6;
+        c.fill();
+        c.stroke();
+        c.restore();
+      }
+    }
+  }
+
+  function bridgeAbove(c, tr, sh, pal, under, spooky) {
+    if (!sh.deck.some((d) => d)) return;
+    const half = tr.width / 2;
+    const span = sh.top - 2.5;
+    const rail = sh.top - 4;
+    const on = (i, j) => sh.deck[i] && sh.deck[j];
+    if (under) {
+      // The car's ground: the road below, white lines and all, in the bridge's shadow.
+      const below = (i) => sh.ceil[i] < 1e4;
+      c.fillStyle = '#ececec';
+      strip(c, sh, half - 1, half + 1, below);
+      c.fill();
+      strip(c, sh, -half - 1, -half + 1, below);
+      c.fill();
+      c.fillStyle = 'rgba(0, 0, 0, 0.42)';
+      strip(c, sh, -span, span, on);
+      c.fill();
+      return;
+    }
+    // Its shadow, cast on the road below, then the slab, its run-off, the road and its lines.
+    const lift = Math.max(...sh.zs) * 0.32;
+    c.fillStyle = 'rgba(0, 0, 0, 0.42)';
+    strip(c, sh, -span, span, on, lift, lift);
+    c.fill();
+    c.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    strip(c, sh, -span - 3, span + 3, on, lift * 0.6, lift * 0.6);
+    c.fill();
+    c.fillStyle = spooky ? '#4a4452' : '#8f8d86';
+    strip(c, sh, -span, span, on);
+    c.fill();
+    c.fillStyle = spooky ? '#5a5462' : '#a9a69d';
+    strip(c, sh, -rail + 1, rail - 1, on);
+    c.fill();
+    c.fillStyle = spooky ? '#d4cab4' : '#ececec';
+    strip(c, sh, -half - 1, half + 1, on);
+    c.fill();
+    c.fillStyle = grainPattern(c);
+    strip(c, sh, -half + 2, half - 2, on);
+    c.fill();
+    // The railings: a rail each side in the room's colour, a post every so often.
+    for (const side of [-1, 1]) {
+      c.strokeStyle = '#1b1b1f';
+      c.lineWidth = 2.6;
+      c.beginPath();
+      for (let i = 0; i < sh.N; i++) {
+        const j = (i + 1) % sh.N;
+        if (!on(i, j)) continue;
+        c.moveTo(sh.xs[i] + sh.nx[i] * rail * side, sh.ys[i] + sh.ny[i] * rail * side);
+        c.lineTo(sh.xs[j] + sh.nx[j] * rail * side, sh.ys[j] + sh.ny[j] * rail * side);
+      }
+      c.stroke();
+      c.strokeStyle = spooky ? '#e07a1a' : pal.accent;
+      c.lineWidth = 1.2;
+      c.stroke();
+      c.fillStyle = '#f4f4f4';
+      for (let i = 0; i < sh.N; i += 2) {
+        if (!on(i, (i + 1) % sh.N)) continue;
+        c.fillRect(sh.xs[i] + sh.nx[i] * rail * side - 1, sh.ys[i] + sh.ny[i] * rail * side - 1, 2, 2);
+      }
+    }
   }
 
   // The scenery seen from above (the TV and the phones' maps).
@@ -1383,12 +1749,48 @@
       }
       const mini = el.classList.contains('mini');
       drawStatic(bg, tr, scale, scale, { scenery: !mini || el.clientWidth > 300 });
-      return { el, fg, marks, scale, mini };
+      return { el, fg, marks, scale, mini, bridge: bridgeLayer(tr, scale) };
     });
     spriteGen++; // (each car's picture is looked at again: someone may have changed theirs)
     paintPics();
     fp.attach(s);
     kick();
+  }
+
+  // The figure eight's bridge on a layer of its own, drawn over the cars passing under it (and
+  // under the ones on it). Just the part of the track it covers.
+  function bridgeLayer(tr, scale) {
+    const sh = shapeOf(tr);
+    if (!tr.crossing || !sh.hilly) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const pad = sh.top + Math.max(...sh.zs) * 0.4 + 6;
+    for (let i = 0; i < sh.N; i++) {
+      if (!sh.deck[i]) continue;
+      x0 = Math.min(x0, sh.xs[i] - pad); y0 = Math.min(y0, sh.ys[i] - pad);
+      x1 = Math.max(x1, sh.xs[i] + pad); y1 = Math.max(y1, sh.ys[i] + pad);
+    }
+    if (x0 > x1) return null;
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil((x1 - x0) * scale);
+    cv.height = Math.ceil((y1 - y0) * scale);
+    const c = cv.getContext('2d');
+    c.setTransform(scale, 0, 0, scale, -x0 * scale, -y0 * scale);
+    c.lineJoin = 'round';
+    bridgeAbove(c, tr, sh, palette(), false, haunted());
+    return { cv, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+
+  // Whether a car is on the road under the bridge, right under it now.
+  const aboveHints = {};
+  function underBridge(tr, id, car) {
+    const sh = shapeOf(tr);
+    const r = roadAt(sh, car[0], car[1], car[2], aboveHints[id] ?? -1);
+    aboveHints[id] = r.i;
+    if (sh.ceil[r.i] >= 1e4) return false;
+    for (let i = 0; i < sh.N; i++) {
+      if (sh.deck[i] && (sh.xs[i] - car[0]) ** 2 + (sh.ys[i] - car[1]) ** 2 < (sh.top + 6) ** 2) return true;
+    }
+    return false;
   }
 
   const kick = () => { if (!frame && !document.hidden && (views.length || fp.el)) frame = requestAnimationFrame(draw); };
@@ -1421,12 +1823,20 @@
       if (spooky && !v.mini) hauntAbove(c, s, s.game.track, now);
       const m = v.marks.getContext('2d');
       m.setTransform(v.scale, 0, 0, v.scale, 0, 0);
+      // (The figure eight: cars under the bridge first, then the bridge over them, then the rest.)
+      const bridge = v.bridge;
+      for (let pass = bridge ? 0 : 1; pass < 2; pass++) {
+      if (pass === 1 && bridge) c.drawImage(bridge.cv, bridge.x, bridge.y, bridge.w, bridge.h);
       for (const i of order) {
         const car = cars[i];
         const id = ids[i];
         if (!car || !id) continue;
+        const under = bridge ? underBridge(s.game.track, id, car) : false;
+        if (pass === 0 && !under) continue;
+        // (Over the bridge, a car under it shows faintly through, so you can still tell who's where.)
+        c.globalAlpha = pass === 1 && under ? 0.3 : 1;
         // Skid marks where the back wheels slide (drifting, or on the grass).
-        if (s.phase === 'race' && car[3] & 1) {
+        if (s.phase === 'race' && car[3] & 1 && !under) {
           m.fillStyle = car[3] & 2 ? 'rgba(40, 25, 10, 0.18)' : 'rgba(10, 10, 10, 0.22)';
           for (const side of [-6, 6]) {
             m.beginPath();
@@ -1435,6 +1845,8 @@
           }
         }
         drawCar(c, car, id, { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900, lamps, big: PB.isTV });
+        c.globalAlpha = 1;
+      }
       }
     }
     if (fp.el) {
@@ -1538,14 +1950,15 @@
     attribute vec4 aC;
     uniform mat4 uVP;
     uniform vec4 uM;
-    uniform vec3 uTint, uLamp, uCam;
+    uniform vec3 uTint, uLamp, uCam, uH;
     uniform float uBrake, uFar, uGlow;
     varying vec3 vC;
     varying float vFog, vLow;
     ${LIGHT_GLSL}
     ${LOW_GLSL}
     void main() {
-      vec3 w = vec3(uM.x + uM.z * aP.x - uM.w * aP.y, uM.y + uM.w * aP.x + uM.z * aP.y, aP.z);
+      // (uH: on the hills, how high the car is, and how the road under it tilts it: along, across.)
+      vec3 w = vec3(uM.x + uM.z * aP.x - uM.w * aP.y, uM.y + uM.w * aP.x + uM.z * aP.y, aP.z + uH.x + aP.x * uH.y + aP.y * uH.z);
       vec3 c = aC.rgb;
       vec3 l = lit(w.xy);
       if (aC.a > 3.5) c *= mix(l, vec3(1.0), uGlow);
@@ -1605,6 +2018,59 @@
       gl_FragColor = vec4(mix(mix(washed(c.rgb * uLight), uLow, vLow), uHaze, vFog), 1.0);
     }`;
 
+  // The road on the hills (roadModel): the ground's picture laid over the ribbon, shaded by which
+  // way each bit of it faces; on the bridge, asphalt with white lines and concrete beyond them.
+  const ROAD_VS = `
+    attribute vec3 aP;
+    attribute vec2 aA;
+    uniform mat4 uVP;
+    uniform vec3 uCam;
+    uniform float uFar;
+    varying vec3 vW;
+    varying vec2 vA;
+    varying float vFog;
+    void main() {
+      vW = aP;
+      vA = aA;
+      float f = clamp((distance(aP.xy, uCam.xy) - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
+      vFog = f * f;
+      gl_Position = uVP * vec4(aP, 1.0);
+    }`;
+  const ROAD_FS = `
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
+    precision mediump float;
+    #endif
+    uniform sampler2D uGround;
+    uniform vec2 uWorld;
+    uniform float uHalf, uWet;
+    uniform vec3 uHaze, uLow;
+    varying vec3 vW;
+    varying vec2 vA;
+    varying float vFog;
+    ${LIGHT_GLSL}
+    ${LOW_GLSL}
+    void main() {
+      vec3 col;
+      if (vA.y < 0.5) {
+        col = texture2D(uGround, vW.xy / uWorld).rgb;
+        float hi = max(col.r, max(col.g, col.b));
+        float tarmac = (1.0 - smoothstep(0.03, 0.09, hi - min(col.r, min(col.g, col.b)))) * (1.0 - smoothstep(0.3, 0.5, hi));
+        col *= vA.x * (1.0 - tarmac * uWet * 0.3);
+      } else {
+        float a = abs(vA.x);
+        float n = fract(sin(dot(floor(vW.xy * 1.5), vec2(12.9898, 78.233))) * 43758.5453);
+        col = vec3(0.23, 0.23, 0.25) + (n - 0.5) * 0.05;
+        if (a > uHalf - 2.0 && a < uHalf) col = vec3(0.92);
+        else if (a >= uHalf) col = mix(vec3(0.58, 0.57, 0.55), vec3(0.5), step(0.5, fract(vW.x * 0.05 + vW.y * 0.05)) * 0.3);
+        col *= 1.0 - uWet * 0.3;
+      }
+      col = washed(col * lit(vW.xy));
+      col = mix(col, uLow, lowFog(vW));
+      gl_FragColor = vec4(mix(col, uHaze, vFog), 1.0);
+    }`;
+
   // A shader program, and where its uniforms and attributes are (null if it won't compile).
   function program(gl, vs, fsrc) {
     const p = gl.createProgram();
@@ -1620,7 +2086,7 @@
     const u = {};
     const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name; u[name] = gl.getUniformLocation(p, name); }
-    return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC'), aT: gl.getAttribLocation(p, 'aT') };
+    return { p, u, aP: gl.getAttribLocation(p, 'aP'), aC: gl.getAttribLocation(p, 'aC'), aT: gl.getAttribLocation(p, 'aT'), aA: gl.getAttribLocation(p, 'aA') };
   }
 
   // Building models: triangles of [x, y, z, r, g, b, tint].
@@ -1628,9 +2094,10 @@
   const shade = (nx, ny, nz) => 0.58 + 0.42 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
   function mesher() {
     const v = [];
-    const tri = (a, b, c, col, t) => { for (const p of [a, b, c]) v.push(p[0], p[1], p[2], col[0], col[1], col[2], t); };
+    const tri = (a, b, c, col, t) => { for (const p of [a, b, c]) v.push(p[0], p[1], p[2] + m.lift, col[0], col[1], col[2], t); };
     const m = {
       v,
+      lift: 0, // (on the hills: how high the ground is under what's being built)
       // A face (four corners in order), shaded by which way it faces.
       quad(a, b, c, d, col, t = 0) {
         const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
@@ -1715,17 +2182,21 @@
     for (const w of sh.walls) {
       for (let i = 0; i < sh.N; i++) {
         const j = (i + 1) % sh.N;
-        if (!w.ok[i] || !w.ok[j]) continue;
+        if (!w.ok[i] || !w.ok[j] || (sh.deck[i] && sh.deck[j])) continue;
         // A stack of tyres: a short box each, alternating colours.
         const x = (w.x[i] + w.x[j]) / 2;
         const y = (w.y[i] + w.y[j]) / 2;
         const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
         const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.3;
+        m.lift = (w.z[i] + w.z[j]) / 2;
         m.box(x, y, a, hl, 3, 0, H, i % 2 ? black : rim, i % 2 ? 0 : 4);
       }
     }
+    m.lift = 0;
+    bridgeModel(m, tr, sh, [0.62, 0.62, 0.6], pal.accentRgb);
     const greens = [[0.18, 0.49, 0.23], [0.24, 0.56, 0.27], [0.16, 0.42, 0.2], [0.3, 0.6, 0.24]];
     for (const p of sh.props) {
+      m.lift = p.z || 0;
       if (p.kind === 'tyres') {
         for (const [dx, dy] of [[-3, -2], [3, -2], [0, 3]]) {
           m.cyl(p.x + dx, p.y + dy, 0, 9, 3.6, 3.6, black, 8);
@@ -1739,6 +2210,7 @@
         m.cyl(p.x, p.y, p.h * 0.5, p.h, p.r * 0.72, 0, top, 7);
       }
     }
+    m.lift = sh.stand?.z || 0;
     if (sh.stand) {
       // Stepped seats, rising away from the track, full of people, under a roof.
       const s = sh.stand;
@@ -1765,6 +2237,7 @@
     const a = sh.head[i];
     const span = tr.width / 2 + 12;
     const post = [0.85, 0.85, 0.87];
+    m.lift = sh.zs[i];
     for (const side of [-1, 1]) m.box(sh.xs[i] + sh.nx[i] * span * side, sh.ys[i] + sh.ny[i] * span * side, a, 1.8, 1.8, 0, 36, post);
     m.box(sh.xs[i], sh.ys[i], a, 2.4, span + 2, 30, 38, [0.15, 0.15, 0.17]);
     m.box(sh.xs[i] - Math.cos(a) * 2.6, sh.ys[i] - Math.sin(a) * 2.6, a, 0.3, span - 4, 31, 37, pal.accentRgb, 4, false);
@@ -1773,6 +2246,50 @@
     }
     return new Float32Array(m.v);
   }
+  // The figure eight's bridge (the deck itself is part of the road: roadModel): its slab's edges
+  // and underside, a parapet and railing each side, piers (never on the road below) and a wall at
+  // each end where the embankment stops.
+  function bridgeModel(m, tr, sh, concrete, trim) {
+    if (!sh.hilly || !sh.deck.some((d) => d)) return;
+    const span = sh.top - 2.5;
+    const T = 4; // the slab's thickness
+    const rail = sh.top - 4;
+    const under = concrete.map((c) => c * 0.55);
+    const P = (k, off, z) => [sh.xs[k] + sh.nx[k] * off, sh.ys[k] + sh.ny[k] * off, z];
+    const below = [];
+    for (let k = 0; k < sh.N; k++) below.push(k);
+    const clearOfRoad = (x, y, z) => below.every((k) => sh.zs[k] > z - 12 || (sh.xs[k] - x) ** 2 + (sh.ys[k] - y) ** 2 > (rail + 4) ** 2);
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      const prev = (i - 1 + sh.N) % sh.N;
+      if (!sh.deck[i]) continue;
+      const zi = sh.zs[i];
+      if (!sh.deck[prev] || !sh.deck[j]) m.quad(P(i, -span, zi), P(i, span, zi), P(i, span, 0), P(i, -span, 0), concrete);
+      if (!sh.deck[j]) continue;
+      const zj = sh.zs[j];
+      for (const side of [-1, 1]) {
+        m.quad(P(i, span * side, zi - 0.1), P(j, span * side, zj - 0.1), P(j, span * side, zj - T), P(i, span * side, zi - T), concrete);
+        // The parapet, posts and a rail on them.
+        m.quad(P(i, rail * side, zi), P(j, rail * side, zj), P(j, rail * side, zj + 2.6), P(i, rail * side, zi + 2.6), concrete);
+        m.quad(P(i, (rail + 1.2) * side, zi), P(j, (rail + 1.2) * side, zj), P(j, (rail + 1.2) * side, zj + 2.6), P(i, (rail + 1.2) * side, zi + 2.6), concrete);
+        m.quad(P(i, rail * side, zi + 2.6), P(j, rail * side, zj + 2.6), P(j, (rail + 1.2) * side, zj + 2.6), P(i, (rail + 1.2) * side, zi + 2.6), concrete);
+        if (i % 2 === 0) {
+          const [x, y] = P(i, (rail + 0.6) * side, 0);
+          m.box(x, y, sh.head[i], 0.4, 0.4, zi + 2.6, zi + 7, trim);
+        }
+        m.quad(P(i, (rail + 0.6) * side, zi + 6.2), P(j, (rail + 0.6) * side, zj + 6.2), P(j, (rail + 0.6) * side, zj + 7.2), P(i, (rail + 0.6) * side, zi + 7.2), trim);
+      }
+      m.quad(P(i, -span, zi - T), P(j, -span, zj - T), P(j, span, zj - T), P(i, span, zi - T), under);
+      // Piers every so often: a pair, wherever there's no road under them.
+      if (i % 5 === 0) {
+        for (const side of [-1, 1]) {
+          const [x, y] = P(i, (span - 5) * side, 0);
+          if (clearOfRoad(x, y, zi)) m.box(x, y, sh.head[i], 2.4, 2.4, 0, zi - T, under.map((c) => c * 1.3));
+        }
+      }
+    }
+  }
+
   // Halloween's: the iron fence, gravestones, dead trees, a stand full of ghosts and skeletons, and
   // a gothic arch over the start, jack-o'-lanterns on its pinnacles (their faces lit: tint 4).
   function pumpkin(m, x, y, z, r, a) {
@@ -1799,11 +2316,12 @@
     for (const w of sh.walls) {
       for (let i = 0; i < sh.N; i++) {
         const j = (i + 1) % sh.N;
-        if (!w.ok[i] || !w.ok[j]) continue;
+        if (!w.ok[i] || !w.ok[j] || (sh.deck[i] && sh.deck[j])) continue;
         const x = (w.x[i] + w.x[j]) / 2;
         const y = (w.y[i] + w.y[j]) / 2;
         const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
         const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.2;
+        m.lift = (w.z[i] + w.z[j]) / 2;
         // Two rails, railings with spear tips, and a stone pillar every so often.
         m.box(x, y, a, hl, 0.35, 2.6, 3.4, iron, 0, false);
         m.box(x, y, a, hl, 0.35, 9.2, 10, iron, 0, false);
@@ -1820,7 +2338,10 @@
         }
       }
     }
+    m.lift = 0;
+    bridgeModel(m, tr, sh, [0.34, 0.31, 0.38], [0.85, 0.36, 0.07]);
     for (const p of sh.props) {
+      m.lift = p.z || 0;
       if (p.kind === 'tyres') {
         // A gravestone and a cross, a little askew, facing the track.
         const a = rand() * Math.PI;
@@ -1854,6 +2375,7 @@
         }
       }
     }
+    m.lift = sh.stand?.z || 0;
     if (sh.stand) {
       // Crumbling stone seats, rising away from the track, full of ghosts (pale, glowing) and
       // skeletons (bone), under a roof in the room's colour.
@@ -1896,6 +2418,7 @@
     const i = sh.startI;
     const a = sh.head[i];
     const span = tr.width / 2 + 12;
+    m.lift = sh.zs[i];
     const P = (off, z) => [sh.xs[i] + sh.nx[i] * off, sh.ys[i] + sh.ny[i] * off, z];
     for (const side of [-1, 1]) {
       const [x, y] = P(span * side, 0);
@@ -2420,7 +2943,7 @@
     const top = document.createElement('canvas');
     top.width = cv.width;
     top.height = cv.height;
-    drawStatic(top, tr, sx, sy, { scenery: false });
+    drawStatic(top, tr, sx, sy, { scenery: false, under: true });
     c.drawImage(top, 0, 0);
     // A soft shadow under the barriers and the scenery.
     const sh = shapeOf(tr);
@@ -2512,7 +3035,8 @@
       this.ground = prog(GROUND_VS, GROUND_FS);
       this.model = prog(MODEL_VS, MODEL_FS);
       this.sprite = prog(PROP_VS, PROP_FS);
-      if (!this.ground || !this.model || !this.sprite) return false;
+      this.road = prog(ROAD_VS, ROAD_FS);
+      if (!this.ground || !this.model || !this.sprite || !this.road) return false;
       this.quadBuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -2571,11 +3095,19 @@
       if (wx.moon) moonFor(tr);
       this.skyTex = texture(skyCanvas(pal, wx), true, false);
       const sh = shapeOf(tr);
+      this.sh = sh;
       const scene = sceneModel(tr, sh, pal, wx);
       this.sceneBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.sceneBuf);
       gl.bufferData(gl.ARRAY_BUFFER, scene, gl.STATIC_DRAW);
       this.sceneCount = scene.length / 7;
+      // The road over the hills (nothing on a flat track: the ground's enough).
+      const road = sh.hilly ? roadModel(sh) : new Float32Array(0);
+      this.roadBuf ||= gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.roadBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, road, gl.STATIC_DRAW);
+      this.roadCount = road.length / 5;
+      this.hints = {}; // id -> where on the road each car was last frame (see roadAt)
       // The room's props: their picture, and a cut-out each (two triangles: x, y, how far to the
       // side, how high, and where in the picture).
       const art = propArt(pal);
@@ -2600,10 +3132,10 @@
         if (p.kind !== 'venue') continue;
         const it = art.items[p.which % art.items.length];
         const [x, y] = propAt(p, it);
-        cutout(it, x, y, it.size, it.lift);
+        cutout(it, x, y, it.size, (it.lift || 0) + (p.z || 0));
       }
       const hs = this.spooky ? hauntOf(tr) : null;
-      for (const p of hs ? hs.things : []) if (art.byKind[p.kind]) cutout(art.byKind[p.kind], p.x, p.y, p.size, 0);
+      for (const p of hs ? hs.things : []) if (art.byKind[p.kind]) cutout(art.byKind[p.kind], p.x, p.y, p.size, groundZ(sh, p.x, p.y));
       this.propBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.propBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v.concat(lit)), gl.STATIC_DRAW);
@@ -2679,9 +3211,12 @@
       cam.x = car[0] - F0 * back;
       cam.y = car[1] - F1 * back;
       cam.z = height + wobble * 1.4;
-      // Looking down a touch (more, from higher up, when upright: the tall screen fills with road).
-      const pitch = Math.atan(portrait ? 0.42 : 0.17);
-      const roll = cam.roll + wobble * 0.025;
+      const hill = this.hill(car, dt, fresh, back);
+      cam.z = Math.min(cam.z + hill.z, hill.ceil);
+      // Looking down a touch (more, from higher up, when upright: the tall screen fills with road),
+      // and on the hills up or down the slope ahead, tipped with the banking.
+      const pitch = Math.atan(portrait ? 0.42 : 0.17) - hill.pitch;
+      const roll = cam.roll + wobble * 0.025 + hill.roll;
       const cp = Math.cos(pitch), sp = Math.sin(pitch);
       const cr = Math.cos(roll), sr = Math.sin(roll);
       // forward, right and up, for the ground's rays and the models' matrix alike
@@ -2710,6 +3245,79 @@
       m[1] = fy * u[0]; m[5] = fy * u[1]; m[9] = fy * u[2]; m[13] = -fy * dot(u);
       m[2] = A * f[0]; m[6] = A * f[1]; m[10] = A * f[2]; m[14] = -A * dot(f) + B;
       m[3] = f[0]; m[7] = f[1]; m[11] = f[2]; m[15] = -dot(f);
+    },
+
+    // On the hills: where your own car is, up and down (and its hop over a sharp crest: only for
+    // show, the server's car never leaves the road; a bump as it lands), and how the camera
+    // follows: up and down after it, pitched with the slope, tipped with the banking, and never up
+    // into the bridge from under it. All zeros on a flat track.
+    hill(car, dt, fresh, back) {
+      const cam = this.cam;
+      const out = (this.hillOut ||= { z: 0, pitch: 0, roll: 0, ceil: 1e4 });
+      const me = (this.mine ||= { z: 0, along: 0, across: 0, vz: 0, road: 0, air: 0 });
+      const sh = this.sh;
+      if (!sh?.hilly) {
+        out.z = out.pitch = out.roll = 0;
+        out.ceil = 1e4;
+        me.z = me.along = me.across = 0;
+        return out;
+      }
+      const id = PB.state.me;
+      const r = roadAt(sh, car[0], car[1], car[2], fresh ? -1 : this.hints[id] ?? -1);
+      this.hints[id] = r.i;
+      const vr = fresh ? 0 : (r.z - me.road) / dt;
+      me.road = r.z;
+      me.along = r.along;
+      me.across = r.across;
+      const ceilCar = sh.ceil[r.i];
+      if (fresh || Math.abs(me.z - r.z) > 30) {
+        me.z = r.z;
+        me.vz = 0;
+        me.air = 0;
+      } else {
+        const G = 220; // (lighter than real: over the sharp crests, flat out, you get a little air)
+        const z = me.z + me.vz * dt - (G * dt * dt) / 2;
+        me.vz -= G * dt;
+        if (z <= r.z) {
+          if (me.air > 0.12 && vr - me.vz > 30) cam.shake = Math.min(1.6, cam.shake + (vr - me.vz) / 110);
+          me.z = r.z;
+          me.vz = Math.min(vr, 120);
+          me.air = 0;
+        } else {
+          me.z = z;
+          me.air += dt;
+        }
+      }
+      const k = (rate) => (fresh ? 1 : 1 - Math.exp(-dt * rate));
+      cam.hz = (cam.hz ?? me.z) + (me.z - (cam.hz ?? me.z)) * k(7);
+      cam.slope = (cam.slope ?? r.along) + (r.along - (cam.slope ?? r.along)) * k(4);
+      cam.tilt = (cam.tilt ?? 0) + (-Math.asin(Math.max(-0.5, Math.min(0.5, r.across))) - (cam.tilt ?? 0)) * k(5);
+      // (The road under the camera, behind the car.)
+      const rc = roadAt(sh, cam.x, cam.y, car[2], r.i);
+      const base = Math.max(rc.z + 2, cam.hz - cam.slope * back * 0.6);
+      const ceil = Math.min(sh.ceil[rc.i], ceilCar);
+      cam.ceil = (cam.ceil ?? ceil) + (ceil - (cam.ceil ?? ceil)) * k(8);
+      out.z = base;
+      out.pitch = Math.atan(cam.slope) * 0.85;
+      out.roll = cam.tilt * 0.8;
+      out.ceil = cam.ceil;
+      return out;
+    },
+
+    // How high a car is on the hills, and how the road under it tilts it (for its model, and its
+    // name over it). Your own car from hill() (with its hop), the rest from where they are.
+    carHill(id, c, mine) {
+      const sh = this.sh;
+      if (!sh?.hilly) { onRoad.z = onRoad.along = onRoad.across = 0; return onRoad; }
+      if (mine && this.mine) {
+        onRoad.z = this.mine.z;
+        onRoad.along = this.mine.along;
+        onRoad.across = this.mine.across;
+        return onRoad;
+      }
+      const r = roadAt(sh, c[0], c[1], c[2], this.hints[id] ?? -1);
+      this.hints[id] = r.i;
+      return r;
     },
 
     // A point in the world to the 2D canvas (false if it's behind the camera).
@@ -2804,9 +3412,34 @@
       gl.enable(gl.DEPTH_TEST);
       gl.depthMask(true);
       gl.clear(gl.DEPTH_BUFFER_BIT);
+      // On the hills: the road and its embankments, over the flat ground.
+      if (this.roadCount) {
+        const R = this.road;
+        gl.useProgram(R.p);
+        gl.uniformMatrix4fv(R.u.uVP, false, this.vp);
+        gl.uniform3f(R.u.uCam, cam.x, cam.y, cam.z);
+        gl.uniform1f(R.u.uFar, far);
+        gl.uniform3f(R.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
+        gl.uniform2f(R.u.uWorld, s.game.track.world.w, s.game.track.world.h);
+        gl.uniform1f(R.u.uHalf, s.game.track.width / 2);
+        gl.uniform1f(R.u.uWet, wx.wet || 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.groundTex);
+        gl.uniform1i(R.u.uGround, 0);
+        weather(R);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.roadBuf);
+        gl.enableVertexAttribArray(R.aP);
+        gl.enableVertexAttribArray(R.aA);
+        gl.vertexAttribPointer(R.aP, 3, gl.FLOAT, false, 20, 0);
+        gl.vertexAttribPointer(R.aA, 2, gl.FLOAT, false, 20, 12);
+        gl.drawArrays(gl.TRIANGLES, 0, this.roadCount);
+        gl.disableVertexAttribArray(R.aP);
+        gl.disableVertexAttribArray(R.aA);
+      }
       gl.useProgram(M.p);
       gl.uniformMatrix4fv(M.u.uVP, false, this.vp);
       gl.uniform3f(M.u.uCam, cam.x, cam.y, cam.z);
+      gl.uniform3f(M.u.uH, 0, 0, 0);
       gl.uniform1f(M.u.uFar, far);
       gl.uniform3f(M.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
       gl.uniform1f(M.u.uGlow, wx.lamps ? 1 : 0);
@@ -2834,6 +3467,8 @@
         if (i !== mine && (c[0] - cam.x) ** 2 + (c[1] - cam.y) ** 2 < 400) continue;
         const col = this.colour(ids[i]);
         gl.uniform4f(M.u.uM, c[0], c[1], Math.cos(c[2]), Math.sin(c[2]));
+        const h = this.carHill(ids[i], c, i === mine);
+        gl.uniform3f(M.u.uH, h.z, h.along, h.across);
         gl.uniform3f(M.u.uTint, col[0], col[1], col[2]);
         gl.uniform1f(M.u.uBrake, c[3] & 8 ? 1 : 0);
         const mesh = this.meshes?.[ids[i]];
@@ -2887,6 +3522,8 @@
         gl.depthMask(false);
         gl.uniform1f(M.u.uGhost, ph.fade);
         gl.uniform4f(M.u.uM, ph.x, ph.y, Math.cos(ph.a), Math.sin(ph.a));
+        const ph3 = this.carHill('phantom', [ph.x, ph.y, ph.a], false);
+        gl.uniform3f(M.u.uH, ph3.z, ph3.along, ph3.across);
         gl.uniform3f(M.u.uTint, 0.7, 1, 0.85);
         gl.uniform1f(M.u.uBrake, 0);
         gl.enableVertexAttribArray(M.aP);
@@ -2944,7 +3581,7 @@
           c.globalAlpha = 1;
           continue;
         }
-        if (!this.project(car[0], car[1], 15) || at.d > 520) continue;
+        if (!this.project(car[0], car[1], 15 + this.carHill(ids[i], car, false).z) || at.d > 520) continue;
         const size = Math.max(16 * this.k, Math.min(46 * this.k, at.s * 13));
         c.globalAlpha = at.d > 380 ? (520 - at.d) / 140 : 1;
         c.drawImage(this.avatar(ids[i]), at.x - size / 2, at.y - size, size, size);
@@ -4018,6 +4655,7 @@
       <div class="turn">🏎️ Race ${g.race}<span>${esc(g.track.name)} · ${g.laps} laps · place your bets</span></div>
       ${s.tv ? '' : stage(s, { mini: true })}
       <div class="card tr-place-bet">
+        ${g.autoBet && g.myBet ? `<p class="center tr-autobet">✓ You: <b>${PB.plural(g.myBet.sips, 'sip')} on yourself</b> <span class="muted">· change it below if you like</span></p>` : ''}
         <div class="tr-pick">${g.racers.map((id) => `
           <button class="${draft.car === id ? 'selected' : ''}" data-tr="pick" data-car="${esc(id)}">
             <span class="tr-pick-car">${PB.avatar(id)}${carPic(id)}</span><span>${esc(name(id))}${id === s.me ? ' (you)' : ''}</span>
@@ -4037,7 +4675,7 @@
       ${missing.length ? `<p class="center muted">Still betting: ${missing.map((p) => esc(name(p.id))).join(', ')}</p>` : ''}
       ${s.isHost
         ? `<button data-act="startRace" ${anyBets ? '' : 'disabled'} ${missing.length ? `data-confirm="${missing.length} still betting. Start anyway?"` : ''}>${anyBets ? '🚦 Start the race' : 'Waiting for bets'}</button>`
-        : `<p class="center muted">${esc(name(s.hostId))} starts the race once everyone has bet</p>`}
+        : `<p class="center muted">${esc(name(s.hostId))} starts the race when everyone's ready</p>`}
       ${s.tv ? '' : board(s)}`;
   }
 

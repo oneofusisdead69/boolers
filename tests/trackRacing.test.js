@@ -27,7 +27,7 @@ test('every track is a closed loop with room between its parts', () => {
     for (let i = 0; i < tr.count; i++) {
       const x = tr.xs[i];
       const y = tr.ys[i];
-      const edge = game.WIDTH / 2 + game.BAND;
+      const edge = tr.width / 2 + tr.band;
       assert.ok(x > 40 && x < 960 && y > 40 && y < 585, `${id}: stays on the screen`);
       // The centreline is where it says it is.
       assert.ok(game.locate(tr, x, y).dist < 1, `${id}: ${i} on the line`);
@@ -36,29 +36,97 @@ test('every track is a closed loop with room between its parts', () => {
   }
 });
 
-test('every track: parts of the loop stay apart, and bots lap it in 12 to 32 seconds', () => {
-  const edge = game.WIDTH / 2 + game.BAND;
+test('every track: parts of the loop stay apart, and bots lap it in 12 to 32 seconds (40 on a hard map)', () => {
   for (const id of Object.keys(game.TRACKS)) {
     const tr = game.trackOf(id);
-    // Well apart (a wall between) wherever the loop comes back near itself.
+    const edge = tr.width / 2 + tr.band;
+    // Well apart (a wall between) wherever the loop comes back near itself, except where it
+    // crosses itself on purpose (the figure eight): there one part is on a bridge, well over the
+    // other.
     const far = Math.round(250 / tr.step);
+    let crossings = 0;
     for (let i = 0; i < tr.count; i++) {
       for (let j = i + far; j < tr.count && tr.count - (j - i) >= far; j++) {
-        assert.ok(Math.hypot(tr.xs[i] - tr.xs[j], tr.ys[i] - tr.ys[j]) > edge * 2, `${id}: parts ${i} and ${j} too close`);
+        if (Math.hypot(tr.xs[i] - tr.xs[j], tr.ys[i] - tr.ys[j]) > edge * 2) continue;
+        assert.ok(tr.crossing, `${id}: parts ${i} and ${j} too close`);
+        assert.ok(Math.abs(tr.zs[i] - tr.zs[j]) >= 30, `${id}: parts ${i} and ${j} cross without a bridge between`);
+        crossings++;
       }
     }
-    const t = setup(game, 3, { track: id, laps: 2 });
-    startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
-    for (const p of t.room.players) p.bot = 'baller';
-    runRace(t);
-    const g = t.room.game;
-    assert.strictEqual(g.trackId, id);
-    for (const r of g.result) {
-      assert.ok(r.time != null, `${id}: ${r.id} finished`);
-      assert.ok(r.time / 2 > 12 && r.time / 2 < 32, `${id}: a lap in ${(r.time / 2).toFixed(1)}s`);
+    assert.strictEqual(crossings > 0, tr.crossing, `${id}: crosses itself only if it says so`);
+    const max = tr.hard ? 40 : 32;
+    const levels = tr.hard ? ['booler', 'baller', 'npc'] : ['baller'];
+    for (const level of levels) {
+      const t = setup(game, 3, { track: id, laps: 2 });
+      startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+      for (const p of t.room.players) p.bot = level;
+      runRace(t);
+      const g = t.room.game;
+      assert.strictEqual(g.trackId, id);
+      for (const r of g.result) {
+        assert.ok(r.time != null, `${id}: ${r.id} (${level}) finished`);
+        assert.ok(r.time / 2 > 12 && r.time / 2 < max, `${id}: a lap in ${(r.time / 2).toFixed(1)}s (${level})`);
+      }
+      t.cleanup();
+    }
+  }
+});
+
+test('the normal tracks stay flat; the hard maps are narrower, hilly and in a mix of their own', () => {
+  assert.ok(game.NORMAL_IDS.length >= 6 && game.HARD_IDS.length >= 3);
+  for (const id of game.NORMAL_IDS) {
+    const tr = game.trackOf(id);
+    assert.ok(tr.zs.every((z) => z === 0) && !tr.hilly && tr.width === game.WIDTH && tr.band === game.BAND, `${id} as it was`);
+    assert.ok(game.view(setup(game, 2, { track: id }).room, { id: 'p0' }).track.line.every((p) => p.length === 2));
+  }
+  for (const id of game.HARD_IDS) {
+    const tr = game.trackOf(id);
+    assert.ok(tr.hilly && tr.width < game.WIDTH, `${id}: narrow and hilly`);
+  }
+  const choices = game.options.find((o) => o.id === 'track').choices;
+  assert.ok(choices.some((c) => c.value === 'hard' && c.label.startsWith('🔥')));
+  assert.ok(game.HARD_IDS.every((id) => choices.find((c) => c.value === id).label.startsWith('🔥')));
+  // Mix it up: normal tracks only; the hard mix: hard maps only.
+  for (const [pick, ids] of [['random', game.NORMAL_IDS], ['hard', game.HARD_IDS]]) {
+    const t = setup(game, 2, { track: pick });
+    for (let k = 0; k < 12; k++) {
+      assert.ok(ids.includes(t.room.game.trackId), `${pick}: ${t.room.game.trackId}`);
+      t.room.game.phase = 'results';
+      t.act(0, 'nextRace');
     }
     t.cleanup();
   }
+});
+
+test('figure eight: cars on the bridge and under it pass through each other, and keep their place in the race', () => {
+  const t = setup(game, 2, { track: 'figure8', laps: 2 });
+  startRace(t, [['p0', 1], ['p1', 1]]);
+  const g = t.room.game;
+  const tr = game.trackOf('figure8');
+  // The two samples where the loop crosses: one high, one low.
+  let best = null;
+  const far = Math.round(250 / tr.step);
+  for (let i = 0; i < tr.count; i++) {
+    for (let j = i + far; j < tr.count - far; j++) {
+      const d = Math.hypot(tr.xs[i] - tr.xs[j], tr.ys[i] - tr.ys[j]);
+      if (!best || d < best.d) best = { i, j, d };
+    }
+  }
+  const [hi, lo] = tr.zs[best.i] > tr.zs[best.j] ? [best.i, best.j] : [best.j, best.i];
+  assert.ok(tr.zs[hi] - tr.zs[lo] >= 30);
+  const [a, b] = g.cars;
+  const place = (c, i) => Object.assign(c, { x: tr.xs[i], y: tr.ys[i], a: tr.dir[i], vx: 0, vy: 0, seg: i, s: i * tr.step, z: tr.zs[i], cp: Math.floor((i * tr.step) / (tr.length / 8)) });
+  place(a, hi);
+  place(b, lo);
+  t.fireTimer();
+  assert.ok(Math.hypot(a.x - b.x, a.y - b.y) < 10, 'right over each other, and not pushed apart');
+  assert.ok(Math.abs(a.seg - hi) < 3 && Math.abs(b.seg - lo) < 3, 'each still on its own leg');
+  assert.ok(a.z - b.z >= 30);
+  // Driving on (a lost car is only looked for on its own level).
+  for (const c of g.cars) Object.assign(c, { gas: 1 });
+  for (let k = 0; k < 10; k++) t.fireTimer();
+  assert.ok(Math.abs(a.seg - hi) < 40 && Math.abs(b.seg - lo) < 40, 'and stays there');
+  t.cleanup();
 });
 
 test('betting: on any car in the race, up to the max', () => {
@@ -66,7 +134,9 @@ test('betting: on any car in the race, up to the max', () => {
   t.act(0, 'bet', { car: 'p0', sips: 2 });
   t.act(1, 'bet', { car: 'p0', sips: 4 });
   t.act(2, 'bet', { car: 'nobody', sips: 1 });
-  assert.deepStrictEqual(Object.keys(t.room.game.bets), ['p0']);
+  // (Everyone starts with a sip on themselves: a bet that isn't a valid one leaves that.)
+  assert.deepStrictEqual(t.room.game.bets, { p0: { pick: 'p0', sips: 2 }, p1: { pick: 'p1', sips: 1 }, p2: { pick: 'p2', sips: 1 } });
+  assert.deepStrictEqual(t.room.game.autoBets, { p1: true, p2: true });
   t.act(1, 'startRace');
   assert.strictEqual(t.room.game.phase, 'betting', 'only the host starts');
   t.cleanup();
@@ -136,14 +206,15 @@ test('nobody drives: the race is still called in the end', () => {
   t.cleanup();
 });
 
-test('a joiner before the lights gets a car; waitingOn as in betting', () => {
+test('a joiner before the lights gets a car and a sip on themselves; only the host is waited on', () => {
   const t = setup(game, 2);
   const p = { id: 'p9', name: 'Late', drinks: 0, connected: true };
   t.room.players.push(p);
   game.onJoin(t.room, p, t.ctx);
   assert.ok(t.room.game.racers.includes('p9'));
   assert.strictEqual(t.room.game.cars.length, 3);
-  assert.deepStrictEqual(game.waitingOn(t.room), ['p0', 'p1', 'p9']);
+  assert.deepStrictEqual(t.room.game.bets.p9, { pick: 'p9', sips: 1 });
+  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'everyone has a bet: the host starts when they like');
   startRace(t, [['p0', 1], ['p1', 1], ['p9', 1]]);
   assert.deepStrictEqual(game.waitingOn(t.room), []);
   t.cleanup();
@@ -220,7 +291,7 @@ test('cars: a look is checked against the lists, and anything unknown is the pla
   const fresh = setup(game, 2);
   assert.strictEqual(fresh.view(0).myLook, null, 'nobody has picked yet');
   assert.strictEqual(fresh.view(0).looks.p1.body, 'sports');
-  assert.deepStrictEqual(game.waitingOn(fresh.room), ['p0', 'p1'], 'picking a car is up to you: the bets are what count');
+  assert.deepStrictEqual(game.waitingOn(fresh.room), ['p0'], 'picking a car (or another bet) is up to you: only the host is waited on');
   t.cleanup();
   fresh.cleanup();
 });
@@ -244,6 +315,32 @@ test('cars: kept from race to race, and not changed mid-race; it makes no differ
   assert.strictEqual(t.view(2).looks.p0.body, 'hotrod');
   // Every car the same circle on the track, whatever it looks like.
   assert.ok(t.room.game.cars.every((c) => Object.keys(c).sort().join() === Object.keys(t.room.game.cars[0]).sort().join()));
+  t.cleanup();
+});
+
+test('bets: everyone starts with a sip on themselves, paid out as any bet; bots make their own', () => {
+  const t = setup(game, 3, { track: 'bar', laps: 2, lastSips: 0, multiplier: 2 });
+  const g = t.room.game;
+  assert.deepStrictEqual(g.bets, { p0: { pick: 'p0', sips: 1 }, p1: { pick: 'p1', sips: 1 }, p2: { pick: 'p2', sips: 1 } });
+  assert.strictEqual(t.view(1).myBet.sips, 1);
+  assert.strictEqual(t.view(1).autoBet, true);
+  t.act(1, 'bet', { car: 'p0', sips: 3 });
+  assert.strictEqual(t.view(1).autoBet, false, 'changed');
+  t.act(0, 'startRace');
+  assert.strictEqual(g.phase, 'countdown', 'the host can start straight away');
+  for (let i = 0; i < 3; i++) t.fireTimer();
+  runRace(t);
+  const winner = g.result[0].id;
+  for (const p of t.room.players) {
+    const b = g.bets[p.id];
+    if (b.pick === winner) assert.strictEqual(g.payout[p.id].total, b.sips * 2, `${p.id} hands out`);
+    else assert.strictEqual(p.drinks, b.sips, `${p.id} drinks their bet`);
+  }
+  // Next race: a sip on yourself again.
+  if (g.phase === 'payout') for (const id of Object.keys(g.payout)) game.handle(t.room, t.room.players.find((p) => p.id === id), { type: 'give', alloc: game.bot(t.room, t.room.players.find((p) => p.id === id), t.ctx, 0.6)?.alloc || JSON.stringify({ [t.room.players.find((p) => p.id !== id).id]: g.payout[id].total }) }, t.ctx);
+  t.room.game.phase = 'results';
+  t.act(0, 'nextRace');
+  assert.deepStrictEqual(g.bets.p1, { pick: 'p1', sips: 1 });
   t.cleanup();
 });
 

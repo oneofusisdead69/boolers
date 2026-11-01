@@ -16,6 +16,7 @@ const { pick, steady } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
+const giving = require('../lib/give');
 
 const ROUND_TYPES = ['color', 'highlow', 'inout', 'suit'];
 const ROUND_SIPS = [1, 2, 3, 4];
@@ -49,7 +50,22 @@ function guessRight(type, guess, card, refs) {
 
 // Next player to guess, going round the table one round at a time. Anyone who isn't connected
 // sits that turn out. After round 4, on to the pyramid.
+// A right guess hands out sips, on the clock: when it's up (or the host skips the wait) they go out
+// at random and the next guess is up.
+function giveClock(room, ctx) {
+  const g = room.game;
+  const give = g.give;
+  giving.clock(room, ctx, () => g.phase === 'give' && g.give === give && autoGive(room, ctx));
+}
+function autoGive(room, ctx, skipped = false) {
+  const g = room.game;
+  giving.auto(room, ctx, g.give.from, g.give.sips, g.give.reason, { skipped });
+  g.give = null;
+  nextGuesser(room, ctx);
+}
+
 function nextGuesser(room, ctx, from = room.game.turnIdx + 1) {
+  ctx.clearTimer(room); // (a give's clock)
   const g = room.game;
   let i = from;
   for (let guard = 0; guard <= g.order.length * (ROUND_TYPES.length + 1); guard++) {
@@ -290,14 +306,18 @@ module.exports = {
       if (right) {
         g.give = { from: me, sips, reason: 'right guess' };
         g.phase = 'give';
+        giveClock(room, ctx);
       } else {
         ctx.drink(room, me, sips, 'wrong guess');
         nextGuesser(room, ctx);
       }
     } else if (action.type === 'give' && g.phase === 'give' && me === g.give.from) {
-      if (!ctx.giveTo(room, me, action.targetId, g.give.sips, g.give.reason)) return;
+      // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
+      if (!giving.give(room, ctx, me, action, g.give.sips, g.give.reason)) return;
       g.give = null;
       nextGuesser(room, ctx);
+    } else if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) {
+      autoGive(room, ctx, true);
     } else if (action.type === 'flip' && g.phase === 'pyramid' && me === room.hostId) {
       settleClaims(room, ctx);
       if (g.pyramid.flipped >= pyramidSize(g)) return startBus(room, ctx);
@@ -364,6 +384,8 @@ module.exports = {
     else if (g.phase === 'give' && !ctx.turns.isActive(room, g.give.from)) {
       g.give = null;
       nextGuesser(room, ctx);
+    } else if (g.phase === 'give' && !room.timer) {
+      giveClock(room, ctx); // (lost in a restart)
     } else if (g.phase === 'bus' && !ctx.turns.isActive(room, g.bus.riderId)) {
       // The rider's gone: whoever's here with the most cards gets on instead.
       const here = g.order.filter((id) => ctx.turns.isActive(room, id));

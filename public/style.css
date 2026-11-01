@@ -166,6 +166,69 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 }
 .turn.mine { background: var(--accent); color: var(--accent-text); }
 .turn span { display: block; font-size: 0.95rem; font-weight: 500; opacity: 0.8; }
+/* PB.turn: whose turn, in their colour. Yours is a big solid banner (it pulses when it's just become
+   yours); anyone else's is their avatar and name on a tint of their colour. */
+.turn[style*="--pc"].mine {
+  background: var(--pc);
+  color: var(--pc-ink, #fff);
+  font-size: clamp(1.5rem, 8vw, 1.9rem);
+  letter-spacing: 0.04em;
+  padding: 14px 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc) 45%, transparent), 0 8px 28px color-mix(in srgb, var(--pc) 45%, transparent);
+}
+.turn[style*="--pc"].mine .av { background: color-mix(in srgb, #fff 35%, transparent); box-shadow: inset 0 0 0 2px var(--pc-ink, #fff); }
+.turn[style*="--pc"].mine span { letter-spacing: 0; font-size: 1rem; opacity: 0.9; }
+.turn.mine.fresh { animation: turn-pop 0.5s ease-out 2; }
+@keyframes turn-pop { 50% { transform: scale(1.045); } }
+.turn[style*="--pc"].theirs {
+  background: color-mix(in srgb, var(--pc) 16%, var(--card));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pc) 55%, transparent);
+  font-size: 1.25rem;
+}
+.turn.theirs .turn-who { flex-wrap: wrap; }
+.turn.theirs .turn-who .av { font-size: 1.05rem; }
+.turn .turn-next { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; font-size: 0.85rem; font-weight: 600; opacity: 0.85; letter-spacing: 0; }
+.turn .turn-next .av { font-size: 0.65rem; }
+.turn .turn-next.you { opacity: 1; font-weight: 800; color: var(--accent-ink, var(--accent)); }
+/* The edge of the screen glows in your colour while the game is waiting on you (app.js). */
+body.my-turn::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: inset 0 0 0 4px var(--me-color, var(--accent)), inset 0 0 28px color-mix(in srgb, var(--me-color, var(--accent)) 55%, transparent);
+}
+
+/* PB.giveSips: handing out sips. */
+.give-panel { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pc, var(--accent)) 60%, transparent); }
+.give-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 1.15rem; }
+.give-ask { color: var(--muted); font-size: 0.9rem; margin-top: -6px; }
+.give-people { display: flex; flex-direction: column; gap: 6px; }
+.give-row { display: flex; gap: 6px; align-items: stretch; }
+.give-row .give-who {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--card-2);
+  color: var(--text);
+  border: 2px solid transparent;
+  min-width: 0;
+}
+.give-row .give-who span:not(.av) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.give-row.on .give-who { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 22%, var(--card-2)); }
+.give-n { min-width: 1.9em; padding: 2px 8px; border-radius: 99px; background: var(--pc); color: #141018; text-align: center; font-size: 1.1rem; }
+.give-step { width: 48px; flex: none; padding: 8px 0; font-size: 1.3rem; }
+.give-tools { display: flex; gap: 8px; }
+.give-tools button { padding: 10px; font-size: 0.95rem; }
+.give-done { font-size: 1.15rem; }
+.give-note { color: var(--muted); font-size: 0.8rem; text-align: center; margin-top: -4px; }
+.give-wait { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.give-wait-who { display: flex; gap: 4px; justify-content: center; }
+.give-wait .link { width: auto; }
 
 .option { display: flex; flex-direction: column; gap: 6px; }
 .segmented { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -260,7 +323,14 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   animation: pulse 0.6s ease-in-out 2;
 }
 .drink-alert[hidden] { display: none; }
+/* Your turn: a strip across the top (app.js), leaving the controls below free to use. */
+.drink-alert.compact { inset: max(8px, env(safe-area-inset-top)) 8px auto; padding: 10px 14px; gap: 2px; border-radius: 14px; font-size: 0.95rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); animation: none; }
+.drink-alert.compact .big { font-size: 1.5rem; }
+.drink-alert.compact .drink-from { font-size: 1rem; }
+.drink-alert.compact small { margin-top: 2px; }
 .drink-alert .big { font-size: 3rem; font-weight: 900; }
+.drink-alert .drink-from { font-size: 1.5rem; }
+.drink-alert .drink-from b { font-weight: 900; }
 .drink-alert small { opacity: 0.75; margin-top: 16px; }
 
 /* ---------- Full-screen game layout ---------- */
@@ -278,6 +348,9 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .fs-header { display: flex; gap: 8px; align-items: stretch; }
 .fs-header .turn { flex: 1; font-size: 1.05rem; padding: 8px 12px; }
 .fs-header .turn span { font-size: 0.85rem; }
+.fs-header .turn[style*="--pc"].mine, .fs-header .turn[style*="--pc"].theirs { font-size: 1.1rem; padding: 8px 10px; letter-spacing: 0.02em; }
+.fs-header .turn .turn-who { flex-wrap: nowrap; }
+.fs-header .turn .turn-who .av { font-size: 0.75rem; }
 .exit-menu { position: relative; display: flex; }
 .exit-menu summary { list-style: none; display: flex; align-items: center; border-radius: 12px; cursor: pointer; }
 .exit-menu summary::-webkit-details-marker { display: none; }
@@ -557,6 +630,10 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .kc-slot .pcard { box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
 /* Your ring: touching it never scrolls the page, selects text or opens the long-press menu. */
 .kc-broke { color: var(--danger); font-weight: 800; font-size: 1.1rem; margin: 4px 0; }
+/* On the TV: whose turn it is, big, in their colour (and who's next). */
+.kc-up { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 12px; padding: 10px 18px; border-radius: 16px; background: color-mix(in srgb, var(--pc) 22%, var(--card)); box-shadow: inset 0 0 0 3px var(--pc), 0 0 24px color-mix(in srgb, var(--pc) 50%, transparent); font-size: 1.5rem; }
+.kc-up b { color: var(--pc); font-weight: 900; }
+.kc-up small { width: 100%; text-align: center; color: var(--muted); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .kc-ring.active { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
 /* A picked card slides out of the ring toward the cup. */
 .kc-slot.picked { z-index: 2; transform: rotate(var(--a)) translateY(calc(-1 * var(--r) + 30px)) scale(1.15); }
@@ -1132,9 +1209,12 @@ html[data-room="castleTournament"] .hz-infield { fill: #3f7a30; }
 .bp-rack svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .bp-felt { position: absolute; inset: 0; background: var(--felt, #1f6a3a); }
 .bp-edge { stroke: var(--rim, #f4f4f4); stroke-width: 7; fill: none; stroke-linecap: round; }
-.bp-aim circle { fill: none; stroke: #ffd23f; stroke-width: 0.8; }
-.bp-aim path { stroke: #ffd23f; stroke-width: 0.8; }
-.bp-aim.big circle, .bp-aim.big path { stroke-width: 3; }
+/* Beer Pong's swipe: a faint arc across the close-up, and a faint arrow up from the ball, the way
+   the swipe's heading (no crosshair: the swipe's the aim). A thrown pad takes no more. */
+.bp-arc { fill: none; stroke: rgba(255, 255, 255, 0.45); stroke-width: 3; stroke-dasharray: 2 8; stroke-linecap: round; }
+.bp-arrow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.bp-arrow path { fill: none; stroke: rgba(255, 255, 255, 0.4); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.dt-pad.bp-pad.thrown { pointer-events: none; }
 .bp-fly.fresh { animation: bp-fly 1.1s cubic-bezier(0.35, 0.1, 0.45, 1) both; }
 @keyframes bp-fly { 0% { translate: var(--fx) var(--fy); scale: 1.4; } 50% { scale: 3; } 100% { translate: 0 0; scale: 1; } }
 .bp-ball.in .bp-fly { opacity: 0.85; }

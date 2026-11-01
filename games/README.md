@@ -87,7 +87,8 @@ Shared helpers a game can `require`:
 | `lib/random.js` | `shuffle(list)`, `gauss()`, `pick(list)`, `clamp(n, lo, hi)`, `steady(...parts)` (the same number in [0, 1) for the same parts) |
 | `lib/options.js` | `optionValues(declared, options)` |
 | `lib/teams.js` | `TEAMS` (names, colours), `deal(ids, count)`, `teamOf(g, id)`, `move(g, id)`, `join(g, id)`, `view(g)` for games kept in `g.teams` |
-| `lib/betting.js` | Betting on a race and paying out (Ace Race, Horse Race) |
+| `lib/betting.js` | Betting on a race and paying out (Ace Race, Horse Race, Track Racing) |
+| `lib/give.js` | Handing out sips: `give(room, ctx, fromId, action, total, reason)` takes the phone's `{ targetId }` (all to one) or `{ alloc }` (a split); `clock(room, ctx, onTimeout)` and `auto(...)` so a quiet giver's sips go out at random (`ctx.giveMs`, none in pass and play). Pair it with `PB.giveSips` and a host-only `skipGive` action |
 | `lib/bots.js` | `pickHuman(room, exceptId, candidates)`: who a bot hands sips to |
 
 Games also run in the browser (pass and play, `lib/bundle.js`): a `lib/` file a game requires must
@@ -125,10 +126,11 @@ Add `data-confirm="Sure?"` to ask first. The host's "End game" button is added f
 |---|---|
 | `PB.card(card, { size: 'sm' | 'lg', faceDown })` | A playing card (null = card back) |
 | `PB.dice([3, 5], { rolling })` | Dice faces, with an optional roll animation |
-| `PB.turn(playerId, subtitle)` | "Your turn" / "Bea's turn" banner |
+| `PB.turn(playerId, subtitle, { next })` | Big "YOUR TURN" in your colour / "Waiting for Bea…" banner; `next` adds who's up after them (`PB.nextUp(order, id)`) |
+| `PB.giveSips(s, { from, sips, key, title })` | The give panel (tap someone for all of them, − / + to split, Split evenly, Random, Give), or for everyone else who they're waiting on. Sends `give` with `alloc`, for `lib/give.js` |
 | `PB.playerPicker(action, { exclude, selected, extra })` | A grid of player buttons that sends `{ type: action, targetId }` |
 | `PB.timer()` | Countdown for the current `ctx.setTimer` |
-| `PB.flickPad(el, { aim, drag, held, onAim, send, onThrow, perfect })` | A throwing pad: drag to aim, flick up to throw (Darts, Beer Pong, Quarters; see `public/pb.js`). Send the rules' own `perfect` slack in the view so the readout agrees with the server |
+| `PB.flickPad(el, { aim, drag, held, onAim, send, onThrow, perfect })` | A throwing pad: drag to aim, flick up to throw (Darts, Quarters; see `public/pb.js`). With `swipe: true`, one swipe up is the whole throw, its lean the aim (Beer Pong). Send the rules' own `perfect` slack in the view so the readout agrees with the server |
 | `PB.feed(n)` | The last n activity lines |
 | `PB.scoreboard()` | Sip totals |
 | `PB.avatar(id, size)` | The player's emoji avatar in their colour (`size`: `''`, `'sm'`, `'lg'`) |

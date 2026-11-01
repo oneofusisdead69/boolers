@@ -119,14 +119,56 @@ test("jockey mode: one rider per horse, and the dial changes your horse's speed"
     t.act(1, 'ride', { hit: 'toString' });
     assert.deepStrictEqual([g.mult['3'], g.mult['2']], [1, 0.75]);
     for (let i = 0; i < 20; i++) { now += 300; t.act(0, 'ride', { hit: 'green' }); }
-    assert.strictEqual(g.mult['1'], 2.2, 'speed tops out');
+    assert.ok(g.mult['1'] > 2.2 && g.mult['1'] < 2.8, `past ×2 it gets harder (×${g.mult['1']})`);
   } finally {
     Date.now = realNow;
   }
-  // A horse ridden at ×2.2 aims for 2.2 times the pace and pulls away.
+  // A horse ridden past ×2 aims for that much more than the pace and pulls away.
   for (let i = 0; i < 40; i++) game.tick(t.room, t.ctx);
   assert.ok(g.vel['1'] > Math.max(...['2', '3', '4', '5', '6'].map((id) => g.vel[id])) * 1.3);
   t.cleanup();
+});
+
+test('jockey mode: no top speed, but each green past ×2 is worth exponentially less', () => {
+  const { speedAfter } = game;
+  assert.strictEqual(speedAfter(1, 'green'), 1.12, 'below ×2, the full boost');
+  assert.strictEqual(speedAfter(1.9, 'green'), 2.02);
+  assert.ok(Math.abs(speedAfter(2.25, 'green') - 2.31) < 1e-9, 'half the boost at ×2.25');
+  assert.ok(Math.abs(speedAfter(2.5, 'green') - 2.53) < 1e-9, 'a quarter at ×2.5');
+  assert.strictEqual(speedAfter(3, 'red'), 2.75, 'a red still costs the same');
+  assert.strictEqual(speedAfter(0.5, 'red'), 0.4, 'never slower than the least');
+  // Nothing stops it: greens in a row keep climbing, but slowly.
+  let m = 1;
+  const at = [];
+  for (let i = 1; i <= 400; i++) {
+    const next = speedAfter(m, 'green');
+    assert.ok(next > m, 'every green is still worth something');
+    m = next;
+    if (i % 100 === 0) at.push(m);
+  }
+  assert.ok(at[0] > 3 && at[0] < 3.5, `×${at[0]} after 100`);
+  assert.ok(at[3] - at[2] < at[1] - at[0], 'each hundred adds less');
+  assert.ok(at[3] < 4, 'far past ×2 is rare');
+});
+
+test('jockey mode: taking a horse places the least bet on it, which counts as a bet', () => {
+  const t = setup(game, 3, { jockey: true });
+  const g = t.room.game;
+  t.act(1, 'bet', { horse: '3' });
+  assert.deepStrictEqual(g.bets.p1, { pick: '3', sips: 1 });
+  t.act(1, 'bet', { horse: '3', sips: 4 }); // raised
+  t.act(1, 'bet', { horse: '5' }); // moved: the bet goes with them
+  assert.deepStrictEqual(g.bets.p1, { pick: '5', sips: 4 });
+  t.act(2, 'bet', { horse: '5' }); // ridden
+  assert.strictEqual(g.bets.p2, undefined);
+  t.act(0, 'bet', { horse: '1' }).act(2, 'bet', { horse: '2' });
+  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'everyone has bet: the host starts');
+  // Without jockey mode a bet still needs its sips.
+  const u = setup(game, 2);
+  u.act(1, 'bet', { horse: '3' });
+  assert.deepStrictEqual(u.room.game.bets, {});
+  t.cleanup();
+  u.cleanup();
 });
 
 test('without jockey mode, several people can back the same horse and nobody rides', () => {

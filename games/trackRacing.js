@@ -51,15 +51,53 @@ const TRACKS = {
     name: 'Chicane City',
     points: [[150, 100], [330, 100], [390, 145], [450, 100], [600, 100], [660, 145], [720, 100], [860, 110], [925, 200], [925, 420], [860, 520], [700, 525], [640, 480], [580, 525], [420, 525], [360, 480], [300, 525], [150, 520], [80, 430], [80, 190]],
   },
+  // ---- The hard maps (🔥 in the Track option, and their own Mix it up) ----
+  // Each has its own `width` (asphalt) and `band` (grass before the wall), and hills: a height
+  // for each point, [x, y, z], smoothed round the loop like the rest. Hills slow you going up and
+  // speed you up coming down; the grass slows you more than on the normal tracks.
+  //
+  // A narrow ribbon: a fast straight over a crest, two tight hairpins, then a long sweeping S along
+  // the top, up on the hill, and down the far side. Hardly any grass before the wall.
+  needle: {
+    name: 'The Needle',
+    hard: true,
+    width: 42,
+    band: 16,
+    points: [[160, 545, 0], [300, 548, 0], [400, 548, 18], [470, 548, 0], [620, 545, 0], [740, 540, 4], [805, 520, 6], [828, 478, 8], [800, 438, 10], [720, 428, 12], [560, 428, 14], [390, 428, 16], [318, 410, 18], [300, 368, 20], [325, 330, 22], [400, 315, 24], [540, 320, 26], [660, 290, 30], [775, 225, 34], [860, 160, 36], [870, 95, 34], [800, 72, 32], [680, 95, 30], [560, 140, 28], [440, 120, 24], [320, 80, 20], [200, 95, 14], [115, 160, 10], [82, 280, 6], [86, 420, 2], [105, 510, 0]],
+  },
+  // A true figure of eight: the loop crosses itself in the middle, one leg on a bridge over the
+  // other. The cars on the bridge and the ones under it never touch (they're on different levels),
+  // and where you are in the race is how far along the loop you are, never just the nearest road.
+  figure8: {
+    name: 'Figure Eight',
+    hard: true,
+    crossing: true,
+    width: 50,
+    band: 22,
+    points: [[937, 389, 0], [879, 509, 0], [794, 558, 6], [710, 545, 19], [638, 496, 32], [578, 427, 36], [525, 351, 36], [475, 273, 36], [422, 197, 36], [362, 128, 32], [290, 79, 19], [206, 66, 6], [121, 115, 0], [63, 235, 8], [63, 389, 12], [121, 509, 4], [206, 558, 0], [290, 545, 0], [362, 496, 0], [422, 427, 0], [475, 351, 0], [525, 273, 0], [578, 197, 0], [638, 128, 0], [710, 79, 0], [794, 66, 8], [879, 115, 18], [937, 235, 8]],
+  },
+  // Long, twisty and technical: a chicane, a corner that keeps tightening, a hairpin, esses, more
+  // chicanes along the top, a wiggle down the left. The walls close in all the way round.
+  spaghetti: {
+    name: 'Spaghetti Junction',
+    hard: true,
+    width: 52,
+    band: 14,
+    points: [[170, 555, 0], [300, 555, 0], [355, 555, 2], [392, 528, 4], [430, 528, 6], [468, 555, 8], [560, 557, 10], [680, 552, 14], [760, 548, 18], [835, 528, 20], [872, 490, 20], [876, 455, 18], [853, 433, 16], [812, 440, 14], [700, 450, 12], [620, 450, 10], [560, 450, 26], [500, 440, 12], [462, 395, 8], [495, 352, 8], [580, 345, 10], [650, 330, 12], [720, 352, 14], [800, 340, 16], [880, 300, 20], [895, 240, 24], [850, 215, 26], [760, 222, 28], [680, 230, 28], [610, 205, 26], [585, 150, 22], [620, 100, 18], [600, 82, 16], [520, 92, 14], [470, 118, 10], [420, 92, 6], [330, 90, 4], [270, 116, 6], [210, 90, 8], [130, 95, 8], [88, 150, 8], [95, 240, 6], [170, 262, 4], [260, 262, 6], [325, 300, 8], [325, 370, 10], [255, 410, 8], [150, 435, 4], [100, 480, 2], [110, 535, 0]],
+  },
 };
 const TRACK_IDS = Object.keys(TRACKS);
+const NORMAL_IDS = TRACK_IDS.filter((id) => !TRACKS[id].hard);
+const HARD_IDS = TRACK_IDS.filter((id) => TRACKS[id].hard);
 
 // The centreline, sampled every STEP units, with each sample's direction. Built once per track.
 const STEP = 10;
 const built = {};
 function trackOf(id) {
   if (built[id]) return built[id];
-  const pts = TRACKS[id].points;
+  const def = TRACKS[id];
+  // (A hard map's points can have a height too, [x, y, z]: it's carried round the same spline.)
+  const pts = def.points.map((p) => [p[0], p[1], p[2] || 0]);
   const n = pts.length;
   const dense = [];
   const knot = (a, b) => Math.sqrt(Math.hypot(b[0] - a[0], b[1] - a[1])) || 1e-6;
@@ -73,7 +111,7 @@ function trackOf(id) {
     const t3 = t2 + knot(P2, P3);
     for (let k = 0; k < 40; k++) {
       const t = t1 + ((t2 - t1) * k) / 40;
-      const lerp = (A, B, ta, tb) => [0, 1].map((j) => ((tb - t) * A[j] + (t - ta) * B[j]) / (tb - ta));
+      const lerp = (A, B, ta, tb) => [0, 1, 2].map((j) => ((tb - t) * A[j] + (t - ta) * B[j]) / (tb - ta));
       const A1 = lerp(P0, P1, 0, t1);
       const A2 = lerp(P1, P2, t1, t2);
       const A3 = lerp(P2, P3, t2, t3);
@@ -92,6 +130,7 @@ function trackOf(id) {
   const step = length / count;
   const xs = [];
   const ys = [];
+  const zs = [];
   let j = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
@@ -101,14 +140,32 @@ function trackOf(id) {
     const b = dense[(j + 1) % dense.length];
     xs.push(a[0] + (b[0] - a[0]) * f);
     ys.push(a[1] + (b[1] - a[1]) * f);
+    zs.push(a[2] + (b[2] - a[2]) * f);
   }
   const dir = xs.map((_, i) => {
     const k = (i + 1) % count;
     return Math.atan2(ys[k] - ys[i], xs[k] - xs[i]);
   });
-  built[id] = { id, name: TRACKS[id].name, xs, ys, dir, count, step, length };
+  // How steep the road is at each sample, going round (height per unit along: + uphill).
+  const slope = zs.map((_, i) => (zs[(i + 1) % count] - zs[(i - 1 + count) % count]) / (2 * step));
+  const width = def.width || WIDTH;
+  const band = def.band ?? BAND;
+  built[id] = {
+    id, name: def.name, xs, ys, zs, slope, dir, count, step, length,
+    width, band, edge: width / 2 + band, hard: !!def.hard, crossing: !!def.crossing,
+    hilly: zs.some((z) => z !== 0),
+    topGrass: def.hard ? CAR.topGrass * 0.82 : CAR.topGrass,
+  };
   return built[id];
 }
+
+// How high the road is at a spot on the track (`loc` from locate): 0 on the flat tracks.
+const heightAt = (tr, loc) => {
+  if (!tr.hilly) return 0;
+  const a = loc.i;
+  const f = clamp(loc.s / tr.step - a, 0, 1);
+  return tr.zs[a] + (tr.zs[(a + 1) % tr.count] - tr.zs[a]) * f;
+};
 
 // Where a point is relative to the track: the nearest spot on the centreline (its index `i`,
 // distance along the loop `s`), how far off it the point is, and which way is back to it.
@@ -116,15 +173,19 @@ function locate(tr, x, y, hint = -1) {
   let best = Infinity;
   let bi = 0;
   // Near where the car was last time, or everywhere when we don't know (or it's lost).
+  // (Where the loop crosses itself, a car lost near the crossing is only looked for on its own
+  // level: the bridge, or the road under it.)
+  const level = hint >= 0 && tr.crossing ? tr.zs[hint] : null;
   const scan = (from, to) => {
     for (let k = from; k <= to; k++) {
       const i = ((k % tr.count) + tr.count) % tr.count;
+      if (level != null && Math.abs(tr.zs[i] - level) > 15) continue;
       const d = (tr.xs[i] - x) ** 2 + (tr.ys[i] - y) ** 2;
       if (d < best) { best = d; bi = i; }
     }
   };
   if (hint >= 0) scan(hint - 12, hint + 12);
-  if (hint < 0 || best > (WIDTH / 2 + BAND + 20) ** 2) { best = Infinity; scan(0, tr.count - 1); }
+  if (hint < 0 || best > (tr.edge + 20) ** 2) { best = Infinity; scan(0, tr.count - 1); }
   // Project onto the segment either side of the nearest sample.
   let out = null;
   for (const a of [(bi - 1 + tr.count) % tr.count, bi]) {
@@ -151,6 +212,7 @@ const SUBSTEPS = 2;
 const COUNT_MS = 1000; // 3, 2, 1, GO
 const CHECKPOINTS = 8; // per lap, evenly spaced: a lap only counts if you pass them all in order
 const RADIUS = 10; // cars, for bumping into each other
+const LEVEL_GAP = 12; // ... if they're on the same level (not one on a bridge over the other)
 const GRACE_S = 20; // after the winner crosses the line, the rest have this long to finish
 const LAP_LIMIT_S = 75; // and the race is called after this long a lap, whatever happens
 const HONK_GAP_S = 2;
@@ -169,6 +231,7 @@ const CAR = {
   grip: 8, // how quickly sideways slide dies away
   gripDrift: 2.4, // ... at full lock, flat out: the back steps out
   bounce: 0.45, // walls
+  gravity: 230, // how much a slope slows you (or speeds you up): this, times how steep it is
 };
 // How fast the car turns (radians a second) at full lock, going at `speed`.
 const turnRate = (speed) => CAR.turn * clamp(Math.abs(speed) / 60, 0, 1) * (1 - CAR.turnFast * clamp(speed / CAR.top, 0, 1));
@@ -256,6 +319,7 @@ function gridCars(room, g) {
       cp: 0, // checkpoints passed
       seg: i,
       s: i * tr.step,
+      z: tr.zs[i], // how high up it is (the hard maps' hills, and the figure eight's bridge)
       steer: 0,
       gas: 0,
       brake: 0,
@@ -272,7 +336,9 @@ function newRace(room, ctx) {
   const g = room.game;
   ctx.clearTimer(room);
   g.race += 1;
-  g.trackId = g.track === 'random' ? (g.race === 1 ? pick(TRACK_IDS) : pick(TRACK_IDS.filter((id) => id !== g.trackId))) : g.track;
+  // Mixing it up: a different one each race, from the normal tracks (or from the hard maps).
+  const mixFrom = g.track === 'random' ? NORMAL_IDS : g.track === 'hard' ? HARD_IDS : null;
+  g.trackId = mixFrom ? pick(mixFrom.filter((id) => id !== g.trackId)) : g.track;
   g.racers = room.players.filter((p) => p.connected).map((p) => p.id);
   g.cars = gridCars(room, g);
   g.t = 0;
@@ -284,11 +350,21 @@ function newRace(room, ctx) {
   g.honks = [];
   g.weather = pickWeather(room);
   betting.reset(g);
+  // Everyone starts with the least bet on their own car, already placed: change it if you like.
+  g.autoBets = {};
+  for (const id of g.racers) autoBet(g, id);
+  g.bettingAt = Date.now();
   g.phase = 'betting';
   const wx = WEATHERS[g.weather];
   const name = trackOf(g.trackId).name;
   if (spooky(room) && SPOOKY_WEATHER[g.weather]) ctx.log(room, SPOOKY_WEATHER[g.weather].replace('{track}', name));
   else ctx.log(room, `${wx.emoji} ${wx.label} at ${name}: ${wx.says}`);
+}
+
+// A racer's bet before they've made one: a sip (the least there is) on themselves.
+function autoBet(g, id) {
+  if (g.bets[id] || !betting.bet(g, id, id, 1, g.racers)) return;
+  (g.autoBets ||= {})[id] = true;
 }
 
 function countdown(room, ctx) {
@@ -323,7 +399,7 @@ function botDrive(g, tr, c, skill) {
   const b = (c.bot ||= { line: 0, stuck: 0, backing: 0, wobble: 0, slip: 0 });
   const speed = Math.hypot(c.vx, c.vy);
   // Its line drifts about the centre, more for a bad driver; now and then a bad one loses focus.
-  b.line = clamp(b.line + (Math.random() - 0.5) * 6 * (1.2 - skill), -WIDTH * 0.35 * (1.1 - skill), WIDTH * 0.35 * (1.1 - skill));
+  b.line = clamp(b.line + (Math.random() - 0.5) * 6 * (1.2 - skill), -tr.width * 0.35 * (1.1 - skill), tr.width * 0.35 * (1.1 - skill));
   if (b.slip > 0) b.slip -= DT;
   else if (Math.random() < 0.004 * (1 - skill)) b.slip = 0.4 + Math.random() * 0.6;
   // Aim for a point further ahead the faster it's going.
@@ -369,8 +445,8 @@ function moveCar(g, tr, c, dt) {
   let fwd = c.vx * fx + c.vy * fy;
   let side = -c.vx * fy + c.vy * fx;
   const loc = locate(tr, c.x, c.y, c.seg);
-  c.grass = loc.dist > WIDTH / 2 + 2;
-  const top = c.grass ? CAR.topGrass : CAR.top;
+  c.grass = loc.dist > tr.width / 2 + 2;
+  const top = c.grass ? tr.topGrass : CAR.top;
   const racing = g.phase === 'race' && c.finished == null;
   // After the line a car rolls to a stop on its own.
   const gas = racing ? c.gas : 0;
@@ -383,6 +459,8 @@ function moveCar(g, tr, c, dt) {
     else fwd *= 0.8;
   }
   fwd -= fwd * CAR.drag * dt;
+  // Hills (the hard maps): slower uphill, faster down.
+  if (tr.hilly) fwd -= CAR.gravity * tr.slope[loc.i] * Math.cos(c.a - tr.dir[loc.i]) * dt;
   // Over the top speed (or onto the grass), it slows down hard.
   if (fwd > top) fwd = top + (fwd - top) * Math.exp(-4 * dt);
   if (!gas && !brake && Math.abs(fwd) < 3) fwd = 0;
@@ -404,7 +482,7 @@ function moveCar(g, tr, c, dt) {
   c.y += c.vy * dt;
   // The wall: past the grass, back you come.
   const at = locate(tr, c.x, c.y, loc.i);
-  const edge = WIDTH / 2 + BAND;
+  const edge = tr.edge;
   if (at.dist > edge) {
     const ux = (c.x - at.px) / at.dist;
     const uy = (c.y - at.py) / at.dist;
@@ -429,6 +507,7 @@ function moveCar(g, tr, c, dt) {
   const now = locate(tr, c.x, c.y, at.i);
   c.seg = now.i;
   c.s = now.s;
+  c.z = heightAt(tr, now);
   // Checkpoints, in order: the next one counts once the car is just past it.
   if (c.finished == null && g.phase === 'race') {
     const gap = tr.length / CHECKPOINTS;
@@ -453,6 +532,8 @@ function collide(g) {
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i];
       const b = cars[j];
+      // (One on the bridge and one under it pass each other.)
+      if (Math.abs(a.z - b.z) > LEVEL_GAP) continue;
       let dx = b.x - a.x;
       let dy = b.y - a.y;
       const d = Math.hypot(dx, dy);
@@ -597,7 +678,12 @@ module.exports = {
       id: 'track',
       label: 'Track',
       default: 'random',
-      choices: [{ value: 'random', label: '🔀 Mix it up' }, ...TRACK_IDS.map((id) => ({ value: id, label: TRACKS[id].name }))],
+      choices: [
+        { value: 'random', label: '🔀 Mix it up' },
+        ...NORMAL_IDS.map((id) => ({ value: id, label: TRACKS[id].name })),
+        { value: 'hard', label: '🔥 Mix it up (hard)' },
+        ...HARD_IDS.map((id) => ({ value: id, label: `🔥 ${TRACKS[id].name}` })),
+      ],
     },
     ...betting.options,
     {
@@ -647,13 +733,15 @@ module.exports = {
       return undefined;
     }
     if (action.type === 'bet' && g.phase === 'betting') {
-      betting.bet(g, me, action.car, action.sips, g.racers);
+      if (betting.bet(g, me, action.car, action.sips, g.racers) && g.autoBets) delete g.autoBets[me];
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
       g.phase = 'countdown';
       g.count = 3;
       ctx.setTimer(room, COUNT_MS, () => countdown(room, ctx));
     } else if (action.type === 'give') {
       betting.give(room, ctx, me, action.alloc, `${ctx.name(room, g.winner)} won`);
+    } else if (action.type === 'skipGive' && host) {
+      betting.skip(room, ctx); // (lib/give.js: don't wait on a winner who's gone quiet)
     } else if (action.type === 'nextRace' && (g.phase === 'results' || g.phase === 'payout') && host) {
       newRace(room, ctx);
     }
@@ -664,11 +752,15 @@ module.exports = {
     const g = room.game;
     const host = room.hostId === me.id;
     if (g.phase === 'betting') {
-      // A car of its own first (any old one), then its bet.
-      if (!g.looks[me.id] && !g.bets[me.id]) return { type: 'car', body: pick(BODIES), paint: Math.random() < 0.5 ? null : pick(PAINTS), stripe: Math.random() < 0.5 ? null : pick(PAINTS), extra: pick(EXTRAS) };
-      if (!g.bets[me.id]) return { type: 'bet', car: botPick(room, g, me, skill), sips: betting.botSips(g.maxBet, skill) };
-      const waiting = ctx.connectedPlayers(room).some((p) => !g.bets[p.id]);
-      return host && !waiting ? { type: 'startRace' } : null;
+      // A car of its own first (any old one), then its own bet in place of the one it was given.
+      const fresh = !g.bets[me.id] || g.autoBets?.[me.id];
+      if (!g.looks[me.id] && fresh) return { type: 'car', body: pick(BODIES), paint: Math.random() < 0.5 ? null : pick(PAINTS), stripe: Math.random() < 0.5 ? null : pick(PAINTS), extra: pick(EXTRAS) };
+      if (fresh) return { type: 'bet', car: botPick(room, g, me, skill), sips: betting.botSips(g.maxBet, skill) };
+      // (A bot host gives the people a while to change their bets, then goes.)
+      const players = ctx.connectedPlayers(room);
+      const botsBetting = players.some((p) => p.bot && (!g.bets[p.id] || g.autoBets?.[p.id]));
+      const peopleBetting = players.some((p) => !p.bot && g.autoBets?.[p.id]) && Date.now() - (g.bettingAt || 0) < 15000;
+      return host && !botsBetting && !peopleBetting ? { type: 'startRace' } : null;
     }
     if (g.phase === 'race') {
       // A toot now and then: at whoever's in the way, or just because.
@@ -694,7 +786,8 @@ module.exports = {
   waitingOn(room) {
     const g = room.game;
     if (g.phase === 'countdown' || g.phase === 'race') return [];
-    return betting.waitingOn(room);
+    // (Everyone has a bet from the start, so betting only waits on the host to start.)
+    return betting.waitingOn(room, { full: true });
   },
 
   onJoin(room, player) {
@@ -704,6 +797,7 @@ module.exports = {
     if (g.phase === 'betting' && !g.racers.includes(player.id)) {
       g.racers.push(player.id);
       g.cars = gridCars(room, g);
+      autoBet(g, player.id);
     }
   },
 
@@ -712,6 +806,7 @@ module.exports = {
     const tr = trackOf(g.trackId);
     return {
       ...betting.view(g, player.id),
+      autoBet: !!g.autoBets?.[player.id], // (still the sip on yourself everyone starts with)
       race: g.race,
       laps: g.laps,
       weather: g.weather || 'clear',
@@ -720,11 +815,14 @@ module.exports = {
       track: {
         id: tr.id,
         name: tr.name,
-        width: WIDTH,
-        band: BAND,
+        width: tr.width,
+        band: tr.band,
+        hard: tr.hard,
         world: WORLD,
-        // The centreline, every other sample (screens smooth it again).
-        line: tr.xs.filter((_, i) => i % 2 === 0).map((x, i) => [Math.round(x), Math.round(tr.ys[i * 2])]),
+        crossing: tr.crossing,
+        // The centreline, every other sample (screens smooth it again), and on the hilly hard maps
+        // how high it is there too.
+        line: tr.xs.filter((_, i) => i % 2 === 0).map((x, i) => (tr.hilly ? [Math.round(x), Math.round(tr.ys[i * 2]), Math.round(tr.zs[i * 2] * 10) / 10] : [Math.round(x), Math.round(tr.ys[i * 2])])),
         start: [Math.round(tr.xs[0]), Math.round(tr.ys[0]), Math.round(tr.dir[0] * 100) / 100],
       },
       racers: g.racers,
@@ -744,6 +842,8 @@ module.exports = {
 
   // For tests.
   trackOf,
+  NORMAL_IDS,
+  HARD_IDS,
   locate,
   standings,
   tick,

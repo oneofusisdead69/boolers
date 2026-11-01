@@ -20,6 +20,7 @@ const { shuffle, pick } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
+const giving = require('../lib/give');
 const { NORMAL, NSFW, DRAW_NORMAL, DRAW_NSFW } = require('../lib/bigTomQuestions');
 
 const VOTE_MS = 30 * 1000;
@@ -125,6 +126,20 @@ function startVoting(room, ctx) {
 // Who may vote on a matchup: everyone here except its two answerers.
 const voters = (room, ctx, m) => ctx.connectedPlayers(room).map((p) => p.id).filter((id) => id !== m.a && id !== m.b);
 
+// A winner handing out sips is on the clock: when it's up (or the host skips the wait), they go out
+// at random.
+function giveClock(room, ctx) {
+  const g = room.game;
+  const give = g.give;
+  if (give) giving.clock(room, ctx, () => g.give === give && autoGive(room, ctx));
+}
+function autoGive(room, ctx, skipped = false) {
+  const g = room.game;
+  ctx.clearTimer(room);
+  giving.auto(room, ctx, g.give.from, g.give.sips, 'Big Tom winner', { skipped });
+  g.give = null;
+}
+
 function openMatchup(room, ctx) {
   const g = room.game;
   const m = g.matchups[g.current];
@@ -152,6 +167,7 @@ function reveal(room, ctx) {
     g.points[winner] = (g.points[winner] || 0) + 1;
     ctx.drink(room, loser, g.sips, 'lost the vote');
     g.give = { from: winner, sips: g.sips };
+    giveClock(room, ctx);
     ctx.log(room, `🎤 ${ctx.name(room, winner)} beat ${ctx.name(room, loser)}`);
   } else {
     for (const id of [m.a, m.b]) ctx.drink(room, id, g.sips, m.answers[m.a] ? 'tied' : 'no answer');
@@ -256,6 +272,7 @@ function finalReveal(room, ctx) {
   for (const id of losers) ctx.drink(room, id, g.sips * 2, 'fewest votes in the final');
   for (const id of blank) ctx.drink(room, id, g.sips * 2, 'no drawing in the final');
   g.give = winners.length === 1 && !tied ? { from: winners[0], sips: g.sips * 2 } : null;
+  giveClock(room, ctx);
   g.finalResult = { counts, winners: tied ? [] : winners, losers: [...losers, ...blank] };
   if (g.finalResult.winners.length) ctx.log(room, `🎨 ${g.finalResult.winners.map((id) => ctx.name(room, id)).join(' & ')} won the final`);
   g.phase = 'final';
@@ -508,7 +525,13 @@ module.exports = {
       m.votes[me] = action.side;
       if (voters(room, ctx, m).every((id) => m.votes[id])) reveal(room, ctx);
     } else if (action.type === 'give' && (g.phase === 'reveal' || g.phase === 'final') && g.give?.from === me) {
-      if (ctx.giveTo(room, me, action.targetId, g.give.sips, 'Big Tom winner')) g.give = null;
+      // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
+      if (giving.give(room, ctx, me, action, g.give.sips, 'Big Tom winner')) {
+        g.give = null;
+        ctx.clearTimer(room);
+      }
+    } else if (action.type === 'skipGive' && g.give && host) {
+      autoGive(room, ctx, true);
     } else if (action.type === 'moveOn' && host) {
       // The host can hurry things along: missing questions come from Big Tom, missing answers lose.
       if (g.phase === 'write' && ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
@@ -519,7 +542,7 @@ module.exports = {
     } else if (action.type === 'next' && g.phase === 'reveal' && host) {
       g.current += 1;
       if (g.current < g.matchups.length) openMatchup(room, ctx);
-      else { g.phase = 'summary'; g.give = null; }
+      else { g.phase = 'summary'; g.give = null; ctx.clearTimer(room); }
     } else if (action.type === 'bestQuestion' && g.phase === 'final' && g.poll && !g.poll.closed && g.poll.votes[me] === undefined) {
       // One pick each, and it stays: an index into the poll's questions, or "none".
       const i = /^\d+$/.test(String(action.pick)) ? Number(action.pick) : -1;
@@ -617,6 +640,7 @@ module.exports = {
   check(room, ctx) {
     const g = room.game;
     if (g.give && !ctx.turns.isActive(room, g.give.from)) g.give = null;
+    else if (g.give && !room.timer) giveClock(room, ctx); // (lost in a restart)
     const here = ctx.connectedPlayers(room);
     if (g.phase === 'write' && here.length >= 3 && here.every((p) => g.questions[p.id])) startAnswering(room, ctx);
     else if (g.phase === 'answer' && answerersDone(room, ctx)) startVoting(room, ctx);

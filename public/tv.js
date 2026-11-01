@@ -242,15 +242,18 @@ function lobbyScreen(s) {
     ${soundButton()}`;
 }
 
-// Seats round an oval table: everyone's avatar, name and sips, glowing on their turn.
+// Seats round an oval table: everyone's avatar, name and sips, glowing in their colour on their
+// turn. Whose turn is whoever the game is waiting on (its waitingOn), when that's one player;
+// otherwise (everyone racing to tap, betting) the game's own idea of whose turn it is.
 function seats(s) {
   const g = s.game || {};
-  const turn = g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || null;
+  const turn = (s.waiting?.length === 1 && s.waiting[0] !== s.hostId ? s.waiting[0] : null)
+    || g.turnId || g.rollerId || g.give?.from || g.bus?.riderId || (s.waiting?.length === 1 ? s.waiting[0] : null);
   // A game can put things on the table in front of each player (their dice, their cards).
   const front = PB.screens[s.gameType]?.tvFront;
   // Everyone's drink sits on the rail beside them: what they picked, or whatever the room drinks.
   const drink = ROOM_STYLES.STYLES[s.look || s.style]?.drink || '🍺';
-  return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}">
+  return s.players.map((p) => `<div class="tv-seat ${p.id === turn ? 'turn' : ''} ${p.connected ? '' : 'offline'}" style="--pc:${esc(PB.look(p.id).color)}">
       ${PB.avatar(p.id, 'lg')}<b>${esc(p.name)}</b><small>🍺 ${p.drinks}</small></div>
     <div class="tv-front">${front?.(s, p.id) || ''}</div>
     <div class="tv-glass ${sipping.has(p.id) ? 'sip' : ''}" data-player="${esc(p.id)}">${esc(p.drink || drink)}</div>`).join('');
@@ -324,7 +327,10 @@ function fillCenter(s, screens) {
   center.innerHTML = '';
   if (left) left.innerHTML = '';
   const turn = $hidden.querySelector('.turn');
-  document.getElementById('tv-turn').innerHTML = turn ? turn.innerHTML : '';
+  const $turn = document.getElementById('tv-turn');
+  $turn.innerHTML = turn ? turn.innerHTML : '';
+  // (In the player's colour, as on the phones.)
+  $turn.style.cssText = turn?.getAttribute('style') || '';
   if (own != null) {
     center.append(...$hidden.childNodes);
   } else {

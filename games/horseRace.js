@@ -40,9 +40,18 @@ const RESPONSE = 0.3; // how quickly a horse's speed moves toward what it's aimi
 const WOBBLE = 0.05; // random wobble in speed each tick, as a share of the pace
 
 // Jockey mode: each horse's speed multiplier, and how a tap on the dial changes it.
+// There's no top speed, but past ×2 each green is worth less and less: the boost halves for every
+// further ×0.25 (and the needle speeds up with the horse), so ×3 takes fifty greens in a row and
+// ×4 hardly ever happens.
 const SPEED_MIN = 0.4;
-const SPEED_MAX = 2.2;
+const SPEED_SOFT = 2;
+const SOFT_HALVING = 0.25;
 const HIT = { green: 0.12, yellow: 0, red: -0.25 };
+function speedAfter(mult, hit) {
+  let d = HIT[hit];
+  if (d > 0 && mult > SPEED_SOFT) d *= 0.5 ** ((mult - SPEED_SOFT) / SOFT_HALVING);
+  return Math.max(SPEED_MIN, Math.round((mult + d) * 1e6) / 1e6);
+}
 const TAP_GAP_MS = 250; // fastest a jockey can tap
 
 function newRace(room, ctx) {
@@ -147,13 +156,16 @@ module.exports = {
     if (action.type === 'bet' && g.phase === 'betting') {
       // Jockey mode: one rider per horse.
       const taken = g.jockey && Object.entries(g.bets).some(([id, b]) => id !== me && b.pick === action.horse);
-      if (!taken) betting.bet(g, me, action.horse, action.sips, IDS);
+      // Jockey mode: taking a horse (no sips said) is a bet on it, the least there is, already
+      // placed; a bet you'd made before keeps its size. Raise it like any bet.
+      const sips = action.sips ?? (g.jockey ? g.bets[me]?.sips || 1 : undefined);
+      if (!taken) betting.bet(g, me, action.horse, sips, IDS);
     } else if (action.type === 'ride' && g.phase === 'race' && g.jockey && g.bets[me] && Object.hasOwn(HIT, action.hit)) {
       const now = Date.now();
       if (now - (g.lastTap[me] || 0) < TAP_GAP_MS) return;
       g.lastTap[me] = now;
       const h = g.bets[me].pick;
-      g.mult[h] = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round((g.mult[h] + HIT[action.hit]) * 100) / 100));
+      g.mult[h] = speedAfter(g.mult[h], action.hit);
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
       g.phase = 'race';
       ctx.log(room, `🔔 Race ${g.race} is off: ${g.laps} lap${g.laps === 1 ? '' : 's'}!`);
@@ -166,7 +178,10 @@ module.exports = {
       if (SILKS.includes(action.silk) && !g.horses.some((x) => x !== h && x.silk === action.silk)) h.silk = action.silk;
       if (COATS.includes(action.coat)) h.coat = action.coat;
     } else if (action.type === 'give') {
-      betting.give(room, ctx, me, action.alloc, `${horseName(g, g.winner)} won`);
+      betting.give(room, ctx, me, action, `${horseName(g, g.winner)} won`);
+    } else if (action.type === 'skipGive' && host) {
+      // Don't wait on a winner who's gone quiet: theirs go out at random now.
+      betting.skip(room, ctx);
     } else if (action.type === 'nextRace' && (g.phase === 'results' || g.phase === 'payout') && host) {
       newRace(room, ctx);
     }
@@ -240,4 +255,5 @@ module.exports = {
 
   tick,
   HIT,
+  speedAfter,
 };

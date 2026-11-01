@@ -279,6 +279,12 @@ let waitedOn = false;
 function playSounds(prev, s) {
   const was = waitedOn;
   if (!s.game || s.waiting?.length) waitedOn = !!s.waiting?.includes(s.me);
+  // It's just become your turn: a buzz in your pocket (even with a TV playing the sounds), and
+  // the "YOUR TURN" banner pulses (PB.turn).
+  if (waitedOn && !was && s.game && prev?.game && prev.code === s.code) {
+    PB.turnAt = Date.now();
+    PB.buzz('turn');
+  }
   if (s.tv) return; // the TV plays the sounds
   if (!prev || !s.game || prev.gameType !== s.gameType || prev.code !== s.code) return;
   const sounds = PB.soundsFor(prev, s);
@@ -297,7 +303,9 @@ socket.on('cars', (cars) => PB.screens[PB.state?.gameType]?.onCars?.(cars));
 socket.on('drink', ({ sips, reason, from, title }) => {
   navigator.vibrate?.([200, 100, 200]);
   if (!PB.state?.tv) Prefs.play('drink'); // with a TV, the TV buzzes
-  showAlert(`<div class="big">🍺 ${PB.esc(PB.drinkTitle({ sips, title }))}</div><div>${from ? `from ${PB.esc(from)}` : ''}${from && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
+  // Sips someone handed you say so first: "Ann gave you 3 sips".
+  const given = from && sips && !title ? `<div class="drink-from"><b>${PB.esc(from)}</b> gave you ${PB.esc(PB.plural(sips, 'sip'))}</div>` : '';
+  showAlert(`${given}<div class="big">🍺 ${PB.esc(PB.drinkTitle({ sips, title }))}</div><div>${from && !given ? `from ${PB.esc(from)}` : ''}${from && !given && reason ? ' · ' : ''}${PB.esc(reason)}</div>`, '', 4000);
 });
 
 // A message for the whole room. The water reminder between games is a banner across the top.
@@ -328,8 +336,19 @@ function showAlert(html, kind, ms) {
   el.className = `drink-alert ${kind}`;
   el.innerHTML = `${html}<small>tap to dismiss</small>`;
   el.hidden = false;
+  compactAlert();
   clearTimeout(el.t);
   el.t = setTimeout(() => (el.hidden = true), ms);
+}
+
+// While it's your turn, a drink alert is a strip across the top instead of covering the screen,
+// so it never swallows your throw or tap (your cup's just been sunk, and now you throw). Checked
+// again with every state: the drink comes in just before the state that makes it your turn.
+function compactAlert() {
+  const el = document.getElementById('drink-alert');
+  const s = PB.state;
+  if (!el.hidden && el.classList.contains('water')) return;
+  el.classList.toggle('compact', !!(s?.game && s.phase !== 'over' && s.waiting?.includes(s.me)));
 }
 document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden = true);
 
@@ -592,7 +611,18 @@ function renderGame() {
   screens.afterRender?.(s);
 }
 
+// While the game is waiting on you, the edge of the screen glows in your colour (style.css), so a
+// glance at the phone on the table says whether it's you.
+function turnGlow() {
+  const s = PB.state;
+  const mine = !!(s?.game && s.phase !== 'over' && s.waiting?.includes(s.me));
+  document.body.classList.toggle('my-turn', mine);
+  if (mine) document.body.style.setProperty('--me-color', PB.look(s.me).color);
+}
+
 function render() {
+  turnGlow();
+  compactAlert();
   ROOM_STYLES.apply(PB.state?.look || PB.state?.style);
   if (!PB.state) return renderHome();
   if (PB.state.phase === 'lobby' && PB.state.trip) return renderTrip();

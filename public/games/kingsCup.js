@@ -95,15 +95,46 @@
     return `<p class="center mm-outright">🍺 ${esc(losers.map(name).join(', '))} ${solo ? 'was' : 'were'} last!</p>`;
   }
 
+  // Who's up after the drawer.
+  const nextOf = (s) => PB.nextUp(s.game.order || [], s.game.turnId);
+
+  // What the drawer has to do about their card, for the banner: [on their phone, on everyone else's].
+  const TODO = {
+    pick: ['You: pick who drinks', 'picking who drinks'],
+    race: ['Say who was last', 'calling who was last'],
+    mate: ['Pick a mate', 'picking a mate'],
+    rule: ['Make a rule', 'making a rule'],
+  };
+  const A = { 14: 'an Ace', 8: 'an 8', 11: 'a Jack', 12: 'a Queen', 13: 'a King' };
+  function cardTodo(s) {
+    const g = s.game;
+    const mine = g.turnId === s.me;
+    const drew = `Drew ${A[g.card.rank] || `a ${g.card.rank}`}`;
+    if (!g.resolved && TODO[g.rule.kind]) return mine ? TODO[g.rule.kind][0] : `${drew}: ${TODO[g.rule.kind][1]}`;
+    if (g.rule.kind === 'qm') return mine ? 'You\'re the question master!' : `${drew}: the new question master`;
+    if (TODO[g.rule.kind]) return mine ? 'Done: pass it on' : `${drew} (${g.rule.title})`;
+    return mine ? `${g.rule.title}: do it, then pass it on` : `${drew} (${g.rule.title})`;
+  }
+
+  // On the TV, a big line saying whose turn it is and what they're doing.
+  function tvUp(s, what) {
+    if (!PB.isTV) return '';
+    const g = s.game;
+    const next = nextOf(s);
+    const { color } = PB.look(g.turnId);
+    return `<div class="kc-up" style="--pc:${esc(color)}">${PB.avatar(g.turnId, 'lg')}<b>${esc(name(g.turnId))}'s turn</b><span>— ${esc(what)}</span>${next ? `<small>Next up: ${PB.avatar(next, 'sm')} ${esc(name(next))}</small>` : ''}</div>`;
+  }
+
   function drawerAction(s) {
     const g = s.game;
     const kind = g.rule.kind;
     if (g.resolved) {
       const losers = g.race?.losers;
+      const next = nextOf(s);
       return `${losers ? lastLine(losers, s) : ''}
-        <button data-act="next">Next player →</button>`;
+        <button data-act="next">Pass it on${next ? ` to ${esc(next === s.me ? 'you' : name(next))}` : ''} →</button>`;
     }
-    if (kind === 'pick') return `<p class="center"><b>Who drinks ${g.rule.sips}?</b></p>${PB.playerPicker('pick', { exclude: [s.me] })}`;
+    if (kind === 'pick') return PB.giveSips(s, { from: g.turnId, sips: g.rule.sips, key: `kc:${g.taken.length}`, title: '🫵', ask: `Who drinks ${g.rule.sips}? Tap one, or split them` });
     if (kind === 'race') return `<p class="center"><b>Who was last?</b></p>${PB.playerPicker('pick', { exclude: [] })}`;
     if (kind === 'mate') return `<p class="center"><b>Pick your mate</b></p>${PB.playerPicker('mate', { exclude: [s.me] })}`;
     if (kind === 'rule') {
@@ -134,7 +165,9 @@
       const floor = g.card.rank === 4;
       const waiting = s.players.filter((p) => p.connected && !r.tapped.includes(p.id));
       return `
-        ${PB.turn(g.turnId, `${g.rule.title}!`)}
+        ${r.iTapped
+          ? `<div class="turn theirs" style="--pc:${esc(PB.look(waiting[0]?.id || g.turnId).color)}"><b class="turn-who">Waiting for ${esc(waiting.map((p) => name(p.id)).join(', ')) || 'the last taps'}…</b></div>`
+          : `<div class="turn mine fresh" style="--pc:${esc(PB.look(s.me).color)};--pc-ink:${PB.inkOn(PB.look(s.me).color)}"><b class="turn-who">EVERYONE: ${floor ? 'FLOOR!' : 'HANDS UP!'}</b><span>${esc(g.rule.title)}: last to tap drinks</span></div>`}
         ${r.iTapped
           ? `<div class="kc-tapped">✓ You're in!<small>Waiting on ${esc(waiting.map((p) => name(p.id)).join(', '))} ${PB.timer()}</small></div>`
           : `<button class="kc-tap" data-act="tap">${floor ? '👇 Touch the floor, then TAP' : '🙌 Hands up, then TAP'}</button>
@@ -145,7 +178,8 @@
     if (s.phase === 'draw') {
       if (dragging) { missed = true; return null; } // keep the ring still under a moving finger
       const html = `
-        ${PB.turn(g.turnId, mine ? 'Pick a card from the ring' : 'Picking a card')}
+        ${PB.turn(g.turnId, mine ? 'Draw a card: touch the ring' : 'Drawing a card', { next: nextOf(s) })}
+        ${tvUp(s, 'draw a card')}
         ${ring(s, mine)}`;
       return `
         ${html}
@@ -158,10 +192,12 @@
 
     // phase 'card'
     return `
-      ${PB.turn(g.turnId, mine ? (g.resolved ? 'Done? Pass it on' : 'Follow the card') : `Drew ${g.rule.title}`)}
+      ${PB.turn(g.turnId, cardTodo(s), { next: nextOf(s) })}
+      ${tvUp(s, cardTodo(s).replace(/^Drew /, 'drew '))}
       ${brokeLine(s)}
+      ${mine && !g.resolved ? drawerAction(s) : ''}
       ${cardPanel(g)}
-      ${mine ? drawerAction(s) : g.resolved && g.race?.losers ? lastLine(g.race.losers, s) : ''}
+      ${mine ? (g.resolved ? drawerAction(s) : '') : g.rule.kind === 'pick' && !g.resolved ? PB.giveWait(s, [g.turnId], g.rule.sips) : g.resolved && g.race?.losers ? lastLine(g.race.losers, s) : ''}
       ${cup(g)}
       ${effects(g)}
       ${PB.feed(3)}`;
@@ -188,7 +224,7 @@
           <div class="mm-seat ${g.race.tapped.includes(p.id) ? 'turn' : ''}">${PB.avatar(p.id)}<span>${esc(p.name)}</span><b>${g.race.tapped.includes(p.id) ? '✓' : '…'}</b></div>`).join('')}</div>`;
     },
     // On the TV: the shared parts of the screen.
-    tvStage: '.kc-ring, .kc-card, .kc-cup, .kc-effects, .kc-broke, .mm-outright, .kc-tapped, .drink',
+    tvStage: '.kc-up, .kc-ring, .kc-card, .kc-cup, .kc-effects, .kc-broke, .mm-outright, .kc-tapped, .give-wait, .drink',
     render,
     sounds: (prev, s) => (s.game.card && JSON.stringify(s.game.card) !== JSON.stringify(prev.game.card) ? ['card'] : []),
     afterRender(s) {

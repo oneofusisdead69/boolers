@@ -236,10 +236,8 @@
   function middle(s) {
     const g = s.game;
     if (s.phase === 'give') {
-      const mine = g.give.from === s.me;
-      return mine
-        ? `<div class="card"><p class="center"><b>${esc(g.give.reason[0].toUpperCase() + g.give.reason.slice(1))}! Give ${PB.plural(g.give.sips, 'sip')}</b> to…</p>${PB.playerPicker('give', { exclude: [s.me] })}</div>`
-        : `<p class="center muted dt-wait">${esc(name(g.give.from))} hit ${esc(g.give.reason)} and is handing out ${PB.plural(g.give.sips, 'sip')}…</p>`;
+      const what = `${g.give.reason[0].toUpperCase() + g.give.reason.slice(1)}!`;
+      return PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `dt:${g.round}:${g.throwerId}:${g.give.reason}:${g.give.sips}`, title: what });
     }
     if (s.phase === 'roundEnd') {
       const r = g.roundEnd;
@@ -266,7 +264,7 @@
     const thrower = g.throwerId === s.me && s.phase === 'throwing' && !PB.isTV;
     // With a TV, the board is on the TV; phones keep the throwing pad and the scores.
     const showBoard = PB.isTV || !s.tv;
-    const turn = s.phase === 'give' ? PB.turn(g.give.from, 'Handing out sips') : PB.turn(g.throwerId, subtitle(s));
+    const turn = s.phase === 'give' ? PB.turn(g.give.from, g.give.from === s.me ? 'Hand out your sips' : 'Handing out sips') : PB.turn(g.throwerId, subtitle(s));
     return `
       ${turn}
       ${showBoard ? board(s) : ''}
@@ -295,7 +293,7 @@
     stage: '.dt-board',
     // On the TV: no table, just a big board with the scores down the left.
     tvTable: false,
-    tvStage: '.dt-board, .dt-turn, .dt-wait, .dt-round, .dt-scores, .drink',
+    tvStage: '.dt-board, .dt-turn, .dt-wait, .give-wait, .dt-round, .dt-scores, .drink',
     tvLeft: '.dt-scores, .dt-round',
     // At the end, the TV shows the winner and the final scores in the middle.
     tv(s) {

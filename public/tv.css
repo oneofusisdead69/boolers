@@ -49,6 +49,8 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-turn:empty { visibility: hidden; }
 .tv-turn > * { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 0.4rem; vertical-align: middle; }
 .tv-turn > span { color: var(--muted); font-weight: 500; }
+.tv-turn > .turn-who { color: var(--pc, inherit); font-size: 1.15em; font-weight: 900; }
+.tv-turn > .turn-next { color: var(--muted); font-size: 0.8em; font-weight: 500; }
 .tv-code { color: var(--muted); white-space: nowrap; }
 .tv-code b { color: var(--text); letter-spacing: 0.1em; }
 
@@ -98,7 +100,8 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-seat b { align-self: end; }
 .tv-seat small { align-self: start; }
 .tv-seat small { color: var(--muted); }
-.tv-seat.turn { box-shadow: 0 0 0 0.25rem var(--accent), 0 0 2rem var(--accent); transform: translate(-50%, -50%) scale(1.12); }
+.tv-seat.turn { box-shadow: 0 0 0 0.25rem var(--pc, var(--accent)), 0 0 2rem var(--pc, var(--accent)); transform: translate(-50%, -50%) scale(1.15); background: color-mix(in srgb, var(--pc, var(--accent)) 28%, var(--card)); animation: tv-turn-glow 1.6s ease-in-out infinite; z-index: 2; }
+@keyframes tv-turn-glow { 50% { box-shadow: 0 0 0 0.35rem var(--pc, var(--accent)), 0 0 3.5rem var(--pc, var(--accent)); } }
 .tv-seat.offline { opacity: 0.4; }
 
 /* The game itself, in the middle of the felt, scaled to fit (see fit() in tv.js). */

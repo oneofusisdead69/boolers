@@ -76,11 +76,9 @@
     const g = s.game;
     const mine = g.give.from === s.me;
     return `
-      ${PB.turn(g.give.from, 'Right! Giving out sips')}
+      ${PB.turn(g.give.from, mine ? 'Right! Hand out your sips' : 'Right! Giving out sips')}
       ${lastGuess(s)}
-      ${mine
-        ? `<p class="center"><b>Give ${PB.plural(g.give.sips, 'sip')}</b> to…</p>${PB.playerPicker('give', { exclude: [s.me] })}`
-        : `<p class="center muted">${esc(name(g.give.from))} is picking who drinks ${PB.plural(g.give.sips, 'sip')}…</p>`}
+      ${PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `rb:${g.round}:${g.give.from}:${JSON.stringify(g.last?.card)}` })}
       <h2 class="rb-label">Your cards</h2>
       ${hand(s)}
       ${seats(s)}`;
