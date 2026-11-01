@@ -135,6 +135,9 @@
   //   peg: 'front' or 'back' (a peg leg); critter kinds 'reindeer' (nose, collar) 'sheep' 'coo' 'collie'
   //   'boar' 'poodle' 'peacock' 'bat' 'spider' 'ghost' 'butterfly' (fg-flit) 'bee' 'nessie'
   //   'snowman' (scarf), and pose: 'perch' for 'parrot' (Polly).)
+  //   (Added for Halloween's monsters: hat 'flattop' (Frankenstein's monster: flat head, neck
+  //   bolts); holding 'pail' (a lit pumpkin pail, for trick-or-treaters: pose 'carry' with cls
+  //   'fg-walk' to walk with it); critter pose 'arch' for 'cat' (back up, hissing).)
   //   (Added for the themed rooms and the sea: hats 'souwester' 'jester' 'spacehelmet' 'weldmask'
   //   'antennae' 'hibiscus'; face 'alien' (three eyes), and the registry FACES; mask (a bandana up
   //   over the nose, in that colour); inMouth: 'pipe' (smoking: fg-smoke); neck 'ermine' 'lei'
@@ -710,9 +713,11 @@
     // The red cap of liberty (bonnet phrygien), flopping forward, a tricolour cockade.
     phrygian: (h, c) => `<path d="M${h[0] - 11.5} ${h[1] - 3} C${h[0] - 12} ${h[1] - 15} ${h[0] - 4} ${h[1] - 20} ${h[0] + 4} ${h[1] - 20} Q${h[0] + 14} ${h[1] - 20} ${h[0] + 15} ${h[1] - 12} Q${h[0] + 10} ${h[1] - 14} ${h[0] + 8} ${h[1] - 12} L${h[0] + 11} ${h[1] - 5}Z" fill="${c}" ${ink}/><circle cx="${h[0] - 6}" cy="${h[1] - 7}" r="2.8" fill="#0055a4" ${ink}/><circle cx="${h[0] - 6}" cy="${h[1] - 7}" r="1.6" fill="#f4f4f4"/><circle cx="${h[0] - 6}" cy="${h[1] - 7}" r="0.7" fill="#ef4135"/>`,
     // A headscarf over the hair, knotted at the back.
+    // Frankenstein's monster's head: flat on top, a jagged fringe, bolts out of the neck.
+    flattop: (h, c) => `<path d="M${h[0] - 11.5} ${h[1] + 1} V${h[1] - 14} H${h[0] + 11.5} V${h[1] + 1} L${h[0] + 9} ${h[1] - 5} L${h[0] + 6} ${h[1] - 2} L${h[0] + 2} ${h[1] - 6} L${h[0] - 2} ${h[1] - 2} L${h[0] - 6} ${h[1] - 6} L${h[0] - 9} ${h[1] - 3}Z" fill="${c}" ${ink}/><rect x="${h[0] - 13}" y="${h[1] + 9}" width="6" height="3.4" rx="1.2" fill="#8a8f96" ${ink}/><rect x="${h[0] + 7}" y="${h[1] + 9}" width="6" height="3.4" rx="1.2" fill="#8a8f96" ${ink}/>`,
     headscarf: (h, c) => `<path d="M${h[0] - 12} ${h[1] + 4} C${h[0] - 13} ${h[1] - 10} ${h[0] - 4} ${h[1] - 14} ${h[0] + 2} ${h[1] - 13} C${h[0] + 8} ${h[1] - 12} ${h[0] + 12} ${h[1] - 7} ${h[0] + 11} ${h[1] - 3} Q${h[0] + 2} ${h[1] - 6} ${h[0] - 4} ${h[1] - 2} Q${h[0] - 6} ${h[1] + 4} ${h[0] - 12} ${h[1] + 4}Z" fill="${c}" ${ink}/><path d="M${h[0] - 11} ${h[1] + 2} l-6 6 l5 1Z M${h[0] - 11} ${h[1] + 2} l-2 8 l4 -1Z" fill="${c}" ${ink}/>`,
   });
-  Object.assign(HAT_COLOR, { witch: '#07040c', elf: '#2a8a3a', tam: '#1e3a5a', sunhat: '#f4e4c8', phrygian: '#c0201a', headscarf: '#6a4a8a' });
+  Object.assign(HAT_COLOR, { flattop: '#141414', witch: '#07040c', elf: '#2a8a3a', tam: '#1e3a5a', sunhat: '#f4e4c8', phrygian: '#c0201a', headscarf: '#6a4a8a' });
   // More faces: 'glasses' (round specs), 'skull' (sockets, a nose hole, teeth), 'patch' (an eye
   // patch, a grin), 'puff' (cheeks blown out, puffing: class fg-puff).
   Object.assign(FACES, {
@@ -733,6 +738,8 @@
     pitchfork: (c = '#7a5a3a') => `${inked('M0 22 V-26', c, 2.6)}${inked('M-6 -38 V-26 H6 V-38 M0 -26 V-41', '#9aa0a8', 1.5)}`,
     // A pirate's hook for a hand (holding or holdingBack).
     hook: (c = '#d8dde3') => `${inked('M0 3 V9 Q0 17 -6 15 Q-10 13 -8 9', c, 2.2)}<rect x="-4.5" y="-1" width="9" height="5" rx="1.5" fill="#4a2a14" ${ink}/>`,
+    // A trick-or-treater's pumpkin pail, lit, hanging from the hand by its handle.
+    pail: (c = '#e8661a') => `<path d="M-6.5 9 Q0 -3 6.5 9" stroke="${INK}" stroke-width="1.4" fill="none"/><ellipse cx="0" cy="13" rx="8.6" ry="7.4" fill="${c}"/><path d="M-4 10.6 l1.6 -2.4 l1.6 2.4Z M4 10.6 l-1.6 -2.4 l-1.6 2.4Z M-4.4 14.6 Q0 18.6 4.4 14.6Z" fill="#ffd23f"/><path d="M-8.6 9.6 H8.6" stroke="${shade(c, 0.35)}" stroke-width="1.6"/>`,
     // A jack-o'-lantern held up high, alight (sc-candle) and flaming (sc-flames).
     jack: (c = '#e8661a') => `<path d="M0 -21 q-1 -4 2 -5" stroke="#3c5a1e" stroke-width="2.4" fill="none"/><g class="sc-candle"><ellipse cx="0" cy="-11" rx="10" ry="9" fill="${c}" ${ink}/><path d="M-5 -14 l2 -3 l2 3Z M5 -14 l-2 -3 l-2 3Z M-5 -8 Q0 -4 5 -8 L3 -7 L0 -8.5 L-3 -7Z" fill="#ffd23f"/></g><path class="sc-flames" d="M-5 -22 Q0 -40 6 -22 Q2 -28 0 -21 Q-2 -28 -5 -22Z" fill="#ff8a1a" opacity="0.9"/>`,
   });
@@ -767,7 +774,7 @@
     buttons: ({ cx }) => [[48, '#d62828'], [57, '#2a8a4a'], [66, '#d62828']].map(([y, c]) => `<circle cx="${cx + 1}" cy="${y}" r="2.2" fill="${c}" ${ink}/>`).join(''),
   });
   // Drinks and things that glow keep their colours in the silhouettes (see lit()).
-  for (const k of ['pint', 'stein', 'tankard', 'wine', 'coupe', 'martini', 'bottle', 'can', 'redcup', 'sparkler', 'shake', 'goblet', 'emoji', 'horn', 'lamp', 'jack']) {
+  for (const k of ['pint', 'stein', 'tankard', 'wine', 'coupe', 'martini', 'bottle', 'can', 'redcup', 'sparkler', 'shake', 'goblet', 'emoji', 'horn', 'lamp', 'jack', 'pail']) {
     const f = PROPS[k];
     PROPS[k] = (...a) => lit(f(...a));
   }
@@ -795,6 +802,9 @@
     'parrot:perch': { color: '#d82a2a', draw: (c, o, T) => ({ vb: '0 0 60 100', h: 1.667, body: `${T.p('M26 64 L18 98 L26 96 L30 72 L34 96 L42 98 L34 64Z', shade(c, 0.1))}<path d="M24 74 L21.4 94 M36 74 L38.6 94" stroke="#2f7fe0" stroke-width="2.6"/>${T.p('M16 50 Q14 28 30 26 Q46 28 44 50 Q44 70 30 72 Q16 70 16 50Z')}<g class="sc-pir-pwing">${T.p('M20 40 Q13 62 26 77 Q34 60 32 42Z', o.wing || '#2f7fe0')}<path d="M22 54 Q21 64 26 72" stroke="#ffd23f" stroke-width="3" fill="none"/></g><g class="sc-pir-phead">${T.p('M23 26 Q22 13 34 13 Q45 14 45 25 Q42 32 34 34 Q24 34 23 26Z')}${T.p('M38 18 Q46 18 44 29 Q40 26 38 28Z', '#f2efe6')}${T.p('M43 20 Q54 21 52 33 Q48 29 43 29Z', '#2a2a2a')}${T.eye(40, 22, 10)}</g>${inked('M21 72 h18', '#6b6050', 2)}` }) },
     // A bat, wings out (they flap: sc-wing, the right one 'sc-wing r').
     bat: { color: '#1a1024', draw: (c, o) => ({ vb: '0 0 60 24', h: 0.4, body: `<path class="sc-wing" d="M30 12 Q20 0 2 4 Q10 8 8 14 Q16 10 22 16 Q26 12 30 14Z" fill="${c}" ${ink}/><path class="sc-wing r" d="M30 12 Q40 0 58 4 Q50 8 52 14 Q44 10 38 16 Q34 12 30 14Z" fill="${c}" ${ink}/><path d="M26.5 9 L26 3 L29 7 H31 L34 3 L33.5 9Z" fill="${c}" ${ink}/><ellipse cx="30" cy="13" rx="4.4" ry="5.4" fill="${c}" ${ink}/>${lit(`<circle cx="28.4" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/><circle cx="31.6" cy="10" r="0.9" fill="${o.eye || '#ffd23f'}"/>`)}` }) },
+    // A cat with its back up (critter('cat', { pose: 'arch' })): legs stiff, fur on end, tail up,
+    // ears flat, hissing.
+    'cat:arch': { color: '#3a3430', draw: (c, o, T) => ({ vb: '0 0 100 60', h: 0.6, body: `${inked('M26 34 Q14 22 18 4', c, 5)}${[[14, 22], [16, 14], [19, 7]].map(([x, y]) => `<path d="M${x} ${y} l-5 -2 M${x + 4} ${y + 1} l5 -3" stroke="${c}" stroke-width="2.2"/>`).join('')}${T.legs([30, 37, 63, 70], 34, 24, 5, c)}${Array.from({ length: 9 }, (_, i) => { const t = i / 8; const x = 26 + t * 48; const y = 36 - Math.sin(t * Math.PI) * 30; return `<path d="M${n1(x - 3)} ${n1(y + 2)} l3 -6 l3 6Z" fill="${c}"/>`; }).join('')}${T.p('M24 40 Q24 20 36 12 Q50 4 62 12 Q74 22 76 38 Q72 42 66 38 Q56 28 48 28 Q38 28 32 38 Q28 42 24 40Z')}<circle cx="80" cy="38" r="10" fill="${c}" ${ink}/>${T.p('M72 33 L64 28 L73 28Z')}${T.p('M86 30 L94 24 L91 33Z')}${T.eye(78, 36, 10)}${T.eye(85, 36, 10)}<path d="M80 42 Q85 48 90 42Z" fill="#7a1a2a"/><path d="M81.4 42.2 l0.8 2.2 l0.8 -2.2 M87 42.2 l0.8 2.2 l0.8 -2.2" stroke="#f4f0e8" stroke-width="0.8" fill="#f4f0e8"/>` }) },
     // A spider (its legs wiggle: sc-legs), red-eyed.
     spider: { color: '#141018', draw: (c, o) => ({ vb: '0 0 40 36', h: 0.9, body: `<g class="sc-legs">${inked('M14 14 Q4 6 2 14 M14 18 Q4 16 1 24 M16 21 Q8 26 6 34 M26 14 Q36 6 38 14 M26 18 Q36 16 39 24 M24 21 Q32 26 34 34', c, 1.6)}</g><ellipse cx="20" cy="21" rx="8" ry="9" fill="${c}" ${ink}/><circle cx="20" cy="10" r="5" fill="${c}" ${ink}/>${lit(`<circle cx="18" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/><circle cx="22" cy="9" r="1.2" fill="${o.eye || '#ff3b3b'}"/>`)}` }) },
     // A ghost: a sheet with a wavy hem, dot eyes, an O of a mouth.
@@ -1909,14 +1919,21 @@
   const HW_SKELETON = figure({ facing: 'front', skin: '#ece6dc', top: '#ece6dc', topStyle: 'ribs', sleeves: 'none', bottom: '#ece6dc', bottomStyle: 'shorts', shoes: '#ece6dc', hair: 'bald', face: 'skull', arms: [[100, 60], [100, 60]], legs: ['wide', 'wide'], hooks: { armB: 'hw-arml', armF: 'hw-armr', legB: 'hw-legl', legF: 'hw-legr', head: 'hw-head' } });
   const HW_CAT = critter('cat', { color: '#05030a', eye: '#ffd23f' });
   const hwOn = () => current === 'halloween';
+  // (Any game: a sip sends a ghost swooping along the top with the drinkers' names, "… from the
+  // grave"; finishing a drink is thunder, a lightning bolt and a screaming swarm of bats with the
+  // MWAHAHA!; a win, the full monster parade along the bottom. See hwSwoop, hwScream, hwParade.)
   const hwWatch = vvWatch({
-    finish: (p) => { inFront(`<b>MWAHAHA!</b><small>${esc(p.name)}, drink it all</small>`, { left: '0', right: '26vw', top: '24vh' }, 3200).classList.add('sc-oneeighty', 'ton', 'hw', 'vv'); bats(); cue('howl', 600); },
-    sip: () => el(EYES, { left: `${rand(5, 14)}vw`, top: `${rand(60, 85)}vh`, fontSize: `${rand(36, 56)}px` }, 4200).classList.add('sc-eyes'),
-    over: () => {
+    finish: (p) => { hwScream(); later(() => inFront(`<b>MWAHAHA!</b><small>${esc(p.name)}, drink it all</small>`, { left: '0', right: '26vw', top: '24vh' }, 3200).classList.add('sc-oneeighty', 'ton', 'hw', 'vv'), 250); cue('howl', 1800); },
+    sip: (who) => hwSwoop(who.map(({ p }) => p)),
+    over: (s) => {
+      const w = s?.game?.winnerId ?? s?.game?.winner;
+      const p = (s?.players || []).find((x) => x.id === w);
       el('', { inset: '0' }, 1400).classList.add('sc-lightning');
       cue('thunder', 600); cue('howl', 2200);
-      later(() => inFront('<b>BOO!</b>', { left: '0', right: '26vw', top: '24vh' }, 2800).classList.add('sc-oneeighty', 'ton', 'hw'), 500);
+      later(() => inFront(`<b>BOO!</b>${p ? `<small>${esc(p.name)} rules the night</small>` : ''}`, { left: '0', right: '26vw', top: '24vh' }, 3600).classList.add('sc-oneeighty', 'ton', 'hw', 'vv'), 500);
       for (let i = 0; i < 3; i++) later(() => { const x = rand(4, 60); drift(GHOST, { from: [x, 90], to: [x + rand(-12, 12), rand(15, 40)], dur: rand(7, 10), size: rand(50, 80) }).classList.add('sc-ghost'); }, 900 + i * 700);
+      later(hwParade, 1200);
+      later(bats, 2600);
     },
   });
   const hwDecor = SCENES.halloween.decor;
@@ -1933,6 +1950,7 @@
     const [cx, cy] = artAt(1240, 826);
     const bubble = () => later(() => { if (current !== 'halloween') return; drift('', { from: [cx + rand(-3, 3), cy], to: [cx + rand(-4, 4), cy - rand(8, 14)], dur: rand(1.6, 2.6), size: 10 }).classList.add('hw-bubble'); bubble(); }, rand(300, 900));
     bubble();
+    hwAmbience();
   };
   SCENES.halloween.update = hwWatch;
   SCENES.halloween.moments.push(
@@ -1942,6 +1960,252 @@
     () => { if (!hwOn()) return; const [x, y] = artAt(172, 622); el(EYES, { left: `${x - 1}vw`, top: `${y}vh`, fontSize: '40px' }, 4200).classList.add('sc-eyes'); cue('creak'); },
     () => { if (!hwOn()) return; const [x, y] = artAt(1240, 820); burst(['●', '•', '○'], { x, y, n: 20, spread: 4, size: [6, 14], colors: ['#7cff9a', '#c8ffb0', '#3aff6a'], rise: [-24, -10], fall: [-6, 4] }); cue('sizzle'); },
   );
+
+  // ----- Halloween, more -----
+  // Always (hwAmbience): will-o'-the-wisps drifting over the graves, the crypt's light pulsing,
+  // the jack-o'-lanterns' faces guttering, mist creeping along the ground, stars twinkling. Now
+  // and then: fog rolling across the graveyard; the moon going behind a cloud and coming out blood
+  // red; the house's windows lighting one by one, someone passing behind them, and the door
+  // creaking open (its light spilling down the path); crows bursting out of the dead tree; a
+  // coffin rising, its lid sliding off, a vampire rising out and gliding away (as a bat); a
+  // werewolf howling on the roof against the moon; trick-or-treaters (a sheet ghost, a little
+  // witch, a pumpkin head) with their pails; a witch stirring the cauldron till it boils over; a
+  // gust that blows every candle out (and they gutter back); a face at the window that jumps out
+  // at you; ghosts swirling round the house; a black cat on the fence arching its back; a hand
+  // coming up over the fence. Everything placed on the picture is placed by the art's units.
+  // (Art units, 1600 x 900, in screen pixels.)
+  const hwPx = (n) => n * Math.max(innerWidth / 1600, innerHeight / 900);
+  // Something placed on the art: [x, y, w, h], its top left and size in the art's units.
+  function hwPut(html, [x, y, w, h], cls, life, style = {}) {
+    const [vx, vy] = artAt(x, y);
+    const d = el(html, { left: `${vx.toFixed(2)}vw`, top: `${vy.toFixed(2)}vh`, width: `${hwPx(w).toFixed(1)}px`, height: `${hwPx(h).toFixed(1)}px`, ...style }, life);
+    d.classList.add(...cls);
+    return d;
+  }
+  // A drawing in a kit figure's own 60 x 120 box, put where figureAt(x, y, h) puts that figure.
+  const inFig = (x, y, h, svg) => `<g transform="translate(${n1(x - (30 * h) / 120)} ${n1(y - (118 * h) / 120)}) scale(${+(h / 120).toFixed(4)})">${svg}</g>`;
+  const plain = (s) => s.replace(/[\u0001\u0002]/g, '');
+  // A lit pumpkin for a head (a kit figure with head: false), its middle at (x, y), facing right.
+  const hwPumpkin = ([x, y], r = 11) => `<g transform="translate(${n1(x)} ${n1(y)}) scale(${+(r / 11).toFixed(3)})"><path d="M-1 -9 q-1 -6 4 -7" stroke="#3c5a1e" stroke-width="2.6" fill="none"/><ellipse rx="12.5" ry="10.5" fill="#e8661a"/><ellipse cx="1" rx="5" ry="10.3" fill="#f58a34"/><g class="sc-candle" fill="#ffd23f"><path d="M0 -3 l3 -4.4 l3 4.4Z M8 -3 l2 -4 l2 4Z M-1 3 Q6 10 12.4 2 L9.6 3.6 L7.4 1.6 L5 4.2 L2.6 2Z"/></g></g>`;
+  // A wolf's head on a kit body (head: false), where its head would be: muzzle up (howling,
+  // class hw-howl, so it can be thrown back) or forward. Its eye glows.
+  const hwWolfHead = ([x, y], howl) => {
+    const head = `<g transform="translate(${n1(x)} ${n1(y)}) scale(1.3)"><path d="M-7 10 L-9 3 L-13 0 L-9 -4 L-12 -17 L-3 -9 L1 -12 L9 -24 L12 -28 L15.5 -26 L13.5 -22 L7.5 -15.5 L16.5 -19.5 L14 -14 L7 -8 L6.5 -1 L10 3 L5.5 5 L7 10Z"/>${lit('<circle cx="3.6" cy="-11" r="1.2" fill="#ffd23f"/>')}</g>`;
+    return `<g ${howl ? `class="hw-howl" ${pivot([x, y + 8])}` : `transform="rotate(48 ${x} ${y})"`}>${head}</g>`;
+  };
+  // The werewolf: a broad kit body, bare, its fists clenched, a wolf's head; howling on the roof.
+  const HW_WOLF_LOOK = { head: false, build: 'broad', topStyle: 'bare', bottomStyle: 'shorts', arms: [[-40, 50], [60, 60]], legs: ['wide', 'wide'] };
+  const HW_WEREWOLF = `<svg viewBox="0 -16 60 136" width="0.441em" height="1em" overflow="visible">${figureAt(30, 118.5, 120, HW_WOLF_LOOK)}${silhouette(hwWolfHead(figure.points(HW_WOLF_LOOK).head, true))}</svg>`;
+  // The vampire: the kit's, from the front, his arms out holding his cape open like wings (the cape
+  // behind him, out to his hands, its high collar up behind his head).
+  const HW_VAMP_LOOK = { facing: 'front', hair: 'quiff', hairColor: 'black', skin: 'pale', top: '#141418', topStyle: 'suit', neck: 'bow', bottom: '#141418', arms: [[118, 30], [118, 30]] };
+  const HW_VAMP = (() => {
+    const { handB, handF } = figure.points(HW_VAMP_LOOK);
+    const [l, r] = handB[0] < handF[0] ? [handB, handF] : [handF, handB];
+    const hem = [46, 41, 36, 30, 24, 19, 14].map((x, i) => `Q${x - 2.5} ${i % 2 ? 110 : 112} ${x - 5} 116`).join(' ');
+    return `<svg viewBox="-14 0 88 120" width="0.733em" height="1em" overflow="visible">${silhouette(`<path d="M${pt(l)} L16 3 L25 21 H35 L44 3 L${pt(r)} Q${n1(r[0] - 4)} ${n1((r[1] + 116) / 2)} 51 116 ${hem} Q${n1(l[0] + 4)} ${n1((l[1] + 116) / 2)} ${pt(l)}Z"/>`)}${figureAt(30, 118.5, 120, HW_VAMP_LOOK)}</svg>`;
+  })();
+  // Trick-or-treaters (the kit's, small): a sheet ghost, a little witch, a pumpkin head, each with
+  // a lit pumpkin pail, walking right.
+  const HW_KID = { build: 'slim', pose: 'carry', cls: 'fg-walk', holding: 'pail', hair: 'short' };
+  const HW_TRICK = (() => {
+    const ghost = { ...HW_KID, holding: null };
+    const hf = figure.points(ghost).handF;
+    const witch = { ...HW_KID, hat: 'witch', hair: 'long', bottomStyle: 'skirt' };
+    const pump = { ...HW_KID, head: false };
+    const sheet = `<path d="M28 1 C16 1 13 12 13 26 L9 84 l5 -4 5 5 5 -5 5 5 5 -5 5 5 5 -5 5 4 L47 26 C47 11 40 1 28 1Z" fill="rgba(240,236,255,0.95)"/><ellipse cx="35" cy="15" rx="2.4" ry="3.2" fill="${INK}"/><ellipse cx="41.5" cy="15" rx="2.1" ry="3" fill="${INK}"/><g transform="translate(${n1(hf[0] + 0.6)} ${n1(hf[1] + 1.4)}) scale(0.85)">${plain(PROPS.pail())}</g>`;
+    return `<svg viewBox="0 -12 172 132" width="1em" height="0.767em" overflow="visible">${figureAt(28, 118, 74, ghost)}${inFig(28, 118, 74, sheet)}${figureAt(86, 118, 80, witch)}${figureAt(142, 118, 70, pump)}${inFig(142, 118, 70, hwPumpkin(figure.points(pump).head, 12))}</svg>`;
+  })();
+  // The monster parade, for the winner: a skeleton dancing, a mummy and Frankenstein's monster
+  // (arms out, stiff: hw-stiff), the vampire (his cape streaming), the werewolf, the witch with a
+  // jack-o'-lantern up, a pumpkin head with a torch, a ghost, and a black cat out in front.
+  const HW_PARADE = (() => {
+    const at = (i) => 40 + i * 76;
+    const vamp = { hair: 'quiff', hairColor: 'black', topStyle: 'suit', neck: 'bow', pose: 'walk' };
+    const wolf = { ...HW_WOLF_LOOK, arms: undefined, legs: undefined, pose: 'walk' };
+    const mummy = { hair: 'bald', face: 'none', pose: 'walk', arms: [[86, 4], [92, 0]], cls: 'hw-stiff' };
+    const pump = { head: false, pose: 'walk', holding: 'torch', arms: ['swingB', 'up'] };
+    return `<svg viewBox="0 -26 700 146" width="1em" height="0.209em" overflow="visible">
+      ${figureAt(at(0), 118, 116, { face: 'skull', hair: 'bald', topStyle: 'ribs', sleeves: 'none', bottomStyle: 'shorts', pose: 'dance' })}
+      ${figureAt(at(1), 118, 118, mummy)}${inFig(at(1), 118, 118, silhouette(`<path d="M24 12 Q14 20 10 34 Q8 40 4 44 L8 45 Q12 38 16 34 Q20 22 26 15Z"/><path d="M52 41 Q56 52 50 62 L53 63 Q60 52 55 40Z"/>`))}
+      ${figureAt(at(2), 118, 128, { hat: 'flattop', build: 'broad', pose: 'walk', arms: [[88, 6], [94, 0]], cls: 'hw-stiff' })}
+      ${inFig(at(3), 118, 120, silhouette('<path d="M27 21 L19 4 L27 13 L31 22 Q16 60 4 112 L10 108 L15 113 L21 108 L27 113 L33 108 L35 30Z" class="hw-cape"/>'))}${figureAt(at(3), 118, 120, vamp)}
+      ${figureAt(at(4), 118, 124, wolf)}${inFig(at(4), 118, 124, silhouette(hwWolfHead(figure.points(wolf).head, false)))}
+      ${figureAt(at(5), 118, 116, { hat: 'witch', hair: 'long', bottomStyle: 'gown', pose: 'walk', holding: 'jack', arms: ['swingB', 'up'] })}
+      ${figureAt(at(6), 118, 114, pump)}${inFig(at(6), 118, 114, hwPumpkin(figure.points(pump).head, 12.5))}
+      <g class="hw-float">${critter.at('ghost', at(7), 96, 44)}</g>
+      ${critter.at('cat', at(8) - 6, 118, 54, { color: '#05030a', eye: '#ffd23f' })}</svg>`;
+  })();
+  const HW_RAVEN = critter('raven');
+  // A black cat walking, and arching its back.
+  const HW_FENCECAT = critter('cat', { color: '#07050c', eye: '#ffd23f' });
+  const HW_ARCHCAT = critter('cat', { pose: 'arch', color: '#07050c', eye: '#ffd23f' });
+  // A coffin standing up (its lid apart, to slide off), lined in red.
+  const HW_COFFIN = `<svg viewBox="0 0 44 110" width="1em" height="2.5em" overflow="visible"><path d="M13 0 H31 L44 26 L35 110 H9 L0 26Z" fill="#2a1810"/><path d="M15 5 H29 L39 27 L31 104 H13 L5 27Z" fill="#5a0a18"/><path d="M15 5 H29 L39 27 L37 40 Q22 34 7 40 L5 27Z" fill="#7a1424"/></svg>`;
+  const HW_LID = `<svg viewBox="0 0 44 110" width="1em" height="2.5em" overflow="visible"><path d="M13 0 H31 L44 26 L35 110 H9 L0 26Z" fill="#3a2214"/><path d="M13 0 H31 L44 26 L35 110 H9 L0 26Z" fill="none" stroke="#5a3a22" stroke-width="2" transform="translate(4.4 5.5) scale(0.8)"/><path d="M22 22 V62 M13 34 H31" stroke="#c8a050" stroke-width="3.4"/></svg>`;
+  // The face at the window: Frankenstein's monster, green, grinning, bolts and all (a cartoon).
+  const HW_FACE = `<svg viewBox="0 0 60 64" width="1em" height="1.067em" overflow="visible"><rect x="0" y="34" width="9" height="7" rx="2" fill="#9aa0a8"/><rect x="51" y="34" width="9" height="7" rx="2" fill="#9aa0a8"/>
+    <path d="M8 14 Q8 6 16 6 H44 Q52 6 52 14 V48 Q52 62 38 63 H22 Q8 62 8 48Z" fill="#8fd47a"/><path d="M8 20 V8 Q8 2 14 2 H46 Q52 2 52 8 V20 L46 15 L41 21 L35 15 L30 21 L24 15 L19 21 L13 15Z" fill="#1a1420"/>
+    <path d="M20 24 h20 M24 22 v4 M30 22 v4 M36 22 v4" stroke="#3a6a2a" stroke-width="1.4"/><path d="M15 31 L26 34 M45 31 L34 34" stroke="#1a1420" stroke-width="2.6" stroke-linecap="round"/>
+    <ellipse cx="21" cy="38" rx="6" ry="6.4" fill="#fff"/><ellipse cx="39" cy="38" rx="6" ry="6.4" fill="#fff"/><circle cx="22" cy="39" r="2.8" fill="#1a1420"/><circle cx="38" cy="39" r="2.8" fill="#1a1420"/>
+    <path d="M17 50 Q30 60 43 50 Q30 54 17 50Z" fill="#1a1420"/><path d="M21 51.6 v3 M25.5 52.8 v3.4 M30 53.2 v3.4 M34.5 52.8 v3.4 M39 51.6 v3" stroke="#fff" stroke-width="2.4"/></svg>`;
+  // A hand coming up over the fence: fingers hooked over the rail (at y 40), a ragged sleeve.
+  const HW_FENCEHAND = `<svg viewBox="0 0 40 130" width="1em" height="3.25em" overflow="visible">${silhouette('<path d="M12 130 L13 64 Q10 56 12 48 L10 40 Q10 33 14 34 L16 40 L17 32 Q18 26 22 28 L22 38 L25 31 Q27 27 30 30 L28 40 L31 36 Q35 35 33 41 L30 52 Q30 58 28 64 L29 130Z"/><path d="M9 72 L32 70 L33 82 L29 79 L25 84 L21 79 L16 85 L12 79 L8 82Z"/>')}</svg>`;
+  const HW_LEAF = (c) => `<svg viewBox="0 0 20 20" width="1em" height="1em"><path d="M10 1 L12 6 L18 5 L15 10 L19 14 L13 14 L10 19 L7 14 L1 14 L5 10 L2 5 L8 6Z" fill="${c}"/></svg>`;
+
+  // Always there.
+  function hwAmbience() {
+    // Will-o'-the-wisps over the graves (between the table and the sidebar, and along the bottom).
+    for (const [x, y] of [[1060, 600], [1140, 640], [1330, 700], [1500, 720], [70, 700], [400, 760], [880, 770], [1200, 760]]) { const [vx, vy] = artAt(x, y); el('<i></i>', { left: `${vx}vw`, top: `${vy}vh`, '--sx': `${rand(-4, 4).toFixed(1)}vw`, '--sy': `${rand(-5, 2).toFixed(1)}vh`, animation: `sc-fly ${rand(5, 9).toFixed(1)}s ease-in-out -${rand(0, 6).toFixed(1)}s infinite alternate` }).classList.add('hw-wisp'); }
+    // The crypt's light.
+    hwPut('', [100, 540, 160, 200], ['hw-crypt']);
+    // The jack-o'-lanterns' faces (see pumpkin() in hauntedHill(): face 52 wide, 40 tall at scale 1).
+    for (const [x, y, s] of [[90, 880, 1.1], [210, 892, 0.7], [1490, 884, 1.2], [1380, 896, 0.75]]) hwPut('', [x - 28 * s, y - 58 * s, 56 * s, 44 * s], ['hw-face'], 0, { animationDuration: `${rand(1.6, 3.2).toFixed(1)}s`, animationDelay: `-${rand(0, 3).toFixed(1)}s` });
+    // Mist creeping along the ground, two banks at different speeds.
+    for (const [y, d] of [[86, 70], [93, 48]]) el('<i></i><i></i>', { left: '0', top: `${y}vh`, animationDuration: `${d}s`, animationDelay: `-${rand(0, d).toFixed(0)}s` }).classList.add('hw-mist');
+    // Stars along the top.
+    for (let i = 0; i < 10; i++) el('', { left: `${rand(14, 70).toFixed(1)}vw`, top: `${rand(1, 9).toFixed(1)}vh`, '--c': '#efe6ff', animationDuration: `${rand(1.6, 4).toFixed(1)}s`, animationDelay: `-${rand(0, 4).toFixed(1)}s` }).classList.add('fh-twinkle', 'hw-star');
+  }
+
+  // Fog rolling in across the graveyard, bank after bank, and out the other side.
+  function hwFog() {
+    const right = Math.random() < 0.5;
+    for (let i = 0; i < 4; i++) el('<i></i><i></i><i></i>', { left: right ? '-75vw' : '100vw', top: `${[58, 70, 80, 64][i]}vh`, '--dx': `${right ? 180 : -180}vw`, animationDuration: `${rand(13, 17).toFixed(1)}s`, animationDelay: `${(i * rand(0.8, 1.6)).toFixed(1)}s` }, 22000).classList.add('hw-fogbank');
+    cue('wind'); cue('wind', 5000);
+  }
+  // A cloud goes over the moon; it comes out blood red, the sky reddens; then it pales again.
+  function hwBloodMoon() {
+    hwPut('<i></i>', [1300 - 210, 150 - 210, 420, 420], ['hw-blood'], 13000);
+    el('', { left: '0', top: '0', width: '100vw', height: '55vh' }, 13000).classList.add('hw-bloodsky');
+    hwPut('<i></i><i></i>', [840, 96, 340, 110], ['hw-mooncloud'], 9000, { '--dx': `${hwPx(760).toFixed(0)}px` });
+    cue('wind'); cue('toll', 3000); cue('toll', 5600); cue('howl', 7600);
+  }
+  // The house goes dark; its windows light one by one; someone walks past behind them; then the
+  // front door creaks open and its light spills down the path, a long shadow in it.
+  const HW_WINS = [[1000, 330], [1060, 330], [1120, 330], [1160, 330]];
+  const HW_PASSER = figure({ pose: 'walk', hair: 'bun', bottomStyle: 'gown' });
+  function hwWindows() {
+    if (!hwOn()) return;
+    const speed = 34; // art units a second
+    HW_WINS.forEach(([x, y], i) => {
+      const cross = (26 + 34) / speed;
+      hwPut(`<i></i><s>${HW_PASSER}</s>`, [x, y, 26, 38], ['hw-win'], 13000, { '--on': `${(1.4 + i * 0.8).toFixed(1)}s`, '--walk': `${(4.6 + (x - 1000) / speed).toFixed(2)}s`, '--cross': `${cross.toFixed(2)}s`, '--fw': `${hwPx(34).toFixed(1)}px`, '--ww': `${hwPx(26).toFixed(1)}px`, fontSize: `${hwPx(70).toFixed(1)}px` });
+    });
+    cue('knock', 8000); cue('knock', 8400);
+    hwPut(`<s>${figure({ facing: 'back', pose: 'stand', hair: 'bun', bottomStyle: 'gown' })}</s>`, [1030, 499, 140, 120], ['hw-door'], 13000, { fontSize: `${hwPx(60).toFixed(1)}px` });
+    cue('creak', 9200);
+  }
+  // Crows burst out of the dead tree, cawing, and scatter across the sky.
+  function hwCrows() {
+    const [x, y] = artAt(rand(200, 380), rand(110, 200));
+    for (let i = 0; i < 11; i++) {
+      const tx = i % 3 ? rand(40, 115) : rand(-15, 20);
+      drift(HW_RAVEN, { from: [x + rand(-3, 3), y + rand(-2, 3)], to: [tx, rand(-12, 10)], dur: rand(3, 5), size: rand(34, 64), extra: { animationDelay: `${(i * rand(0.05, 0.16)).toFixed(2)}s`, animationTimingFunction: 'cubic-bezier(0.3, 0.6, 0.5, 1)' } }).classList.add(tx > x ? 'sc-face-r' : 'sc-face-l');
+    }
+    cue('squawk'); cue('squawk', 500); cue('squawk', 1300);
+  }
+  // A coffin rises out of the ground; the lid slides off; a vampire rises out of it, spreads his
+  // cape, and glides away up over the house, turning into a bat.
+  function hwCoffin() {
+    const h = 0.27 * innerHeight;
+    const x = Math.max(artAt(1025, 0)[0] + 1, 64);
+    el(`<b>${HW_COFFIN}</b><i>${HW_VAMP}</i><s>${HW_LID}</s>`, { left: `${x.toFixed(1)}vw`, bottom: '-1vh', fontSize: `${(h / 2.5).toFixed(1)}px` }, 9000).classList.add('hw-coffin');
+    cue('rumble'); cue('creak', 1900); cue('sting', 2900);
+    later(() => { const d = drift(BAT, { from: [x + 3, 50], to: [x + 40, -8], dur: 2.6, size: 70 }); d.classList.add('sc-face-r'); }, 5200);
+  }
+  // A werewolf climbs up on the roof, the moon bright behind him, and howls.
+  function hwWerewolf() {
+    if (!hwOn()) return;
+    hwPut('', [970, 42, 240, 240], ['hw-moonglow'], 9000);
+    hwPut(HW_WEREWOLF, [1068, 112, 46, 100], ['hw-wolf'], 9000, { fontSize: `${hwPx(100).toFixed(1)}px` });
+    cue('howl', 2200); cue('howl', 5200);
+  }
+  // Trick-or-treaters go by along the bottom with their pails.
+  function hwTrick() {
+    const hvh = 19;
+    const size = (hvh / 100) * innerHeight / 0.767;
+    crossing(HW_TRICK, { y: 99 - hvh, dur: 15, size, faces: 'right', bob: false, cls: ['blk'] });
+    cue('knock', 4000); cue('knock', 4400);
+  }
+  const HW_STIRRER = { facing: 'front', hat: 'witch', hair: 'long', bottomStyle: 'gown', arms: [[30, 70], [30, 70]], holding: 'paddle', hooks: { armF: 'hw-stirarm', armB: 'hw-stirarm b' } };
+  // A witch comes up behind the cauldron, stirs, and it boils over, green smoke billowing up.
+  function hwCauldron() {
+    if (!hwOn()) return;
+    hwPut(`<svg viewBox="1140 640 200 232" width="100%" height="100%" overflow="visible"><g class="hw-witch">${figureAt(1226, 930, 190, HW_STIRRER)}</g>
+      <ellipse class="hw-brew" cx="1240" cy="830" rx="62" ry="12" fill="#7cff9a"/><path d="M1180 830 Q1176 870 1210 876 H1270 Q1304 870 1300 830Z" fill="#141018"/><ellipse cx="1240" cy="830" rx="62" ry="12" fill="none" stroke="#2a2234" stroke-width="6"/>
+      <g class="hw-drips">${[1190, 1218, 1258, 1292].map((x, i) => `<path d="M${x - 5} 828 h10 q-1 ${16 + i * 5} -5 ${24 + i * 4} q-4 -${8 + i * 4} -5 -${24 + i * 4}Z" fill="#6ae88a"/>`).join('')}</g></svg>`, [1140, 640, 200, 232], ['hw-stir'], 9500);
+    const [cx, cy] = artAt(1240, 820);
+    later(() => { cue('sizzle'); for (let i = 0; i < 9; i++) later(() => drift('<i></i>', { from: [cx + rand(-3, 3), cy - 2], to: [cx + rand(-14, 10), cy - rand(30, 48)], dur: rand(3.5, 5), size: 10 }).classList.add('hw-smoke'), i * 260); burst(['●', '•', '○'], { x: cx, y: cy, n: 16, spread: 5, size: [6, 14], colors: ['#7cff9a', '#c8ffb0', '#3aff6a'], rise: [-20, -8], fall: [-4, 6] }); }, 4200);
+    cue('thud', 4100);
+  }
+  // A gust: leaves whirl past and every candle goes out (the room goes dark); then they gutter
+  // back, one by one.
+  function hwGust() {
+    cue('wind');
+    for (let i = 0; i < 16; i++) drift(HW_LEAF(pick(['#a0461a', '#c8781e', '#7a3a14', '#d8a03a'])), { from: [-6, rand(30, 98)], to: [106, rand(20, 98)], dur: rand(1.8, 3), size: rand(14, 26), spin: rand(400, 1000), extra: { animationDelay: `${(i * 0.12).toFixed(2)}s` } });
+    later(() => el('', { inset: '0' }, 6000).classList.add('hw-dark'), 700);
+  }
+  // A face pops up at the window... and jumps out at you.
+  function hwJump() {
+    if (!hwOn()) return;
+    hwPut(HW_FACE, [1061, 333, 24, 25.6], ['hw-jump'], 4400, { fontSize: `${hwPx(24).toFixed(1)}px` });
+    cue('sting', 1700); cue('thud', 1700);
+  }
+  // Ghosts swirl round the house.
+  function hwSwirl() {
+    if (!hwOn()) return;
+    for (let i = 0; i < 3; i++) hwPut(`<i><b>${GHOST}</b></i>`, [1090, 350, 0, 0], ['hw-swirl'], 12000, { '--rx': `${hwPx(150).toFixed(0)}px`, '--ry': `${hwPx(70).toFixed(0)}px`, '--t': `${(3.2).toFixed(1)}s`, '--d': `-${(i * 2.13).toFixed(2)}s`, fontSize: `${hwPx(50).toFixed(1)}px` });
+    cue('moan', 600); cue('moan', 5000);
+  }
+  // A black cat comes along the fence, stops, arches its back and hisses, and runs back.
+  function hwFenceCat() {
+    if (!hwOn()) return;
+    hwPut(`<b>${HW_FENCECAT}</b><i>${HW_ARCHCAT}</i>`, [1600, 650, 70, 42], ['hw-fencecat'], 10000, { '--dx': `-${hwPx(rand(220, 300)).toFixed(0)}px`, fontSize: `${hwPx(70).toFixed(1)}px` });
+    cue('meow', 3600);
+  }
+  // A hand comes up from behind the fence, grips the rail, drums its fingers, and sinks back.
+  function hwFenceHand() {
+    if (!hwOn()) return;
+    const x = Math.random() < 0.5 ? rand(10, 150) : rand(1260, 1540);
+    hwPut(`<i>${HW_FENCEHAND}</i>`, [x, 650, 40, 130], ['hw-fencehand'], 7000, { fontSize: `${hwPx(40).toFixed(1)}px` });
+    cue('creak', 900); cue('knock', 3000);
+  }
+
+  // A sip: a ghost swoops along the top with the drinkers' names, "… drinks from the grave".
+  function hwSwoop(players) {
+    const names = players.slice(0, 3).map((p) => esc(p.name));
+    const who = `${names.join(' & ')}${players.length > 3 ? ' & co' : ''}`;
+    const right = Math.random() < 0.5;
+    inFront(`<i>${GHOST}</i><b>${who} drink${players.length > 1 ? '' : 's'}… from the grave</b>`, { left: right ? '-62vw' : '100vw', top: '9vh', fontSize: `${(0.075 * innerHeight).toFixed(0)}px`, '--dx': `${right ? 166 : -166}vw` }, 7000).classList.add('hw-swoop', right ? 'r' : 'l');
+    cue('moan', 200);
+  }
+  // Finishing a drink: thunder, a bolt of lightning, and a screaming swarm of bats.
+  function hwScream() {
+    el('', { inset: '0' }, 1400).classList.add('sc-lightning');
+    el(BOLT, { left: `${rand(4, 62).toFixed(1)}vw`, top: '0', fontSize: `${(0.24 * innerHeight).toFixed(0)}px` }, 1400).classList.add('hw-bolt');
+    cue('thunder', 200);
+    for (let i = 0; i < 18; i++) {
+      const a = rand(0, Math.PI * 2);
+      const tx = 50 + Math.cos(a) * 75;
+      const [fx, fy] = [rand(36, 56), rand(40, 56)];
+      const dur = rand(1.6, 2.6);
+      // (Over everything, a moment: they come screaming out at you.)
+      el(BAT, { left: `${fx.toFixed(1)}vw`, top: `${fy.toFixed(1)}vh`, fontSize: `${rand(0.08, 0.14) * innerHeight}px`, '--dx': `${(tx - fx).toFixed(1)}vw`, '--dy': `${(48 + Math.sin(a) * 70 - fy).toFixed(1)}vh`, '--spin': '0deg', animation: `sc-drift ${dur.toFixed(2)}s cubic-bezier(0.3, 0.5, 0.6, 1) ${(0.3 + i * 0.05).toFixed(2)}s both` }, (dur + 1.4) * 1000, front).classList.add(tx > 50 ? 'sc-face-r' : 'sc-face-l', 'hw-swarm');
+    }
+    cue('squawk', 500); cue('squawk', 800); cue('squawk', 1150);
+  }
+  // A win: the monster parade marches along the bottom.
+  function hwParade() {
+    const hvh = 21;
+    const ar = 700 / 146;
+    const w = ((hvh / 100) * innerHeight * ar / innerWidth) * 100;
+    const right = Math.random() < 0.5;
+    drift(HW_PARADE, { from: [right ? -w - 2 : 102, 100 - hvh], to: [right ? 102 : -w - 2, 100 - hvh], dur: 20, size: (hvh / 100) * innerHeight * ar }).classList.add('blk', right ? 'sc-face-r' : 'sc-face-l');
+    cue('drum', 800); cue('rattle', 3000); cue('howl', 6000); cue('meow', 9000);
+    notes(right ? 6 : 60, 80, '#ff8a1a', 10);
+  }
+
+  SCENES.halloween.moments.push(hwFog, hwBloodMoon, hwWindows, hwCrows, hwCoffin, hwWerewolf, hwTrick, hwCauldron, hwGust, hwJump, hwSwirl, hwFenceCat, hwFenceHand);
 
   // (The drawn madame, peacock, cyclist and balloon take over from the emoji ones.)
   SCENES.chateau = { decor: chDecor(false), update: chWatch, moments: [...chateauMoments(false).filter((m, i) => ![1, 2, 4, 5].includes(i)), ...chMore(false)] };
