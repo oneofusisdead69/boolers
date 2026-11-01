@@ -69,6 +69,7 @@ function generate(g, ctx) {
   }
   q ||= pick(g.pool);
   markUsed(g, q);
+  if (g.had && !g.had.includes(q)) g.had.push(q); // (the room's list, for its next game)
   g.generated ||= [];
   if (!g.generated.includes(wordsOf(q))) g.generated.push(wordsOf(q));
   return q;
@@ -200,7 +201,16 @@ function startFinal(room, ctx) {
   const g = room.game;
   g.round = ROUNDS + 1;
   g.phase = 'draw';
-  g.finalQuestion = shuffle(g.nsfw ? DRAW_NSFW : DRAW_NORMAL)[0];
+  // A final the room hasn't had yet tonight (once they've all been, any but the last one).
+  const seen = (room.bigTomSeen ||= { finals: [], questions: [] }).finals;
+  const finals = g.nsfw ? DRAW_NSFW : DRAW_NORMAL;
+  let fresh = finals.filter((q) => !seen.includes(q));
+  if (!fresh.length) {
+    seen.splice(0, seen.length, ...seen.filter((q) => !finals.includes(q)), seen[seen.length - 1]);
+    fresh = finals.filter((q) => !seen.includes(q));
+  }
+  g.finalQuestion = pick(fresh);
+  seen.push(g.finalQuestion);
   g.drawings = {};
   g.finalOrder = [];
   g.finalVotes = {};
@@ -451,10 +461,16 @@ module.exports = {
     const nsfw = o.questions === 'nsfw';
     // The host's own questions (options.custom, see lib/custom.js) go in with the generated ones.
     const pool = [...(nsfw ? NSFW : NORMAL), ...(options.custom?.questions || [])];
+    // Generate deals from the top of the deck (the end): questions the room has already had
+    // tonight go to the bottom, so a new game starts with fresh ones.
+    const had = (room.bigTomSeen ||= { finals: [], questions: [] }).questions;
+    const deck = shuffle(pool);
+    deck.sort((a, b) => had.includes(b) - had.includes(a));
     Object.assign(room.game, {
       nsfw,
       pool,
-      deck: shuffle(pool),
+      deck,
+      had, // the room's own list (room.bigTomSeen), shared, not copied
       sips: o.sips,
       answerTime: o.answerTime,
       round: 0,
@@ -681,4 +697,5 @@ module.exports = {
 
   BIG_TOM,
   ROUNDS,
+  __startFinal: startFinal, // (for the tests)
 };
