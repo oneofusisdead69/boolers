@@ -18,7 +18,8 @@ function play(game, players, skill, steps = 3000) {
     let moved = false;
     for (let i = 0; i < players; i++) {
       const action = t.bot(i, skill);
-      if (!action) continue;
+      // (A bot that's only waiting to look again has nothing to do now: lib/bots.js.)
+      if (!action || action.type === '_wait') continue;
       const { delay, ...move } = action;
       const before = JSON.stringify(t.room.game);
       game.handle(t.room, t.room.players[i], move, t.ctx);
@@ -47,3 +48,24 @@ for (const id of ids) {
     }
   });
 }
+
+// lib/bots.js on its own: a bot that's only waiting looks again later, without a broadcast.
+test("a bot's _wait asks it again after the delay, and nothing is played or broadcast meanwhile", async () => {
+  const { createBots } = require('../lib/bots');
+  let asked = 0;
+  const played = [];
+  let broadcasts = 0;
+  const games = { fake: {
+    // (Nothing to do the first few times it's asked, then a move till it's made.)
+    bot: () => (++asked < 4 ? { type: '_wait', delay: 5 } : played.length ? null : { type: 'go', delay: 5 }),
+    handle: (room, bot, move) => { played.push(move.type); return 'quiet'; },
+  } };
+  const room = { code: 'TEST', players: [{ id: 'b1', bot: 'baller', connected: true }], game: { type: 'fake' } };
+  const bots = createBots({ games, ctx: {}, broadcast: () => broadcasts++, trips: {} });
+  bots.schedule(room);
+  await new Promise((r) => setTimeout(r, 80));
+  assert.deepStrictEqual(played, ['go']);
+  assert.strictEqual(broadcasts, 0);
+  assert.ok(asked >= 4, `asked again each time (${asked})`);
+  bots.forget(room);
+});

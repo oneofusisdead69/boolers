@@ -349,10 +349,13 @@ function notifyPhones(room, event, data) {
   for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
 }
 
-// A small message for every phone and TV in the room (see ctx.signal).
+// A small message for every phone and TV in the room (see ctx.signal). One emit to all of them,
+// so it's encoded once, not once a screen (a race sends one 20 times a second).
 function signal(room, event, data) {
-  for (const p of room.players) if (p.socketId) io.to(p.socketId).emit(event, data);
-  for (const id of room.tvs || []) io.to(id).emit(event, data);
+  const ids = [];
+  for (const p of room.players) if (p.socketId) ids.push(p.socketId);
+  for (const id of room.tvs || []) ids.push(id);
+  if (ids.length) io.to(ids).emit(event, data);
 }
 
 // Big Tom's best questions, kept where the rooms are (beside the rooms file, or in Firestore).

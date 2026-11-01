@@ -51,7 +51,8 @@ function play(game, players, skill, options = {}, steps = 1500) {
       const where = `phase ${t.room.game.phase}`;
       const list = check(game, t, where);
       const action = t.bot(i, skill);
-      if (!action) continue;
+      // (A bot that's only waiting to look again has nothing to do now: lib/bots.js.)
+      if (!action || action.type === '_wait') continue;
       const { delay, ...move } = action;
       const me = t.room.players[i].id;
       const excused = OPTIONAL[game.id]?.includes(move.type) || (me === t.room.hostId && HOST_MAY[game.id]?.includes(move.type));

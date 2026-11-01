@@ -166,6 +166,70 @@ test('the race ticks quietly, sending the cars as a signal', () => {
   t.cleanup();
 });
 
+test('the race keeps to the wall clock: a late tick catches up and the next is set for its own time', () => {
+  const t = setup(game, 2);
+  startRace(t, [['p0', 1], ['p1', 1]]);
+  const g = t.room.game;
+  // On time: one step, and the next tick due a step after this one was.
+  g.clock = Date.now() + 5;
+  let before = g.t;
+  t.fireTimer();
+  assert.ok(Math.abs(g.t - before - 0.05) < 1e-9, 'one step');
+  assert.ok(Math.abs(t.room.deadline - g.clock) <= 2, 'next tick on the grid, not 50 ms from now');
+  // 120 ms late: three steps, and the next one sooner than 50 ms.
+  g.clock = Date.now() - 120;
+  before = g.t;
+  t.fireTimer();
+  assert.ok(Math.abs(g.t - before - 0.15) < 1e-9, 'caught up');
+  assert.ok(t.room.deadline - Date.now() < 50);
+  // Far behind (a stalled server): no leap ahead, it carries on from now.
+  g.clock = Date.now() - 5000;
+  before = g.t;
+  t.fireTimer();
+  assert.ok(Math.abs(g.t - before - 0.15) < 1e-9, 'at most three steps');
+  assert.ok(g.clock > Date.now(), 'from now on');
+  t.cleanup();
+});
+
+test('laps go out with the cars, not as a whole new state: only a finish is broadcast', () => {
+  const t = setup(game, 3, { track: 'bar', laps: 2 });
+  startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+  for (const p of t.room.players) p.bot = 'booler';
+  const g = t.room.game;
+  const sent = [];
+  t.ctx.signal = (room, event, data) => sent.push(data);
+  let laps = 0;
+  let loud = 0;
+  for (let n = 0; n < 20000 && g.phase === 'race'; n++) {
+    const done = g.cars.filter((c) => c.finished != null).length;
+    const cps = g.cars.map((c) => c.cp);
+    if (game.tick(t.room, t.ctx) !== 'quiet') {
+      loud++;
+      assert.ok(g.phase !== 'race' || g.cars.filter((c) => c.finished != null).length > done, 'a broadcast only for a finish');
+    }
+    laps += g.cars.filter((c, i) => c.cp !== cps[i] && c.cp % 8 === 0 && c.finished == null).length;
+  }
+  assert.ok(laps >= 3, 'cars lapped');
+  assert.ok(loud <= 3, `a broadcast for each finish at most (${loud})`);
+  assert.ok(sent.some((d) => d.c.some((c) => c[5] === 2)), 'the lap is in the cars');
+  t.cleanup();
+});
+
+test('bots in a race with nothing to toot about look again in a while', () => {
+  const t = setup(game, 2);
+  t.room.players[1].bot = 'baller';
+  startRace(t, [['p0', 1], ['p1', 1]]);
+  const g = t.room.game;
+  const car = g.cars.find((c) => c.id === 'p1');
+  car.honkAt = g.t; // (just tooted)
+  const move = t.bot(1);
+  assert.strictEqual(move.type, '_wait');
+  assert.ok(move.delay >= 1000);
+  car.finished = g.t;
+  assert.strictEqual(t.bot(1), null, 'over the line: nothing');
+  t.cleanup();
+});
+
 test('bots drive the whole race; losers drink, the winner hands out, last place drinks', () => {
   const t = setup(game, 4, { track: 'bar', laps: 2, lastSips: 2, multiplier: 2 });
   for (const p of t.room.players.slice(1)) p.bot = 'baller';

@@ -3,7 +3,8 @@
 // The TV shows the whole track from above. The track is drawn on canvases: the track itself once
 // (grass is the room's felt showing through), skid marks as they're laid, and the cars every
 // frame. The cars' positions arrive 20 times a second ('cars' signals); screens draw them a moment
-// behind, sliding between the last two updates, so they move smoothly whatever the network does.
+// behind, sliding between the two updates either side, so they move smoothly whatever the network
+// does: how far behind depends on how unevenly they've been arriving (see "Where the cars are").
 //
 // Phones show the race from their own car: a chase cam just behind and above it, looking down the
 // track, like an arcade racer. That's WebGL: the same top-down track, painted once into a texture,
@@ -22,7 +23,13 @@
 // sounds"), TV or no TV.
 (() => {
   const { esc, name } = PB;
-  const DELAY = 0.09; // seconds behind the latest update the cars are drawn
+  // How far behind the race the cars are drawn (seconds), worked out from how the updates arrive
+  // (see playout): one update's gap, plus how late they've been coming (the 85th percentile of the
+  // last few seconds, over the quickest), plus a little; between `min` and `max`. The clock eases
+  // there at no more than `slew` (8 % fast or slow), and past the newest update the cars carry on
+  // in the way they were going for up to `extra`, which rides out a short stall on a phone's
+  // network. (Tuned on recorded races over modelled Wi-Fi, 4G and patchy mobile networks.)
+  const PLAY = { gap: 0.05, margin: 0.012, min: 0.06, max: 0.35, q: 0.85, window: 80, slew: 0.08, extra: 0.25 };
   const FULL_LOCK = 40; // degrees of tilt for full steering
   const SEND_GAP = 66; // ms between steering updates to the server
   const BARRIER = 7; // the tyre wall stands this far past the edge the cars bounce off
@@ -518,8 +525,8 @@
   }
   const phantom = { x: 0, y: 0, a: 0, fade: 0 };
   function phantomAt(s, tr) {
-    if (s.phase !== 'race' || !snaps.length || snapRace !== s.game.race || clockOff == null || !haunted(s)) return null;
-    const t = performance.now() / 1000 - clockOff - DELAY - PHANTOM.first;
+    if (s.phase !== 'race' || !snaps.length || snapRace !== s.game.race || !playout.ready() || !haunted(s)) return null;
+    const t = playout.now(performance.now() / 1000) - PHANTOM.first;
     if (t < 0) return null;
     const sh = shapeOf(tr);
     const hs = hauntOf(tr);
@@ -1624,7 +1631,7 @@
   // A car from above (its picture: spriteOf), nose along +x, at its place on the track.
   function drawCar(c, car, id, { label, mine, honk, lamps, big }) {
     const [x, y, a, flags] = car;
-    const look = PB.look(id);
+    const look = lookNow(id);
     c.save();
     c.translate(x, y);
     c.rotate(a);
@@ -1681,8 +1688,47 @@
 
   let snaps = []; // the latest 'cars' updates of this race
   let snapRace = 0;
-  let clockOff = null; // local seconds minus race seconds, for the freshest update
   const honked = {}; // id -> local time of their last toot
+
+  // The clock the cars are drawn on: race time, a moment behind. A phone's network doesn't deliver
+  // the updates evenly (it bunches them, holds some back, lets a few through at once), and a fixed
+  // delay either wastes time on a good connection or runs out on a bad one. So each update's
+  // lateness is noted (local arrival minus race time, against the quickest lately), and the delay
+  // is set from it (PLAY). The clock never jumps to a new delay: it runs a few percent fast or slow
+  // till it gets there, so the cars just speed up or slow down a touch.
+  const playout = {
+    offs: new Float64Array(PLAY.window), // recent updates' (arrival − race time), seconds
+    late: new Float64Array(PLAY.window), // (room to sort them in)
+    n: 0,
+    i: 0,
+    target: null, // local minus drawn race time we're heading for
+    off: null, // ...and where it is now
+    at: 0, // when it was last moved (local seconds)
+    reset() { this.n = this.i = 0; this.target = this.off = null; },
+    ready() { return this.off != null; },
+    // An update for race time t, here at local time now (seconds).
+    arrive(now, t) {
+      const W = this.offs.length;
+      this.offs[this.i] = now - t;
+      this.i = (this.i + 1) % W;
+      if (this.n < W) this.n++;
+      let base = Infinity;
+      for (let k = 0; k < this.n; k++) if (this.offs[k] < base) base = this.offs[k];
+      for (let k = 0; k < this.n; k++) this.late[k] = this.offs[k] - base;
+      const late = this.late.subarray(0, this.n).sort()[Math.min(this.n - 1, Math.floor(this.n * PLAY.q))];
+      this.target = base + Math.min(PLAY.max, Math.max(PLAY.min, PLAY.gap + late + PLAY.margin));
+      // (The first update of a race, or after a long gap: straight there.)
+      if (this.off == null || Math.abs(this.target - this.off) > 1) { this.off = this.target; this.at = now; }
+    },
+    // The race time to draw at local time now.
+    now(now) {
+      const dt = Math.min(0.1, Math.max(0, now - this.at));
+      this.at = now;
+      const step = PLAY.slew * dt;
+      this.off += Math.max(-step, Math.min(step, this.target - this.off));
+      return now - this.off;
+    },
+  };
   let lastMine = { place: 0, lap: 0, done: false };
 
   function carIds() {
@@ -1695,8 +1741,8 @@
     const g = PB.state?.game;
     if (!g) return [];
     const racing = PB.state.phase === 'race';
-    if (!racing || !snaps.length || snapRace !== g.race) return g.cars.c;
-    const t = performance.now() / 1000 - clockOff - DELAY;
+    if (!racing || !snaps.length || snapRace !== g.race || !playout.ready()) return g.cars.c;
+    const t = playout.now(performance.now() / 1000);
     let i = snaps.length - 1;
     while (i > 0 && snaps[i].t > t) i--;
     const a = snaps[i];
@@ -1708,7 +1754,7 @@
       // Past the latest update: carry on a little in the way they were going.
       const p = snaps[i - 1];
       if (!p) return a.c;
-      const f = Math.min(0.12, Math.max(0, t - a.t)) / (a.t - p.t || 0.05);
+      const f = Math.min(PLAY.extra, Math.max(0, t - a.t)) / (a.t - p.t || 0.05);
       for (let k = 0; k < n; k++) lerpCar(p.c[k] || a.c[k], a.c[k], 1 + f, nowCars[k]);
       return nowCars;
     }
@@ -2469,6 +2515,16 @@
   const EXTRA_NAMES = { none: 'Nothing', spoiler: '✈️ Spoiler', keg: '🛢️ A keg', flames: '🔥 Flames', number: '#️⃣ Your number', cone: '🚧 Traffic cone' };
   const lookOf = (id, s = PB.state) => s?.game?.looks?.[id] || PLAIN;
   const paintOf = (id, s = PB.state) => lookOf(id, s).paint || PB.look(id).color;
+  // A player's avatar and colour (PB.look), kept till the next state: it's asked for every car,
+  // every frame, and makes a new object each time.
+  let looksFrom = null;
+  const looks = new Map();
+  function lookNow(id) {
+    if (looksFrom !== PB.state) { looksFrom = PB.state; looks.clear(); }
+    let l = looks.get(id);
+    if (!l) looks.set(id, (l = PB.look(id)));
+    return l;
+  }
 
   const WHITE = [1, 1, 1];
   const GLASS = [0.08, 0.1, 0.16];
@@ -2992,8 +3048,23 @@
       el.prepend(this.cv, this.hud);
       this.el = el;
       this.w = 0; // sized on the next frame
+      this.watchSize(el);
     },
-    detach() { this.el = null; this.last = 0; },
+    detach() { this.el = null; this.last = 0; this.watchSize(null); },
+
+    // The view's size, kept up to date by a ResizeObserver: reading clientWidth every frame made
+    // the browser lay the page out again there and then whenever anything on it had changed (the
+    // lap, the place, the wheel turning), in the middle of the frame.
+    box: null,
+    watchSize(el) {
+      if (typeof ResizeObserver === 'undefined') return;
+      this.ro ||= new ResizeObserver(() => {
+        if (this.el) this.box = { w: this.el.clientWidth, h: this.el.clientHeight };
+      });
+      this.ro.disconnect();
+      this.box = null;
+      if (el) this.ro.observe(el);
+    },
 
     // Each car's model, built when the screen is (a car only changes between races), and the
     // chase cam lifted over your own if it's a tall one (a minibus, a keg on the roof).
@@ -3154,8 +3225,9 @@
     // The canvases' size: the screen's, at a modest resolution (scaled up by the browser): half the
     // phone's pixels, or less on a phone that can't keep up (see slow()).
     size(ms) {
-      const w = this.el.clientWidth;
-      const h = this.el.clientHeight;
+      // (Till the observer first reports, asked straight out.)
+      const w = this.box ? this.box.w : this.el.clientWidth;
+      const h = this.box ? this.box.h : this.el.clientHeight;
       this.slow(ms);
       if (w === this.w && h === this.h && this.k === this.want) return;
       this.w = w;
@@ -3543,7 +3615,7 @@
 
     // The car's paint (its driver's own colour, unless they picked another).
     colour(id) {
-      const paint = lookOf(id).paint || PB.look(id).color;
+      const paint = lookOf(id).paint || lookNow(id).color;
       const c = (this.colours ||= {})[id];
       if (c && c.from === paint) return c.rgb;
       this.colours[id] = { from: paint, rgb: rgb(paint, [0.9, 0.3, 0.3]) };
@@ -3572,7 +3644,7 @@
           // Close behind: an arrow at the bottom, on their side, brighter the closer they are.
           const x = W / 2 + (side / 70) * W * 0.4;
           c.globalAlpha = Math.min(1, 1.3 + along / 110);
-          c.fillStyle = PB.look(ids[i]).color;
+          c.fillStyle = lookNow(ids[i]).color;
           c.beginPath();
           c.moveTo(x, H - 26 * this.k);
           c.lineTo(x - 13 * this.k, H - 6 * this.k);
@@ -3735,9 +3807,10 @@
 
     // An avatar in a bubble of its driver's colour, drawn once.
     avatar(id) {
-      const look = PB.look(id);
+      const look = lookNow(id);
       const have = this.avatars[id];
-      if (have && have.from === `${look.avatar}${look.color}`) return have.cv;
+      if (have && have.look === look) return have.cv; // (the same state: nothing's changed)
+      if (have && have.from === `${look.avatar}${look.color}`) { have.look = look; return have.cv; }
       const cv = document.createElement('canvas');
       cv.width = cv.height = 64;
       const c = cv.getContext('2d');
@@ -3758,7 +3831,7 @@
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       c.fillText(look.avatar, 32, 30);
-      this.avatars[id] = { from: `${look.avatar}${look.color}`, cv };
+      this.avatars[id] = { from: `${look.avatar}${look.color}`, look, cv };
       return cv;
     },
 
@@ -3862,7 +3935,14 @@
   function updateBoard(s) {
     const el = document.getElementById('tr-board');
     if (!el) return;
-    const key = JSON.stringify(placesNow(s));
+    // (What placesNow would give, as a string, without making it: this runs on every update.)
+    const g = s.game;
+    const latest = s.phase === 'race' && snaps.length && snapRace === g.race ? snaps[snaps.length - 1].c : g.cars.c;
+    let key = '';
+    for (let i = 0; i < g.carIds.length; i++) {
+      const c = latest[i];
+      key += `${g.carIds[i]}:${c?.[4] || i + 1},${c?.[5] || 1},${c?.[3] & 4 ? 1 : 0};`;
+    }
     if (key === boardKey) return;
     boardKey = key;
     el.innerHTML = boardRows(s);
@@ -4028,22 +4108,27 @@
   //
   // One graph a race, built when you first drive and kept till the race is over: oscillators for
   // the engine (the note from a pretend gearbox, the loudness from your foot), and one looping
-  // noise feeding the tyres' screech, the grass's rumble and a trolley's rattle, each a filter and
-  // a gain that sit at nothing till they're wanted. Knocks, laps and passing cars are one-shots that
-  // tidy themselves away. Anything that stops the frames (the race over, leaving, a locked phone)
-  // stops the engine: it's only kept going by them.
+  // noise feeding the tyres' screech and the grass's rumble, each a filter and a gain that sit at
+  // nothing till they're wanted. Knocks, laps, passing cars and a trolley's clatter are one-shots
+  // that tidy themselves away. Anything that stops the frames (the race over, leaving, a locked
+  // phone) stops the engine: it's only kept going by them.
   //
-  // Each body's engine: the firing note at idle and at the redline (Hz), the oscillator, how much
-  // of the lower octave, how lumpy the idle is, how bright, how loud, and the top of each gear
-  // (units a second; the last runs to top speed).
+  // Every engine is a smooth, low hum, not a buzz: soft waves (a triangle, or a sine), a sine an
+  // octave down, a second sine a hair off the note for warmth, through a gentle low-pass. What
+  // tells the cars apart is the pitch, how lumpy the idle is and how loud they are.
+  //
+  // Each body's engine: the firing note at idle and at the redline (Hz), the wave, how much of the
+  // lower octave, how lumpy the idle is, how bright, how loud, and the top of each gear (units a
+  // second; the last runs to top speed).
   const ENGINES = {
-    sports: { idle: 52, top: 195, wave: 'sawtooth', sub: 0.3, lump: 0.2, tone: 1, loud: 1, gears: [55, 95, 135] },
-    pickup: { idle: 40, top: 140, wave: 'sawtooth', sub: 0.55, lump: 0.35, tone: 0.75, loud: 1, gears: [50, 100] },
-    van: { idle: 34, top: 108, wave: 'square', sub: 0.6, lump: 0.3, tone: 0.5, loud: 0.95, gears: [40, 80, 120] }, // a tired minibus
-    buggy: { idle: 60, top: 215, wave: 'square', sub: 0.15, lump: 0.45, tone: 0.85, loud: 0.85, gears: [60, 115] }, // a buzzy air-cooled one
-    hotrod: { idle: 30, top: 125, wave: 'sawtooth', sub: 0.85, lump: 0.8, tone: 0.8, loud: 1.1, gears: [65, 125] }, // the big lazy V8 lope
-    // No engine to speak of: a little electric whine, and the rattle of the cage.
-    trolley: { idle: 160, top: 700, wave: 'triangle', sub: 0, lump: 0, tone: 0.5, loud: 0.3, gears: [], rattle: true },
+    sports: { idle: 52, top: 195, wave: 'triangle', sub: 0.3, lump: 0.15, tone: 1, loud: 1, gears: [55, 95, 135] },
+    pickup: { idle: 40, top: 140, wave: 'triangle', sub: 0.5, lump: 0.3, tone: 0.8, loud: 1, gears: [50, 100] },
+    van: { idle: 34, top: 108, wave: 'triangle', sub: 0.5, lump: 0.25, tone: 0.6, loud: 0.95, gears: [40, 80, 120] }, // a tired minibus
+    buggy: { idle: 60, top: 215, wave: 'triangle', sub: 0.15, lump: 0.35, tone: 0.85, loud: 0.85, gears: [60, 115] }, // a little air-cooled one
+    hotrod: { idle: 30, top: 125, wave: 'triangle', sub: 0.7, lump: 0.7, tone: 0.8, loud: 1.1, gears: [65, 125] }, // the big lazy V8 lope (still a little lumpy)
+    // A shopping trolley: no engine to speak of, just the faintest hum, and the light, uneven
+    // clatter of its little wheels and wire cage (see clack).
+    trolley: { idle: 70, top: 140, wave: 'sine', sub: 0, lump: 0, tone: 0.4, loud: 0.12, gears: [], clatter: true },
   };
   const TOP_SPEED = 175; // (the server's CAR.top)
 
@@ -4112,18 +4197,19 @@
       const master = gain(0);
       master.gain.setTargetAtTime(this.volume() * 0.22, t, 0.05);
       master.connect(ac.destination);
-      // The engine: the note, a second one a hair off it (the beat makes it rough), the octave
-      // below, through a low-pass that opens with the throttle; then a wobble in the loudness at
-      // half the note, which is the idle's lumpiness, fading as it revs.
+      // The engine: the note, a soft sine a hair off it (a slow beat: warmth, not roughness), a
+      // sine an octave below, through a gentle low-pass (no peak) that opens a little with the
+      // throttle; then a wobble in the loudness at half the note, which is the idle's lumpiness,
+      // fading as it revs.
       const a = osc(e.wave, e.idle);
-      const b = osc('sawtooth', e.idle * 1.007);
-      const sub = osc('square', e.idle / 2);
+      const b = osc('sine', e.idle * 1.004);
+      const sub = osc('sine', e.idle / 2);
       const mixer = gain(0.5);
       const subGain = gain(e.sub * 0.6);
       a.connect(mixer);
-      b.connect(gain(0.35)).connect(mixer);
+      b.connect(gain(0.2)).connect(mixer);
       sub.connect(subGain).connect(mixer);
-      const tone = filter('lowpass', 400, 1.2);
+      const tone = filter('lowpass', 350, 0.7);
       const lump = gain(1);
       const lfo = osc('sine', e.idle / 2);
       const lumpDepth = gain(0);
@@ -4148,21 +4234,10 @@
       const shaker = osc('square', 11);
       shaker.connect(gain(0.4)).connect(shake.gain);
       hiss.connect(low).connect(rumble).connect(shake).connect(master);
-      // A trolley's cage rattling, faster as it goes.
-      let rattle = null;
-      let rattler = null;
-      if (e.rattle) {
-        const band = filter('bandpass', 3000, 1.6);
-        rattle = gain(0);
-        const chatter = gain(0.5);
-        rattler = osc('square', 9);
-        rattler.connect(gain(0.5)).connect(chatter.gain);
-        hiss.connect(band).connect(rattle).connect(chatter).connect(master);
-      }
       this.stats.built++;
       return {
-        race: s.game.race, e, ac, master, a, b, sub, lfo, lumpDepth, tone, engine, squeal, screech, rumble, shaker, rattle, rattler, finished: 0,
-        sources: [a, b, sub, lfo, hiss, waver, shaker, rattler].filter(Boolean),
+        race: s.game.race, e, ac, master, a, b, sub, lfo, lumpDepth, tone, engine, squeal, screech, rumble, shaker, finished: 0,
+        sources: [a, b, sub, lfo, hiss, waver, shaker],
         skidding: false,
         alive: performance.now(),
       };
@@ -4216,13 +4291,13 @@
       const fade = g.finished ? Math.max(0, 1 - (now - g.finished) / 3000) : 1; // idling down over the line
       const f = e.idle + (e.top - e.idle) * this.rpm;
       g.a.frequency.setTargetAtTime(f, T, 0.03);
-      g.b.frequency.setTargetAtTime(f * 1.007, T, 0.03);
+      g.b.frequency.setTargetAtTime(f * 1.004, T, 0.03);
       g.sub.frequency.setTargetAtTime(f / 2, T, 0.03);
       g.lfo.frequency.setTargetAtTime(f / 2, T, 0.05);
-      g.lumpDepth.gain.setTargetAtTime(e.lump * 0.5 * (1 - this.rpm), T, 0.05);
+      g.lumpDepth.gain.setTargetAtTime(e.lump * 0.4 * (1 - this.rpm), T, 0.05);
       // (Never darker than the low hundreds: a phone's speaker can't play the note itself, only
-      // what's over it.)
-      g.tone.frequency.setTargetAtTime(0.65 * e.tone * (500 + 900 * this.rpm + 1600 * foot * this.rpm) * (shifting ? 0.6 : 1), T, 0.04);
+      // what's just over it. Opening only a little with your foot: brighter is buzzier.)
+      g.tone.frequency.setTargetAtTime(0.6 * e.tone * (450 + 550 * this.rpm + 450 * foot * this.rpm) * (shifting ? 0.7 : 1), T, 0.04);
       // Quieter off the gas, and for a moment as it changes up.
       g.engine.gain.setTargetAtTime(e.loud * 0.32 * (0.4 + 0.45 * foot + 0.25 * this.rpm) * (shifting ? 0.45 : 1) * fade, T, shifting ? 0.02 : 0.06);
       g.master.gain.setTargetAtTime(this.volume() * 0.22, T, 0.1);
@@ -4241,11 +4316,35 @@
       const rough = grass && this.v > 4 ? Math.min(1, this.v / 60) : 0;
       g.rumble.gain.setTargetAtTime(0.3 * rough, T, 0.06);
       g.shaker.frequency.setTargetAtTime(8 + this.v / 8, T, 0.1);
-      if (g.rattle) {
-        g.rattle.gain.setTargetAtTime(0.1 * Math.min(1, this.v / 70) + (grass ? 0.08 : 0), T, 0.06);
-        g.rattler.frequency.setTargetAtTime(7 + this.v / 5, T, 0.1);
-      }
+      // A trolley's wheels and cage: now and then a tick, at random (more the faster it goes, a
+      // few more on the grass), never a steady buzz.
+      if (e.clatter && dt && this.v > 8 && Math.random() < (6 * Math.min(1, this.v / TOP_SPEED) + (grass ? 3 : 0)) * dt) this.clack(g, T, grass);
       if (racing) this.passing(s, cars, mine, now);
+    },
+
+    // One tick of a trolley's clatter (or two together, the cage): a few milliseconds of noise,
+    // pitched at random, well under the engines of the other cars.
+    clack(g, T, rough) {
+      const ac = g.ac;
+      const n = Math.random() < 0.3 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const t = T + 0.01 + k * (0.025 + Math.random() * 0.035);
+        const src = this.noise(ac);
+        const band = ac.createBiquadFilter();
+        band.type = 'bandpass';
+        band.frequency.value = 1600 + Math.random() * 2600;
+        band.Q.value = 2.5;
+        const v = ac.createGain();
+        const len = 0.012 + Math.random() * 0.02;
+        v.gain.setValueAtTime(0.0001, t);
+        v.gain.exponentialRampToValueAtTime((0.025 + Math.random() * 0.025) * (rough ? 1.4 : 1), t + 0.002);
+        v.gain.exponentialRampToValueAtTime(0.0001, t + len);
+        src.connect(band).connect(v).connect(g.master);
+        src.start(t, Math.random() * 1.9);
+        src.stop(t + len + 0.01);
+        src.onended = () => { try { v.disconnect(); } catch {} };
+      }
+      this.stats.clack = (this.stats.clack || 0) + 1;
     },
 
     // Another car going by close (either of you overtaking): a whoosh from its side.
@@ -4750,7 +4849,7 @@
     reset() {
       snaps = [];
       snapRace = 0;
-      clockOff = null;
+      playout.reset();
       draft = null;
       draftFor = null;
       lastKey = '';
@@ -4800,7 +4899,7 @@
       return screenFor(s);
     },
     afterRender(s) {
-      if (s.game.race !== snapRace) { snaps = []; snapRace = s.game.race; }
+      if (s.game.race !== snapRace) { snaps = []; snapRace = s.game.race; playout.reset(); }
       if (s.phase === 'betting') lastMine = { place: 0, lap: 0, done: false };
       if (s.phase === 'race') editing = false;
       sendSaved(s);
@@ -4840,10 +4939,8 @@
     onCars(d) {
       const s = PB.state;
       if (s?.gameType !== 'trackRacing' || !s.game || d.r !== s.game.race) return;
-      if (d.r !== snapRace) { snaps = []; snapRace = d.r; clockOff = null; }
-      const now = performance.now() / 1000;
-      const off = now - d.t;
-      clockOff = clockOff == null || off < clockOff ? off : clockOff + (off - clockOff) * 0.02;
+      if (d.r !== snapRace) { snaps = []; snapRace = d.r; playout.reset(); }
+      playout.arrive(performance.now() / 1000, d.t);
       snaps.push(d);
       if (snaps.length > 40) snaps.shift();
       const ids = carIds();
