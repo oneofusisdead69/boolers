@@ -607,3 +607,27 @@ test('bank: memory keeps nothing across a restart; the file does', async () => {
   assert.ok(errors.some((e) => /Couldn't save/.test(e)));
   assert.strictEqual(bad.draw('normal'), 'Lost', 'still drawn from memory');
 });
+
+test('the final is a drawing the room has not had yet tonight, and Generate starts with fresh questions', () => {
+  const t = setup(game, 4);
+  const room = t.room;
+  const finals = [];
+  for (let n = 0; n < 40; n++) {
+    room.game = { type: game.id };
+    game.start(room, t.ctx, {});
+    // (Straight to the final, as the last round would.)
+    game.__startFinal(room, t.ctx);
+    finals.push(room.game.finalQuestion);
+    t.cleanup();
+  }
+  assert.strictEqual(new Set(finals).size, finals.length, 'no final twice in 40 games');
+  // Questions Generate dealt in one game go to the bottom of the next game's deck.
+  room.game = { type: game.id };
+  game.start(room, t.ctx, {});
+  const dealt = room.bigTomSeen.questions.slice();
+  room.game = { type: game.id };
+  game.start(room, t.ctx, {});
+  const top = room.game.deck.slice(-10);
+  assert.ok(top.every((q) => !dealt.includes(q)));
+  t.cleanup();
+});

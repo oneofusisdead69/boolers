@@ -290,6 +290,12 @@
   }
 
   PB.register('bigTom', {
+    // A new game: nothing typed in the last one carries over (its boxes have the same keys).
+    reset() {
+      for (const k of Object.keys(drafts)) delete drafts[k];
+      lastSuggestion = null;
+      lastKey = null;
+    },
     // Sideways: these go on the left.
     stage: '.bt-prompt, .bt-answers, .bt-canvas, .bt-gallery',
     // On the TV: the matchups and the gallery big; while people write, answer or draw, who's done.
@@ -351,6 +357,8 @@
         b.onclick = () => {
           const text = (drafts[b.dataset.key] || '').trim();
           if (!text) return;
+          // (Sent: the box starts empty next time, not with this.)
+          delete drafts[b.dataset.key];
           if (b.dataset.btSend === 'question') PB.act('question', { text });
           else PB.act('answer', { m: b.dataset.m, text });
         };
