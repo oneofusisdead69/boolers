@@ -97,8 +97,7 @@
         : m.canVote ? `<p class="center muted">${m.myVote ? 'Voted. Tap the other to change.' : 'Tap the better answer'} ${PB.timer()}</p>` : '';
       below += `<p class="center muted">${m.voted} / ${m.voters} voted</p>${moveOn(s, 'Reveal now')}`;
     } else {
-      if (g.give?.from === s.me) below = `<p class="center"><b>You won! Give ${PB.plural(g.give.sips, 'sip')} to…</b></p>${PB.playerPicker('give', { exclude: [s.me] })}`;
-      else if (g.give) below = `<p class="center muted">${esc(name(g.give.from))} is picking who drinks ${g.give.sips}…</p>`;
+      if (g.give) below = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `bt:${g.round}:${m.index}`, title: g.give.from === s.me ? '🎤 You won!' : '' });
       below += s.isHost
         ? `<button data-act="next">${m.index + 1 < m.total ? 'Next matchup' : 'See the round'}</button>`
         : `<p class="center muted">${esc(name(s.hostId))} moves on…</p>`;
@@ -232,8 +231,7 @@
     const best = g.points[champs[0]?.id] || 0;
     const kings = champs.filter((p) => (g.points[p.id] || 0) === best && best > 0);
     let give = '';
-    if (g.give?.from === s.me) give = `<p class="center"><b>You won the final! Give ${PB.plural(g.give.sips, 'sip')} to…</b></p>${PB.playerPicker('give', { exclude: [s.me] })}`;
-    else if (g.give) give = `<p class="center muted">${esc(name(g.give.from))} is picking who drinks ${g.give.sips}…</p>`;
+    if (g.give) give = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: 'bt:final', title: g.give.from === s.me ? '🎨 You won the final!' : '' });
     return `
       <div class="drink win"><div class="big">👑 ${kings.length ? kings.map((p) => esc(p.name)).join(' & ') : 'Nobody'}</div>
         <div class="sips">${kings.length > 1 ? 'share' : 'is'} the Big Tom champion${kings.length > 1 ? 's' : ''}</div></div>

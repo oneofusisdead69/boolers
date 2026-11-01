@@ -15,6 +15,7 @@ const { pick } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
+const giving = require('../lib/give');
 
 const RACE_MS = 10000;
 
@@ -46,6 +47,24 @@ function drinkWithMates(room, ctx, id, sips, reason, from = null) {
     if (mate && mate !== from) ctx.drink(room, mate, sips, `${ctx.name(room, id)}'s mate`);
   }
 }
+
+// 2 (You): the drawer hands out its sips (all to one person, or split), on the clock. When it's up,
+// or the host skips the wait, they go out at random.
+const giveReason = (g) => g.cards[g.card.rank].title;
+const mateDrink = (room, ctx, from) => (id, n, reason) => drinkWithMates(room, ctx, id, n, reason, from);
+function giveClock(room, ctx) {
+  const g = room.game;
+  const turn = g.history.length;
+  giving.clock(room, ctx, () => g.phase === 'card' && !g.resolved && g.history.length === turn && autoGive(room, ctx));
+}
+function autoGive(room, ctx, skipped = false) {
+  const g = room.game;
+  ctx.clearTimer(room);
+  giving.auto(room, ctx, g.turnId, g.cards[g.card.rank].sips, giveReason(g), { skipped, drink: mateDrink(room, ctx, g.turnId) });
+  g.resolved = true;
+}
+// Is the drawer handing out sips right now?
+const handingOut = (g) => g.phase === 'card' && !g.resolved && g.cards[g.card.rank].kind === 'pick';
 
 function nextTurn(room, ctx) {
   const g = room.game;
@@ -191,6 +210,7 @@ module.exports = {
         ctx.finishDrink(room, me, 'broke the circle');
       }
       if (r.kind === 'self') drinkWithMates(room, ctx, me, r.sips, 'Me');
+      else if (r.kind === 'pick') giveClock(room, ctx);
       else if (r.kind === 'qm') g.qm = me;
       else if (r.kind === 'king') {
         g.kings += 1;
@@ -209,9 +229,19 @@ module.exports = {
       g.race.tapped.push(me);
       const waiting = ctx.connectedPlayers(room).filter((p) => !g.race.tapped.includes(p.id));
       if (waiting.length <= 1) endRace(room, ctx);
-    } else if (action.type === 'pick' && g.phase === 'card' && myTurn && !g.resolved && target) {
-      // 2 (You), or a race card without reactions: the drawer names who drinks.
-      drinkWithMates(room, ctx, target.id, rule.sips, rule.kind === 'race' ? `last for ${rule.title}` : rule.title, rule.kind === 'pick' ? me : null);
+    } else if ((action.type === 'give' || action.type === 'pick') && handingOut(g) && myTurn) {
+      // 2 (You): all to one person ({ targetId }) or split ({ alloc }), see lib/give.js. ('pick' is
+      // what a phone still on the last version sends.)
+      if (!giving.give(room, ctx, me, action, rule.sips, rule.title, mateDrink(room, ctx, me))) return;
+      ctx.clearTimer(room);
+      g.resolved = true;
+    } else if (action.type === 'skipGive' && handingOut(g) && me === room.hostId) {
+      autoGive(room, ctx, true);
+    } else if (action.type === 'pick' && g.phase === 'card' && myTurn && !g.resolved && rule.kind === 'race') {
+      // A race card without reactions: the drawer names who was last (themselves too).
+      const last = ctx.player(room, action.targetId);
+      if (!last) return;
+      drinkWithMates(room, ctx, last.id, rule.sips, `last for ${rule.title}`);
       g.resolved = true;
     } else if (action.type === 'mate' && g.phase === 'card' && myTurn && !g.resolved && rule.kind === 'mate' && target) {
       // Picking someone who's already your mate doesn't make a second pair.
@@ -237,6 +267,8 @@ module.exports = {
       if (waiting.length <= 1) endRace(room, ctx);
     } else if ((g.phase === 'draw' || g.phase === 'card') && !ctx.turns.isActive(room, g.turnId)) {
       nextTurn(room, ctx);
+    } else if (handingOut(g) && !room.timer) {
+      giveClock(room, ctx); // (lost in a restart)
     }
   },
 
@@ -265,8 +297,9 @@ module.exports = {
     if (g.resolved) return { type: 'next' };
     const rule = g.cards[g.card.rank];
     const targetId = pickHuman(room, me.id);
-    // 2 (You), or a race card without reactions: the bot names who drinks.
-    if ((rule.kind === 'pick' || rule.kind === 'race') && targetId) return { type: 'pick', targetId };
+    // 2 (You): the bot hands its sips to someone; a race card without reactions: it names who was last.
+    if (rule.kind === 'pick' && targetId) return { type: 'give', targetId };
+    if (rule.kind === 'race' && targetId) return { type: 'pick', targetId };
     if (rule.kind === 'mate' && targetId) return { type: 'mate', targetId };
     if (rule.kind === 'rule') return { type: 'rule', text: pick(BOT_RULES) };
     return null;
@@ -276,6 +309,7 @@ module.exports = {
     const g = room.game;
     return {
       turnId: g.turnId,
+      order: g.order, // (who's up next)
       card: g.card,
       rule: g.card ? g.cards[g.card.rank] : null,
       prompt: g.prompt,

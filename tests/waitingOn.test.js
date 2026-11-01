@@ -20,7 +20,7 @@ const OPTIONAL = {
   horseRace: ['ride'], // jockeys tap while the race runs itself
   shotPoker: ['paid'], // a tab is paid straight away, though only the next deal waits for it
   boatRace: ['cheer'], // bots cheer from the side
-  trackRacing: ['honk'], // a toot of the horn mid-race, whenever you like
+  trackRacing: ['honk', 'car', 'bet'], // a toot mid-race; a car, or a bet other than the sip on yourself everyone starts with
   bigTom: ['bestQuestion'], // the end-of-game poll: playing again goes ahead without it
 };
 const HOST_MAY = { liarsDice: ['next'], shotPoker: ['deal'], bigTom: ['moveOn'] };

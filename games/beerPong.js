@@ -1,6 +1,6 @@
 // Beer Pong: two teams, a rack of cups at each end of the table. On your team's turn each of you
-// throws one ball (on your own, you throw both): drag to aim at the other team's cups, then flick
-// up to throw, as in Darts. Each team's cups are dealt round its players (each cup in its
+// throws one ball (on your own, you throw both) with one swipe up the phone: lean the swipe left
+// or right to aim across the other team's rack, and swipe harder to throw further back. Each team's cups are dealt round its players (each cup in its
 // player's colour): a ball in your cup takes it off the table, and you drink.
 // Both balls in: balls back, go again. Down to 6 cups a team's rack is tidied back into a
 // triangle; at 2, into the gentleman's (two in a line, one behind the other). Sink the other team's last cup to win; the losers finish their drinks.
@@ -10,7 +10,8 @@
 //   g.rebuttal: { for: the team that cleared the rack (it wins on a miss) } while one's on.
 //
 // The rack is drawn in its own units: x across (-0.5 to 0.5), y back from the front row (0 to
-// about 0.6), cups CUP_R across. The server works out where each ball lands from the throw.
+// about 0.6), cups CUP_R across. The server works out where each ball lands from the swipe: the
+// phone only says which way it leaned and how hard it was.
 
 const teams = require('../lib/teams');
 const { gauss, clamp } = require('../lib/random');
@@ -21,8 +22,15 @@ const { TEAMS } = teams; // Red and Blue: beer pong is always two teams
 const CUP_R = 0.1;
 const GAP = 0.21; // from one cup's centre to the next
 const WOBBLE = { steady: 0.025, normal: 0.05, wobbly: 0.09 };
-// How far off a perfect flick's speed still counts as perfect (sent to phones, for the readout).
+// How far off a perfect swipe's speed still counts as perfect (sent to phones, for the readout).
 const PERFECT = 0.06;
+// A swipe's lean and strength, in the rack's units (sent to phones, for the readout and the
+// arrow): each degree it leans off straight up beyond DEAD moves the ball PER_DEG across, so about
+// 25° reaches the rack's edge; each 10% too hard or soft sends it REACH / 10 long or short (a
+// full rack is the heart ±30% or so, so a natural swipe lands among the cups).
+const DEAD = 3;
+const PER_DEG = 0.019;
+const REACH = 0.75;
 
 // Deals a team's cups round its players, front to back: whose cup is whose.
 function deal(cups, ids) {
@@ -41,16 +49,35 @@ function rack(n) {
   return cups;
 }
 
-// Where a ball lands, in the target rack's units. `angle` is how far the flick leaned off straight
-// up (degrees, + = right) and `speed` how hard it was against a perfect flick (1): too hard goes
-// long, too soft falls short. A little slack either way counts as perfect.
+// Where a ball lands, in the target rack's units. `aim` is where a dead-straight, perfect swipe
+// goes (see heart()); `angle` is how far the swipe leaned off straight up (degrees, + = right) and
+// `speed` how hard it was against a perfect one (1): too hard goes long, too soft falls short. A
+// few degrees either way count as straight, and a little slack either way as perfect.
 function land(aim, angle, speed, wobble) {
-  const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - 3);
+  const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - DEAD);
   const power = Math.abs(speed - 1) < PERFECT ? 1 : speed;
   return {
-    x: aim.x + Math.sin((lean * Math.PI) / 180) * 1.1 + gauss() * wobble,
-    y: aim.y + (power - 1) * 0.9 + gauss() * wobble,
+    x: aim.x + lean * PER_DEG + gauss() * wobble,
+    y: aim.y + (power - 1) * REACH + gauss() * wobble,
   };
+}
+
+// The heart of a rack: the cup with the most others round it (so a ball a little off still drops
+// in one), front first. A straight, perfect swipe goes there, as deep as it is, down the middle of
+// the table, so a perfect one is always worth something, however few cups are left.
+function heart(cups) {
+  if (!cups.length) return { x: 0, y: 0.3 };
+  const around = (c) => cups.filter((o) => o !== c && Math.hypot(o.x - c.x, o.y - c.y) < GAP * 1.1).length;
+  return cups.slice().sort((a, b) => around(b) - around(a) || a.y - b.y || Math.abs(a.x) - Math.abs(b.x))[0];
+}
+// Where a straight, perfect swipe lands.
+const straight = (cups) => ({ x: 0, y: heart(cups).y });
+
+// The swipe that lands a ball (wobble aside) on `cup`: land(), backwards.
+function swipeAt(cups, cup) {
+  const aim = straight(cups);
+  const lean = (cup.x - aim.x) / PER_DEG;
+  return { angle: lean ? lean + Math.sign(lean) * DEAD : 0, speed: 1 + (cup.y - aim.y) / REACH };
 }
 
 // The next thrower on a team: its players take turns (missing anyone who's left).
@@ -136,22 +163,21 @@ function settle(room, ctx, player, hit) {
   }
 }
 
-// Bots. A bot's flick goes wrong like a person's: it leans off straight and comes out too hard or
-// too soft, by less the better the bot (at 0.9 about 4° and 9%, at 0.25 about 11° and 28%). A
-// full rack is a big target, so even a Booler misses a last cup about half the time.
+// Bots swipe like a person: at a cup, but the swipe leans off and comes out too hard or too soft,
+// by less the better the bot (at 0.9 about 4° and 9%, at 0.25 about 11° and 28%). A full rack is a
+// big target, so even a Booler misses a last cup about half the time.
 function flick(skill) {
   return {
     angle: gauss() * (3.5 + 11 * Math.pow(1 - skill, 1.2)),
-    speed: 1 + gauss() * (0.07 + 0.3 * Math.pow(1 - skill, 1.3)),
+    speed: gauss() * (0.07 + 0.3 * Math.pow(1 - skill, 1.3)),
   };
 }
 
-// The cup a bot goes for. A good one picks the heart of the rack (most cups round it, so a ball a
-// little off still drops in one), front first; a bad one just picks one.
+// The cup a bot goes for. A good one picks the heart of the rack (a straight, perfect swipe); a
+// bad one just picks one.
 function pickCup(cups, skill) {
   if (skill < 0.5) return cups[Math.floor(Math.random() * cups.length)];
-  const around = (c) => cups.filter((o) => o !== c && Math.hypot(o.x - c.x, o.y - c.y) < GAP * 1.1).length;
-  return cups.slice().sort((a, b) => around(b) - around(a) || a.y - b.y || Math.abs(a.x) - Math.abs(b.x))[0];
+  return heart(cups);
 }
 
 // The game's won: the losers finish their drinks (those still here).
@@ -168,9 +194,9 @@ function finish(room, ctx, winner, comeback = false) {
 module.exports = {
   id: 'beerPong',
   name: 'Beer Pong',
-  description: 'Two teams, ten cups each. Flick ping-pong balls at their cups from your phone.',
+  description: 'Two teams, ten cups each. Swipe ping-pong balls at their cups from your phone.',
   rules: [
-    'Drag to aim at the other team’s cups, then flick up to throw. Too hard goes long; too soft falls short.',
+    'Swipe up your phone to throw: lean the swipe left or right to aim across their cups. Too hard goes long; too soft falls short.',
     'Each of you throws a ball on your team’s turn. Your team’s cups are in your colours: sink one and its owner drinks.',
     'Both balls in: balls back, go again. At 6 cups the rack is tidied up; at 2, the gentleman’s: two in a line.',
     'Sink their last cup to win. The losers finish their drinks.',
@@ -220,25 +246,20 @@ module.exports = {
       return;
     }
 
-    if (g.phase !== 'throwing' || me !== g.turnId) return;
-    if (action.type === 'aim') {
-      g.aim = { x: clamp(Number(action.x), -0.8, 0.8), y: clamp(Number(action.y), -0.2, 1) };
-      ctx.signal(room, 'aim', g.aim);
-      return 'quiet';
-    }
-    if (action.type !== 'throw') return;
-
-    const aim = { x: clamp(Number(action.x), -0.8, 0.8), y: clamp(Number(action.y), -0.2, 1) };
-    const at = land(aim, clamp(Number(action.angle), -45, 45), clamp(Number(action.speed), 0.3, 2.5), WOBBLE[g.wobble]);
+    // One swipe, one ball: only the thrower's, and only while it's theirs to throw (a second one
+    // from the same swipe arrives with the ball already in the air, and goes nowhere). The phone
+    // says only how the swipe went: where that sends the ball is worked out here.
+    if (g.phase !== 'throwing' || me !== g.turnId || action.type !== 'throw') return;
+    if (!Number.isFinite(Number(action.angle)) || !Number.isFinite(Number(action.speed))) return; // not a swipe
     const cups = g.cups[1 - g.turnTeam];
     const target = 1 - g.turnTeam;
+    const at = land(straight(cups), clamp(Number(action.angle), -45, 45), clamp(Number(action.speed), 0.3, 2.5), WOBBLE[g.wobble]);
     const dist = (c) => Math.hypot(c.x - at.x, c.y - at.y);
     const nearest = cups.reduce((best, c, i) => (best < 0 || dist(c) < dist(cups[best]) ? i : best), -1);
     const hit = nearest >= 0 && dist(cups[nearest]) < CUP_R * 0.95 ? nearest : null;
     const rim = hit === null && nearest >= 0 && dist(cups[nearest]) < CUP_R * 1.5;
     g.throwNo += 1;
     g.last = { n: g.throwNo, by: me, team: g.turnTeam, target, x: +at.x.toFixed(3), y: +at.y.toFixed(3), cup: hit === null ? null : { ...cups[hit] }, rim };
-    g.aim = aim;
     // Everyone watches the ball fly and land before anything happens.
     g.phase = 'landing';
     ctx.setTimer(room, LAND_MS, () => settle(room, ctx, player, hit));
@@ -252,8 +273,9 @@ module.exports = {
     if (g.phase !== 'throwing' || g.turnId !== me.id) return null;
     const cups = g.cups[1 - g.turnTeam];
     if (!cups.length) return null;
-    const cup = pickCup(cups, skill);
-    return { type: 'throw', x: cup.x, y: cup.y, ...flick(skill) };
+    const aim = swipeAt(cups, pickCup(cups, skill));
+    const off = flick(skill);
+    return { type: 'throw', angle: aim.angle + off.angle, speed: aim.speed + off.speed };
   },
 
   // A thrower who leaves: the next one on the team takes the ball.
@@ -292,15 +314,19 @@ module.exports = {
       // A rebuttal on: whose rack it is, and how many cups are still to sink, without a miss.
       rebuttal: g.rebuttal ? { for: g.rebuttal.for, left: g.cups[g.rebuttal.for].length } : null,
       comeback: !!g.comeback,
-      aim: g.aim || null,
       sips: g.sips,
       cupR: CUP_R,
       perfect: PERFECT,
+      // How a swipe maps to where it lands (see land()), for the phone's arrow and readout.
+      swipe: { straight: straight(g.cups?.[1 - (g.turnTeam ?? 0)] || []), dead: DEAD, perDeg: PER_DEG, reach: REACH },
     };
   },
 
   rack,
   land,
+  heart,
+  straight,
+  swipeAt,
   PERFECT,
   CUP_R,
   WOBBLE,

@@ -2,7 +2,8 @@
 //
 // The table, top down, with a rack at each end (Team Red's at the bottom, Team Blue's at the top),
 // is on every phone, or only on the TV when there is one. Whoever's throwing gets a close-up of the
-// cups they're throwing at, with a crosshair, and the throwing pad: drag to aim, flick up to throw.
+// cups they're throwing at, and the throwing pad: one swipe up throws, leaning it left or right
+// aims across the rack, and how hard it is sends the ball short or deep.
 (() => {
   const { esc, name } = PB;
   // ---------- The table ----------
@@ -36,26 +37,27 @@
         ${L.cup ? `<circle class="bp-splash ${fresh ? 'fresh' : ''}" r="${r * 1.6}"/>` : ''}
         <g class="bp-fly ${fresh ? 'fresh' : ''}" style="--fx:${(from.x - p.x).toFixed(1)}px;--fy:${(from.y - p.y).toFixed(1)}px"><circle r="2.4" fill="#fffdf4" stroke="#d8d0c0" stroke-width="0.5"/></g></g>`;
     }
-    const aim = g.aim && s.phase === 'throwing' ? (() => { const p = toTable(1 - g.turnTeam, g.aim.x, g.aim.y); return `<g id="bp-aim-t" class="bp-aim" transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})"><circle r="4"/><path d="M-6 0 H6 M0 -6 V6"/></g>`; })() : '';
     const label = (t, y) => `<text x="50" y="${y}" class="bp-label" style="fill:${g.teams[t].color}">Team ${esc(g.teams[t].name)} · ${g.cups[t].length}</text>`;
     // The table top is the venue's (its --felt and --rim, as on every other game's table), under the drawing.
     return `<div class="bp-table-wrap"><div class="bp-board"><svg class="bp-table" viewBox="0 0 100 240" role="img" aria-label="The beer pong table">
       <defs><radialGradient id="bp-foam"><stop offset="0" stop-color="#fffbe6"/><stop offset="1" stop-color="#fffbe6" stop-opacity="0"/></radialGradient></defs>
       <path d="M50 4 V236 M1 120 H99" class="bp-line"/>
       ${label(1, 92)}${label(0, 154)}
-      ${racks}${aim}${ball}
+      ${racks}${ball}
     </svg></div></div>`;
   }
 
   // ---------- Throwing ----------
   // The thrower's close-up: the rack they're throwing at, front row at the bottom.
-  let aimState = { key: '', x: 0, y: 0.3 };
-  function localAim(s) {
-    const key = `${s.game.turnId}:${s.game.last?.n || 0}`;
-    if (aimState.key !== key) aimState = { key, x: s.game.aim?.x ?? 0, y: s.game.aim?.y ?? 0.3 };
-    return aimState;
-  }
-  let feedback = '';
+  // How your last swipe went, and whose it was (in pass and play the next thrower shouldn't see
+  // the last one's).
+  let feedback = { by: null, text: '' };
+  // Whose ball the pad is for: `${turnId}:${last throw}`. Once it's thrown, that pad's done: one
+  // swipe, one ball, even if the screen's redrawn before the ball's in the air.
+  const ballKey = (s) => `${s.game.turnId}:${s.game.last?.n || 0}`;
+  let thrown = '';
+  let swiping = false; // a finger's on the pad: don't redraw under it
+  let missed = false; // a redraw waited for the finger
 
   // The close-up is drawn in perspective, as if you're standing at your end of the table: the
   // far cups smaller and higher up. `view(x, y)` is where a point in the rack's units (at the
@@ -141,7 +143,6 @@
   function closeUp(s) {
     const g = s.game;
     const target = 1 - g.turnTeam;
-    const a = localAim(s);
     // Each colour gets its shading once: dark at the edges, the colour, a highlight.
     const colors = [...new Set(g.cups[target].map((c) => colorOf(c, g, target)))];
     const shades = colors.map((c, i) => `<linearGradient id="bp-shade-${i}" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset="0.12" stop-color="${c}" stop-opacity="0.75"/>
@@ -152,7 +153,6 @@
     // The venue's table top, cut to the table's shape in perspective.
     const pct = (x, y) => { const p = view(x, y); return `${((p.x / 360) * 100).toFixed(2)}% ${(((p.y + H * p.f - TOP) / (300 - TOP)) * 100).toFixed(2)}%`; };
     const felt = `<div class="bp-felt" style="clip-path:polygon(${pct(-0.75, -0.25)}, ${pct(0.75, -0.25)}, ${pct(0.75, BACK)}, ${pct(-0.75, BACK)})"></div>`;
-    const p = view(a.x, a.y);
     // The ball in the air (while it lands): from your hand up in an arc and down onto the rack,
     // then into the cup (a splash) or off the table.
     let ball = '';
@@ -183,7 +183,8 @@
       } else {
         // Out: it hits the table and bounces away, on into the room. Coming down among the cups,
         // it hits one first and bounces off it onto the table. Its shadow stays under it.
-        const side = Math.max(-1, Math.min(1, (last.x - (g.aim?.x ?? last.x)) * 4)) * 40 + (Math.random() - 0.5) * 20;
+        // (On the way it was going: across, as far as it leaned.)
+        const side = Math.max(-1, Math.min(1, last.x * 2.5)) * 40 + (Math.random() - 0.5) * 20;
         const at = landing(g, last);
         let kick = '';
         if (at.off) {
@@ -204,48 +205,112 @@
       <path d="M${corner(-0.75, -0.25)} L${corner(-0.75, BACK)} L${corner(0.75, BACK)} L${corner(0.75, -0.25)}" class="bp-edge"/>
       ${cups}
       ${ball}
-      <g id="bp-aim" class="bp-aim big" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})"><circle r="16"/><path d="M-26 0 H26 M0 -26 V26"/></g>
+      <path id="bp-arc" class="bp-arc" d=""/>
     </svg></div></div>`;
   }
 
   function pad(s) {
-    return `<div class="dt-pad bp-pad" id="bp-pad">
-      <p class="dt-hint">Drag to aim · flick up to throw</p>
-      <p class="dt-readout" id="bp-readout">${esc(feedback || `${PB.plural(s.game.balls, 'ball')} to throw`)}</p>
-      <svg class="dt-held" id="bp-held" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" fill="#fffdf4" stroke="#d8d0c0" stroke-width="2"/></svg>
+    const done = thrown === ballKey(s);
+    return `<div class="dt-pad bp-pad ${done ? 'thrown' : ''}" id="bp-pad">
+      <p class="dt-hint">Swipe up to throw · tilt to aim</p>
+      <p class="dt-readout" id="bp-readout">${esc((feedback.by === s.me && feedback.text) || `${PB.plural(s.game.balls, 'ball')} to throw`)}</p>
+      <svg class="bp-arrow" id="bp-arrow" aria-hidden="true"><path d=""/></svg>
+      <svg class="dt-held" id="bp-held" viewBox="0 0 40 40" aria-hidden="true" ${done ? 'style="opacity:0"' : ''}><circle cx="20" cy="20" r="16" fill="#fffdf4" stroke="#d8d0c0" stroke-width="2"/></svg>
     </div>`;
   }
 
-  function showAim() {
-    const p = view(aimState.x, aimState.y);
-    document.getElementById('bp-aim')?.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) scale(${p.f.toFixed(3)})`);
+  // Where a swipe sends the ball, by the game's own sums (games/beerPong.js land(), less the
+  // wobble), and how that reads: "A touch left, perfect power", "Too hard".
+  function aimOf(g, { angle, speed }) {
+    const w = g.swipe;
+    const lean = Math.sign(angle) * Math.max(0, Math.abs(angle) - w.dead);
+    const power = Math.abs(speed - 1) < g.perfect ? 1 : speed;
+    return { x: w.straight.x + lean * w.perDeg, y: w.straight.y + (power - 1) * w.reach };
+  }
+  function howItWent(g, sw) {
+    const at = aimOf(g, sw);
+    const cups = g.cups[1 - g.turnTeam];
+    const r = g.cupR;
+    const ys = cups.map((c) => c.y);
+    const xs = cups.map((c) => Math.abs(c.x));
+    const off = Math.abs(at.x) > Math.max(...xs) + r * 1.5;
+    const side = at.x < 0 ? 'left' : 'right';
+    const lean = Math.abs(sw.angle) <= g.swipe.dead ? 'Dead straight'
+      : off ? `Way ${side}` : Math.abs(sw.angle) < 8 ? `A touch ${side}` : Math.abs(sw.angle) < 16 ? `A bit ${side}` : `Well ${side}`;
+    if (at.y < Math.min(...ys) - r * 1.2) return Math.abs(sw.angle) <= g.swipe.dead ? 'Too soft' : `Too soft, ${lean.toLowerCase()}`;
+    if (at.y > Math.max(...ys) + r * 1.2) return Math.abs(sw.angle) <= g.swipe.dead ? 'Too hard' : `Too hard, ${lean.toLowerCase()}`;
+    const power = Math.abs(sw.speed - 1) < g.perfect ? 'perfect power' : sw.speed < 1 ? 'a bit soft' : 'a bit hard';
+    return `${lean}, ${power}`;
   }
 
-  function setupPad() {
+  // While you swipe: a faint arrow from the ball the way you're swiping (longer the harder), and
+  // in the close-up a faint arc from your end of the table across to that side of the rack (how
+  // far is the swipe's, so it doesn't give that away).
+  function showSwipe(sw) {
+    const arrow = document.querySelector('#bp-arrow path');
+    const arc = document.getElementById('bp-arc');
     const held = document.getElementById('bp-held');
-    PB.flickPad(document.getElementById('bp-pad'), {
-      aim: aimState,
-      // Dragging across the pad's width sweeps the crosshair across the whole rack; dragging up
-      // moves it further back.
-      drag: (from, dx, dy, width) => ({
-        x: Math.max(-0.6, Math.min(0.6, from.x + (dx * 1.2) / width)),
-        y: Math.max(-0.1, Math.min(0.8, from.y - (dy * 1.2) / width)),
-      }),
+    const padEl = document.getElementById('bp-pad');
+    if (!sw || !held || !padEl) {
+      arrow?.setAttribute('d', '');
+      arc?.setAttribute('d', '');
+      return;
+    }
+    const g = PB.state.game;
+    const pr = padEl.getBoundingClientRect();
+    const c = PB.centre(held);
+    const a = (sw.angle * Math.PI) / 180;
+    const len = 40 + Math.min(1.6, sw.speed) * 70;
+    const x0 = c.x - pr.left;
+    const y0 = c.y - pr.top - 26;
+    const x1 = x0 + Math.sin(a) * len;
+    const y1 = y0 - Math.cos(a) * len;
+    const head = (k) => `${(x1 - Math.sin(a + k) * 12).toFixed(1)} ${(y1 + Math.cos(a + k) * 12).toFixed(1)}`;
+    arrow?.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)} M${head(0.5)} L${x1.toFixed(1)} ${y1.toFixed(1)} L${head(-0.5)}`);
+    if (arc) {
+      const e = view(aimOf(g, { angle: sw.angle, speed: 1 }).x, g.swipe.straight.y);
+      const from = { x: 180, y: 300 };
+      arc.setAttribute('d', `M${from.x} ${from.y} Q${((from.x + e.x) / 2).toFixed(1)} ${(Math.min(from.y, e.y) - 90).toFixed(1)} ${e.x.toFixed(1)} ${e.y.toFixed(1)}`);
+    }
+  }
+
+  function setupPad(s) {
+    const el = document.getElementById('bp-pad');
+    if (!el || el.classList.contains('thrown')) return;
+    const held = document.getElementById('bp-held');
+    const key = ballKey(s);
+    const readout = document.getElementById('bp-readout');
+    const ended = () => {
+      swiping = false;
+      showSwipe(null);
+      // Anything that came in while the finger was down.
+      if (missed) { missed = false; PB.redraw(); }
+    };
+    PB.flickPad(el, {
+      swipe: true,
       held,
-      onAim() {
-        feedback = '';
-        showAim();
+      perfect: s.game.perfect,
+      onStart() { swiping = true; },
+      onSwipe: showSwipe,
+      onMiss(sw) {
+        if (readout && sw) readout.textContent = 'Swipe up to throw';
+        ended();
       },
-      send: () => PB.act('aim', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3) }),
-      perfect: PB.state.game.perfect,
-      onThrow({ angle, speed, note }) {
-        feedback = note;
+      onThrow({ angle, speed }) {
+        thrown = key;
+        feedback = { by: s.me, text: howItWent(PB.state.game, { angle, speed }) };
+        if (readout) readout.textContent = feedback.text;
         // The ball leaves your hand here and flies to the cups (see afterRender).
         if (held) {
           launch = PB.centre(held);
           held.style.opacity = '0';
         }
-        PB.act('throw', { x: +aimState.x.toFixed(3), y: +aimState.y.toFixed(3), angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
+        PB.act('throw', { angle: +angle.toFixed(1), speed: +speed.toFixed(3) });
+        // If the ball never goes up (the throw didn't reach the game), the pad comes back.
+        setTimeout(() => {
+          if (thrown === key && PB.state?.phase === 'throwing' && ballKey(PB.state) === key) { thrown = ''; lastKey = ''; PB.redraw(); }
+        }, 5000);
+        ended();
       },
     });
   }
@@ -322,12 +387,14 @@
 
   let lastKey = '';
   let hadPad = false; // the pad was up last time round
-  const keyOf = (s) => JSON.stringify([s.phase, s.tv, PB.landscape(), { ...s.game, aim: null }, s.players.map((p) => [p.id, p.connected, p.drinks])]);
+  const keyOf = (s) => JSON.stringify([s.phase, s.me, s.tv, PB.landscape(), s.game, s.players.map((p) => [p.id, p.connected, p.drinks]), thrown]);
 
   PB.register('beerPong', {
     reset() {
-      aimState = { key: '', x: 0, y: 0.3 };
-      feedback = '';
+      feedback = { by: null, text: '' };
+      thrown = '';
+      swiping = false;
+      missed = false;
       lastKey = '';
       shown = 0;
     },
@@ -341,8 +408,10 @@
       return s.game.last.cup ? ['bell'] : ['dice'];
     },
     render(s) {
-      // Aim updates only move the crosshair (and mustn't interrupt the thrower's drag).
+      // Nothing new, or a finger mid-swipe (redrawing would take the pad from under it, and lose
+      // the throw): keep what's showing; a swipe that's still going redraws when it ends.
       const key = keyOf(s);
+      if (swiping && document.getElementById('bp-pad')) { missed = true; return null; }
       if (key === lastKey && document.getElementById('bp-pad')) return null;
       lastKey = key;
       if (s.phase === 'teams') return lineUp(s);
@@ -350,7 +419,7 @@
       return playing(s);
     },
     afterRender(s) {
-      setupPad();
+      setupPad(s);
       // Your go: back to the top, so the cups and the pad are all on screen.
       const padNow = !!document.getElementById('bp-pad');
       if (padNow && !hadPad) window.scrollTo({ top: 0 });
@@ -367,16 +436,6 @@
       }
       // Once a ball's been drawn landing, it isn't animated again.
       if (s.game.last) setTimeout(() => { shown = s.game.last.n; }, 50);
-    },
-    onAim(aim) {
-      const s = PB.state;
-      if (!s?.game || s.phase !== 'throwing') return;
-      s.game.aim = aim;
-      if (s.game.turnId === s.me && !PB.isTV) return; // the thrower's own crosshair is local
-      const mark = document.getElementById('bp-aim-t');
-      if (!mark) return;
-      const p = toTable(1 - s.game.turnTeam, aim.x, aim.y);
-      mark.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
     },
   });
 })();

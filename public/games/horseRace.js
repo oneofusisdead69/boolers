@@ -180,8 +180,9 @@
   // phone keeps every horse running at its last known speed, and blends each new position in
   // gently, so the motion is continuous at the phone's full frame rate. Horses never run backwards.
   const BLEND = 8; // how quickly the drawn position catches up with the predicted one (per second)
-  const run = { race: null, at: {}, from: {}, vel: {}, t0: 0, tickMs: 300, going: false };
-  const shown = (g, id) => (run.race === g.race && id in run.at ? run.at[id] : g.progress[id]);
+  const run = { race: null, at: {}, from: {}, vel: {}, t0: 0, tickMs: 300, laps: 1, going: false };
+  // (Never drawn past the finish: a horse ridden fast can overshoot it within a tick.)
+  const shown = (g, id) => Math.min(g.laps, run.race === g.race && id in run.at ? run.at[id] : g.progress[id]);
 
   function follow(g) {
     if (run.race !== g.race) {
@@ -192,6 +193,7 @@
     run.vel = { ...g.vel };
     run.t0 = performance.now();
     run.tickMs = g.tickMs;
+    run.laps = g.laps;
     if (run.going) return;
     run.going = true;
     let last = performance.now();
@@ -205,7 +207,7 @@
       const ease = 1 - Math.exp(-BLEND * dt);
       HORSES.forEach((h, i) => {
         const predicted = run.from[h.id] + (run.vel[h.id] || 0) * ahead;
-        run.at[h.id] = Math.max(run.at[h.id], run.at[h.id] + (predicted - run.at[h.id]) * ease);
+        run.at[h.id] = Math.min(run.laps, Math.max(run.at[h.id], run.at[h.id] + (predicted - run.at[h.id]) * ease));
         const el = svg.querySelector(`[data-horse="${h.id}"]`);
         if (!el) return;
         el.style.transform = place(run.at[h.id], i);
@@ -441,7 +443,15 @@
       document.querySelectorAll('[data-hz]').forEach((b) => {
         b.onclick = () => {
           const what = b.dataset.hz;
-          if (what === 'horse') draft.horse = b.dataset.horse;
+          if (what === 'horse') {
+            draft.horse = b.dataset.horse;
+            // Jockey mode: taking a horse is your bet on it, the least there is, placed straight
+            // away (the server keeps a bet you'd already made at its size); raise it below.
+            if (s.game.jockey) {
+              draft.sips = s.game.myBet?.sips || 1;
+              PB.act('bet', { horse: draft.horse });
+            }
+          }
           else if (what === 'sips') draft.sips = Math.min(s.game.maxBet, Math.max(1, draft.sips + Number(b.dataset.step)));
           else if (what === 'style-open') styling.open = true;
           else if (what === 'style-close') styling.open = false;

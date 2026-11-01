@@ -16,11 +16,22 @@
     .holder button.selected { border-color: var(--accent); }
     .holder button.hint { box-shadow: 0 0 0 2px var(--ok); }
     .drink-alert .who { font-size: 1.6rem; font-weight: 800; }
+    /* "Pass the phone to Ann": over the screen whenever it's someone else's go, in their colour. */
+    .pass-to { position: fixed; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center;
+      background: color-mix(in srgb, var(--pc) 30%, var(--bg)); color: var(--text); animation: pass-in 0.25s ease-out; }
+    .pass-to[hidden] { display: none; }
+    .pass-to .av { font-size: 3.4rem; box-shadow: inset 0 0 0 4px var(--pc), 0 0 40px var(--pc); }
+    .pass-to .pass-hint { font-size: 1.1rem; color: var(--muted); }
+    .pass-to .pass-name { font-size: clamp(2rem, 11vw, 3rem); font-weight: 900; color: var(--pc); line-height: 1.1; }
+    .pass-to small { color: var(--muted); }
+    .pass-to button { width: auto; padding: 16px 32px; background: var(--pc); color: var(--pc-ink); }
+    @keyframes pass-in { from { opacity: 0; transform: scale(1.04); } }
   </style>
 </head>
 <body>
   <main id="app"></main>
   <div id="drink-alert" class="drink-alert" hidden></div>
+  <div id="pass-to" class="pass-to" hidden></div>
   <script src="/analytics.js"></script>
   <script src="/prefs.js"></script>
   <script src="/looks.js"></script>
@@ -41,6 +52,7 @@
     const { createContext } = __req('context');
     const $app = document.getElementById('app');
     const $alert = document.getElementById('drink-alert');
+    const $pass = document.getElementById('pass-to');
 
     // What one phone can't do (secret hands, tap races) is switched off. Who acts is whoever the
     // game is waiting on (its waitingOn); where anyone may act (betting, the pyramid), a bar at the
@@ -187,8 +199,11 @@
       $alert.hidden = false;
       navigator.vibrate?.([200, 100, 200]);
       Prefs.play('drink');
+      // (Gone by itself after a few seconds, so it never holds up the next throw or tap.)
+      clearTimeout($alert.t);
+      $alert.t = setTimeout(() => $alert.click(), 3500);
     }
-    $alert.onclick = () => { $alert.hidden = true; showAlert(); };
+    $alert.onclick = () => { clearTimeout($alert.t); $alert.hidden = true; showAlert(); };
 
     // ---------- Setup ----------
 
@@ -198,6 +213,8 @@
         lastPlayers = room.players;
       }
       room = null;
+      passTo = null;
+      $pass.hidden = true;
       $app.innerHTML = `
         <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
         <p class="tagline ls-l">${esc(game.name)} · pass and play</p>
@@ -289,8 +306,11 @@
           showAlert();
         },
         broadcast: () => render(),
+        giveMs: 0, // no clock on handing out sips: whoever's giving is holding the phone
       });
       holder = null;
+      lastActor = null;
+      passTo = null;
       const custom = __req('custom').clean(game.custom, PB.customFor(gameId));
       game.start(room, ctx, { ...opts, ...local.locked, custom });
       localGames += 1;
@@ -320,9 +340,31 @@
         <button class="${p.id === current ? 'selected' : ''} ${hint(room, p.id) ? 'hint' : ''}" data-holder="${p.id}">${esc(p.name)}</button>`).join('')}</div>`;
     }
 
+    // ---------- Passing the phone ----------
+    // When the game moves on to someone else, the screen says who to hand the phone to (in their
+    // colour) until they tap: nobody sees the next player's screen by accident, and nobody has to
+    // work out whose go it is. Not where anyone may act (the holder bar picks), or once it's over.
+    let lastActor = null;
+    let passTo = null;
+    function showPass() {
+      if (!passTo || !room?.game || room.game.phase === 'over') {
+        $pass.hidden = true;
+        return;
+      }
+      const { color } = PB.look(passTo);
+      $pass.style.cssText = `--pc:${color};--pc-ink:${PB.inkOn(color)}`;
+      $pass.innerHTML = `<span class="pass-hint">📱 Pass the phone to</span>${PB.avatar(passTo, 'lg')}
+        <div class="pass-name">${esc(nm(passTo))}</div><button>I'm ${esc(nm(passTo))}: show me</button><small>(or tap anywhere)</small>`;
+      $pass.hidden = false;
+    }
+    $pass.onclick = () => { passTo = null; $pass.hidden = true; };
+
     function render() {
       if (!room) return;
       const me = actorId();
+      if (lastActor && me !== lastActor && !local.switchable?.(room)) passTo = me;
+      if (passTo && passTo !== me) passTo = me;
+      lastActor = me;
       const player = room.players.find((p) => p.id === me);
       const prev = PB.state;
       PB.state = {
@@ -360,6 +402,7 @@
       PB.layout($app, screens.stage);
       screens.afterRender?.(PB.state);
       PB.tickTimer();
+      showPass();
     }
 
     PB.onTaps($app, (cmd) => (cmd === 'setup' || cmd === 'endGame') && renderSetup());

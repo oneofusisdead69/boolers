@@ -10,6 +10,7 @@ const { gauss, clamp } = require('../lib/random');
 const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
+const giving = require('../lib/give');
 
 const GLASSES = { shot: 0.07, pint: 0.12 }; // the glass's radius
 const WOBBLE = { steady: 0.02, normal: 0.04, wobbly: 0.07 };
@@ -31,8 +32,23 @@ function land(aim, angle, speed, wobble) {
 
 const shooter = (g) => g.order[g.turnIdx];
 
+// After a sink the shooter has the clock to pick who drinks; when it's up (or the host skips the
+// wait), the sips go out at random and they shoot again.
+function giveClock(room, ctx) {
+  const g = room.game;
+  const shot = g.shots;
+  giving.clock(room, ctx, () => g.phase === 'give' && g.shots === shot && autoGive(room, ctx));
+}
+function autoGive(room, ctx, skipped = false) {
+  const g = room.game;
+  ctx.clearTimer(room);
+  giving.auto(room, ctx, g.turnId, g.sips, `${ctx.name(room, g.turnId)} sank a quarter`, { skipped });
+  g.phase = 'shooting';
+}
+
 function nextShooter(room, ctx) {
   const g = room.game;
+  ctx.clearTimer(room);
   const current = shooter(g);
   const next = ctx.turns.next(room, g.order, current);
   if (!next) return;
@@ -114,6 +130,7 @@ module.exports = {
   handle(room, player, action, ctx) {
     const g = room.game;
     const me = player.id;
+    if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) return void autoGive(room, ctx, true);
     if (me !== g.turnId) return;
 
     if (action.type === 'aim' && g.phase === 'shooting') {
@@ -122,7 +139,10 @@ module.exports = {
       return 'quiet';
     }
     if (action.type === 'give' && g.phase === 'give') {
-      if (ctx.giveTo(room, me, action.targetId, g.sips, `${player.name} sank a quarter`)) g.phase = 'shooting';
+      // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
+      if (!giving.give(room, ctx, me, action, g.sips, `${player.name} sank a quarter`)) return;
+      ctx.clearTimer(room);
+      g.phase = 'shooting';
       return;
     }
     if (action.type !== 'throw' || g.phase !== 'shooting') return;
@@ -147,6 +167,7 @@ module.exports = {
         ctx.log(room, `🪙 ${player.name} sinks it!`);
       }
       g.phase = 'give';
+      giveClock(room, ctx);
       return;
     }
     ctx.log(room, rim ? `😩 ${player.name} rims it` : `💨 ${player.name} misses`);
@@ -170,6 +191,7 @@ module.exports = {
   check(room, ctx) {
     const g = room.game;
     if (g.phase !== 'over' && !ctx.turns.isActive(room, g.turnId)) nextShooter(room, ctx);
+    else if (g.phase === 'give' && !room.timer) giveClock(room, ctx); // (lost in a restart)
   },
 
   // The shooter: to throw, or to pick who drinks after a sink.

@@ -31,7 +31,7 @@
       const id = s.gameType ? `${s.code}:${s.gameType}:${s.gameNo}` : null;
       if (!id || id === PB.lastGame) return;
       PB.lastGame = id;
-      PB.handOut.key = null;
+      PB.gift = null;
       PB.screens[s.gameType]?.reset?.();
     },
 
@@ -104,11 +104,39 @@
       }</div>`).join('')}</div>`;
     },
 
-    // Header showing whose turn it is.
-    turn(playerId, text = '') {
+    // Header showing whose turn it is, in their colour so it reads from across the room: a big
+    // "YOUR TURN" on the phone that has to act (it pulses for a moment when it's just become yours,
+    // see app.js), "Waiting for Ann…" with Ann's avatar everywhere else. `next` (a player id) adds
+    // who's up after them. On the TV and in pass and play it names the player instead.
+    turn(playerId, text = '', { next = null } = {}) {
       const mine = playerId === PB.state.me;
-      const who = mine && !PB.passAndPlay ? 'Your turn' : `${PB.esc(PB.name(playerId))}'s turn`;
-      return `<div class="turn ${mine ? 'mine' : ''}"><b class="turn-who">${PB.avatar(playerId, 'sm')}${who}</b>${text ? ` <span>${PB.esc(text)}</span>` : ''}</div>`;
+      const you = mine && !PB.passAndPlay;
+      const { color } = PB.look(playerId);
+      const name = PB.esc(PB.name(playerId));
+      const who = you ? 'YOUR TURN' : PB.passAndPlay ? `${name}'s turn` : `Waiting for ${name}…`;
+      const fresh = you && Date.now() - (PB.turnAt || 0) < 1600 ? 'fresh' : '';
+      const after = !next || next === playerId ? ''
+        : next === PB.state.me && !PB.passAndPlay ? `<small class="turn-next you">${PB.avatar(next, 'sm')} You're up next: get ready!</small>`
+        : `<small class="turn-next">Next up: ${PB.avatar(next, 'sm')} ${PB.esc(PB.name(next))}</small>`;
+      // (Pass and play: the phone is always in the hands of whoever's turn it is, so it's solid too.)
+      const solid = mine && !PB.isTV;
+      return `<div class="turn ${solid ? 'mine' : 'theirs'} ${fresh}" style="--pc:${PB.esc(color)};--pc-ink:${PB.inkOn(color)}">
+        <b class="turn-who">${PB.avatar(playerId, solid ? 'sm' : '')}${who}</b>${text ? ` <span>${PB.esc(text)}</span>` : ''}${after}</div>`;
+    },
+
+    // Black or white, whichever reads better on a player's colour.
+    inkOn(color) {
+      const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color || '');
+      if (!m) return '#fff';
+      const [r, g, b] = m.slice(1).map((h) => parseInt(h, 16) / 255);
+      return 0.299 * r + 0.587 * g + 0.114 * b > 0.6 ? '#141018' : '#fff';
+    },
+
+    // Who's up after `id` in a turn order, skipping anyone who's offline.
+    nextUp(order, id) {
+      const here = order.filter((x) => x === id || PB.state.players.find((p) => p.id === x)?.connected);
+      const i = here.indexOf(id);
+      return i < 0 || here.length < 2 ? null : here[(i + 1) % here.length];
     },
 
     // Grid of player buttons. Tapping one sends `action` with { targetId }.
@@ -249,9 +277,9 @@
       return anim;
     },
     // A very light buzz (on phones that can: not iPhones), for throwing: a tick as it leaves your
-    // hand, a little pattern when it goes in.
+    // hand, a little pattern when it goes in; and a short double one when it becomes your turn.
     buzz(kind = 'throw') {
-      try { navigator.vibrate?.(kind === 'hit' ? [18, 50, 28] : 12); } catch {}
+      try { navigator.vibrate?.({ hit: [18, 50, 28], turn: [70, 60, 70] }[kind] || 12); } catch {}
     },
     // A throwing pad (Darts, Beer Pong, Quarters): drag on `el` to aim, then flick up to throw.
     // The flick is the last ~90ms of the finger's movement: how far it leaned off straight up is
@@ -268,8 +296,11 @@
     //   perfect     how far off 1 the speed can be and still count as perfect (the game's own
     //               slack, sent in its view, so the note agrees with where it lands)
     //   perfectText what a perfect one is called ('Perfect power')
-    flickPad(el, { aim, drag, held = null, onAim = () => {}, send = null, onThrow, perfect, perfectText = 'Perfect power' }) {
+    //   swipe       no aiming first: the swipe itself is the aim (Beer Pong; see swipePad, for
+    //               its own options). Off by default.
+    flickPad(el, { aim, drag, held = null, onAim = () => {}, send = null, onThrow, perfect, perfectText = 'Perfect power', swipe = false, ...more }) {
       if (!el) return;
+      if (swipe) return PB.swipePad(el, { held, onThrow, perfect, perfectText, ...more });
       let hist = [];
       let start = null;
       let lastSent = 0;
@@ -323,6 +354,96 @@
     },
     // A perfect flick crosses this many screen heights per second.
     IDEAL_SPEED: 2.5,
+
+    // A swipe pad (PB.flickPad with `swipe`): one swipe up is one throw, with no aiming first. It's
+    // read off the whole stroke, not just its last moment (a swipe that's slow to start, or eases
+    // off at the top, still counts): from where the finger was lowest (last there, so a pull back
+    // before the swipe doesn't count against it) to where it got highest (first there, so nor
+    // does a pause after). Which way that leaned off straight up is the angle (degrees, + =
+    // right), and how fast it went, against a perfect swipe (1), the speed: how far it went over
+    // how long it was moving (a finger resting, before it goes or partway, isn't timed). Anything that goes
+    // up the pad a little way counts, however slowly (a slow one's just too soft); a tap, or a
+    // swipe down or sideways, throws nothing. One throw per pad: after it the pad's done
+    // (class "thrown") until the screen draws a new one, and a finger that's still down, a
+    // second finger or a pointercancel after the pointerup can't throw again. Options:
+    //   held, perfect, perfectText, onThrow({ angle, speed, note })  as for flickPad
+    //   onStart()      a finger's gone down (a swipe's begun)
+    //   onSwipe(sw)    as the finger moves: { angle, speed, up } so far (sw null while it's not
+    //                  going up), e.g. to show which way it's heading
+    //   onMiss(sw)     the finger's come up without a throw (sw as above)
+    //   ideal          screen heights a second of a perfect swipe (PB.SWIPE_SPEED)
+    swipePad(el, { held = null, onThrow, perfect, perfectText = 'Perfect power', onStart = () => {}, onSwipe = () => {}, onMiss = () => {}, ideal = PB.SWIPE_SPEED }) {
+      if (!el) return;
+      let hist = null; // the finger's path, while it's down
+      let id = null;
+      let done = false;
+      const read = () => {
+        let top = 0;
+        hist.forEach((h, i) => { if (h.y < hist[top].y) top = i; });
+        const low = Math.max(...hist.slice(0, top + 1).map((h) => h.y));
+        let from = 0;
+        for (let i = 0; i <= top; i++) if (hist[i].y >= low - 2) from = i;
+        const a = hist[from];
+        const b = hist[top];
+        const up = a.y - b.y;
+        const dx = b.x - a.x;
+        // At least a little way up, and more up than sideways (leaning no more than about 55°).
+        if (up < 24 || up < Math.abs(dx) * 0.7) return up > 6 ? { up, ok: false } : null;
+        // The time it was moving: each step's, but a step that barely went anywhere (a resting
+        // finger: under 0.15px a millisecond) only counts for a frame.
+        let dt = 0;
+        for (let i = from + 1; i <= top; i++) {
+          const t = hist[i].t - hist[i - 1].t;
+          const d = Math.hypot(hist[i].x - hist[i - 1].x, hist[i].y - hist[i - 1].y);
+          dt += d < t * 0.15 ? Math.min(t, 16) : t;
+        }
+        const speed = ((Math.hypot(dx, up) / Math.max(16, dt)) * 1000) / window.innerHeight / ideal;
+        return { angle: (Math.atan2(dx, up) * 180) / Math.PI, speed, up, ok: true };
+      };
+      const add = (e) => hist.push({ t: e.timeStamp, x: e.clientX, y: e.clientY });
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (done || hist) return; // one finger at a time, one throw a pad
+        id = e.pointerId;
+        el.setPointerCapture?.(id);
+        hist = [];
+        add(e);
+        onStart();
+      });
+      el.addEventListener('pointermove', (e) => {
+        if (!hist || e.pointerId !== id) return;
+        // Every sample the phone took since the last move, for a fast swipe's whole path.
+        for (const c of e.getCoalescedEvents?.() || [e]) add(c);
+        if (hist.length > 400) hist.splice(1, hist.length - 400);
+        if (held) held.style.transform = `translate(${e.clientX - hist[0].x}px, ${Math.min(0, e.clientY - hist[0].y) * 0.3}px)`;
+        const sw = read();
+        onSwipe(sw?.ok ? sw : null);
+      });
+      const release = (e) => {
+        if (!hist || e.pointerId !== id) return;
+        // (A pointercancel's position can't be trusted: the path so far is the swipe.)
+        if (e.type === 'pointerup') add(e);
+        const sw = read();
+        hist = null;
+        if (sw?.ok) {
+          done = true;
+          el.classList.add('thrown');
+          const how = Math.abs(sw.speed - 1) < perfect ? perfectText : `${sw.speed < 1 ? 'Too soft' : 'Too hard'} (${Math.round(sw.speed * 100)}%)`;
+          const lean = Math.abs(sw.angle) > 3 ? `, leaning ${Math.round(Math.abs(sw.angle))}° ${sw.angle > 0 ? 'right' : 'left'}` : ', dead straight';
+          PB.buzz();
+          onThrow({ angle: sw.angle, speed: sw.speed, note: `${how}${lean}` });
+        } else {
+          if (held) held.style.transform = '';
+          onMiss(sw);
+        }
+      };
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+      el.addEventListener('lostpointercapture', release);
+    },
+    // A perfect swipe, over its whole stroke, crosses this many screen heights per second (a
+    // whole stroke is slower than its fastest bit, the flick's IDEAL_SPEED).
+    SWIPE_SPEED: 1.5,
 
     // The middle of an element on the page.
     centre(el) {
@@ -464,31 +585,125 @@
       document.body.appendChild(overlay);
     },
 
+    // ---------- Handing out sips (lib/give.js) ----------
+    // One panel for every game where someone gives away sips: tap a person and they get all of
+    // them (whoever you gave to last time is already picked, so it's often one tap on Give), − and +
+    // to split them, or Split evenly / Random. Give sends { alloc } as lib/give.js takes it. The
+    // giver has a clock (the game's PB.timer); everyone else sees who they're waiting for, and the
+    // host can skip the wait (theirs go out at random).
+    //   from   who's giving        sips   how many
+    //   key    changes for each new give (the panel starts afresh)
+    //   title  what it's for ("Bullseye!"), shown above
+    //   ask    the question on the giver's phone ("Who drinks 2?")
+    gift: null,
+
+    giveSips(s, { from, sips, key, title = '', ask = '' }) {
+      if (from !== s.me) return PB.giveWait(s, [from], sips, title);
+      const people = PB.giveTargets(s, from);
+      if (PB.gift?.key !== key) PB.gift = { key, from, sips, alloc: PB.givePreset(from, sips, people) };
+      const g = PB.gift;
+      const alloc = g.alloc;
+      const left = sips - Object.values(alloc).reduce((a, b) => a + b, 0);
+      const chosen = Object.entries(alloc).filter(([, n]) => n);
+      const label = left ? `${PB.plural(left, 'sip')} still to hand out`
+        : chosen.length === 1 ? `🍺 Give ${PB.plural(sips, 'sip')} to ${PB.esc(PB.name(chosen[0][0]))}`
+        : `🍺 Give: ${chosen.map(([id, n]) => `${PB.esc(PB.name(id))} ${n}`).join(' · ')}`;
+      const several = sips > 1 && people.length > 1;
+      return `
+        <div class="card give-panel ar-give" style="--pc:${PB.esc(PB.look(from).color)}">
+          <div class="give-head"><b>${title ? `${PB.esc(title)} ` : ''}Hand out ${PB.plural(sips, 'sip')}</b>${PB.timer()}</div>
+          <p class="give-ask">${PB.esc(ask || (several ? 'Tap someone to give them all of them, or split with − +' : 'Tap who drinks'))}</p>
+          <div class="give-people">${people.map((id) => {
+            const n = alloc[id] || 0;
+            return `
+            <div class="give-row ${n ? 'on' : ''}" style="--pc:${PB.esc(PB.look(id).color)}">
+              <button class="give-who" data-give-all="${PB.esc(id)}">${PB.avatar(id)}<span>${PB.esc(PB.name(id))}</span>${n ? `<b class="give-n">${n}</b>` : ''}</button>
+              ${several ? `<button class="give-step secondary" data-give-to="${PB.esc(id)}" data-give-step="-1" ${n ? '' : 'disabled'} aria-label="One less for ${PB.esc(PB.name(id))}">−</button>
+              <button class="give-step secondary" data-give-to="${PB.esc(id)}" data-give-step="1" ${n < sips ? '' : 'disabled'} aria-label="One more for ${PB.esc(PB.name(id))}">+</button>` : ''}
+            </div>`;
+          }).join('')}</div>
+          ${several ? '<div class="give-tools"><button class="secondary" data-give-even>⚖️ Split evenly</button><button class="secondary" data-give-random>🎲 Random</button></div>' : ''}
+          <button class="give-done" data-act="give" data-alloc='${PB.esc(JSON.stringify(alloc))}' ${left ? 'disabled' : ''}>${label}</button>
+          ${PB.state.deadline ? '<p class="give-note">Not done in time? They go out at random.</p>' : ''}
+        </div>`;
+    },
+
+    // Everyone else, while `ids` hand out their sips: who we're waiting for, the clock, and (for the
+    // host) a way not to wait.
+    giveWait(s, ids, sips = 0, title = '') {
+      if (!ids.length) return '';
+      const one = ids.length === 1;
+      const who = ids.map((id) => `<b style="color:${PB.esc(PB.look(id).color)}">${PB.esc(PB.name(id))}</b>`).join(', ');
+      return `
+        <div class="give-wait ar-give center muted">
+          <div class="give-wait-who">${ids.map((id) => PB.avatar(id, one ? 'lg' : '')).join('')}</div>
+          <p>${title ? `${PB.esc(title)} · ` : ''}Waiting for ${who} to hand out ${one && sips ? PB.plural(sips, 'sip') : 'their sips'}… ${PB.timer()}</p>
+          ${s.isHost && !PB.isTV && !PB.passAndPlay ? '<button class="link" data-act="skipGive" data-confirm="Hand their sips out at random now?">🎲 Don\'t wait: hand them out at random</button>' : ''}
+        </div>`;
+    },
+
+    // Who a giver can give to: anyone else who's here.
+    giveTargets(s, from) {
+      return s.players.filter((p) => p.id !== from && p.connected).map((p) => p.id);
+    },
+
+    // A new give starts with all of them on whoever this giver gave to last (remembered on this
+    // phone), or on the only person there is.
+    givePreset(from, sips, people) {
+      let last = null;
+      try { last = JSON.parse(localStorage.getItem('give-last') || '{}')[from]; } catch {}
+      const to = people.includes(last) ? last : people.length === 1 ? people[0] : null;
+      return to ? { [to]: sips } : {};
+    },
+
+    // What the panel's buttons do to the hand-out (see the click listener below).
+    giveChange(kind, id) {
+      const g = PB.gift;
+      if (!g) return;
+      const people = PB.giveTargets(PB.state, g.from);
+      const a = g.alloc;
+      const left = () => g.sips - Object.values(a).reduce((x, y) => x + y, 0);
+      const shuffled = people.slice().sort(() => Math.random() - 0.5);
+      if (kind === 'all') {
+        // All that's left to them; if none's left, all of them (a quick change of mind).
+        if (left() > 0) a[id] = (a[id] || 0) + left();
+        else g.alloc = { [id]: g.sips };
+      } else if (kind === 'more') {
+        // None left? Take one off whoever has the most.
+        if (left() <= 0) {
+          const most = Object.keys(a).filter((x) => x !== id && a[x]).sort((x, y) => a[y] - a[x])[0];
+          if (!most) return;
+          a[most] -= 1;
+        }
+        a[id] = (a[id] || 0) + 1;
+      } else if (kind === 'less') {
+        a[id] = Math.max(0, (a[id] || 0) - 1);
+      } else if (kind === 'even') {
+        // As even as it goes; the odd sips land at random.
+        g.alloc = {};
+        shuffled.forEach((x, i) => {
+          const n = Math.floor(g.sips / people.length) + (i < g.sips % people.length ? 1 : 0);
+          if (n) g.alloc[x] = n;
+        });
+      } else if (kind === 'random') {
+        g.alloc = {};
+        for (let i = 0; i < g.sips; i++) {
+          const x = people[Math.floor(Math.random() * people.length)];
+          g.alloc[x] = (g.alloc[x] || 0) + 1;
+        }
+      }
+      for (const x of Object.keys(g.alloc)) if (!g.alloc[x]) delete g.alloc[x];
+      PB.rerender();
+    },
+
     // ---------- Race betting (lib/betting.js) ----------
 
-    // A winner's panel for handing out their sips, + and − per player. `key` resets it each race.
+    // A winner's panel for handing out their sips (PB.giveSips). `key` resets it each race.
     handOut(s, key) {
       const g = s.game;
       const mine = g.payout[s.me];
-      if (!mine || mine.done) {
-        const waiting = Object.entries(g.payout).filter(([, p]) => !p.done).map(([id]) => PB.esc(PB.name(id)));
-        return waiting.length ? `<p class="center muted">Waiting for ${waiting.join(', ')} to hand out sips…</p>` : '';
-      }
-      if (PB.handOut.key !== key) { PB.handOut.alloc = {}; PB.handOut.key = key; }
-      const alloc = PB.handOut.alloc;
-      const left = mine.total - Object.values(alloc).reduce((a, b) => a + b, 0);
-      return `
-        <div class="card ar-give">
-          <h2>Hand out ${PB.plural(mine.total, 'sip')}</h2>
-          <p class="muted">${left ? `${PB.plural(left, 'sip')} left to give` : 'All given out. Send them!'}</p>
-          ${s.players.filter((p) => p.id !== s.me).map((p) => `
-            <div class="ar-give-row">${PB.avatar(p.id)}<span>${PB.esc(p.name)}</span>
-              <button class="secondary" data-handout="${PB.esc(p.id)}" data-step="-1" ${alloc[p.id] ? '' : 'disabled'}>−</button>
-              <b>${alloc[p.id] || 0}</b>
-              <button class="secondary" data-handout="${PB.esc(p.id)}" data-step="1" ${left ? '' : 'disabled'}>+</button>
-            </div>`).join('')}
-          <button data-act="give" data-alloc='${PB.esc(JSON.stringify(alloc))}' ${left ? 'disabled' : ''}>🍺 Send the sips</button>
-        </div>`;
+      if (mine && !mine.done) return PB.giveSips(s, { from: s.me, sips: mine.total, key: `${key}:${s.me}`, title: '🏆 You won!' });
+      return PB.giveWait(s, Object.entries(g.payout).filter(([id, p]) => !p.done && PB.state.players.find((x) => x.id === id)?.connected).map(([id]) => id));
     },
 
     // Who drank what in the race just finished.
@@ -584,15 +799,23 @@
   window.matchMedia('(orientation: landscape) and (min-width: 560px)').addEventListener?.('change', () => PB.redraw());
   setInterval(() => PB.tickTimer(), 250);
 
-  // Any 🍺 Tab button opens the tab; Hide / Show folds it away; + / − hand out race winnings.
+  // Any 🍺 Tab button opens the tab; Hide / Show folds it away; the give panel's buttons hand out sips.
   document.addEventListener('click', (e) => {
-    const h = e.target.closest('[data-handout]');
-    if (h && !h.disabled) {
-      const alloc = PB.handOut.alloc || {};
-      const id = h.dataset.handout;
-      alloc[id] = Math.max(0, (alloc[id] || 0) + Number(h.dataset.step));
-      if (!alloc[id]) delete alloc[id];
-      PB.rerender();
+    const all = e.target.closest('[data-give-all]');
+    const step = e.target.closest('[data-give-step]');
+    if (all) PB.giveChange('all', all.dataset.giveAll);
+    else if (step && !step.disabled) PB.giveChange(step.dataset.giveStep === '1' ? 'more' : 'less', step.dataset.giveTo);
+    else if (e.target.closest('[data-give-even]')) PB.giveChange('even');
+    else if (e.target.closest('[data-give-random]')) PB.giveChange('random');
+    // Sending: remember who got the most, to have them picked next time.
+    const done = e.target.closest('.give-done');
+    if (done && !done.disabled && PB.gift) {
+      const top = Object.entries(PB.gift.alloc).sort((a, b) => b[1] - a[1])[0];
+      try {
+        const last = JSON.parse(localStorage.getItem('give-last') || '{}');
+        last[PB.gift.from] = top?.[0];
+        localStorage.setItem('give-last', JSON.stringify(last));
+      } catch {}
     }
     if (e.target.closest('[data-tab]') && PB.state) PB.showTab();
     if (e.target.closest('[data-tab-toggle]')) {

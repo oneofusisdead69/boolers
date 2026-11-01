@@ -58,7 +58,7 @@ test('2 is You: pick someone to drink 2. 3 is Me: drink 3', () => {
   drawAs(t, 0, c(2));
   t.act(0, 'next'); // must pick first
   assert.strictEqual(t.room.game.turnId, 'p0');
-  t.act(0, 'pick', { targetId: 'p2' });
+  t.act(0, 'give', { targetId: 'p2' });
   assert.deepStrictEqual(t.drinks(), [0, 0, 2]);
   t.act(0, 'next');
   drawAs(t, 1, c(3));
@@ -237,8 +237,8 @@ test('bots draw away from the gaps, hand sips to humans, make rules and race', (
   assert.strictEqual(draw.type, 'draw');
   assert.ok(![4, 5, 6].includes(draw.slot), 'a good bot keeps the circle whole');
   drawAs(t, 0, c(2));
-  assert.deepStrictEqual(t.bot(0, 0.9), { type: 'pick', targetId: 'p1' }, 'the human drinks, not the other bot');
-  t.act(0, 'pick', { targetId: 'p1' });
+  assert.deepStrictEqual(t.bot(0, 0.9), { type: 'give', targetId: 'p1' }, 'the human drinks, not the other bot');
+  t.act(0, 'give', { targetId: 'p1' });
   assert.deepStrictEqual(t.bot(0), { type: 'next' });
   t.act(0, 'next');
   drawAs(t, 1, c(5));
