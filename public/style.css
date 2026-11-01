@@ -1340,6 +1340,7 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 .tr-place small { color: rgba(255, 255, 255, 0.75); }
 .tr-laps { display: flex; align-items: center; padding: 0 12px; background: rgba(0, 0, 0, 0.5); color: #fff; border-radius: 12px; font-weight: 800; font-size: 1.05rem; margin-right: auto; }
 .tr-horn { width: 46px; padding: 0; font-size: 1.3rem; background: rgba(0, 0, 0, 0.5); }
+.tr-carsound { font-size: 1.1rem; }
 .tr-hud .end-mini { background: rgba(0, 0, 0, 0.5); }
 /* With no TV, the map in the corner. */
 .tr-minimap { position: absolute; top: calc(var(--pad-t) + 50px); right: var(--pad-r); width: min(34vw, 190px); z-index: 2; pointer-events: none; opacity: 0.88; }
