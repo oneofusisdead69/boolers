@@ -66,6 +66,38 @@
   };
   const weatherOf = (s = PB.state) => (WX[s?.game?.weather] ? s.game.weather : 'clear');
 
+  // ---------- Halloween ----------
+  //
+  // At the Halloween venue the track's a haunted graveyard (after its room art: lib/roomArt.js,
+  // hauntedHill()): always dark (the server only picks night or fog there), a full moon low over a
+  // purple and green sky, a haunted house on the hill, dead grass and graveyard earth for verges,
+  // orange and black kerbs, an iron cemetery fence for the barriers, dead trees, gravestones and
+  // jack-o'-lanterns, a gothic arch over the start, ghosts and skeletons in the grandstand. Low fog
+  // drifts over the ground (`low`), bats flit over the sky, will-o'-the-wisps float about, lightning
+  // flashes now and then, and a phantom car drives a lap every so often (only for show: it goes
+  // through everything). All of it's decoration: the road, the walls and the cars are the same.
+  const haunted = (s = PB.state) => venueOf(s) === 'halloween';
+  const HAUNTED_WX = {
+    night: { light: [0.34, 0.3, 0.5], sky: ['#06030d', '#24463a'], haze: [0.1, 0.12, 0.13], far: 560, lamps: true, flat: 'rgba(22, 8, 40, 0.5)', moon: true, low: [0.3, 0.28, 0.4], lowK: 0.55 },
+    fog: { light: [0.52, 0.5, 0.64], sky: ['#1a1228', '#4e5a58'], haze: [0.34, 0.35, 0.4], far: 250, mute: 0.3, lamps: true, flat: 'rgba(110, 100, 140, 0.45)', moon: true, low: [0.46, 0.45, 0.52], lowK: 0.32 },
+  };
+  // The weather as this venue sees it.
+  const wxOf = (s = PB.state) => (haunted(s) && HAUNTED_WX[weatherOf(s)]) || WX[weatherOf(s)];
+  const calm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  // Lightning, now and then (0 to 1): a flash, a gap, a second flash fading. Not for reduced motion.
+  function lightning(ms) {
+    if (calm.matches) return 0;
+    const n = Math.floor(ms / 12000);
+    const into = ms - n * 12000 - ((n * 7919) % 6) * 900;
+    if (into < 0) return 0;
+    if (into < 90) return 1;
+    if (into < 170) return 0;
+    if (into < 600) return 0.7 * (1 - (into - 170) / 430);
+    return 0;
+  }
+  // A jack-o'-lantern's flicker (around 1), each one its own way.
+  const flicker = (ms, k) => 0.82 + 0.12 * Math.sin(ms * 0.017 + k * 1.7) + 0.06 * Math.sin(ms * 0.043 + k * 2.3);
+
   // The same random scenery on every screen.
   function seeded(text) {
     let h = 2166136261;
@@ -203,7 +235,7 @@
           const x = xs[i] + nx[i] * (base + SPOT_R) * side;
           const y = ys[i] + ny[i] * (base + SPOT_R) * side;
           if (!inside(x, y, SPOT_R) || near(x, y) < base + SPOT_R - 1 || !free(x, y, SPOT_R)) continue;
-          props.push({ kind: 'venue', which: made++ % 2, x, y, r: SPOT_R, bx: xs[i] + nx[i] * base * side, by: ys[i] + ny[i] * base * side, ox: nx[i] * side, oy: ny[i] * side });
+          props.push({ kind: 'venue', which: made++, x, y, r: SPOT_R, bx: xs[i] + nx[i] * base * side, by: ys[i] + ny[i] * base * side, ox: nx[i] * side, oy: ny[i] * side });
           done = true;
           break;
         }
@@ -219,6 +251,101 @@
     }
     shapes[key] = { N, xs, ys, nx, ny, head, bend, walls, startI, grid, stand, props };
     return shapes[key];
+  }
+
+  // Halloween's extras round a track (worked out once a track): jack-o'-lanterns along the fence,
+  // gravestones and crosses out in the fields, where the will-o'-the-wisps float, and the
+  // centreline's length so far at each point (for the phantom car's lap).
+  const haunts = {};
+  function hauntOf(tr) {
+    const key = `${tr.id}:${tr.line.length}`;
+    if (haunts[key]) return haunts[key];
+    const sh = shapeOf(tr);
+    const rand = seeded(`${tr.id}:haunt`);
+    const W = tr.world.w;
+    const H = tr.world.h;
+    const edge = tr.width / 2 + tr.band;
+    const near = (x, y) => {
+      let best = Infinity;
+      for (let i = 0; i < sh.N; i++) best = Math.min(best, (sh.xs[i] - x) ** 2 + (sh.ys[i] - y) ** 2);
+      return Math.sqrt(best);
+    };
+    const taken = sh.props.map((p) => [p.x, p.y, p.r]);
+    const free = (x, y, r) => taken.every(([px, py, pr]) => (px - x) ** 2 + (py - y) ** 2 > (pr + r + 3) ** 2);
+    const inside = (x, y, m) => x > m && y > m && x < W - m && y < H - m;
+    const things = []; // { kind, x, y, size }
+    for (let i = 0, k = 0; i < sh.N; i += 9, k++) {
+      const side = k % 2 ? 1 : -1;
+      if (!sh.walls[side > 0 ? 1 : 0].ok[i]) continue;
+      const d = edge + BARRIER + 7;
+      const x = sh.xs[i] + sh.nx[i] * d * side;
+      const y = sh.ys[i] + sh.ny[i] * d * side;
+      if (!inside(x, y, 8) || near(x, y) < d - 1 || !free(x, y, 5)) continue;
+      things.push({ kind: 'lantern', x, y, size: 11 + rand() * 4 });
+      taken.push([x, y, 5]);
+    }
+    for (let k = 0, graves = 0; k < 900 && graves < 44; k++) {
+      const x = 10 + rand() * (W - 20);
+      const y = 10 + rand() * (H - 20);
+      const d = near(x, y);
+      if (d < edge + BARRIER + 12 || d > edge + 160 || !free(x, y, 6)) continue;
+      things.push({ kind: rand() < 0.62 ? 'tomb' : 'cross', x, y, size: 13 + rand() * 6 });
+      taken.push([x, y, 6]);
+      graves++;
+    }
+    const wisps = [];
+    for (let k = 0; k < 600 && wisps.length < 12; k++) {
+      const x = 20 + rand() * (W - 40);
+      const y = 20 + rand() * (H - 40);
+      const d = near(x, y);
+      if (d < edge + BARRIER + 10 || d > edge + 130) continue;
+      wisps.push({ x, y, k: rand() * 100 });
+    }
+    const cum = new Float32Array(sh.N + 1);
+    for (let i = 1; i <= sh.N; i++) cum[i] = cum[i - 1] + Math.hypot(sh.xs[i % sh.N] - sh.xs[i - 1], sh.ys[i % sh.N] - sh.ys[i - 1]);
+    haunts[key] = { things, wisps, cum, len: cum[sh.N] };
+    return haunts[key];
+  }
+
+  // The phantom car: every so often (race time, so every screen has it in the same place), a lap of
+  // the track, weaving a little, quicker than anyone. Where it is now (filled in, not made), or null.
+  const PHANTOM = { first: 7, every: 42, speed: 205 };
+  const PHANTOM_LOOK = { body: 'hotrod', paint: null, stripe: null, extra: 'flames' };
+  let phantomPic = null;
+  function phantomSprite() {
+    if (phantomPic) return phantomPic;
+    phantomPic = document.createElement('canvas');
+    phantomPic.width = SPRITE.x * 2 * SPRITE_K;
+    phantomPic.height = SPRITE.y * 2 * SPRITE_K;
+    drawFlat(phantomPic.getContext('2d'), flatModel(carModel(PHANTOM_LOOK, { shadow: false }).v, '#a8ffd0'), (x, y, z, out, k) => {
+      out[k] = (x + SPRITE.x) * SPRITE_K;
+      out[k + 1] = (y + SPRITE.y) * SPRITE_K;
+      return -z;
+    });
+    return phantomPic;
+  }
+  const phantom = { x: 0, y: 0, a: 0, fade: 0 };
+  function phantomAt(s, tr) {
+    if (s.phase !== 'race' || !snaps.length || snapRace !== s.game.race || clockOff == null || !haunted(s)) return null;
+    const t = performance.now() / 1000 - clockOff - DELAY - PHANTOM.first;
+    if (t < 0) return null;
+    const sh = shapeOf(tr);
+    const hs = hauntOf(tr);
+    const lap = hs.len / PHANTOM.speed;
+    const into = t % PHANTOM.every;
+    if (into > lap) return null;
+    const d = (hs.cum[sh.startI] + into * PHANTOM.speed) % hs.len;
+    let lo = 0;
+    let hi = sh.N;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (hs.cum[mid] <= d) lo = mid; else hi = mid; }
+    const j = (lo + 1) % sh.N;
+    const f = (d - hs.cum[lo]) / (hs.cum[lo + 1] - hs.cum[lo] || 1);
+    const weave = Math.sin(into * 0.9) * 9;
+    phantom.x = sh.xs[lo] + (sh.xs[j] - sh.xs[lo]) * f + sh.nx[lo] * weave;
+    phantom.y = sh.ys[lo] + (sh.ys[j] - sh.ys[lo]) * f + sh.ny[lo] * weave;
+    phantom.a = Math.atan2(sh.ys[j] - sh.ys[lo], sh.xs[j] - sh.xs[lo]) + Math.cos(into * 0.9) * 0.12;
+    phantom.fade = Math.max(0, Math.min(1, into / 1.2, (lap - into) / 1.2));
+    return phantom;
   }
 
   // ---------- Track drawing (from above) ----------
@@ -242,6 +369,40 @@
     return c.createPattern(grain, 'repeat');
   }
 
+  // Halloween's verges: dead grass on graveyard earth, a pebble or two.
+  let earth = null;
+  function earthPattern(c) {
+    if (!earth) {
+      earth = document.createElement('canvas');
+      earth.width = earth.height = 96;
+      const g = earth.getContext('2d');
+      g.fillStyle = '#2a2219';
+      g.fillRect(0, 0, 96, 96);
+      const rand = seeded('earth');
+      for (let k = 0; k < 40; k++) {
+        g.fillStyle = rand() < 0.5 ? 'rgba(14, 10, 8, 0.4)' : 'rgba(58, 44, 30, 0.45)';
+        g.beginPath();
+        g.arc(rand() * 96, rand() * 96, 2 + rand() * 6, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.lineWidth = 1;
+      for (let k = 0; k < 260; k++) {
+        const x = rand() * 96;
+        const y = rand() * 96;
+        g.strokeStyle = ['#5e4f2c', '#4a3e22', '#6d5c34', '#3a3018'][Math.floor(rand() * 4)];
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + (rand() - 0.5) * 5, y - 2 - rand() * 4);
+        g.stroke();
+      }
+      for (let k = 0; k < 14; k++) {
+        g.fillStyle = rand() < 0.5 ? '#4a4258' : '#3a3346';
+        g.fillRect(rand() * 96, rand() * 96, 1.5 + rand() * 2, 1.5 + rand() * 1.5);
+      }
+    }
+    return c.createPattern(earth, 'repeat');
+  }
+
   // The track, the grass beside it and the barriers round it (outside them is darker). `sx`, `sy`:
   // canvas pixels a unit. `scenery`: the trees and stands too, seen from above (the TV; the
   // first-person view builds them in 3D instead).
@@ -256,7 +417,8 @@
     c.clearRect(0, 0, tr.world.w, tr.world.h);
     c.lineJoin = 'round';
     c.lineCap = 'round';
-    const snow = WX[weatherOf()].snow;
+    const snow = wxOf().snow;
+    const spooky = haunted();
     c.fillStyle = `rgba(0, 0, 0, ${snow ? 0.14 : 0.42})`;
     c.fillRect(0, 0, tr.world.w, tr.world.h);
     // Inside the barriers, the felt (grass) shows through, a little lighter.
@@ -271,6 +433,13 @@
     if (snow) {
       c.globalCompositeOperation = 'destination-over';
       c.fillStyle = '#e9eef4';
+      c.fillRect(0, 0, tr.world.w, tr.world.h);
+      c.globalCompositeOperation = 'source-over';
+    }
+    // Halloween: dead grass and earth (and darker beyond the fence).
+    if (spooky) {
+      c.globalCompositeOperation = 'destination-over';
+      c.fillStyle = earthPattern(c);
       c.fillRect(0, 0, tr.world.w, tr.world.h);
       c.globalCompositeOperation = 'source-over';
     }
@@ -294,15 +463,16 @@
     quads(half + 6, edge - 2, (i) => (bendy(i) > 0.24 ? -Math.sign(sh.bend[i]) : 0), 'rgba(214, 192, 150, 0.55)');
     // The asphalt, with a white line down each edge.
     c.lineWidth = tr.width + 2;
-    c.strokeStyle = '#ececec';
+    c.strokeStyle = spooky ? '#d4cab4' : '#ececec';
     c.stroke(path);
     c.lineWidth = tr.width - 4;
     c.strokeStyle = grainPattern(c);
     c.stroke(path);
-    // Kerbs round the bends, both sides, in the room's colour and white.
+    // Kerbs round the bends, both sides, in the room's colour and white (Halloween: black).
+    const kerb = spooky ? '#141016' : '#f4f4f4';
     for (const odd of [0, 1]) {
-      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? 1 : 0), odd ? '#f4f4f4' : pal.accent);
-      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? -1 : 0), odd ? pal.accent : '#f4f4f4');
+      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? 1 : 0), odd ? kerb : pal.accent);
+      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? -1 : 0), odd ? pal.accent : kerb);
     }
     // The start line, chequered, and the grid boxes behind it.
     const [stx, sty, sa] = tr.start;
@@ -332,8 +502,29 @@
       c.stroke();
       c.restore();
     }
+    // Halloween: an iron cemetery fence, a stone pillar every so often.
+    if (spooky) {
+      for (const w of sh.walls) {
+        c.strokeStyle = '#08060a';
+        c.lineWidth = 2.2;
+        c.beginPath();
+        for (let i = 0; i < sh.N; i++) {
+          const j = (i + 1) % sh.N;
+          if (!w.ok[i] || !w.ok[j]) continue;
+          c.moveTo(w.x[i], w.y[i]);
+          c.lineTo(w.x[j], w.y[j]);
+        }
+        c.stroke();
+        for (let i = 0; i < sh.N; i++) {
+          if (!w.ok[i]) continue;
+          c.fillStyle = i % 10 ? '#4a4258' : '#7a7090';
+          const r = i % 10 ? 1.2 : 2.8;
+          c.fillRect(w.x[i] - r, w.y[i] - r, r * 2, r * 2);
+        }
+      }
+    }
     // The tyre wall: tyres in the room's trim colour and black.
-    for (const w of sh.walls) {
+    for (const w of spooky ? [] : sh.walls) {
       for (let i = 0; i < sh.N; i++) {
         if (!w.ok[i]) continue;
         c.fillStyle = i % 2 ? '#151515' : pal.rim;
@@ -352,9 +543,21 @@
   // The scenery seen from above (the TV and the phones' maps).
   function drawScenery(c, tr, sh, pal) {
     const greens = ['#2f7d3a', '#3c8f45', '#2a6b34', '#4d9a3e'];
-    const snowy = WX[weatherOf()].snow;
+    const snowy = wxOf().snow;
+    const spooky = haunted();
+    const art = propArt(pal);
     for (const p of sh.props) {
-      if (p.kind === 'tyres') {
+      if (p.kind === 'tyres' && spooky) {
+        // Halloween: a gravestone and a cross where the tyres would be.
+        c.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        c.fillRect(p.x - 3, p.y - 1, 9, 6);
+        c.fillStyle = '#6a6478';
+        roundRect(c, p.x - 5, p.y - 5, 7, 8, [3.5, 3.5, 0.5, 0.5]);
+        c.fill();
+        c.fillStyle = '#5a546a';
+        c.fillRect(p.x + 3, p.y - 5, 1.6, 8);
+        c.fillRect(p.x + 1.4, p.y - 3, 4.8, 1.6);
+      } else if (p.kind === 'tyres') {
         for (const [dx, dy] of [[-3, -2], [3, -2], [0, 3]]) {
           c.fillStyle = '#141414';
           c.beginPath();
@@ -363,6 +566,40 @@
           c.fillStyle = pal.rim;
           c.beginPath();
           c.arc(p.x + dx, p.y + dy, 1.4, 0, Math.PI * 2);
+          c.fill();
+        }
+      } else if (p.kind === 'tree' && spooky) {
+        // A dead tree: bare, twisted branches (and their shadow).
+        const rand = seeded(`${Math.round(p.x)}:${Math.round(p.y)}`);
+        const limbs = [];
+        const n = 4 + Math.floor(rand() * 2);
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * Math.PI * 2 + rand() * 0.9;
+          const len = p.r * (0.8 + rand() * 0.5);
+          const bend = (rand() - 0.5) * 1.2;
+          limbs.push([a, len, bend]);
+        }
+        c.lineCap = 'round';
+        for (const [dx, col] of [[4, 'rgba(0, 0, 0, 0.4)'], [0, '#100a14']]) {
+          c.strokeStyle = col;
+          for (const [a, len, bend] of limbs) {
+            const mx = p.x + dx + Math.cos(a) * len * 0.55;
+            const my = p.y + dx + Math.sin(a) * len * 0.55;
+            c.lineWidth = 2.2;
+            c.beginPath();
+            c.moveTo(p.x + dx, p.y + dx);
+            c.lineTo(mx, my);
+            c.lineTo(mx + Math.cos(a + bend) * len * 0.5, my + Math.sin(a + bend) * len * 0.5);
+            c.stroke();
+            c.lineWidth = 0.9;
+            c.beginPath();
+            c.moveTo(mx, my);
+            c.lineTo(mx + Math.cos(a - bend * 1.4) * len * 0.4, my + Math.sin(a - bend * 1.4) * len * 0.4);
+            c.stroke();
+          }
+          c.fillStyle = col;
+          c.beginPath();
+          c.arc(p.x + dx, p.y + dx, 2.2, 0, Math.PI * 2);
           c.fill();
         }
       } else if (p.kind === 'tree') {
@@ -384,13 +621,29 @@
         c.fill();
       }
     }
+    // Halloween's gravestones, crosses and jack-o'-lanterns, standing up like the room's props.
+    if (spooky) {
+      for (const p of hauntOf(tr).things) {
+        const it = art.byKind[p.kind];
+        if (!it) continue;
+        if (p.kind === 'lantern') {
+          c.drawImage(glowSprite('orange'), p.x - p.size * 1.2, p.y - p.size * 1.3, p.size * 2.4, p.size * 2.4);
+        } else {
+          c.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          c.beginPath();
+          c.ellipse(p.x + 2, p.y + p.size * 0.42, p.size * 0.3, p.size * 0.14, 0, 0, Math.PI * 2);
+          c.fill();
+        }
+        c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
+    }
     // The room's props, standing up (the way the TV's scenery shows things), each over its shadow.
-    const art = propArt(pal);
     for (const p of sh.props) {
       if (p.kind !== 'venue') continue;
-      const it = art.items[p.which] || art.items[0];
+      const it = art.items[p.which % art.items.length];
       const [x, y] = propAt(p, it);
       const size = Math.min(it.size, 40);
+      if (it.glow) c.drawImage(glowSprite('orange'), x - size, y - size, size * 2, size * 2);
       c.fillStyle = 'rgba(0, 0, 0, 0.3)';
       c.beginPath();
       c.ellipse(x + 3, y + size * 0.38, it.half * 0.9, it.half * 0.4, 0, 0, Math.PI * 2);
@@ -404,21 +657,32 @@
       c.rotate(s.a);
       c.fillStyle = 'rgba(0, 0, 0, 0.35)';
       c.fillRect(-s.len / 2 + 4, -s.depth / 2 + 4, s.len, s.depth);
-      c.fillStyle = '#8d939b';
+      c.fillStyle = spooky ? '#3e3848' : '#8d939b';
       c.fillRect(-s.len / 2, -s.depth / 2, s.len, s.depth);
-      // Rows of people (the front row nearest the track).
+      // Rows of people (the front row nearest the track). Halloween: ghosts and skeletons.
       const rand = seeded(`${tr.id}:crowd`);
       for (let row = 0; row < 4; row++) {
         for (let k = 0; k < 30; k++) {
-          c.fillStyle = `hsl(${Math.floor(rand() * 360)}, 70%, ${45 + rand() * 25}%)`;
-          c.fillRect(-s.len / 2 + 4 + k * 5.4, (-s.depth / 2 + 4 + row * 6) * s.side - 2, 3.6, 3.6);
+          const h = rand();
+          const l = rand();
+          const x = -s.len / 2 + 4 + k * 5.4;
+          const y = (-s.depth / 2 + 4 + row * 6) * s.side - 2;
+          if (spooky) {
+            c.fillStyle = h < 0.6 ? `rgba(226, 240, 255, ${0.6 + l * 0.35})` : '#d8d0b4';
+            c.beginPath();
+            c.arc(x + 1.8, y + 1.8, 1.9, 0, Math.PI * 2);
+            c.fill();
+          } else {
+            c.fillStyle = `hsl(${Math.floor(h * 360)}, 70%, ${45 + l * 25}%)`;
+            c.fillRect(x, y, 3.6, 3.6);
+          }
         }
       }
       c.fillStyle = pal.accent;
       c.fillRect(-s.len / 2, (s.depth / 2 - 3) * s.side - 1.5, s.len, 3);
       c.restore();
     }
-    // The gantry over the start line.
+    // The gantry over the start line (Halloween: a stone arch, a jack-o'-lantern on each pillar).
     const i = sh.startI;
     const span = tr.width / 2 + 12;
     c.lineCap = 'butt';
@@ -428,8 +692,8 @@
     c.moveTo(sh.xs[i] - sh.nx[i] * span + 6, sh.ys[i] - sh.ny[i] * span + 6);
     c.lineTo(sh.xs[i] + sh.nx[i] * span + 6, sh.ys[i] + sh.ny[i] * span + 6);
     c.stroke();
-    c.strokeStyle = '#26262b';
-    c.lineWidth = 5;
+    c.strokeStyle = spooky ? '#4a4258' : '#26262b';
+    c.lineWidth = spooky ? 6 : 5;
     c.beginPath();
     c.moveTo(sh.xs[i] - sh.nx[i] * span, sh.ys[i] - sh.ny[i] * span);
     c.lineTo(sh.xs[i] + sh.nx[i] * span, sh.ys[i] + sh.ny[i] * span);
@@ -437,6 +701,120 @@
     c.strokeStyle = pal.accent;
     c.lineWidth = 2;
     c.stroke();
+    if (spooky && art.byKind.lantern) {
+      const it = art.byKind.lantern;
+      for (const side of [-1, 1]) {
+        const x = sh.xs[i] + sh.nx[i] * span * side;
+        const y = sh.ys[i] + sh.ny[i] * span * side;
+        c.fillStyle = '#5e5670';
+        c.fillRect(x - 4, y - 4, 8, 8);
+        c.drawImage(glowSprite('orange'), x - 16, y - 18, 32, 32);
+        c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, x - 8, y - 11, 16, 16);
+      }
+    }
+  }
+
+  // A soft glow (a jack-o'-lantern's, a will-o'-the-wisp's), painted once each.
+  const glows = {};
+  function glowSprite(kind) {
+    if (glows[kind]) return glows[kind];
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    const [r, gg, b] = kind === 'green' ? [140, 255, 170] : [255, 150, 40];
+    g.addColorStop(0, `rgba(${r}, ${gg}, ${b}, ${kind === 'green' ? 0.9 : 0.6})`);
+    g.addColorStop(kind === 'green' ? 0.18 : 0.3, `rgba(${r}, ${gg}, ${b}, ${kind === 'green' ? 0.45 : 0.28})`);
+    g.addColorStop(1, `rgba(${r}, ${gg}, ${b}, 0)`);
+    c.fillStyle = g;
+    c.fillRect(0, 0, 64, 64);
+    if (kind === 'green') {
+      c.fillStyle = '#f0fff4';
+      c.beginPath();
+      c.arc(32, 32, 3.2, 0, Math.PI * 2);
+      c.fill();
+    }
+    glows[kind] = cv;
+    return cv;
+  }
+
+  // Bats against the sky, wings up and down (painted once).
+  let batPics = null;
+  function batSprites() {
+    if (batPics) return batPics;
+    batPics = [0, 1].map((up) => {
+      const cv = document.createElement('canvas');
+      cv.width = 64;
+      cv.height = 32;
+      const c = cv.getContext('2d');
+      c.fillStyle = '#07040b';
+      const wy = up ? -10 : 8;
+      c.beginPath();
+      c.moveTo(32, 15);
+      c.quadraticCurveTo(20, 14 + wy, 2, 12 + wy * 0.6);
+      c.quadraticCurveTo(10, 18 + wy * 0.3, 8, 22 + wy * 0.2);
+      c.quadraticCurveTo(18, 17, 24, 22);
+      c.quadraticCurveTo(28, 18, 32, 20);
+      c.quadraticCurveTo(36, 18, 40, 22);
+      c.quadraticCurveTo(46, 17, 56, 22 + wy * 0.2);
+      c.quadraticCurveTo(54, 18 + wy * 0.3, 62, 12 + wy * 0.6);
+      c.quadraticCurveTo(44, 14 + wy, 32, 15);
+      c.fill();
+      c.beginPath();
+      c.ellipse(32, 17, 3.6, 5, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.moveTo(29, 13);
+      c.lineTo(29.5, 8);
+      c.lineTo(31.5, 12);
+      c.lineTo(32.5, 12);
+      c.lineTo(34.5, 8);
+      c.lineTo(35, 13);
+      c.fill();
+      return cv;
+    });
+    return batPics;
+  }
+
+  // Halloween over the track from above, each frame (the TV, the maps, the phone with no WebGL):
+  // the jack-o'-lanterns flickering, the will-o'-the-wisps drifting and the phantom car.
+  function hauntAbove(c, s, tr, ms) {
+    const hs = hauntOf(tr);
+    const glow = glowSprite('orange');
+    c.globalCompositeOperation = 'lighter';
+    for (let k = 0; k < hs.things.length; k++) {
+      const p = hs.things[k];
+      if (p.kind !== 'lantern') continue;
+      c.globalAlpha = Math.max(0, (flicker(ms, k) - 0.7) * 2.2);
+      c.drawImage(glow, p.x - p.size * 1.3, p.y - p.size * 1.4, p.size * 2.6, p.size * 2.6);
+    }
+    const green = glowSprite('green');
+    for (const w of hs.wisps) {
+      const t = ms / 1000 + w.k;
+      c.globalAlpha = 0.55 + 0.35 * Math.sin(t * 1.3);
+      c.drawImage(green, w.x + Math.sin(t * 0.4) * 14 - 9, w.y + Math.cos(t * 0.33) * 10 - 9, 18, 18);
+    }
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = 1;
+    const ph = phantomAt(s, tr);
+    if (ph) {
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.7 * ph.fade;
+      c.drawImage(green, ph.x - 26, ph.y - 26, 52, 52);
+      c.globalCompositeOperation = 'source-over';
+      c.save();
+      c.globalAlpha = 0.6 * ph.fade;
+      c.translate(ph.x, ph.y);
+      c.rotate(ph.a);
+      c.drawImage(phantomSprite(), -SPRITE.x, -SPRITE.y, SPRITE.x * 2, SPRITE.y * 2);
+      c.restore();
+      c.globalAlpha = ph.fade;
+      c.font = '14px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('👻', ph.x, ph.y - 20);
+      c.globalAlpha = 1;
+    }
   }
 
   // ---------- The room's own props ----------
@@ -449,7 +827,7 @@
   // up, like the TV's scenery; from the car they're cut-outs that turn to face you (see fp).
   //
   // Each: [emoji or drawing (ART), height, how much of its square's width it fills, how high it
-  // floats]. Tall thin ones fill less of it; none is wider than SPOT_R * 2.
+  // floats, whether it glows]. Tall thin ones fill less of it; none is wider than SPOT_R * 2.
   const VENUE_PROPS = {
     classic: [['🏆', 32, 0.8], ['🏁', 34, 0.85]],
     dive: [['bottle', 48, 0.34], ['neon:BAR', 34, 1]],
@@ -471,7 +849,9 @@
     garage: [['⛽', 36, 0.8], ['tyres', 34, 0.5]],
     chateau: [['⛲', 38, 0.9], ['topiary', 40, 0.5]],
     christmas: [['🎄', 50, 0.8], ['⛄', 36, 0.7]],
-    halloween: [['🎃', 30, 0.9], ['tomb', 32, 0.46]],
+    // (Halloween's jack-o'-lantern glows and flickers: the fifth, `glow`. Its tomb and cross stand
+    // in the fields too, and more lanterns along the fence: see hauntOf.)
+    halloween: [['lantern', 30, 0.9, 0, true], ['tomb', 32, 0.46], ['scarecrow', 52, 0.66], ['cross', 40, 0.5]],
     stpatricks: [['whisky', 30, 0.66], ['stone', 50, 0.4]],
   };
   const CELL = 256; // pixels a prop's square
@@ -761,10 +1141,60 @@
     },
     // Halloween's tombstone, and the Highlands' standing stone.
     tomb(c) {
-      poly(c, '#8a8f96', 'M26 99 V40 Q26 12 50 12 Q74 12 74 40 V99Z');
+      poly(c, '#8a8696', 'M26 99 V40 Q26 12 50 12 Q74 12 74 40 V99Z');
       poly(c, 'rgba(0, 0, 0, 0.18)', 'M62 15 Q74 22 74 40 V99 H66 V40 Q66 24 62 15Z');
-      write(c, 'RIP', 50, 46, 'bold 16px Georgia, serif', '#3a3e44');
-      poly(c, '#3c6a2a', 'M20 99 L26 88 L30 96 L36 86 L40 99Z M60 99 L66 86 L70 96 L76 88 L80 99Z');
+      c.strokeStyle = 'rgba(30, 26, 36, 0.6)';
+      c.lineWidth = 1.2;
+      c.stroke(new Path2D('M34 30 L40 38 L37 46 M66 70 L60 78'));
+      write(c, 'RIP', 50, 46, 'bold 16px Georgia, serif', '#3a3644');
+      poly(c, '#6a5a2e', 'M20 99 L26 88 L30 96 L36 86 L40 99Z M60 99 L66 86 L70 96 L76 88 L80 99Z');
+    },
+    // Halloween: a jack-o'-lantern (as on the room's haunted hill), lit inside.
+    lantern(c) {
+      poly(c, '#3c5a1e', 'M46 34 Q44 18 54 12 L59 18 Q52 21 54 34Z');
+      c.fillStyle = '#c4500f';
+      for (const x of [28, 72]) { c.beginPath(); c.ellipse(x, 66, 24, 32, 0, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = '#e0641a';
+      c.beginPath();
+      c.ellipse(50, 66, 28, 33, 0, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = '#f07a2a';
+      c.beginPath();
+      c.ellipse(50, 66, 13, 32, 0, 0, Math.PI * 2);
+      c.fill();
+      glow(c, '#ffb040', 5);
+      poly(c, '#ffd23f', 'M24 56 L36 42 L42 60Z M76 56 L64 42 L58 60Z M50 62 L44 72 H56Z M22 76 Q50 104 78 76 L70 79 L64 72 L56 82 L50 75 L44 82 L36 72 L30 79Z');
+      c.shadowBlur = 0;
+      poly(c, '#fff1a8', 'M30 54 L36 47 L39 56Z M70 54 L64 47 L61 56Z');
+    },
+    // Halloween: a stone cross, a little crooked, dead grass round its foot.
+    cross(c) {
+      c.save();
+      c.translate(50, 99);
+      c.rotate(0.06);
+      poly(c, '#7e788c', 'M-6 0 V-90 H6 V0Z M-24 -70 H24 V-58 H-24Z');
+      poly(c, 'rgba(0, 0, 0, 0.22)', 'M2 0 V-90 H6 V0Z M-24 -61 H24 V-58 H-24Z');
+      c.restore();
+      poly(c, '#6a5a2e', 'M30 99 L36 88 L40 96 L46 86 L50 99Z M52 99 L58 86 L62 96 L68 88 L72 99Z');
+    },
+    // Halloween: a scarecrow on its post, a sack for a head, a crow on its arm.
+    scarecrow(c) {
+      fillRound(c, 47, 30, 6, 70, 1, '#4a3018');
+      fillRound(c, 8, 34, 84, 5, 1, '#4a3018');
+      poly(c, '#5a3a5e', 'M30 34 H70 L74 72 Q62 68 56 76 L50 70 L44 76 Q38 68 26 72Z');
+      poly(c, '#7a4a2a', 'M36 46 h10 v10 h-10Z M56 56 h9 v8 h-9Z');
+      for (const x of [10, 90]) poly(c, '#e0c060', `M${x} 32 l${x < 50 ? -6 : 6} 4 l${x < 50 ? 2 : -2} 4 l${x < 50 ? -6 : 6} 2 l${x < 50 ? 8 : -8} 0Z`);
+      for (const x of [28, 36, 44, 56, 64, 72]) poly(c, '#d8b050', `M${x} 72 l3 8 l3 -9Z`);
+      c.fillStyle = '#c8a870';
+      c.beginPath();
+      c.ellipse(50, 24, 13, 14, 0, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = '#3a2410';
+      c.lineWidth = 1.4;
+      c.stroke(new Path2D('M43 21 l4 3 M47 21 l-4 3 M53 21 l4 3 M57 21 l-4 3 M42 30 Q50 34 58 30 M44 29 v3 M48 30 v3 M52 30 v3 M56 29 v3'));
+      poly(c, '#241a26', 'M30 14 H70 L64 10 L58 1 L46 5 L40 10Z');
+      fillRound(c, 40, 10, 22, 3, 1, '#8a2a2a');
+      poly(c, '#0a080c', 'M78 34 Q76 26 82 24 L86 22 L84 26 Q90 28 88 34Z');
     },
     stone(c) {
       poly(c, '#7d8085', 'M34 99 L30 62 Q32 22 46 8 Q60 4 64 24 Q70 60 68 99Z');
@@ -794,10 +1224,12 @@
     if (propCache?.key === key) return propCache;
     const list = VENUE_PROPS[venue];
     const cv = document.createElement('canvas');
-    cv.width = CELL * 2;
+    // (A power of two across, for the mipmaps.)
+    const cols = 2 ** Math.ceil(Math.log2(Math.max(2, list.length)));
+    cv.width = CELL * cols;
     cv.height = CELL;
     const c = cv.getContext('2d');
-    const items = list.map(([what, size, wide, lift = 0], cell) => {
+    const items = list.map(([what, size, wide, lift = 0, glows = false], cell) => {
       c.save();
       c.translate(cell * CELL, 0);
       c.scale(CELL / 100, CELL / 100);
@@ -808,9 +1240,9 @@
       if (ART[kind]) ART[kind](c, pal, text, s);
       else emoji(c, what, 84, 50, 99);
       c.restore();
-      return { cell, size, lift, half: Math.min(SPOT_R, (size * wide) / 2) };
+      return { cell, size, lift, glow: glows, kind: what.split(':')[0], half: Math.min(SPOT_R, (size * wide) / 2) };
     });
-    propCache = { key, cv, items };
+    propCache = { key, cv, items, cols, byKind: Object.fromEntries(items.map((it) => [it.kind, it])) };
     return propCache;
   }
 
@@ -976,12 +1408,14 @@
     for (let i = 0; i < cars.length; i++) order[i] = i;
     // The leader on top.
     order.sort((a, b) => (cars[b][4] || 0) - (cars[a][4] || 0));
-    const lamps = !!WX[weatherOf(s)].lamps;
+    const lamps = !!wxOf(s).lamps;
+    const spooky = haunted(s);
     for (const v of views) {
       const c = v.fg.getContext('2d');
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.clearRect(0, 0, v.fg.width, v.fg.height);
       c.setTransform(v.scale, 0, 0, v.scale, 0, 0);
+      if (spooky && !v.mini) hauntAbove(c, s, s.game.track, now);
       const m = v.marks.getContext('2d');
       m.setTransform(v.scale, 0, 0, v.scale, 0, 0);
       for (const i of order) {
@@ -1006,9 +1440,10 @@
 
   function stage(s, { mini = false } = {}) {
     const g = s.game;
-    return `<div class="tr-stage ${mini ? 'mini' : ''}" data-race="${g.race}">
+    return `<div class="tr-stage ${mini ? 'mini' : ''} ${haunted(s) ? 'haunted' : ''}" data-race="${g.race}">
       <canvas class="tr-bg"></canvas><canvas class="tr-marks"></canvas><div class="tr-wx tr-wx-${weatherOf(s)}"></div><canvas class="tr-fg"></canvas>
       ${WX[weatherOf(s)].fall ? `<div class="tr-fall tr-fall-${WX[weatherOf(s)].fall}"></div>` : ''}
+      ${haunted(s) && !mini ? '<div class="tr-haunt" aria-hidden="true"><i class="tr-fog"></i><i class="tr-bats"></i><i class="tr-flash"></i></div>' : ''}
       ${mini ? '' : countHtml(s)}
     </div>`;
   }
@@ -1040,6 +1475,15 @@
       return l;
     }
     vec3 washed(vec3 c) { return mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uMute); }`;
+  // Halloween's low fog: drifting banks of it over the ground (uLowK how thick, 0 for none), thinning
+  // out a few units up.
+  const LOW_GLSL = `
+    uniform float uTime, uLowK;
+    float lowFog(vec3 w) {
+      if (uLowK <= 0.0) return 0.0;
+      float n = 0.55 + 0.28 * sin(w.x * 0.021 + uTime * 0.31) * sin(w.y * 0.027 - uTime * 0.23) + 0.17 * sin((w.x - w.y) * 0.013 + uTime * 0.17);
+      return clamp(uLowK * n * (1.0 - smoothstep(0.0, 9.0, w.z)), 0.0, 1.0);
+    }`;
   // Each pixel's ray from the camera, to where it meets the ground (or the sky, above the horizon).
   const GROUND_FS = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -1049,9 +1493,10 @@
     #endif
     uniform sampler2D uGround, uSky;
     uniform vec2 uC, uWorld;
-    uniform float uFocal, uFar, uWet;
-    uniform vec3 uCam, uF, uR, uU, uHaze, uOut;
+    uniform float uFocal, uFar, uWet, uFlash;
+    uniform vec3 uCam, uF, uR, uU, uHaze, uOut, uLow;
     ${LIGHT_GLSL}
+    ${LOW_GLSL}
     void main() {
       vec2 p = (gl_FragCoord.xy - uC) / uFocal;
       vec3 d = uF + uR * p.x + uU * p.y;
@@ -1059,6 +1504,7 @@
       if (d.z > -0.0015 * hl) {
         float el = atan(d.z, hl);
         vec3 sky = texture2D(uSky, vec2(atan(d.y, d.x) / 6.2831853, 1.0 - clamp(el / 0.55, 0.0, 1.0))).rgb;
+        sky += uFlash * vec3(0.42, 0.4, 0.55);
         gl_FragColor = vec4(mix(uHaze, sky, smoothstep(0.0, 0.035, el)), 1.0);
         return;
       }
@@ -1074,6 +1520,7 @@
         col = mix(col, col * 0.62 + sky * 0.45 * (1.0 - smoothstep(0.05, 0.5, -d.z / hl)), tarmac * uWet);
       }
       col = washed(col * lit(w));
+      col = mix(col, uLow, lowFog(vec3(w, 0.0)));
       float f = clamp((t * hl - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
       gl_FragColor = vec4(mix(col, uHaze, f * f), 1.0);
     }`;
@@ -1088,8 +1535,9 @@
     uniform vec3 uTint, uLamp, uCam;
     uniform float uBrake, uFar, uGlow;
     varying vec3 vC;
-    varying float vFog;
+    varying float vFog, vLow;
     ${LIGHT_GLSL}
+    ${LOW_GLSL}
     void main() {
       vec3 w = vec3(uM.x + uM.z * aP.x - uM.w * aP.y, uM.y + uM.w * aP.x + uM.z * aP.y, aP.z);
       vec3 c = aC.rgb;
@@ -1102,14 +1550,20 @@
       vC = washed(c);
       float f = clamp((distance(w.xy, uCam.xy) - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
       vFog = f * f;
+      vLow = lowFog(w);
       gl_Position = uVP * vec4(w, 1.0);
     }`;
+  // (uGhost: Halloween's phantom car, pale green and see-through.)
   const MODEL_FS = `
     precision mediump float;
-    uniform vec3 uHaze;
+    uniform vec3 uHaze, uLow;
+    uniform float uGhost;
     varying vec3 vC;
-    varying float vFog;
-    void main() { gl_FragColor = vec4(mix(vC, uHaze, vFog), 1.0); }`;
+    varying float vFog, vLow;
+    void main() {
+      vec3 c = mix(mix(vC, uLow, vLow), vec3(0.55, 1.0, 0.75) * (0.45 + dot(vC, vec3(0.5))), uGhost * 0.75);
+      gl_FragColor = vec4(mix(c, uHaze, vFog), 1.0 - uGhost * 0.5);
+    }`;
   // The room's props: cut-outs standing on the ground, turned to face the camera (about the
   // upright, so they stay standing). Each corner: where it stands (x, y), how far to the side and
   // how high it is (aP), and where it is in the picture (aT). All of them, one draw.
@@ -1121,26 +1575,28 @@
     uniform vec3 uCam;
     uniform float uFar;
     varying vec2 vT;
-    varying float vFog;
+    varying float vFog, vLow;
+    ${LOW_GLSL}
     void main() {
       vec3 w = vec3(aP.xy + uSide * aP.z, aP.w);
       vT = aT;
       float f = clamp((distance(w.xy, uCam.xy) - uFar * 0.25) / (uFar * 0.75), 0.0, 1.0);
       vFog = f * f;
+      vLow = lowFog(w);
       gl_Position = uVP * vec4(w, 1.0);
     }`;
   const PROP_FS = `
     precision mediump float;
     uniform sampler2D uArt;
-    uniform vec3 uHaze, uLight;
+    uniform vec3 uHaze, uLight, uLow;
     uniform float uMute;
     vec3 washed(vec3 c) { return mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))), uMute); }
     varying vec2 vT;
-    varying float vFog;
+    varying float vFog, vLow;
     void main() {
       vec4 c = texture2D(uArt, vT);
       if (c.a < 0.5) discard;
-      gl_FragColor = vec4(mix(washed(c.rgb * uLight), uHaze, vFog), 1.0);
+      gl_FragColor = vec4(mix(mix(washed(c.rgb * uLight), uLow, vLow), uHaze, vFog), 1.0);
     }`;
 
   // A shader program, and where its uniforms and attributes are (null if it won't compile).
@@ -1211,6 +1667,24 @@
           if (r1 > 0) tri([x, y, z1], p(a0, r1, z1), p(a1, r1, z1), col.map((q) => q * shade(0, 0, 1)), t);
         }
       },
+      // A four-sided beam from one point to another (a branch, a stone of an arch), r0 thick at
+      // the start and r1 at the end.
+      limb(a, b, r0, r1, col, t = 0) {
+        const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        const L = Math.hypot(dx, dy, dz) || 1;
+        const d0 = dx / L, d1 = dy / L, d2 = dz / L;
+        let ux = d1, uy = -d0;
+        const ul = Math.hypot(ux, uy);
+        if (ul < 1e-3) { ux = 1; uy = 0; } else { ux /= ul; uy /= ul; }
+        const vx = uy * d2, vy = -ux * d2, vz = ux * d1 - uy * d0; // (across both d and u)
+        const P = (p, r, su, sv) => [p[0] + (ux * su + vx * sv) * r, p[1] + (uy * su + vy * sv) * r, p[2] + vz * sv * r];
+        const c = [[1, 1], [-1, 1], [-1, -1], [1, -1]];
+        for (let i = 0; i < 4; i++) {
+          const [s0, v0] = c[i];
+          const [s1, v1] = c[(i + 1) % 4];
+          m.quad(P(a, r0, s0, v0), P(a, r0, s1, v1), P(b, r1, s1, v1), P(b, r1, s0, v0), col, t);
+        }
+      },
       // A cylinder lying along x (a keg on its side), centred on (x, y, z), ends and all.
       drum(x, y, z, hl, r, col, n = 10) {
         const p = (a, u) => [x + u, y + Math.cos(a) * r, z + Math.sin(a) * r];
@@ -1227,6 +1701,7 @@
 
   // The barriers, the scenery and the gantry, as one model.
   function sceneModel(tr, sh, pal, wx) {
+    if (haunted()) return hauntedModel(tr, sh, pal);
     const m = mesher();
     const rim = rgb(pal.rim, [0.85, 0.85, 0.85]);
     const black = [0.09, 0.09, 0.1];
@@ -1292,6 +1767,159 @@
     }
     return new Float32Array(m.v);
   }
+  // Halloween's: the iron fence, gravestones, dead trees, a stand full of ghosts and skeletons, and
+  // a gothic arch over the start, jack-o'-lanterns on its pinnacles (their faces lit: tint 4).
+  function pumpkin(m, x, y, z, r, a) {
+    const orange = [0.85, 0.36, 0.07];
+    m.cyl(x, y, z, z + r * 0.55, r * 0.7, r, orange, 8);
+    m.cyl(x, y, z + r * 0.55, z + r * 1.1, r, r * 0.6, orange, 8);
+    m.box(x, y, 0, r * 0.1, r * 0.1, z + r * 1.1, z + r * 1.45, [0.25, 0.4, 0.12]);
+    const fx = Math.cos(a), fy = Math.sin(a);
+    const lit = [1, 0.82, 0.25];
+    const at = (out, side) => [x + fx * out - fy * side, y + fy * out + fx * side];
+    for (const sd of [-1, 1]) {
+      const [ex, ey] = at(r * 0.93, sd * r * 0.36);
+      m.box(ex, ey, a, 0.2, r * 0.17, z + r * 0.62, z + r * 0.86, lit, 4, false);
+    }
+    const [mx, my] = at(r * 0.97, 0);
+    m.box(mx, my, a, 0.2, r * 0.46, z + r * 0.24, z + r * 0.42, lit, 4, false);
+  }
+  function hauntedModel(tr, sh, pal) {
+    const m = mesher();
+    const rand = seeded(`${tr.id}:haunted`);
+    const iron = [0.17, 0.15, 0.2];
+    const stone = [0.36, 0.33, 0.41];
+    const dark = [0.15, 0.11, 0.14];
+    for (const w of sh.walls) {
+      for (let i = 0; i < sh.N; i++) {
+        const j = (i + 1) % sh.N;
+        if (!w.ok[i] || !w.ok[j]) continue;
+        const x = (w.x[i] + w.x[j]) / 2;
+        const y = (w.y[i] + w.y[j]) / 2;
+        const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
+        const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.2;
+        // Two rails, railings with spear tips, and a stone pillar every so often.
+        m.box(x, y, a, hl, 0.35, 2.6, 3.4, iron, 0, false);
+        m.box(x, y, a, hl, 0.35, 9.2, 10, iron, 0, false);
+        for (const f of [0, 0.5]) {
+          const px = w.x[i] + (w.x[j] - w.x[i]) * f;
+          const py = w.y[i] + (w.y[j] - w.y[i]) * f;
+          if (f === 0 && i % 10 === 0) {
+            m.box(px, py, a, 2, 2, 0, 13, stone);
+            m.box(px, py, a, 2.5, 2.5, 13, 14.2, stone);
+            continue;
+          }
+          m.box(px, py, a, 0.35, 0.35, 0, 11.4, iron, 0, false);
+          m.cyl(px, py, 11.4, 13.4, 0.8, 0, iron, 4);
+        }
+      }
+    }
+    for (const p of sh.props) {
+      if (p.kind === 'tyres') {
+        // A gravestone and a cross, a little askew, facing the track.
+        const a = rand() * Math.PI;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const tx = p.x - ca * 2.5, ty = p.y - sa * 2.5;
+        m.box(tx, ty, a, 0.9, 3.4, 0, 7.4, stone);
+        m.box(tx, ty, a, 0.9, 2.6, 7.4, 8.6, stone);
+        m.box(tx, ty, a, 0.9, 1.5, 8.6, 9.3, stone);
+        const cx = p.x + ca * 3, cy = p.y + sa * 3;
+        m.box(cx, cy, a, 0.7, 0.7, 0, 11.5, stone);
+        m.box(cx, cy, a, 0.7, 3.2, 7.4, 8.8, stone);
+      } else if (p.kind === 'tree') {
+        // A dead tree: a leaning, twisted trunk, bare branches, twigs off them.
+        const h = p.h * 1.15;
+        const la = rand() * Math.PI * 2;
+        const lean = (rand() - 0.5) * 0.35;
+        const mid = [p.x + Math.cos(la) * lean * h * 0.3, p.y + Math.sin(la) * lean * h * 0.3, h * 0.35];
+        const top = [p.x + Math.cos(la) * lean * h, p.y + Math.sin(la) * lean * h, h * 0.66];
+        m.limb([p.x, p.y, 0], mid, 2.1, 1.6, dark);
+        m.limb(mid, top, 1.6, 0.8, dark);
+        const n = 3 + Math.floor(rand() * 2);
+        for (let k = 0; k < n; k++) {
+          const a = la + (k / n) * Math.PI * 2 + rand() * 0.9;
+          const from = k === 0 ? top : [mid[0] + (top[0] - mid[0]) * (0.3 + k * 0.2), mid[1] + (top[1] - mid[1]) * (0.3 + k * 0.2), mid[2] + (top[2] - mid[2]) * (0.3 + k * 0.2)];
+          const len = h * (0.28 + rand() * 0.22);
+          const end = [from[0] + Math.cos(a) * len * 0.8, from[1] + Math.sin(a) * len * 0.8, from[2] + len * (0.3 + rand() * 0.5)];
+          m.limb(from, end, 0.75, 0.3, dark);
+          const a2 = a + (rand() - 0.5) * 1.8;
+          const l2 = len * 0.55;
+          m.limb(end, [end[0] + Math.cos(a2) * l2, end[1] + Math.sin(a2) * l2, end[2] + l2 * (rand() * 0.9 - 0.2)], 0.3, 0.1, dark);
+        }
+      }
+    }
+    if (sh.stand) {
+      // Crumbling stone seats, rising away from the track, full of ghosts (pale, glowing) and
+      // skeletons (bone), under a roof in the room's colour.
+      const s = sh.stand;
+      const ca = Math.cos(s.a), sa = Math.sin(s.a);
+      const nx = -sa * s.side, ny = ca * s.side;
+      const crowd = seeded(`${tr.id}:crowd`);
+      const seat = [0.3, 0.28, 0.34];
+      for (let row = 0; row < 4; row++) {
+        const off = -s.depth / 2 + 4 + row * 6.5;
+        m.box(s.x + nx * off, s.y + ny * off, s.a, s.len / 2, 3.25, 0, 4 + row * 4, seat);
+        for (let k = 0; k < 30; k++) {
+          const u = -s.len / 2 + 4 + k * 5.6 + (crowd() - 0.5);
+          const ghost = crowd() < 0.6;
+          crowd();
+          const z = 4 + row * 4;
+          const tall = crowd() * 0.8;
+          const x = s.x + nx * off + ca * u;
+          const y = s.y + ny * off + sa * u;
+          if (ghost) {
+            const col = [0.78, 0.86, 0.94];
+            m.box(x, y, s.a, 1.7, 1.5, z, z + 2.4, col, 4);
+            m.box(x, y, s.a, 1.3, 1.2, z + 2.4, z + 4.6 + tall, col, 4);
+            for (const e of [-0.55, 0.55]) m.box(x - nx * 1.25 + ca * e, y - ny * 1.25 + sa * e, s.a, 0.3, 0.12, z + 3.2 + tall, z + 4 + tall, [0.05, 0.05, 0.08], 0, false);
+          } else {
+            const bone = [0.82, 0.78, 0.66];
+            m.box(x, y, s.a, 0.9, 0.7, z, z + 3.4, bone, 4);
+            m.box(x, y, s.a, 1.1, 1.1, z + 3.6 + tall * 0.5, z + 5.6 + tall * 0.5, bone, 4);
+            for (const e of [-0.45, 0.45]) m.box(x - nx * 1.15 + ca * e, y - ny * 1.15 + sa * e, s.a, 0.38, 0.12, z + 4.4 + tall * 0.5, z + 5.1 + tall * 0.5, [0.05, 0.04, 0.05], 0, false);
+          }
+        }
+      }
+      const back = s.depth / 2;
+      m.box(s.x + nx * back, s.y + ny * back, s.a, s.len / 2, 1.2, 0, 26, seat);
+      for (const u of [-s.len / 2 + 2, 0, s.len / 2 - 2]) m.box(s.x - nx * (back - 3) + ca * u, s.y - ny * (back - 3) + sa * u, s.a, 0.8, 0.8, 0, 26, seat);
+      m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, pal.accentRgb, 4);
+    }
+    // The gothic arch: pillars either side with pinnacles (a jack-o'-lantern on each), a pointed
+    // arch over the road, the beam across with the start lights.
+    const i = sh.startI;
+    const a = sh.head[i];
+    const span = tr.width / 2 + 12;
+    const P = (off, z) => [sh.xs[i] + sh.nx[i] * off, sh.ys[i] + sh.ny[i] * off, z];
+    for (const side of [-1, 1]) {
+      const [x, y] = P(span * side, 0);
+      m.box(x, y, a, 3, 3, 0, 44, stone);
+      m.box(x, y, a, 3.6, 3.6, 36, 38, stone);
+      m.cyl(x, y, 44, 47, 3.4, 3.4, stone, 4);
+      pumpkin(m, x, y, 47, 4.4, a + Math.PI);
+    }
+    // (Each side an arc, from the pillar up to the point.)
+    const R = (span - 3) * 1.4;
+    const top = Math.acos(0.4 / 1.4);
+    for (const side of [-1, 1]) {
+      let prev = null;
+      for (let k = 0; k <= 8; k++) {
+        const phi = (k / 8) * top;
+        const p = P(side * (-0.4 * (span - 3) + R * Math.cos(phi)), 38 + 0.42 * R * Math.sin(phi));
+        if (prev) m.limb(prev, p, 1.9, 1.9, stone);
+        prev = p;
+      }
+    }
+    const [ax, ay] = P(0, 0);
+    pumpkin(m, ax, ay, 38 + 0.42 * R * Math.sin(top) + 0.5, 3.2, a + Math.PI);
+    m.box(sh.xs[i], sh.ys[i], a, 2.2, span - 2, 30, 36, iron);
+    m.box(sh.xs[i] - Math.cos(a) * 2.4, sh.ys[i] - Math.sin(a) * 2.4, a, 0.3, span - 6, 31, 35, pal.accentRgb, 4, false);
+    for (let k = -2; k <= 2; k++) {
+      m.box(sh.xs[i] - Math.cos(a) * 3 + sh.nx[i] * k * 6, sh.ys[i] - Math.sin(a) * 3 + sh.ny[i] * k * 6, a, 0.5, 2, 31.6, 34.4, [1, 1, 1], 3, false);
+    }
+    return new Float32Array(m.v);
+  }
+
   function hsl(h, s, l) {
     const f = (n) => {
       const k = (n + h * 12) % 12;
@@ -1588,7 +2216,142 @@
     if (!wx.sky) return [top, horizon];
     return [mix(top, rgb(wx.sky[0]), 0.8), mix(horizon, rgb(wx.sky[1]), 0.8)];
   }
+  // Halloween's sky (after the room's haunted hill): purple overhead going green at the horizon,
+  // stars, a big full moon low down with bats across it, hills with dead trees and crosses on them,
+  // and the haunted house on its hill, its windows lit. 2048 across (more of it's seen up close).
+  // (The moon rises a little off the start's heading, so it's there as the lights go out.)
+  const MOON = { az: 1.9, el: 0.135, r: 0.085 };
+  const moonFor = (tr) => { MOON.az = (((tr.start[2] + 0.3) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2); };
+  function hauntedSky(pal, wx) {
+    const W = 2048;
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = 256;
+    const c = cv.getContext('2d');
+    const kx = W / (Math.PI * 2); // pixels a radian, round
+    const ky = 256 / 0.55; // ...and up (see GROUND_FS)
+    const fog = !!wx.mute;
+    const g = c.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, wx.sky[0]);
+    g.addColorStop(0.45, fog ? '#2a2040' : '#1a0b2e');
+    g.addColorStop(0.75, fog ? '#40345a' : '#3a1d4c');
+    g.addColorStop(0.92, fog ? '#4a5254' : '#2c4438');
+    g.addColorStop(1, wx.sky[1]);
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, 256);
+    const rand = seeded('haunted-sky');
+    if (!fog) {
+      for (let k = 0; k < 140; k++) {
+        c.fillStyle = `rgba(232, 224, 255, ${0.2 + rand() * 0.55})`;
+        c.fillRect(rand() * W, rand() * 170, 1.5, 1.5);
+      }
+    }
+    // The moon: a glow round it, the moon, its seas, a wisp of cloud (twice near the join, so it
+    // wraps round).
+    for (const wrap of [-W, 0, W]) {
+    c.save();
+    c.translate(MOON.az * kx + wrap, 256 - MOON.el * ky);
+    c.scale(kx, ky);
+    const halo = c.createRadialGradient(0, 0, MOON.r * 0.8, 0, 0, MOON.r * 4);
+    halo.addColorStop(0, `rgba(255, 240, 210, ${fog ? 0.32 : 0.45})`);
+    halo.addColorStop(0.35, 'rgba(220, 190, 255, 0.12)');
+    halo.addColorStop(1, 'rgba(200, 160, 255, 0)');
+    c.fillStyle = halo;
+    c.fillRect(-MOON.r * 4, -MOON.r * 4, MOON.r * 8, MOON.r * 8);
+    c.fillStyle = fog ? '#e8e0cc' : '#fff2cc';
+    c.beginPath();
+    c.arc(0, 0, MOON.r, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = 'rgba(214, 196, 150, 0.6)';
+    for (const [x, y, r] of [[-0.3, 0.25, 0.18], [0.3, -0.2, 0.24], [0.18, 0.4, 0.1], [-0.36, -0.3, 0.12], [0.48, 0.14, 0.08]]) {
+      c.beginPath();
+      c.arc(x * MOON.r, y * MOON.r, r * MOON.r, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.fillStyle = 'rgba(18, 10, 30, 0.85)';
+    c.beginPath();
+    c.ellipse(-0.02, -0.035, 0.16, 0.012, 0, 0, Math.PI * 2);
+    c.ellipse(0.06, -0.062, 0.1, 0.008, 0, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+    const [up, down] = batSprites();
+    for (const [da, de, sz, k] of [[-0.06, 0.03, 14, 0], [0.05, -0.01, 18, 1], [0.1, 0.07, 10, 0], [-0.12, 0.09, 9, 1], [0.02, 0.12, 8, 0]]) {
+      c.drawImage(k ? up : down, (MOON.az + da) * kx + wrap - sz / 2, 256 - (MOON.el + de) * ky - sz / 4, sz, sz / 2);
+    }
+    }
+    // The hills (whole numbers of waves round, so the join doesn't show).
+    const hill = (x, base, amp, waves, phase) => {
+      const t = (x / W) * Math.PI * 2;
+      return 256 - base - amp * (0.6 * Math.sin(t * waves[0] + phase) + 0.3 * Math.sin(t * waves[1] + phase * 2) + 0.1 * Math.sin(t * waves[2]));
+    };
+    const ridge = (col, ...a) => {
+      c.fillStyle = col;
+      c.beginPath();
+      c.moveTo(0, 256);
+      for (let x = 0; x <= W; x += 8) c.lineTo(x, hill(x, ...a));
+      c.lineTo(W, 256);
+      c.fill();
+    };
+    const far = [30, 22, [2, 5, 13], 1];
+    const near = [12, 10, [3, 7, 31], 4];
+    ridge(fog ? '#3a3446' : '#1a1028', ...far);
+    // The haunted house on its hill (the room's, shrunk: 0.7 as wide as high, as the sky's stretched).
+    const hx = ((MOON.az + 0.32) * kx) % (W - 80) + 40;
+    const hy = hill(hx, ...far) + 4;
+    c.fillStyle = fog ? '#363042' : '#140c20';
+    c.beginPath();
+    c.ellipse(hx, hy + 6, 60, 22, 0, Math.PI, 0);
+    c.fill();
+    c.save();
+    c.translate(hx, hy - 4);
+    c.scale(0.2 * 0.7, 0.2);
+    c.translate(-1090, -500);
+    c.fillStyle = fog ? '#2e2838' : '#0c0814';
+    c.fill(new Path2D('M980 300 H1200 V500 H980Z M970 304 L1090 230 L1210 304Z M960 240 H1020 V500 H960Z M952 244 L990 150 L1028 244Z M1150 220 H1168 V280 H1150Z M1050 210 H1130 V236 H1050Z M988 150 V118 H992 V150Z'));
+    for (const [x, y, k] of [[972, 270, 1], [1000, 330, 1], [1060, 330, 2], [1120, 330, 1], [1160, 330, 0], [1000, 410, 1], [1080, 410, 1], [1150, 410, 2], [972, 420, 0]]) {
+      c.fillStyle = ['#1a1024', '#ffb040', '#7cff9a'][k];
+      c.fillRect(x, y, 26, 38);
+    }
+    c.fillStyle = '#ffb040';
+    c.fillRect(1078, 460, 24, 40);
+    c.restore();
+    ridge(fog ? '#2c2836' : '#0e0816', ...near);
+    // Dead trees and crosses along the nearer hills.
+    c.strokeStyle = c.fillStyle = fog ? '#24202c' : '#07040b';
+    c.lineCap = 'round';
+    for (let k = 0; k < 22; k++) {
+      const x = rand() * W;
+      if (Math.abs(x - hx) < 70 || Math.abs(x - MOON.az * kx) < 30) continue;
+      const y = hill(x, ...near) + 2;
+      const s = 0.5 + rand() * 0.7;
+      if (rand() < 0.35) {
+        c.fillRect(x - 0.8, y - 9 * s, 1.6, 9 * s);
+        c.fillRect(x - 2.6 * s, y - 7 * s, 5.2 * s, 1.4);
+        continue;
+      }
+      const h = 26 * s;
+      c.lineWidth = 2.4 * s;
+      c.beginPath();
+      c.moveTo(x, y);
+      c.quadraticCurveTo(x + (rand() - 0.5) * 6, y - h * 0.5, x + (rand() - 0.5) * 5, y - h);
+      for (const [f, dx, dy] of [[0.55, -10, -10], [0.7, 9, -12], [0.85, -6, -8], [0.6, 12, -4]]) {
+        const bx = x;
+        const by = y - h * f;
+        c.moveTo(bx, by);
+        c.quadraticCurveTo(bx + dx * s * 0.5, by + dy * s * 0.3, bx + dx * s * 0.7 * 1.4, by + dy * s);
+      }
+      c.stroke();
+    }
+    // Lights in the valley: a lantern or two, the odd green glow.
+    for (let k = 0; k < 30; k++) {
+      c.fillStyle = rand() < 0.75 ? `rgba(255, 150, 50, ${0.4 + rand() * 0.4})` : `rgba(124, 255, 154, ${0.4 + rand() * 0.4})`;
+      c.fillRect(rand() * W, 240 + rand() * 10, 2, 2);
+    }
+    return cv;
+  }
+
   function skyCanvas(pal, wx) {
+    if (wx.moon) return hauntedSky(pal, wx);
     const cv = document.createElement('canvas');
     cv.width = 1024;
     cv.height = 256;
@@ -1662,7 +2425,7 @@
       if (p.kind === 'stand') continue;
       c.beginPath();
       if (p.kind === 'venue') {
-        const it = art.items[p.which] || art.items[0];
+        const it = art.items[p.which % art.items.length];
         const [x, y] = propAt(p, it);
         c.ellipse(x + 2, y + 2, it.half * 0.8, it.half * 0.8, 0, 0, Math.PI * 2);
       } else c.arc(p.x + 2, p.y + 2, p.r + 1.5, 0, Math.PI * 2);
@@ -1688,6 +2451,7 @@
     cam: { x: 0, y: 0, z: 12, yaw: 0, roll: 0, speed: 0, px: 0, py: 0, pa: 0, race: -1, shake: 0, t: 0, f: [1, 0, 0], r: [0, 1, 0], u: [0, 0, 1], focal: 1 },
     avatars: {}, // id -> canvas
     heads: new Float32Array(32), // the cars' headlights (see LIGHT_GLSL)
+    light: new Float32Array(3), // the weather's light this frame (lightning and all)
     drops: null, // rain or snow falling over the view: x, y (0 to 1) and how fast, each
     wasAt: new Float32Array(16), // where each car was last frame, for the spray
 
@@ -1751,6 +2515,11 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, this.carBuf);
       gl.bufferData(gl.ARRAY_BUFFER, car, gl.STATIC_DRAW);
       this.carCount = car.length / 7;
+      const ghost = carModel(PHANTOM_LOOK, { shadow: false }).v;
+      this.ghostBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.ghostBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, ghost, gl.STATIC_DRAW);
+      this.ghostCount = ghost.length / 7;
       for (const id in this.meshes) gl.deleteBuffer(this.meshes[id].buf);
       this.meshes = {};
       this.aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
@@ -1790,8 +2559,10 @@
       if (this.groundTex) gl.deleteTexture(this.groundTex);
       if (this.skyTex) gl.deleteTexture(this.skyTex);
       this.groundTex = texture(groundCanvas(tr, pal), false, true);
-      const wx = WX[weatherOf(s)];
+      const wx = wxOf(s);
       this.wx = wx;
+      this.spooky = haunted(s);
+      if (wx.moon) moonFor(tr);
       this.skyTex = texture(skyCanvas(pal, wx), true, false);
       const sh = shapeOf(tr);
       const scene = sceneModel(tr, sh, pal, wx);
@@ -1804,25 +2575,40 @@
       const art = propArt(pal);
       if (this.propTex) gl.deleteTexture(this.propTex);
       this.propTex = texture(art.cv, false, true);
+      // (The ones that glow go last, drawn on their own: lit from inside, flickering. At Halloween,
+      // its gravestones and jack-o'-lanterns round the track too.)
       const v = [];
+      const lit = [];
+      const glowAt = [];
+      const cutout = (it, x, y, size, lift) => {
+        const u0 = (it.cell + 0.005) / art.cols;
+        const u1 = (it.cell + 0.995) / art.cols;
+        const h = size / 2;
+        const z0 = lift;
+        const z1 = lift + size;
+        const out = it.glow ? lit : v;
+        for (const [o, z, u, t] of [[-h, z0, u0, 1], [h, z0, u1, 1], [h, z1, u1, 0], [-h, z0, u0, 1], [h, z1, u1, 0], [-h, z1, u0, 0]]) out.push(x, y, o, z, u, t);
+        if (it.glow) glowAt.push(x, y, lift + size * 0.45, size);
+      };
       for (const p of sh.props) {
         if (p.kind !== 'venue') continue;
-        const it = art.items[p.which] || art.items[0];
+        const it = art.items[p.which % art.items.length];
         const [x, y] = propAt(p, it);
-        const u0 = (it.cell + 0.005) / 2;
-        const u1 = (it.cell + 0.995) / 2;
-        const h = it.size / 2;
-        const z0 = it.lift;
-        const z1 = it.lift + it.size;
-        for (const [o, z, u, t] of [[-h, z0, u0, 1], [h, z0, u1, 1], [h, z1, u1, 0], [-h, z0, u0, 1], [h, z1, u1, 0], [-h, z1, u0, 0]]) v.push(x, y, o, z, u, t);
+        cutout(it, x, y, it.size, it.lift);
       }
+      const hs = this.spooky ? hauntOf(tr) : null;
+      for (const p of hs ? hs.things : []) if (art.byKind[p.kind]) cutout(art.byKind[p.kind], p.x, p.y, p.size, 0);
       this.propBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.propBuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v.concat(lit)), gl.STATIC_DRAW);
       this.propCount = v.length / 6;
+      this.glowCount = lit.length / 6;
+      // Where the glows are (x, y, z, size), and the will-o'-the-wisps (x, y, phase).
+      this.glowAt = new Float32Array(glowAt);
+      this.wisps = new Float32Array(hs ? hs.wisps.flatMap((w) => [w.x, w.y, w.k]) : []);
       const [, horizon] = skyColours(pal, wx);
       this.haze = wx.haze ? mix(horizon, wx.haze, 0.85) : horizon;
-      this.out = wx.snow ? [0.78, 0.81, 0.86] : mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
+      this.out = wx.snow ? [0.78, 0.81, 0.86] : this.spooky ? [0.07, 0.055, 0.05] : mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
       this.propLight = mix(wx.light, [1, 1, 1], 0.3);
       this.lamp = [0.25, 0.05, 0.05];
     },
@@ -1949,6 +2735,13 @@
       const H = this.cv.height;
       const wx = this.wx;
       const far = wx.far;
+      // Halloween: lightning now and then (everything lit up), the low fog drifting.
+      const flash = this.spooky ? lightning(ms) * (wx.mute ? 0.5 : 1) : 0;
+      const L = this.light;
+      L[0] = wx.light[0] + flash * 0.75;
+      L[1] = wx.light[1] + flash * 0.72;
+      L[2] = wx.light[2] + flash * 0.9;
+      const low = wx.low || this.light;
       // The weather's light, for the ground and the models alike: the cars' headlights at night.
       const heads = this.heads;
       heads.fill(0);
@@ -1962,7 +2755,10 @@
         }
       }
       const weather = (P) => {
-        gl.uniform3f(P.u.uLight, wx.light[0], wx.light[1], wx.light[2]);
+        gl.uniform3f(P.u.uLight, L[0], L[1], L[2]);
+        gl.uniform1f(P.u.uTime, (ms / 1000) % 1000);
+        gl.uniform1f(P.u.uLowK, wx.lowK || 0);
+        gl.uniform3f(P.u.uLow, low[0], low[1], low[2]);
         gl.uniform1f(P.u.uHead, wx.lamps ? 1 : 0);
         gl.uniform1f(P.u.uMute, wx.mute || 0);
         gl.uniform4fv(P.u['uCars[0]'], heads);
@@ -1990,6 +2786,7 @@
       gl.uniform3f(G.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
       gl.uniform3f(G.u.uOut, this.out[0], this.out[1], this.out[2]);
       gl.uniform1f(G.u.uWet, wx.wet || 0);
+      gl.uniform1f(G.u.uFlash, flash);
       weather(G);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.enableVertexAttribArray(G.aP);
@@ -2007,6 +2804,7 @@
       gl.uniform1f(M.u.uFar, far);
       gl.uniform3f(M.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
       gl.uniform1f(M.u.uGlow, wx.lamps ? 1 : 0);
+      gl.uniform1f(M.u.uGhost, 0);
       weather(M);
       // The start lights: red through the countdown, then green.
       const lit = s.phase === 'countdown' ? 1 : 0;
@@ -2048,8 +2846,12 @@
         gl.uniform3f(P.u.uCam, cam.x, cam.y, cam.z);
         gl.uniform1f(P.u.uFar, far);
         gl.uniform3f(P.u.uHaze, this.haze[0], this.haze[1], this.haze[2]);
-        gl.uniform3f(P.u.uLight, this.propLight[0], this.propLight[1], this.propLight[2]);
+        const pl = this.propLight;
+        gl.uniform3f(P.u.uLight, pl[0] + flash * 0.6, pl[1] + flash * 0.6, pl[2] + flash * 0.7);
         gl.uniform1f(P.u.uMute, wx.mute || 0);
+        gl.uniform1f(P.u.uTime, (ms / 1000) % 1000);
+        gl.uniform1f(P.u.uLowK, wx.lowK || 0);
+        gl.uniform3f(P.u.uLow, low[0], low[1], low[2]);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.propTex);
         gl.uniform1i(P.u.uArt, 0);
@@ -2059,10 +2861,38 @@
         gl.vertexAttribPointer(P.aP, 4, gl.FLOAT, false, 24, 0);
         gl.vertexAttribPointer(P.aT, 2, gl.FLOAT, false, 24, 16);
         gl.drawArrays(gl.TRIANGLES, 0, this.propCount);
+        // The ones lit from inside (a jack-o'-lantern), whatever the weather, flickering.
+        if (this.glowCount) {
+          const f = flicker(ms, 0) * 1.15;
+          gl.uniform3f(P.u.uLight, f, f * 0.96, f * 0.9);
+          gl.uniform1f(P.u.uMute, 0);
+          gl.drawArrays(gl.TRIANGLES, this.propCount, this.glowCount);
+        }
         gl.disableVertexAttribArray(P.aP);
         gl.disableVertexAttribArray(P.aT);
       }
+      // Halloween's phantom car: see-through, pale green, through anything in its way.
+      const ph = this.spooky ? phantomAt(s, s.game.track) : null;
+      if (ph && (ph.x - cam.x) ** 2 + (ph.y - cam.y) ** 2 > 400) {
+        gl.useProgram(M.p);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(false);
+        gl.uniform1f(M.u.uGhost, ph.fade);
+        gl.uniform4f(M.u.uM, ph.x, ph.y, Math.cos(ph.a), Math.sin(ph.a));
+        gl.uniform3f(M.u.uTint, 0.7, 1, 0.85);
+        gl.uniform1f(M.u.uBrake, 0);
+        gl.enableVertexAttribArray(M.aP);
+        gl.enableVertexAttribArray(M.aC);
+        draw(this.ghostBuf, this.ghostCount);
+        gl.disableVertexAttribArray(M.aP);
+        gl.disableVertexAttribArray(M.aC);
+        gl.uniform1f(M.u.uGhost, 0);
+        gl.depthMask(true);
+        gl.disable(gl.BLEND);
+      }
       this.labels(s, cars, ids, mine, ms);
+      if (this.spooky) this.haunt(s, ph, flash, ms);
       this.spray(s, cars, ids, ms);
       this.fall(s, wx, car, ms);
     },
@@ -2120,6 +2950,60 @@
           c.strokeText('BEEP!', at.x, at.y - size * 1.1);
           c.fillText('BEEP!', at.x, at.y - size * 1.1);
         }
+        c.globalAlpha = 1;
+      }
+    },
+
+    // Halloween over the view from the car: the jack-o'-lanterns' glow, will-o'-the-wisps drifting
+    // about, the phantom's aura, bats flitting over the sky (round the moon, mostly), and the flash
+    // of the lightning. Everything from what's made already: nothing new each frame.
+    haunt(s, ph, flash, ms) {
+      const c = this.hud.getContext('2d');
+      const W = this.hud.width;
+      const H = this.hud.height;
+      const k = this.k || 1;
+      const cam = this.cam;
+      const reach = this.wx.mute ? 260 : 440;
+      const t = ms / 1000;
+      c.globalCompositeOperation = 'lighter';
+      const orange = glowSprite('orange');
+      const g = this.glowAt;
+      for (let i = 0; i < g.length; i += 4) {
+        if (!this.project(g[i], g[i + 1], g[i + 2]) || at.d > reach) continue;
+        const size = at.s * g[i + 3] * 2.4;
+        if (size < 3) continue;
+        c.globalAlpha = Math.max(0, Math.min(1, (flicker(ms, i) - 0.62) * 2.4)) * (1 - at.d / reach);
+        c.drawImage(orange, at.x - size / 2, at.y - size / 2, size, size);
+      }
+      const green = glowSprite('green');
+      const w = this.wisps;
+      for (let i = 0; i < w.length; i += 3) {
+        const q = t + w[i + 2];
+        if (!this.project(w[i] + Math.sin(q * 0.4) * 14, w[i + 1] + Math.cos(q * 0.33) * 10, 8 + Math.sin(q * 1.1) * 3) || at.d > reach) continue;
+        const size = Math.max(5 * k, at.s * 10);
+        c.globalAlpha = (0.6 + 0.35 * Math.sin(q * 1.3)) * Math.min(1, (reach - at.d) / 120);
+        c.drawImage(green, at.x - size / 2, at.y - size / 2, size, size);
+      }
+      if (ph && this.project(ph.x, ph.y, 6) && at.d < reach) {
+        const size = at.s * 46;
+        c.globalAlpha = 0.4 * ph.fade;
+        c.drawImage(green, at.x - size / 2, at.y - size / 2, size, size);
+      }
+      c.globalCompositeOperation = 'source-over';
+      const bats = batSprites();
+      c.globalAlpha = 1;
+      for (let i = 0; i < 9; i++) {
+        const moon = i < 5;
+        const az = moon ? MOON.az + Math.sin(t * 0.15 + i * 1.9) * 0.32 : i * 1.3 + t * 0.04 * (i % 2 ? 1 : -1);
+        const el = (moon ? MOON.el + 0.02 : 0.16 + 0.05 * (i % 3)) + 0.04 * Math.sin(t * 0.7 + i * 2.3);
+        if (!this.project(cam.x + Math.cos(az) * 600, cam.y + Math.sin(az) * 600, cam.z + Math.tan(el) * 600)) continue;
+        const size = (moon ? 22 : 16) * k * (0.7 + (i % 3) * 0.2);
+        c.drawImage(bats[Math.sin(t * 17 + i * 1.3) > 0 ? 0 : 1], at.x - size / 2, at.y - size / 4, size, size / 2);
+      }
+      if (flash > 0) {
+        c.globalAlpha = flash * 0.16;
+        c.fillStyle = '#e8e0ff';
+        c.fillRect(0, 0, W, H);
         c.globalAlpha = 1;
       }
     },
@@ -2235,7 +3119,7 @@
     // No WebGL: the map from above, turned so the car points up the screen, close in.
     flat(s, cars, ids, car, portrait) {
       const tr = s.game.track;
-      const flatKey = `${tr.id}:${venueOf(s)}:${weatherOf(s)}`;
+      const flatKey = `${tr.id}:${venueOf(s)}:${weatherOf(s)}`; // (Halloween: its own look)
       if (!this.flatBg || this.flatKey !== flatKey) {
         this.flatBg = document.createElement('canvas');
         this.flatBg.width = tr.world.w * 2;
@@ -2255,7 +3139,8 @@
       c.translate(-car[0], -car[1]);
       c.drawImage(this.flatBg, 0, 0, tr.world.w, tr.world.h);
       const now = performance.now();
-      const wx = WX[weatherOf(s)];
+      const wx = wxOf(s);
+      if (haunted(s)) hauntAbove(c, s, tr, now);
       if (wx.flat || wx.snow) {
         c.setTransform(1, 0, 0, 1, 0, 0);
         c.fillStyle = wx.flat || 'rgba(255, 255, 255, 0.1)';
@@ -2269,22 +3154,24 @@
     },
   };
 
-  // 3, 2, 1, GO over the track (and over the view from the car).
+  // 3, 2, 1, GO over the track (and over the view from the car). Halloween: 3… 2… 1… BOO!
   function countText(s) {
-    if (s.phase === 'countdown') return String(s.game.count);
-    if (s.phase === 'race' && (!snaps.length || snaps[snaps.length - 1].t < 1.2)) return 'GO!';
+    const spooky = haunted(s);
+    if (s.phase === 'countdown') return `${s.game.count}${spooky ? '…' : ''}`;
+    if (s.phase === 'race' && (!snaps.length || snaps[snaps.length - 1].t < 1.2)) return spooky ? 'BOO!' : 'GO!';
     return '';
   }
+  const countClass = (text) => `tr-count ${text === 'GO!' ? 'go' : text === 'BOO!' ? 'go boo' : text.endsWith('…') ? 'spooky' : ''}`;
   const countHtml = (s) => {
     const text = countText(s);
-    return `<div class="tr-count ${text === 'GO!' ? 'go' : ''}" data-count>${text ? `<b>${text}</b>` : ''}</div>`;
+    return `<div class="${countClass(text)}" data-count>${text ? `<b>${text}</b>` : ''}</div>`;
   };
   function updateCount(s) {
     const text = countText(s);
     document.querySelectorAll('[data-count]').forEach((el) => {
       if (el.dataset.shown === text) return;
       el.dataset.shown = text;
-      el.className = `tr-count ${text === 'GO!' ? 'go' : ''}`;
+      el.className = countClass(text);
       el.innerHTML = text ? `<b>${text}</b>` : '';
     });
   }
@@ -2907,9 +3794,9 @@
         const done = !!(mine[3] & 4);
         if (lastMine.lap && mine[5] > lastMine.lap) {
           PB.buzz();
-          banner(mine[5] === s.game.laps ? 'Final lap!' : `Lap ${mine[5]}`);
+          banner(mine[5] === s.game.laps ? (haunted(s) ? '💀 Final lap!' : 'Final lap!') : `Lap ${mine[5]}`);
         }
-        if (done && !lastMine.done && lastMine.place) banner(`🏁 ${ordinal(mine[4])}!`, true);
+        if (done && !lastMine.done && lastMine.place) banner(`${haunted(s) ? '🎃' : '🏁'} ${ordinal(mine[4])}!`, true);
         if (mine[4] !== lastMine.place || mine[5] !== lastMine.lap || done !== lastMine.done) {
           lastMine = { place: mine[4], lap: mine[5], done };
           const pl = document.getElementById('tr-place');

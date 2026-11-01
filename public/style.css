@@ -1369,6 +1369,34 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 @keyframes tr-fall { to { transform: translate3d(120px, 240px, 0); } }
 .tr-stage.mini .tr-fall { display: none; }
 @media (prefers-reduced-motion: reduce) { .tr-fall::before { animation: none; } }
+/* Halloween (see "Halloween" in public/games/trackRacing.js): the night tinted purple, low fog
+   drifting over the track, bats crossing it, lightning now and then; the countdown ends in BOO. */
+.tr-stage.haunted .tr-wx-night { background: radial-gradient(ellipse at center, rgba(36, 12, 58, 0.32), rgba(10, 4, 22, 0.66)); }
+.tr-stage.haunted .tr-wx-fog { background: radial-gradient(ellipse at center, rgba(150, 140, 180, 0.2), rgba(110, 100, 140, 0.5)); }
+.tr-haunt { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.tr-haunt i { position: absolute; display: block; }
+/* (Twice as wide as the track, the same fog in each half, slid along by half: it loops.) */
+.tr-fog {
+  left: 0; top: 0; width: 200%; height: 100%;
+  background:
+    radial-gradient(ellipse 16% 11% at 12% 22%, rgba(196, 186, 226, 0.26), transparent 70%),
+    radial-gradient(ellipse 22% 9% at 38% 64%, rgba(196, 186, 226, 0.22), transparent 70%),
+    radial-gradient(ellipse 14% 12% at 70% 36%, rgba(180, 230, 200, 0.14), transparent 70%),
+    radial-gradient(ellipse 20% 10% at 84% 84%, rgba(196, 186, 226, 0.24), transparent 70%);
+  background-size: 50% 100%; background-repeat: repeat-x;
+  animation: tr-drift 70s linear infinite;
+}
+@keyframes tr-drift { to { transform: translate3d(-50%, 0, 0); } }
+.tr-bats, .tr-haunt::before { content: ''; position: absolute; left: 0; top: 14%; width: 14%; height: 6%; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 60'%3E%3Cg fill='%2308040e' stroke='%23b9a0ff' stroke-opacity='0.35' stroke-width='0.8'%3E%3Cpath id='b' d='M32 15 Q20 4 2 6 Q10 15 8 18 Q18 17 24 22 Q28 18 32 20 Q36 18 40 22 Q46 17 56 18 Q54 15 62 6 Q44 4 32 15Z'/%3E%3Cuse href='%23b' transform='translate(90 22) scale(0.7)'/%3E%3Cuse href='%23b' transform='translate(160 4) scale(0.85)'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; animation: tr-bats 16s linear infinite; }
+.tr-haunt::before { top: 58%; width: 11%; animation-duration: 23s; animation-delay: -9s; animation-direction: reverse; }
+@keyframes tr-bats { 0% { transform: translate3d(-110%, 0, 0); } 25% { transform: translate3d(60%, -40%, 0); } 50% { transform: translate3d(230%, 20%, 0); } 75% { transform: translate3d(400%, -30%, 0); } 100% { transform: translate3d(560%, 10%, 0); } }
+.tr-flash { inset: 0; background: #ece6ff; opacity: 0; animation: tr-flash 12s linear infinite; }
+@keyframes tr-flash { 0%, 50% { opacity: 0; } 50.6% { opacity: 0.28; } 51.3% { opacity: 0; } 52% { opacity: 0.18; } 54%, 100% { opacity: 0; } }
+.tr-count.spooky b { font-family: "Creepster", Impact, system-ui, sans-serif; font-weight: 400; color: #c8ffb0; text-shadow: 0 0 24px rgba(124, 255, 154, 0.7), 0 4px 0 rgba(0, 0, 0, 0.55); }
+.tr-count.boo b { font-family: "Creepster", Impact, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.04em; color: var(--accent); text-shadow: 0 0 30px rgba(255, 122, 26, 0.85), 0 5px 0 rgba(0, 0, 0, 0.6); animation: tr-boo 1.3s ease-out both; }
+.tr-count.boo b::before { content: '👻 '; }
+@keyframes tr-boo { 0% { transform: scale(0.3) rotate(-10deg); opacity: 0; } 15% { transform: scale(1.25) rotate(5deg); opacity: 1; } 30% { transform: scale(1) rotate(-3deg); } 70% { opacity: 1; } 100% { transform: scale(1.5) rotate(0); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tr-fog, .tr-bats, .tr-haunt::before { animation: none; } .tr-flash { display: none; } }
 
 /* Your car: a little picture of each car in the lists, and the garage (pick a body, a paint, a
    stripe and an extra, the car turning above). */

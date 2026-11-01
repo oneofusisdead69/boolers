@@ -212,11 +212,13 @@ const WEATHERS = {
 // now: the Lighthouse's fog, the Highlands' rain, the château at night...
 const MOOD_ROOMS = ['lighthouse', 'stpatricks', 'vineyard', 'chateau'];
 const MOOD_WEATHER = { lighthouse: 'night', lighthouseFog: 'fog', storm: 'rain', stpatricksRain: 'rain', stpatricksFog: 'fog', vineyardSunset: 'sunset', chateauNight: 'night' };
-const NIGHT_ROOMS = ['space', 'club', 'speakeasy', 'halloween', 'jazz'];
+const NIGHT_ROOMS = ['space', 'club', 'speakeasy', 'jazz'];
 const HOT_ROOMS = ['tiki', 'saloon', 'vineyard', 'space']; // (no snow)
 function pickWeather(room) {
   const style = room.style === 'storm' ? 'lighthouse' : room.style || 'classic'; // (an old saved room)
   if (style === 'christmas') return 'snow';
+  // Halloween: always dark. A full moon, mostly; now and then the graveyard fog rolls in.
+  if (style === 'halloween') return Math.random() < 0.7 ? 'night' : 'fog';
   if (MOOD_ROOMS.includes(style)) return MOOD_WEATHER[room.mood] || MOOD_WEATHER[room.style] || 'clear';
   const odds = NIGHT_ROOMS.includes(style)
     ? { night: 6, clear: 1, rain: 1, fog: 1 }
@@ -225,6 +227,14 @@ function pickWeather(room) {
   for (const [w, n] of Object.entries(odds)) if ((r -= n) < 0) return w;
   return 'clear';
 }
+
+// Halloween races in the haunted graveyard: the screens dress it up
+// (public/games/trackRacing.js), and the feed tells it spookily.
+const spooky = (room) => room.style === 'halloween';
+const SPOOKY_WEATHER = {
+  night: '🌕 A full moon over {track}: headlights on, and don’t look back…',
+  fog: '🌫️ The graveyard fog rolls over {track}: something’s out there…',
+};
 
 function gridCars(room, g) {
   const tr = trackOf(g.trackId);
@@ -276,7 +286,9 @@ function newRace(room, ctx) {
   betting.reset(g);
   g.phase = 'betting';
   const wx = WEATHERS[g.weather];
-  ctx.log(room, `${wx.emoji} ${wx.label} at ${trackOf(g.trackId).name}: ${wx.says}`);
+  const name = trackOf(g.trackId).name;
+  if (spooky(room) && SPOOKY_WEATHER[g.weather]) ctx.log(room, SPOOKY_WEATHER[g.weather].replace('{track}', name));
+  else ctx.log(room, `${wx.emoji} ${wx.label} at ${name}: ${wx.says}`);
 }
 
 function countdown(room, ctx) {
@@ -285,7 +297,7 @@ function countdown(room, ctx) {
   if (g.count > 0) return ctx.setTimer(room, COUNT_MS, () => countdown(room, ctx));
   g.phase = 'race';
   g.clock = Date.now();
-  ctx.log(room, `🏁 Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}!`);
+  ctx.log(room, spooky(room) ? `👻 BOO! Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}, if you dare!` : `🏁 Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}!`);
   ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
 }
 
@@ -508,7 +520,8 @@ function tick(room, ctx) {
           news = true;
           const place = g.cars.filter((x) => x.finished != null).length;
           if (place === 1) g.firstIn = g.t;
-          ctx.log(room, `${place === 1 ? '🏆' : '🏁'} ${ctx.name(room, c.id)} finishes ${ordinal(place)} (${g.t.toFixed(1)}s)`);
+          const icon = spooky(room) ? (place === 1 ? '🎃' : '🦇') : place === 1 ? '🏆' : '🏁';
+          ctx.log(room, `${icon} ${ctx.name(room, c.id)} finishes ${ordinal(place)} (${g.t.toFixed(1)}s)`);
         }
       }
       collide(g);
@@ -537,7 +550,7 @@ function finish(room, ctx) {
   g.lastOrder = order;
   const winner = order[0];
   g.wins[winner] = (g.wins[winner] || 0) + 1;
-  ctx.log(room, `🏆 ${ctx.name(room, winner)} wins race ${g.race}!`);
+  ctx.log(room, spooky(room) ? `🎃 ${ctx.name(room, winner)} wins race ${g.race}, and escapes the graveyard alive!` : `🏆 ${ctx.name(room, winner)} wins race ${g.race}!`);
   ctx.highlight(room, 'trackWin', winner, g.wins[winner], `🏎️ ${ctx.name(room, winner)} won ${g.wins[winner]} race${g.wins[winner] === 1 ? '' : 's'} at Track Racing`);
   betting.settle(room, ctx, winner, (id) => `${ctx.name(room, id)}'s car`);
   // The back marker drinks too (if that's on, and there was anyone to beat).

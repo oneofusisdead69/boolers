@@ -174,6 +174,7 @@ test('weather: picked for each race, fitted to the room, and bots finish in ever
   assert.deepStrictEqual([...many({ style: 'stpatricks', mood: 'stpatricksFog' })], ['fog']);
   assert.deepStrictEqual([...many({ style: 'vineyard', mood: 'vineyardSunset' })], ['sunset']);
   assert.ok(many({ style: 'dive' }).size >= 4, 'anything can happen at the dive');
+  assert.deepStrictEqual([...many({ style: 'halloween' })].sort(), ['fog', 'night'], 'always dark at Halloween');
   t.cleanup();
   for (const weather of Object.keys(game.WEATHERS)) {
     const t2 = setup(game, 3, { track: 'pretzel', laps: 2 });
@@ -184,6 +185,22 @@ test('weather: picked for each race, fitted to the room, and bots finish in ever
     for (const r of t2.room.game.result) assert.ok(r.time != null && r.time / 2 < 32, `${weather}: ${r.id} finished (${r.time})`);
     t2.cleanup();
   }
+});
+
+test('Halloween: a dark race, told spookily, and the bots still finish', () => {
+  const t = setup(game, 3, { track: 'hairpin', laps: 2 });
+  t.room.style = 'halloween';
+  startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+  assert.ok(t.room.feed.some((f) => f.text.startsWith('👻 BOO! Race 1 is off')), 'a spooky start');
+  for (const p of t.room.players) p.bot = 'npc';
+  runRace(t);
+  const g = t.room.game;
+  for (const r of g.result) assert.ok(r.time != null, `${r.id} finished`);
+  assert.ok(t.room.feed.some((f) => /^🎃 .* wins race 1, and escapes the graveyard alive!$/.test(f.text)), 'a spooky win');
+  t.act(0, 'nextRace');
+  assert.ok(['night', 'fog'].includes(g.weather));
+  assert.ok(t.room.feed.some((f) => /^(🌕 A full moon|🌫️ The graveyard fog).*Hairpin Alley/.test(f.text)), 'spooky weather');
+  t.cleanup();
 });
 
 test('cars: a look is checked against the lists, and anything unknown is the plain car', () => {

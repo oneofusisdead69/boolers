@@ -694,6 +694,108 @@
 .hw-owl .sc-blink { animation: sc-blink 5s linear infinite; }
 .hw-bubble { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(160, 255, 180, 0.8); background: rgba(124, 255, 154, 0.25); }
 .sc-oneeighty.hw b { font-family: "Creepster", system-ui, sans-serif; color: #ff7a1a; text-shadow: 0 0 18px #7a2aff, 0 4px 0 #1a0024; }
+/* Halloween, more (scenery.js: "Halloween, more"). Always: wisps, the crypt's light, the
+   jack-o'-lanterns' faces, ground mist, stars. */
+.hw-wisp { animation-name: sc-fly; }
+.hw-wisp i { display: block; width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: radial-gradient(circle, #e8ffe0 0 18%, rgba(124, 255, 154, 0.55) 35%, transparent 70%); animation: hw-pulse 1.7s ease-in-out infinite alternate; }
+@keyframes hw-pulse { from { opacity: 0.25; transform: scale(0.7); } to { opacity: 1; transform: scale(1.5); } }
+.hw-crypt { border-radius: 50%; background: radial-gradient(ellipse, rgba(124, 255, 154, 0.3), transparent 65%); animation: hw-pulse 3.4s ease-in-out infinite alternate; }
+.hw-face { border-radius: 50%; background: radial-gradient(ellipse, rgba(255, 236, 140, 0.6), rgba(255, 160, 40, 0.25) 45%, transparent 72%); animation: hw-gutter 2s steps(1) infinite; }
+@keyframes hw-gutter { 0%, 100% { opacity: 0.55; } 12% { opacity: 1; } 20% { opacity: 0.3; } 28% { opacity: 0.85; } 47% { opacity: 0.6; } 52% { opacity: 0.1; } 56% { opacity: 0.9; } 78% { opacity: 0.45; } }
+.hw-mist { width: 200vw; height: 16vh; animation: hw-mist 60s linear infinite; }
+.hw-mist i { position: absolute; top: 0; width: 100vw; height: 100%; background: radial-gradient(ellipse 30% 50% at 20% 60%, rgba(200, 180, 235, 0.16), transparent 70%), radial-gradient(ellipse 26% 40% at 62% 45%, rgba(200, 180, 235, 0.13), transparent 70%), radial-gradient(ellipse 22% 46% at 90% 60%, rgba(200, 180, 235, 0.15), transparent 70%); }
+.hw-mist i + i { left: 100vw; }
+@keyframes hw-mist { from { transform: translateX(-100vw); } to { transform: translateX(0); } }
+.fh-twinkle.hw-star { width: 7px; height: 7px; margin: -3px 0 0 -3px; }
+/* Fog rolling across; the blood moon; the house's windows and its door; the werewolf. */
+.hw-fogbank { width: 75vw; height: 26vh; opacity: 0; animation: hw-fogbank 15s linear forwards; }
+.hw-fogbank i { position: absolute; border-radius: 50%; background: radial-gradient(ellipse, rgba(210, 196, 240, 0.4), rgba(190, 170, 230, 0.16) 45%, transparent 70%); }
+.hw-fogbank i:nth-child(1) { left: 0; top: 20%; width: 45%; height: 80%; }
+.hw-fogbank i:nth-child(2) { left: 28%; top: 0; width: 50%; height: 100%; }
+.hw-fogbank i:nth-child(3) { left: 58%; top: 25%; width: 42%; height: 75%; }
+@keyframes hw-fogbank { 0% { opacity: 0; transform: translateX(0); } 12%, 85% { opacity: 1; } 100% { opacity: 0; transform: translateX(var(--dx)); } }
+.hw-blood { border-radius: 50%; background: radial-gradient(circle, rgba(255, 40, 30, 0.5), rgba(160, 0, 20, 0.2) 45%, transparent 70%); opacity: 0; animation: hw-blood 12.5s ease-in-out forwards; }
+.hw-blood i { position: absolute; inset: 26.2%; border-radius: 50%; background: radial-gradient(circle at 45% 40%, #ff7a5a, #c8141a 55%, #7a0010); }
+@keyframes hw-blood { 0%, 24% { opacity: 0; } 34%, 74% { opacity: 1; } 100% { opacity: 0; } }
+.hw-bloodsky { background: linear-gradient(rgba(140, 0, 20, 0.5), transparent); opacity: 0; animation: hw-blood 12.5s ease-in-out forwards; }
+.hw-mooncloud { animation: hw-cloud 9s ease-in-out forwards; }
+.hw-mooncloud i { position: absolute; border-radius: 50%; background: radial-gradient(ellipse, #241a32 30%, rgba(24, 16, 34, 0.8) 55%, transparent 72%); width: 70%; height: 90%; left: 0; top: 0; }
+.hw-mooncloud i + i { left: 38%; top: 22%; width: 62%; height: 78%; }
+@keyframes hw-cloud { 0% { opacity: 0; transform: translateX(0); } 12%, 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(var(--dx)); } }
+.hw-win { overflow: hidden; background: #0c0814; opacity: 0; animation: hw-win 12.5s ease-in-out forwards; }
+@keyframes hw-win { 0% { opacity: 0; } 6%, 88% { opacity: 1; } 100% { opacity: 0; } }
+.hw-win::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 44%, #0c0814 44% 56%, transparent 56%), linear-gradient(transparent 44%, #0c0814 44% 54%, transparent 54%); }
+.hw-win i { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, #ffe7a0, #ffb040 55%, #e07a10); opacity: 0; animation: hw-lit 0.5s steps(4) var(--on) forwards; }
+@keyframes hw-lit { 0% { opacity: 0; } 25% { opacity: 0.8; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+.hw-win s { display: block; position: absolute; left: 0; top: 4%; color: #05030a; --fg-c1: transparent; --fg-c2: transparent; transform: translateX(calc(-1 * var(--fw))); animation: hw-pass var(--cross) linear var(--walk) forwards; }
+.hw-win s svg, .hw-door s svg, .hw-wolf svg, .hw-coffin svg, .hw-jump svg { display: block; }
+@keyframes hw-pass { to { transform: translateX(var(--ww)); } }
+.hw-door { clip-path: polygon(34% 0, 51% 0, 100% 100%, 0 100%); background: linear-gradient(rgba(255, 196, 90, 0.75), rgba(255, 150, 40, 0.15)); transform-origin: 42% 0; transform: scaleY(0); opacity: 0; animation: hw-door 12.5s ease-out forwards; }
+@keyframes hw-door { 0%, 70% { transform: scaleY(0); opacity: 0; } 72% { opacity: 1; } 80% { transform: scaleY(1); } 92% { opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+.hw-door s { display: block; position: absolute; left: 32%; top: -1em; color: #05030a; --fg-c1: transparent; --fg-c2: transparent; transform-origin: 50% 100%; transform: skewX(-22deg) scale(1.2, -1.8); opacity: 0.8; }
+.hw-moonglow { z-index: 2; border-radius: 50%; background: radial-gradient(circle closest-side, rgba(255, 246, 214, 0.8) 0 40%, rgba(232, 200, 255, 0.25) 58%, transparent); opacity: 0; animation: hw-glowin 8.8s ease-in-out forwards; }
+@keyframes hw-glowin { 0% { opacity: 0; } 18%, 82% { opacity: 1; } 100% { opacity: 0; } }
+.hw-wolf { overflow: hidden; z-index: 2; }
+.hw-wolf svg { transform: translateY(100%); animation: hw-wolf 8.8s ease-in-out forwards; }
+@keyframes hw-wolf { 0%, 8% { transform: translateY(100%); } 22%, 84% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+.hw-howl { animation: hw-howl 3s ease-in-out 1.9s 2 alternate; }
+@keyframes hw-howl { 0%, 20% { transform: rotate(0); } 50%, 100% { transform: rotate(-16deg); } }
+/* Crows; the coffin and the vampire; trick-or-treaters; the witch at the cauldron. */
+.hw-coffin { width: 1em; height: 2.5em; animation: hw-coffin 8.8s ease-in-out forwards; transform: translateY(105%); }
+@keyframes hw-coffin { 0% { transform: translateY(105%); } 12%, 84% { transform: translateY(0); } 100% { transform: translateY(105%); } }
+.hw-coffin > * { position: absolute; left: 0; bottom: 0; }
+.hw-coffin i { left: 50%; bottom: 0.08em; font-size: 2.1em; translate: -50% 0; transform-origin: 50% 100%; opacity: 0; animation: hw-vamp 8.8s ease-in-out forwards; }
+@keyframes hw-vamp { 0%, 26% { opacity: 0; transform: scale(0.5, 0.9); } 32% { opacity: 1; transform: scale(0.55, 0.92); } 42% { transform: translateY(-8%) scale(1); } 54% { opacity: 1; transform: translateY(-10%) scale(1); } 76% { opacity: 0; transform: translate(90%, -140%) scale(0.2); } 100% { opacity: 0; transform: translate(80%, -120%) scale(0.2); } }
+.hw-coffin s { transform-origin: 100% 100%; animation: hw-lid 8.8s ease-in forwards; }
+@keyframes hw-lid { 0%, 22% { transform: none; opacity: 1; } 27% { transform: translateX(6%) rotate(3deg); } 34% { transform: translateX(70%) rotate(24deg); opacity: 1; } 40%, 100% { transform: translateX(110%) translateY(10%) rotate(80deg); opacity: 0; } }
+.hw-stir { overflow: hidden; }
+.hw-witch { transform: translateY(170px); animation: hw-witch 9.2s ease-in-out forwards; }
+@keyframes hw-witch { 0% { transform: translateY(170px); } 14%, 82% { transform: translateY(0); } 100% { transform: translateY(170px); } }
+.hw-stirarm { animation: hw-stirarm 0.9s ease-in-out infinite alternate; }
+.hw-stirarm.b { animation-delay: -0.45s; }
+@keyframes hw-stirarm { from { transform: rotate(-14deg); } to { transform: rotate(16deg); } }
+.hw-brew { transform-box: fill-box; transform-origin: 50% 50%; animation: hw-brew 9.2s ease-in forwards; }
+@keyframes hw-brew { 0%, 40% { transform: scale(1); } 46% { transform: scale(1.08, 2.4); } 50% { transform: scale(1.05, 1.8); } 54%, 80% { transform: scale(1.06, 2.2); } 100% { transform: scale(1); } }
+.hw-drips path { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); animation: hw-drip 9.2s ease-in forwards; }
+.hw-drips path:nth-child(2n) { animation-delay: 0.3s; }
+@keyframes hw-drip { 0%, 44% { transform: scaleY(0); } 60%, 80% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+.hw-smoke i { display: block; width: 8vw; height: 8vw; margin: -4vw; border-radius: 50%; background: radial-gradient(circle, rgba(124, 255, 154, 0.42), rgba(60, 200, 100, 0.14) 45%, transparent 70%); animation: hw-smoke 4.6s ease-out forwards; }
+@keyframes hw-smoke { 0% { transform: scale(0.2); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+/* The gust; the face at the window; ghosts round the house; the cat and the hand on the fence. */
+.hw-dark { background: #05020a; opacity: 0; animation: hw-dark 5.8s linear forwards; }
+@keyframes hw-dark { 0% { opacity: 0; } 6% { opacity: 0.5; } 8% { opacity: 0.2; } 12%, 56% { opacity: 0.72; } 60% { opacity: 0.4; } 62% { opacity: 0.68; } 68% { opacity: 0.25; } 70% { opacity: 0.55; } 80%, 100% { opacity: 0; } }
+.hw-jump { transform-origin: 50% 40%; opacity: 0; animation: hw-jump 4.2s ease-out forwards; filter: drop-shadow(0 0 8px rgba(124, 255, 154, 0.7)); }
+@keyframes hw-jump { 0% { opacity: 0; transform: translateY(40%); } 10% { opacity: 1; transform: translateY(0); } 20% { transform: translateY(0) rotate(-6deg); } 30% { transform: translateY(0) rotate(6deg); } 38% { transform: none; } 41% { transform: scale(7); } 44% { transform: scale(6.4) rotate(-3deg); } 47% { transform: scale(6.8) rotate(3deg); } 50% { transform: scale(6.6) rotate(-2deg); } 62% { transform: scale(6.6); opacity: 1; } 74% { transform: scale(1); opacity: 1; } 90%, 100% { transform: translateY(40%); opacity: 0; } }
+.hw-swirl { opacity: 0; animation: hw-glowin 11.8s ease-in-out forwards; }
+.hw-swirl i { position: absolute; animation: hw-orx var(--t) ease-in-out var(--d) infinite alternate; }
+.hw-swirl b { display: block; animation: hw-ory var(--t) ease-in-out calc(var(--d) - var(--t) / 2) infinite alternate; }
+.hw-swirl svg { display: block; translate: -50% -50%; opacity: 0.85; }
+@keyframes hw-orx { from { transform: translateX(calc(-1 * var(--rx))); } to { transform: translateX(var(--rx)); } }
+@keyframes hw-ory { from { transform: translateY(calc(-1 * var(--ry))) scale(0.6); } to { transform: translateY(var(--ry)) scale(1.15); } }
+.hw-fencecat { animation: hw-catgo 9.6s linear forwards; }
+@keyframes hw-catgo { 0% { transform: translateX(0); } 40% { transform: translateX(var(--dx)); } 66% { transform: translateX(var(--dx)); } 100% { transform: translateX(calc(var(--dx) * -0.2)); } }
+.hw-fencecat > * { position: absolute; left: 0; bottom: 0; }
+.hw-fencecat svg { display: block; }
+.hw-fencecat b { scale: -1 1; animation: hw-catwalk 9.6s steps(1) forwards; }
+@keyframes hw-catwalk { 0% { opacity: 1; scale: -1 1; } 40% { opacity: 0; } 66% { opacity: 1; scale: 1 1; } }
+.hw-fencecat i { opacity: 0; scale: -1 1; transform-origin: 50% 100%; animation: hw-catarch 9.6s forwards; }
+@keyframes hw-catarch { 0%, 39.9% { opacity: 0; transform: none; } 40% { opacity: 1; transform: scale(1, 0.9); } 44%, 62% { opacity: 1; transform: scale(1.06, 1.08); } 65.9% { opacity: 1; } 66%, 100% { opacity: 0; } }
+.hw-fencehand { overflow: hidden; }
+.hw-fencehand i { display: block; transform: translateY(100%); animation: hw-hand 6.8s ease-in-out forwards; }
+.hw-fencehand svg { display: block; }
+@keyframes hw-hand { 0% { transform: translateY(100%); } 16% { transform: translateY(0); } 30% { transform: translateY(2%); } 34% { transform: translateY(0); } 44% { transform: translateY(2%); } 48% { transform: translateY(0); } 80% { transform: translateY(0); } 100% { transform: translateY(100%); } }
+/* The reactions: a ghost swooping with the drinkers' names; the bolt and the bats; the parade. */
+.hw-swoop { display: flex; align-items: center; gap: 0.2em; white-space: nowrap; animation: hw-swoop 6.8s cubic-bezier(0.4, 0.1, 0.6, 0.9) forwards; }
+.hw-swoop.r { flex-direction: row-reverse; }
+@keyframes hw-swoop { to { transform: translateX(var(--dx)); } }
+.hw-swoop i { display: block; animation: hw-dip 6.8s ease-in-out forwards; filter: drop-shadow(0 0 10px rgba(200, 220, 255, 0.6)); }
+.hw-swoop i svg { display: block; }
+@keyframes hw-dip { 0% { transform: translateY(-50%) rotate(-10deg); } 40% { transform: translateY(30%) rotate(8deg); } 70% { transform: translateY(-10%) rotate(-6deg); } 100% { transform: translateY(20%); } }
+.hw-swoop b { font: 400 clamp(22px, 2.6vw, 42px)/1 "Creepster", system-ui, sans-serif; color: #b8ffc8; text-shadow: 0 0 14px #2aff6a, 0 3px 0 #1a0024; }
+.hw-bolt { opacity: 0; animation: sc-flash 1.3s ease-out forwards; filter: drop-shadow(0 0 12px #c8d8ff); }
+.hw-stiff .fg-armF, .hw-stiff .fg-armB { animation: none; }
+.hw-float { animation: hw-float 1.2s ease-in-out infinite alternate; }
+@keyframes hw-float { to { transform: translateY(-8px); } }
 /* (end of the regular venues) */
 
 /* The tiki bar's volcano going off: the crater flares, and smoke billows up. */
