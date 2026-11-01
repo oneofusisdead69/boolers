@@ -17,6 +17,9 @@
 // toward you), relative to where you hold it level. On iPhones, motion needs a tap to allow it
 // (DeviceOrientationEvent.requestPermission). With no tilt (a laptop, or permission refused) there
 // are ◀ ▶ buttons, and the arrow keys. Right half of the screen: gas. Left: brake, and reverse.
+//
+// And each phone is its own car's sound: the engine, the tyres, the knocks (see "Your car's
+// sounds"), TV or no TV.
 (() => {
   const { esc, name } = PB;
   const DELAY = 0.09; // seconds behind the latest update the cars are drawn
@@ -1398,7 +1401,7 @@
     frame = null;
     if (views.length) views = views.filter((v) => v.el.isConnected);
     const s = PB.state;
-    if (s?.gameType !== 'trackRacing' || !s.game) return;
+    if (s?.gameType !== 'trackRacing' || !s.game) { sound.stop('left'); return; }
     if (fp.el && !fp.el.isConnected) fp.detach();
     if (!views.length && !fp.el) return;
     const cars = carsNow();
@@ -1434,7 +1437,10 @@
         drawCar(c, car, id, { label: !v.mini || PB.isTV, mine: id === s.me && !PB.isTV, honk: now - (honked[id] || -1e9) < 900, lamps, big: PB.isTV });
       }
     }
-    if (fp.el) fp.frame(s, cars, ids, ms || now);
+    if (fp.el) {
+      fp.frame(s, cars, ids, ms || now);
+      if (driving()) sound.drive(s, cars, ids, now);
+    }
     frame = requestAnimationFrame(draw);
   }
 
@@ -3373,6 +3379,406 @@
     return tilt.live ? '<button class="secondary tr-small" data-tr="tilt">📱 Steer by tilting</button>' : '';
   }
 
+  // ---------- Your car's sounds ----------
+  //
+  // On your own phone, TV or not (the TV plays the room's sounds for everyone, but an engine that
+  // follows your foot only makes sense in your hand). Made with Web Audio on the phone's one sound
+  // context (Prefs.audio), so the ⚙️ sound switch and volume rule them, and it only wakes up after
+  // a tap (the pedals, the tilt button, a bet: the phone won't play before one).
+  //
+  // One graph a race, built when you first drive and kept till the race is over: oscillators for
+  // the engine (the note from a pretend gearbox, the loudness from your foot), and one looping
+  // noise feeding the tyres' screech, the grass's rumble and a trolley's rattle, each a filter and
+  // a gain that sit at nothing till they're wanted. Knocks, laps and passing cars are one-shots that
+  // tidy themselves away. Anything that stops the frames (the race over, leaving, a locked phone)
+  // stops the engine: it's only kept going by them.
+  //
+  // Each body's engine: the firing note at idle and at the redline (Hz), the oscillator, how much
+  // of the lower octave, how lumpy the idle is, how bright, how loud, and the top of each gear
+  // (units a second; the last runs to top speed).
+  const ENGINES = {
+    sports: { idle: 52, top: 195, wave: 'sawtooth', sub: 0.3, lump: 0.2, tone: 1, loud: 1, gears: [55, 95, 135] },
+    pickup: { idle: 40, top: 140, wave: 'sawtooth', sub: 0.55, lump: 0.35, tone: 0.75, loud: 1, gears: [50, 100] },
+    van: { idle: 34, top: 108, wave: 'square', sub: 0.6, lump: 0.3, tone: 0.5, loud: 0.95, gears: [40, 80, 120] }, // a tired minibus
+    buggy: { idle: 60, top: 215, wave: 'square', sub: 0.15, lump: 0.45, tone: 0.85, loud: 0.85, gears: [60, 115] }, // a buzzy air-cooled one
+    hotrod: { idle: 30, top: 125, wave: 'sawtooth', sub: 0.85, lump: 0.8, tone: 0.8, loud: 1.1, gears: [65, 125] }, // the big lazy V8 lope
+    // No engine to speak of: a little electric whine, and the rattle of the cage.
+    trolley: { idle: 160, top: 700, wave: 'triangle', sub: 0, lump: 0, tone: 0.5, loud: 0.3, gears: [], rattle: true },
+  };
+  const TOP_SPEED = 175; // (the server's CAR.top)
+
+  // Which gear the pretend gearbox is in at speed v, and how far up its revs are (0 to 1). Straight
+  // after a change up the revs drop back, which is the dip you hear at speed.
+  function gearAt(e, v) {
+    let lo = 0;
+    for (let n = 0; n <= e.gears.length; n++) {
+      const hi = n < e.gears.length ? e.gears[n] : TOP_SPEED * 1.4; // (flat out isn't the redline: no screaming)
+      if (v < hi || n === e.gears.length) {
+        const from = n ? 0.42 : 0.06;
+        return { gear: n, rpm: from + (1 - from) * Math.max(0, Math.min(1, (v - lo) / (hi - lo))) };
+      }
+      lo = hi;
+    }
+    return { gear: 0, rpm: 0 };
+  }
+
+  const sound = {
+    g: null, // this race's graph
+    v: 0, // your speed, smoothed (units a second)
+    side: 0, // ...and how fast you're sliding sideways
+    gas: 0, // your foot, smoothed
+    rpm: 0,
+    gear: 0,
+    shift: 0, // when the last change up was (ms)
+    was: null, // where your car was last frame: [x, y, t]
+    near: [], // each other car: which side of you it was last frame (+1 ahead, -1 behind, 0 not close)
+    passed: [], // ...and when it last whooshed past
+    hitAt: 0,
+    seen: '', // the race moment last drawn: race, phase and count
+    stats: { built: 0, stopped: 0, screech: 0, thud: 0, crunch: 0, whoosh: 0, lap: 0, final: 0, finish: 0, beep: 0, go: 0, horn: 0, shots: 0, why: {} }, // (for tests)
+
+    // The context, if sound's on and the phone has been tapped (before that, the phone won't
+    // start one, and grumbles about being asked).
+    audio() {
+      if (!window.Prefs?.get().sound || document.hidden) return null;
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return null;
+      return window.Prefs.audio();
+    },
+    volume: () => window.Prefs?.get().volume ?? 0.7,
+
+    noiseBuf: null,
+    noise(ac) {
+      if (!this.noiseBuf || this.noiseBuf.sampleRate !== ac.sampleRate) {
+        this.noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+        const d = this.noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      const src = ac.createBufferSource();
+      src.buffer = this.noiseBuf;
+      return src;
+    },
+
+    build(ac, s) {
+      const e = ENGINES[lookOf(s.me, s).body] || ENGINES.sports;
+      const t = ac.currentTime;
+      const osc = (type, freq) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = freq; o.start(t); return o; };
+      const gain = (v) => { const n = ac.createGain(); n.gain.value = v; return n; };
+      const filter = (type, freq, q) => { const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; return f; };
+      const master = gain(0);
+      master.gain.setTargetAtTime(this.volume() * 0.55, t, 0.05);
+      master.connect(ac.destination);
+      // The engine: the note, a second one a hair off it (the beat makes it rough), the octave
+      // below, through a low-pass that opens with the throttle; then a wobble in the loudness at
+      // half the note, which is the idle's lumpiness, fading as it revs.
+      const a = osc(e.wave, e.idle);
+      const b = osc('sawtooth', e.idle * 1.007);
+      const sub = osc('square', e.idle / 2);
+      const mixer = gain(0.5);
+      const subGain = gain(e.sub * 0.6);
+      a.connect(mixer);
+      b.connect(gain(0.35)).connect(mixer);
+      sub.connect(subGain).connect(mixer);
+      const tone = filter('lowpass', 400, 1.2);
+      const lump = gain(1);
+      const lfo = osc('sine', e.idle / 2);
+      const lumpDepth = gain(0);
+      lfo.connect(lumpDepth).connect(lump.gain);
+      const engine = gain(0);
+      mixer.connect(tone).connect(lump).connect(engine).connect(master);
+      // The tyres and the ground, all from one noise.
+      const hiss = this.noise(ac);
+      hiss.loop = true;
+      hiss.start(t, Math.random());
+      // A screech: a narrow band, wavering.
+      const squeal = filter('bandpass', 1800, 9);
+      const waver = osc('sine', 7);
+      const waverDepth = gain(120);
+      waver.connect(waverDepth).connect(squeal.frequency);
+      const screech = gain(0);
+      hiss.connect(squeal).connect(screech).connect(master);
+      // The grass and gravel: a rumble, shaken (low, but not so low a phone can't play it).
+      const low = filter('lowpass', 420, 0.7);
+      const rumble = gain(0);
+      const shake = gain(0.6);
+      const shaker = osc('square', 11);
+      shaker.connect(gain(0.4)).connect(shake.gain);
+      hiss.connect(low).connect(rumble).connect(shake).connect(master);
+      // A trolley's cage rattling, faster as it goes.
+      let rattle = null;
+      let rattler = null;
+      if (e.rattle) {
+        const band = filter('bandpass', 3000, 1.6);
+        rattle = gain(0);
+        const chatter = gain(0.5);
+        rattler = osc('square', 9);
+        rattler.connect(gain(0.5)).connect(chatter.gain);
+        hiss.connect(band).connect(rattle).connect(chatter).connect(master);
+      }
+      this.stats.built++;
+      return {
+        race: s.game.race, e, ac, master, a, b, sub, lfo, lumpDepth, tone, engine, squeal, screech, rumble, shaker, rattle, rattler, finished: 0,
+        sources: [a, b, sub, lfo, hiss, waver, shaker, rattler].filter(Boolean),
+        skidding: false,
+        alive: performance.now(),
+      };
+    },
+
+    // Every frame you're driving: your car's sounds follow it.
+    drive(s, cars, ids, now) {
+      const mine = ids.indexOf(s.me);
+      const car = cars[mine];
+      const ac = car && this.audio();
+      if (!ac) { this.stop('no sound'); return; }
+      if (this.g && this.g.race !== s.game.race) this.stop('new race');
+      if (!this.g) {
+        this.g = this.build(ac, s);
+        this.was = null;
+        this.v = this.side = this.gas = this.rpm = 0;
+        this.near.length = 0;
+        this.watch();
+      }
+      const g = this.g;
+      const e = g.e;
+      g.alive = performance.now();
+      const T = ac.currentTime;
+      // How fast you're going, and how much of it is sideways (the car's own heading against the
+      // way it's actually moving), from where it's drawn: smoothed, as the camera does.
+      const was = this.was;
+      const dt = was ? Math.min(0.1, Math.max(0.001, (now - was[2]) / 1000)) : 0;
+      if (dt) {
+        const vx = (car[0] - was[0]) / dt;
+        const vy = (car[1] - was[1]) / dt;
+        const k = 1 - Math.exp(-dt * 6);
+        this.v += (Math.min(260, Math.hypot(vx, vy)) - this.v) * k;
+        this.side += (Math.min(200, Math.abs(-vx * Math.sin(car[2]) + vy * Math.cos(car[2]))) - this.side) * k;
+        this.gas += ((input.gas ? 1 : 0) - this.gas) * (1 - Math.exp(-dt * 10));
+      }
+      this.was = was || [0, 0, 0];
+      this.was[0] = car[0]; this.was[1] = car[1]; this.was[2] = now;
+      const racing = s.phase === 'race';
+      const done = !!(car[3] & 4);
+      if (done && !g.finished) g.finished = now;
+      const foot = done ? 0 : this.gas;
+      // The revs: the gearbox's, or with your foot down and going nowhere (the grid, the
+      // wheels spinning off the line), revving freely.
+      const box = gearAt(e, this.v);
+      let rpm = box.rpm;
+      if (foot > 0.1 && this.v < 40) rpm = Math.max(rpm, racing ? 0.3 + this.v / 70 : 0.72 * foot);
+      if (box.gear > this.gear && foot > 0.5) this.shift = now;
+      this.gear = box.gear;
+      this.rpm += (rpm - this.rpm) * (dt ? 1 - Math.exp(-dt * (rpm > this.rpm ? 7 : 4)) : 1);
+      const shifting = now - this.shift < 140;
+      const fade = g.finished ? Math.max(0, 1 - (now - g.finished) / 3000) : 1; // idling down over the line
+      const f = e.idle + (e.top - e.idle) * this.rpm;
+      g.a.frequency.setTargetAtTime(f, T, 0.03);
+      g.b.frequency.setTargetAtTime(f * 1.007, T, 0.03);
+      g.sub.frequency.setTargetAtTime(f / 2, T, 0.03);
+      g.lfo.frequency.setTargetAtTime(f / 2, T, 0.05);
+      g.lumpDepth.gain.setTargetAtTime(e.lump * 0.5 * (1 - this.rpm), T, 0.05);
+      // (Never darker than the low hundreds: a phone's speaker can't play the note itself, only
+      // what's over it.)
+      g.tone.frequency.setTargetAtTime(e.tone * (500 + 900 * this.rpm + 1600 * foot * this.rpm) * (shifting ? 0.6 : 1), T, 0.04);
+      // Quieter off the gas, and for a moment as it changes up.
+      g.engine.gain.setTargetAtTime(e.loud * 0.32 * (0.4 + 0.45 * foot + 0.25 * this.rpm) * (shifting ? 0.45 : 1) * fade, T, shifting ? 0.02 : 0.06);
+      g.master.gain.setTargetAtTime(this.volume() * 0.55, T, 0.1);
+      // Tyres: a screech when the back's out (the server says so: flag 1) or you slide sideways
+      // hard, or stand on the brakes flat out; on the grass, a rumble instead.
+      const grass = !!(car[3] & 2);
+      let skid = 0;
+      if (racing && !grass) {
+        if (car[3] & 1 || this.side > 45) skid = Math.min(1, Math.max(0.35, (this.side - 20) / 60));
+        if (car[3] & 8 && this.v > 110) skid = Math.max(skid, 0.4 * Math.min(1, (this.v - 110) / 50));
+      }
+      if (skid > 0.1 && !g.skidding) this.stats.screech++;
+      g.skidding = skid > 0.1;
+      g.screech.gain.setTargetAtTime(0.16 * skid, T, skid ? 0.03 : 0.08);
+      g.squeal.frequency.setTargetAtTime(1500 + 700 * skid, T, 0.05);
+      const rough = grass && this.v > 4 ? Math.min(1, this.v / 60) : 0;
+      g.rumble.gain.setTargetAtTime(0.6 * rough, T, 0.06);
+      g.shaker.frequency.setTargetAtTime(8 + this.v / 8, T, 0.1);
+      if (g.rattle) {
+        g.rattle.gain.setTargetAtTime(0.1 * Math.min(1, this.v / 70) + (grass ? 0.08 : 0), T, 0.06);
+        g.rattler.frequency.setTargetAtTime(7 + this.v / 5, T, 0.1);
+      }
+      if (racing) this.passing(s, cars, mine, now);
+    },
+
+    // Another car going by close (either of you overtaking): a whoosh from its side.
+    passing(s, cars, mine, now) {
+      const me = cars[mine];
+      const fx = Math.cos(me[2]);
+      const fy = Math.sin(me[2]);
+      for (let i = 0; i < cars.length; i++) {
+        const c = cars[i];
+        if (i === mine || !c) continue;
+        const dx = c[0] - me[0];
+        const dy = c[1] - me[1];
+        const close = dx * dx + dy * dy < 40 * 40;
+        const ahead = dx * fx + dy * fy > 0 ? 1 : -1;
+        const was = this.near[i] || 0;
+        this.near[i] = close ? ahead : 0;
+        if (!close || !was || was === ahead || this.v < 50 || now - (this.passed[i] || 0) < 2500) continue;
+        this.passed[i] = now;
+        this.whoosh(dx * -fy + dy * fx > 0 ? 1 : -1);
+      }
+    },
+
+    // Stops the engine there and then, and lets the graph go.
+    stop(why = 'off') {
+      const g = this.g;
+      if (!g) return;
+      this.g = null;
+      clearInterval(this.timer);
+      this.timer = null;
+      this.stats.stopped++;
+      this.stats.why[why] = (this.stats.why[why] || 0) + 1;
+      const t = g.ac.currentTime;
+      try {
+        g.master.gain.cancelScheduledValues(t);
+        g.master.gain.setTargetAtTime(0, t, 0.01);
+        for (const src of g.sources) src.stop(t + 0.06);
+      } catch {}
+      setTimeout(() => { try { g.master.disconnect(); } catch {} }, 120);
+    },
+    // Only the frames keep it going. Leaving, the race ending and hiding the page stop it there
+    // and then (stop's callers); this is in case the frames stop some other way: quiet soon after,
+    // let go if they don't come back (not at the first stall: a slow phone can drop a few frames
+    // loading the track, and a gap in the engine would be heard).
+    watch() {
+      clearInterval(this.timer);
+      this.timer = setInterval(() => {
+        const g = this.g;
+        const idle = g ? performance.now() - g.alive : 0;
+        if (idle > 2000) this.stop('no frames');
+        else if (idle > 700) g.master.gain.setTargetAtTime(0, g.ac.currentTime, 0.02);
+      }, 150);
+    },
+
+    // ---- One-shots ----
+
+    // Somewhere for one sound to go, cleared away once it's done.
+    out(gain, len, pan = 0) {
+      const ac = this.audio();
+      if (!ac) return null;
+      const out = ac.createGain();
+      out.gain.value = gain * this.volume();
+      if (pan && ac.createStereoPanner) {
+        const p = ac.createStereoPanner();
+        p.pan.value = pan;
+        out.connect(p).connect(ac.destination);
+        setTimeout(() => { try { p.disconnect(); } catch {} }, (len + 0.3) * 1000);
+      } else out.connect(ac.destination);
+      setTimeout(() => { try { out.disconnect(); } catch {} }, (len + 0.3) * 1000);
+      this.stats.shots++;
+      return { ac, out, t: ac.currentTime };
+    },
+    note(o, { freq, to, type = 'sine', at = 0, len = 0.2, gain = 0.3 }) {
+      const { ac, out } = o;
+      const t = o.t + at;
+      const osc = ac.createOscillator();
+      const g = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      if (to) osc.frequency.exponentialRampToValueAtTime(to, t + len);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      osc.connect(g).connect(out);
+      osc.start(t);
+      osc.stop(t + len + 0.02);
+    },
+    hiss(o, { at = 0, len = 0.1, type = 'bandpass', freq = 1000, to, q = 1, gain = 0.3 }) {
+      const { ac, out } = o;
+      const t = o.t + at;
+      const src = this.noise(ac);
+      const f = ac.createBiquadFilter();
+      const g = ac.createGain();
+      f.type = type;
+      f.Q.value = q;
+      f.frequency.setValueAtTime(freq, t);
+      if (to) f.frequency.exponentialRampToValueAtTime(to, t + len);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.02, len / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(f).connect(g).connect(out);
+      src.start(t, Math.random());
+      src.stop(t + len + 0.02);
+    },
+
+    // A knock (the moment the phone buzzes): a thud off the wall, a crunch off another car.
+    hit(withCar) {
+      const now = performance.now();
+      if (now - this.hitAt < 150) return;
+      this.hitAt = now;
+      const k = 0.45 + 0.55 * Math.min(1, this.v / 150);
+      const o = this.out(0.8 * k, 0.35);
+      if (!o) return;
+      this.note(o, { freq: 120, to: 42, len: 0.25, gain: 0.6 });
+      this.note(o, { freq: 190, to: 90, type: 'triangle', len: 0.12, gain: 0.35 });
+      this.hiss(o, { type: 'lowpass', freq: 900, to: 200, len: 0.16, gain: 0.5 });
+      if (withCar) {
+        this.stats.crunch++;
+        for (let i = 0; i < 4; i++) this.hiss(o, { at: i * 0.025 + Math.random() * 0.015, len: 0.05, freq: 2200 + Math.random() * 1800, q: 3, gain: 0.3 });
+        this.note(o, { freq: 340, to: 290, type: 'square', at: 0.01, len: 0.07, gain: 0.07 });
+      } else this.stats.thud++;
+    },
+    whoosh(pan) {
+      const o = this.out(0.5, 0.6, pan * 0.7);
+      if (!o) return;
+      this.stats.whoosh++;
+      this.hiss(o, { len: 0.5, freq: 2600, to: 700, q: 0.9, gain: 0.25 });
+      this.note(o, { freq: 160, to: 110, type: 'sawtooth', len: 0.5, gain: 0.06 });
+    },
+    // Each lap a two-note chime; the last one a little fanfare.
+    lap(final) {
+      const o = this.out(1, final ? 1 : 0.6);
+      if (!o) return;
+      if (final) {
+        this.stats.final++;
+        [523, 659, 784].forEach((freq, i) => this.note(o, { freq, type: 'triangle', at: i * 0.1, len: 0.14, gain: 0.25 }));
+        this.note(o, { freq: 1047, type: 'triangle', at: 0.3, len: 0.6, gain: 0.25 });
+        this.note(o, { freq: 1047, type: 'square', at: 0.3, len: 0.35, gain: 0.04 });
+      } else {
+        this.stats.lap++;
+        this.note(o, { freq: 988, len: 0.25, gain: 0.2 });
+        this.note(o, { freq: 1319, at: 0.11, len: 0.4, gain: 0.2 });
+      }
+    },
+    // Over the line: the fanfare for a win, a bright ding-ding for a place, and the sad trombone
+    // for last (who drinks).
+    finish(place, of) {
+      this.stats.finish++;
+      if (place === 1) return window.Prefs?.play('win');
+      const last = of > 1 && place === of;
+      const o = this.out(1, 1.6);
+      if (!o) return;
+      if (last) {
+        [392, 370, 349].forEach((freq, i) => this.note(o, { freq, type: 'sawtooth', at: i * 0.3, len: 0.28, gain: 0.08 }));
+        this.note(o, { freq: 330, to: 300, type: 'sawtooth', at: 0.9, len: 0.6, gain: 0.08 });
+      } else {
+        this.note(o, { freq: 784, type: 'triangle', len: 0.18, gain: 0.25 });
+        this.note(o, { freq: 1175, type: 'triangle', at: 0.14, len: 0.45, gain: 0.25 });
+      }
+    },
+
+    // The race's moments on a driver's phone with a TV (with none, the app plays them: the screen's
+    // `sounds`, below); and the engine off once the race is.
+    moments(s) {
+      const g = s.game;
+      const live = s.phase === 'countdown' || s.phase === 'race';
+      if (!live) this.stop('race over');
+      const seen = `${g.race}:${s.phase}:${g.count}`;
+      if (seen === this.seen) return;
+      const was = this.seen.split(':');
+      this.seen = seen;
+      if (!s.tv || PB.isTV || !g.racers.includes(s.me) || was[0] !== String(g.race)) return;
+      if (s.phase === 'countdown') { this.stats.beep++; window.Prefs?.play('beep'); }
+      if (s.phase === 'race' && was[1] === 'countdown') { this.stats.go++; window.Prefs?.play('go'); }
+    },
+  };
+  // A locked phone or another tab: quiet at once.
+  document.addEventListener('visibilitychange', () => { if (document.hidden) sound.stop('hidden'); });
+
   // ---------- Screens ----------
 
   function hud(s) {
@@ -3707,7 +4113,10 @@
       garageOpen = null;
       editing = false;
       autoSent = false;
+      sound.stop('new game');
+      sound.seen = '';
     },
+    audio: sound, // (for tests: what it's playing)
     // Racing, the phone is all view, wheel and pedals.
     get fullscreen() {
       return driving();
@@ -3727,6 +4136,7 @@
     },
     render(s) {
       listen();
+      sound.moments(s);
       if (s.phase !== 'race' && s.phase !== 'countdown') {
         // Back to the pedals' resting state between races.
         Object.assign(input, { steer: input.steer, gas: 0, brake: 0 });
@@ -3782,21 +4192,31 @@
       snaps.push(d);
       if (snaps.length > 40) snaps.shift();
       const ids = carIds();
-      const loud = PB.isTV || !s.tv;
+      // (With a TV the horns are its sound, but a driver's phone hoots too: it's in the race.)
+      const loud = PB.isTV || !s.tv || driving();
       for (const id of d.h || []) {
         honked[id] = performance.now();
-        if (loud) window.Prefs?.play('horn');
+        if (loud) { sound.stats.horn++; window.Prefs?.play('horn'); }
       }
       if (PB.isTV) { updateBoard(s); updateCount(s); return; }
-      if ((d.b || []).includes(s.me)) { PB.buzz('hit'); fp.cam.shake = 1; }
       const mine = d.c[ids.indexOf(s.me)];
+      if ((d.b || []).includes(s.me)) {
+        PB.buzz('hit');
+        fp.cam.shake = 1;
+        // Into another car if one's touching (they bump at twice the cars' radius), else the wall.
+        if (driving() && mine) sound.hit(d.c.some((c) => c !== mine && Math.hypot(c[0] - mine[0], c[1] - mine[1]) < 26));
+      }
       if (mine) {
         const done = !!(mine[3] & 4);
         if (lastMine.lap && mine[5] > lastMine.lap) {
           PB.buzz();
           banner(mine[5] === s.game.laps ? (haunted(s) ? '💀 Final lap!' : 'Final lap!') : `Lap ${mine[5]}`);
+          if (driving()) sound.lap(mine[5] === s.game.laps);
         }
-        if (done && !lastMine.done && lastMine.place) banner(`${haunted(s) ? '🎃' : '🏁'} ${ordinal(mine[4])}!`, true);
+        if (done && !lastMine.done && lastMine.place) {
+          banner(`${haunted(s) ? '🎃' : '🏁'} ${ordinal(mine[4])}!`, true);
+          if (driving()) sound.finish(mine[4], d.c.length);
+        }
         if (mine[4] !== lastMine.place || mine[5] !== lastMine.lap || done !== lastMine.done) {
           lastMine = { place: mine[4], lap: mine[5], done };
           const pl = document.getElementById('tr-place');

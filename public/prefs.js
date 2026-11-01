@@ -406,6 +406,9 @@
     open,
     close,
     get: () => ({ ...prefs }),
+    // The phone's one sound context, for a game that makes its own sounds (Track Racing's engine),
+    // or null with the sound off.
+    audio: () => (prefs.sound ? ctx() : null),
     // A compact ⚙️ with { mini: true }, for tight headers.
     button: ({ mini = false } = {}) => `<button class="prefs-btn ${mini ? 'mini' : ''}" data-prefs aria-label="Settings">${mini ? '⚙️' : '⚙️ Settings'}</button>`,
     feedbackButton: () => (canSendFeedback() ? '<button class="prefs-btn" data-feedback>💬 Feedback</button>' : ''),
