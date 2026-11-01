@@ -2879,7 +2879,8 @@
       }
       // Halloween's phantom car: see-through, pale green, through anything in its way.
       const ph = this.spooky ? phantomAt(s, s.game.track) : null;
-      if (ph && (ph.x - cam.x) ** 2 + (ph.y - cam.y) ** 2 > 400) {
+      // (Not when it's on top of the camera: a see-through car filling the screen is all blending.)
+      if (ph && (ph.x - cam.x) ** 2 + (ph.y - cam.y) ** 2 > 2500) {
         gl.useProgram(M.p);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -2990,8 +2991,10 @@
         c.globalAlpha = (0.6 + 0.35 * Math.sin(q * 1.3)) * Math.min(1, (reach - at.d) / 120);
         c.drawImage(green, at.x - size / 2, at.y - size / 2, size, size);
       }
-      if (ph && this.project(ph.x, ph.y, 6) && at.d < reach) {
-        const size = at.s * 46;
+      // (Capped: right next to the camera its glow would cover the screen in an additive blend,
+      // which is what made phones stutter as the phantom went by.)
+      if (ph && this.project(ph.x, ph.y, 6) && at.d < reach && at.d > 30) {
+        const size = Math.min(at.s * 46, 160 * k);
         c.globalAlpha = 0.4 * ph.fade;
         c.drawImage(green, at.x - size / 2, at.y - size / 2, size, size);
       }
