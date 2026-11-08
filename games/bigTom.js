@@ -90,6 +90,16 @@ function startRound(room, ctx) {
   g.current = 0;
   g.give = null;
   g.poll = null;
+  // On the clock, nobody's left waiting on a slow writer: when it runs out, Big Tom writes the
+  // missing questions (startAnswering) so everyone still gets two to answer.
+  if (g.answerTime) ctx.setTimer(room, g.answerTime * 1000, () => writeTimeUp(room, ctx));
+}
+
+function writeTimeUp(room, ctx) {
+  const g = room.game;
+  if (g.phase !== 'write') return;
+  if (ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
+  else ctx.setTimer(room, 15000, () => writeTimeUp(room, ctx)); // (wait for a third player)
 }
 
 // Hands out the questions: seat i's question to seats i+1 and i+2.

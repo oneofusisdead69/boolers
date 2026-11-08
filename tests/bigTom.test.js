@@ -649,3 +649,15 @@ test("final: the host's move-on waits a moment for pads, then votes on what's in
   assert.strictEqual(g.finalOrder.length, 2);
   t.cleanup();
 });
+
+test("writing's on the clock: when it runs out, Big Tom writes the missing questions", () => {
+  const t = setup(game, 3);
+  const g = t.room.game;
+  assert.strictEqual(g.phase, 'write');
+  t.act(0, 'question', { text: 'Name a bad pizza topping' });
+  t.fireTimer();
+  assert.strictEqual(g.phase, 'answer');
+  assert.strictEqual(g.matchups.length, 3, 'everyone still has two to answer');
+  assert.ok(g.matchups.every((m) => m.question));
+  t.cleanup();
+});
