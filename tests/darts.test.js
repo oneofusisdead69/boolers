@@ -55,29 +55,42 @@ test('a crooked or weak flick goes astray', () => {
   }
 });
 
-test('drinking darts: lowest round score drinks, bulls hand out sips, misses drink', () => {
-  const t = setup(darts, 2, { mode: 'drinking', sips: 2 });
+test('drinking darts: lowest round score drinks, bulls bank sips for the end, misses drink', () => {
+  const t = setup(darts, 2, { mode: 'drinking', sips: 2, rounds: 3 });
   throwAt(t, 0, { x: 0, y: 0 }); // bull
   throwAt(t, 0, spot(20, TRIPLE));
   throwAt(t, 0, spot(20, SINGLE));
   assert.strictEqual(t.view(0).lastTurn.total, 50 + 60 + 20);
+  assert.deepStrictEqual(t.view(0).bank, { p0: 4 }, 'the bull is banked');
   t.fireTimer();
-  assert.strictEqual(t.room.game.phase, 'give');
-  assert.strictEqual(t.view(1).turnId, 'p0');
-  t.act(0, 'give', { targetId: 'p1' });
-  assert.deepStrictEqual(t.drinks(), [0, 4]);
+  assert.strictEqual(t.room.game.phase, 'throwing', 'no handing out mid-game');
   assert.strictEqual(t.view(0).turnId, 'p1');
   throwAt(t, 1, { x: 0, y: -1.2 }); // miss
   throwAt(t, 1, spot(1, SINGLE));
   throwAt(t, 1, spot(1, SINGLE));
-  assert.deepStrictEqual(t.drinks(), [0, 5]);
+  assert.deepStrictEqual(t.drinks(), [0, 1]);
   t.fireTimer(); // turn over: end of round 1
   assert.strictEqual(t.room.game.phase, 'roundEnd');
-  assert.deepStrictEqual(t.drinks(), [0, 7]);
+  assert.deepStrictEqual(t.drinks(), [0, 3]);
   assert.deepStrictEqual(t.room.game.total, { p0: 130, p1: 2 });
   t.fireTimer();
   assert.strictEqual(t.view(0).round, 2);
   assert.strictEqual(t.view(0).turnId, 'p0');
+  // Play out the rest: p0 wins, then hands out the banked 4.
+  for (let round = 2; round <= 3; round++) {
+    for (const i of [0, 1]) {
+      for (let d = 0; d < 3; d++) throwAt(t, i, spot(i ? 1 : 20, SINGLE));
+      t.fireTimer();
+    }
+    t.fireTimer();
+  }
+  assert.strictEqual(t.view(0).winnerId, 'p0');
+  assert.strictEqual(t.room.game.phase, 'give');
+  assert.strictEqual(t.view(1).turnId, 'p0');
+  const before = t.drinks()[1];
+  t.act(0, 'give', { targetId: 'p1' });
+  assert.strictEqual(t.drinks()[1], before + 4);
+  assert.strictEqual(t.room.game.phase, 'over');
   t.cleanup();
 });
 
@@ -113,16 +126,25 @@ test('double out: finishing on a single busts', () => {
   t.cleanup();
 });
 
-test('a ton hands out sips in 301', () => {
+test('a ton banks sips in 301, handed out once someone wins', () => {
   const t = setup(darts, 2, { mode: 501, sips: 3 });
   throwAt(t, 0, spot(20, TRIPLE));
   throwAt(t, 0, spot(20, TRIPLE));
   throwAt(t, 0, spot(20, TRIPLE));
   assert.strictEqual(t.room.game.left.p0, 321);
+  assert.deepStrictEqual(t.view(0).bank, { p0: 3 });
   t.fireTimer();
-  assert.strictEqual(t.room.game.phase, 'give');
+  assert.strictEqual(t.room.game.phase, 'throwing');
+  t.room.game.left.p1 = 20;
+  t.room.game.turnStart = 20;
+  throwAt(t, 1, spot(20, SINGLE)); // p1 checks out and wins
+  assert.strictEqual(t.view(0).winnerId, 'p1');
+  assert.strictEqual(t.room.game.phase, 'give', 'the loser still hands out their ton');
+  assert.strictEqual(t.view(1).turnId, 'p0');
+  const before = t.drinks()[1];
   t.act(0, 'give', { targetId: 'p1' });
-  assert.deepStrictEqual(t.drinks(), [0, 3]);
+  assert.strictEqual(t.drinks()[1], before + 3);
+  assert.strictEqual(t.room.game.phase, 'over');
   t.cleanup();
 });
 
@@ -217,10 +239,10 @@ test('a bot hands its sips to a human', () => {
   const t = setup(darts, 3, { mode: 'drinking' });
   t.room.players[0].bot = 'booler';
   t.room.players[1].bot = 'npv';
-  throwAt(t, 0, { x: 0, y: 0 });
-  throwAt(t, 0, spot(20, SINGLE));
-  throwAt(t, 0, spot(20, SINGLE));
-  t.fireTimer();
+  t.room.game.bank = { p0: 4 };
+  t.room.game.winnerId = 'p0';
+  t.room.game.gives = [{ from: 'p0', sips: 4, reason: 'their darts winnings' }];
+  darts.__payout(t.room, t.ctx);
   assert.strictEqual(t.room.game.phase, 'give');
   assert.strictEqual(t.bot(1, 0.6), null, 'not theirs to give');
   assert.deepStrictEqual(t.bot(0, 0.6), { type: 'give', targetId: 'p2' });

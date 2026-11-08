@@ -100,7 +100,7 @@
     const g = s.game;
     const ids = g.order.filter((id) => s.players.some((p) => p.id === id));
     const row = (id, cells) => `<tr class="${id === g.throwerId && s.phase !== 'over' ? 'up' : ''}">
-      <td class="dt-who">${PB.avatar(id, 'sm')}<span>${esc(name(id))}</span></td>${cells}</tr>`;
+      <td class="dt-who">${PB.avatar(id, 'sm')}<span>${esc(name(id))}</span>${g.bank?.[id] ? ` <small class="dt-bank" title="Banked sips, handed out at the end">🏦${g.bank[id]}</small>` : ''}</td>${cells}</tr>`;
     let head;
     let rows;
     if (g.mode === 'drinking') {
@@ -236,8 +236,8 @@
   function middle(s) {
     const g = s.game;
     if (s.phase === 'give') {
-      const what = `${g.give.reason[0].toUpperCase() + g.give.reason.slice(1)}!`;
-      return PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `dt:${g.round}:${g.throwerId}:${g.give.reason}:${g.give.sips}`, title: what });
+      const what = '🏦 Your banked sips!';
+      return (g.winnerId ? `<div class="drink win dt-win"><div class="big">🎯 ${esc(name(g.winnerId))} wins!</div><div class="sips">Now everyone hands out what they banked</div></div>` : '') + PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `dt:${g.round}:${g.throwerId}:${g.give.reason}:${g.give.sips}`, title: what });
     }
     if (s.phase === 'roundEnd') {
       const r = g.roundEnd;

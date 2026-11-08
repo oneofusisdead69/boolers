@@ -52,16 +52,15 @@ test('Quarters: a sink can be split; a quiet shooter has theirs go out at random
   t.cleanup();
 });
 
-test('Darts: a give waits on the clock, then goes out at random and play moves on', () => {
+test('Darts: an end-of-game give waits on the clock, then goes out at random and the game ends', () => {
   const t = setup(require('../games/darts'), 3, { mode: 'drinking', sips: 2 });
   const g = t.room.game;
-  g.gives.push({ from: 'p0', sips: 4, reason: 'a bullseye' });
-  g.phase = 'turnEnd';
-  require('../games/darts').check(t.room, t.ctx); // (afterTurn, as the turn's pause ends)
+  g.gives.push({ from: 'p0', sips: 4, reason: 'their darts winnings' });
+  require('../games/darts').__payout(t.room, t.ctx); // (as the winner's crowned)
   assert.strictEqual(g.phase, 'give');
   assert.strictEqual(t.room.deadline > Date.now(), true, 'phones show the countdown');
   t.fireTimer();
-  assert.strictEqual(g.phase, 'throwing');
+  assert.strictEqual(g.phase, 'over');
   assert.strictEqual(sum(t.drinks()), 4);
   assert.strictEqual(t.drinks()[0], 0, 'never to the giver');
   t.cleanup();

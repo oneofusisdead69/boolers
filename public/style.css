@@ -1045,6 +1045,7 @@ main.ls .ar-track { padding: 6px; gap: 2px; }
 .dt-scores td.dt-who { text-align: left; }
 .dt-who { display: flex; align-items: center; gap: 8px; }
 .dt-who span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
+.dt-bank { color: var(--accent); font-weight: 700; white-space: nowrap; }
 .dt-scores tr.up td { background: var(--card-2); }
 .dt-scores tr.up td:first-child { border-radius: 8px 0 0 8px; }
 .dt-scores tr.up td:last-child { border-radius: 0 8px 8px 0; }
