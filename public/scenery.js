@@ -2380,7 +2380,7 @@
     decor() {
       studioKey = null;
       for (let i = 0; i < 4; i++) el('', { left: `${6 + i * 27}vw`, top: '-5vh', animationDelay: `-${i * 1.9}s` }).classList.add('sc-stagebeam', 'studio');
-      el('<span>APPLAUSE</span>', { left: '40vw', top: '3.6vh' }).classList.add('sc-sign', 'applause');
+      el('<span>APPLAUSE</span>', { left: '2.1vw', top: '16.6vh' }).classList.add('sc-sign', 'applause');
       banner('Live from the studio', 'It’s Bool Jeopardy!', 'studio');
       later(() => applause(3200), 900);
     },
