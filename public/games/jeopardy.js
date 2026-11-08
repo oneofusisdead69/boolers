@@ -47,7 +47,8 @@
   function board(s, { tappable = false, tv = false } = {}) {
     const g = s.game;
     const cols = g.board.length;
-    const heads = g.board.map((c) => `<div class="jp-cat"><span>${esc(c.name)}</span></div>`).join('');
+    // (The house category, about the venue, wears the venue's emoji.)
+    const heads = g.board.map((c) => `<div class="jp-cat ${c.emoji ? 'house' : ''}">${c.emoji ? `<i>${esc(c.emoji)}</i>` : ''}<span>${esc(c.name)}</span></div>`).join('');
     let cells = '';
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < cols; c++) {
@@ -167,16 +168,21 @@
     if (s.phase === 'voted') {
       return `${banner('🗳️ The votes are in', 'Here’s your board')}
         ${voteGrid(s, { result: true })}
+        ${houseLine(g.vote)}
         ${scores(s)}`;
     }
-    return `${banner('🗳️ Pick the categories', `Tap up to ${g.maxPicks}: the top five make the board ${g.relaxed ? '' : PB.timer()}`)}
+    return `${banner('🗳️ Pick the categories', `Tap up to ${g.maxPicks}: the top ${v.voted} make the board ${g.relaxed ? '' : PB.timer()}`)}
       ${PB.passAndPlay ? `<p class="center jp-whose">${PB.avatar(s.me, 'sm')} <b>${esc(name(s.me))}</b>’s picks</p>` : ''}
       ${voteGrid(s, { tappable: !locked })}
+      ${houseLine(v)}
       ${locked
         ? `<p class="center muted">✓ Locked in${waiting.length ? ` · waiting on ${waiting.join(', ')}` : ''}</p>`
         : `<button class="jp-lock" data-act="lockIn">🔒 Lock in (${v.mine.length}/${g.maxPicks})</button>`}
       ${scores(s)}`;
   }
+
+  // The fifth column, which isn't voted on: the venue's own.
+  const houseLine = (v) => `<p class="jp-house">+ the house category: <b>${esc(v.house.emoji)} ${esc(v.house.name)}</b></p>`;
 
   function voteGrid(s, { tappable = false, result = false, counts = false } = {}) {
     const v = s.game.vote;
@@ -351,7 +357,8 @@
         const v = g.vote;
         main = `<div class="jp-tv-title">${s.phase === 'vote' ? `🗳️ Vote for the categories on your phones ${g.relaxed ? '' : PB.timer()}` : '🗳️ The votes are in'}</div>
           ${voteGrid(s, { counts: true, result: s.phase === 'voted' })}
-          ${s.phase === 'vote' ? `<p class="jp-tv-locked">${v.lockedIn.length ? `Locked in: ${v.lockedIn.map((id) => PB.avatar(id, 'sm')).join('')}` : 'Up to five picks each: the top five make the board'}</p>` : ''}`;
+          ${houseLine(v)}
+          ${s.phase === 'vote' ? `<p class="jp-tv-locked">${v.lockedIn.length ? `Locked in: ${v.lockedIn.map((id) => PB.avatar(id, 'sm')).join('')}` : `Up to ${g.maxPicks} picks each: the top ${v.voted} make the board`}</p>` : ''}`;
         break;
       }
       case 'board':
@@ -422,7 +429,7 @@
       flash = { key: null, at: 0 };
     },
     // Sideways: the board or the clue on the left.
-    stage: '.jp-board, .jp-clue, .jp-dd, .jp-final-cat, .jp-vote-grid, .jp-last',
+    stage: '.jp-board, .jp-clue, .jp-dd, .jp-final-cat, .jp-vote-grid, .jp-house, .jp-last',
     tv: tvScreen,
     tvTable: false,
     tvLeft: '.jp-side',

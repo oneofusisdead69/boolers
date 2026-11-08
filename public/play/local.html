@@ -304,6 +304,7 @@
       room = {
         code: 'LOCAL',
         hostId: 'p0',
+        style: roomStyle, // (as an online room's: the venue, for games that use it)
         players: names.map((name, i) => ({ id: `p${i}`, name, drinks: 0, connected: true, total: before[name]?.total || 0, finished: before[name]?.finished || 0 })),
         feed: [],
         game: { type: gameId },
