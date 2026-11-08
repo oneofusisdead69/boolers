@@ -76,8 +76,56 @@
   };
   const weatherOf = (s = PB.state) => (WX[s?.game?.weather] ? s.game.weather : 'clear');
 
-  // ---------- Halloween ----------
+  // ---------- Each venue's race ----------
   //
+  // The track's dressed for the room it's racing in (lib/roomStyles.js): the ground and the verges,
+  // the kerbs and the white lines, what the barriers are, what's piled on the outside of the bends,
+  // what stands about in the fields, who's in the grandstand, the gantry over the start, the sky all
+  // round, how the weather looks there, and what glows or drifts about. One table for the TV's view
+  // from above (drawStatic, drawScenery, above) and the phone's from the car (sceneModel,
+  // skyCanvas, groundCanvas, fp). All of it's decoration: the road, the walls and the cars are the
+  // same everywhere (Rainbow Road apart: no walls out there, the server's rule as well).
+  //
+  // Each venue's entry is laid over THEME (the plain track, as at the classic venue):
+  //   ground, verge      the ground beyond the barriers and the verges inside them (patterns: GROUNDS;
+  //                      null: the room's felt, as grass)
+  //   out, dim           past the edge of the world, from the car ([r, g, b]); how much darker
+  //                      it is beyond the barriers (from above)
+  //   line, kerb, kerbAlt    the white lines along the asphalt; the kerbs' colours (null: the accent)
+  //   barrier, wall, wall2   what stands along the edge (see barrierAbove, barrierModel) and its two
+  //                      colours (null: the room's rim colour)
+  //   stack              what's piled on the outside of the bends (stackAbove, stackModel)
+  //   tree, trees        what stands about in the fields (treeAbove, treeModel), on what share of spots
+  //   stand, seat, crowd, roof   the grandstand (2D, 3D), its crowd's colours ('ghosts'; null: anyone)
+  //   gantry, post, beam, pillar, cap   over the start (gantry, arch, neon, torch), its colours, a
+  //                      prop on top of each post and what it stands on (from above)
+  //   bridge             the figure eight's bridge: slab, deck, line, rail (2D); concrete, trim (3D)
+  //   sky                colours and a skyline for the sky all round (skyCanvas), or a whole one: draw
+  //   wx                 the weather as this venue sees it, over WX, by kind
+  //   along, field, wisps, wisp, art   props along the fence and out in the fields (extrasOf; kinds
+  //                      from the venue's props or `art`), and lights drifting about (and their colour)
+  //   glow               the colour things that glow glow
+  //   fx                 lightning, phantom, bats, comets
+  //   words              the countdown (count: after each number, go), the last lap, the flag
+  //   cls, overlay       the TV's stage: a class, and what goes over it (HTML)
+  //   void               Rainbow Road: off the road there's nothing, just space
+  const THEME = {
+    ground: null, verge: null, out: null, dim: 0.42,
+    line: '#ececec', kerb: '#f4f4f4', kerbAlt: null,
+    barrier: 'tyres', wall: null, wall2: '#151515',
+    stack: 'tyres', tree: 'pine', trees: 1,
+    stand: '#8d939b', seat: [0.55, 0.58, 0.62], crowd: null, roof: null,
+    gantry: 'gantry', post: [0.85, 0.85, 0.87], beam: '#26262b', pillar: null, cap: null,
+    bridge: { slab: '#8f8d86', deck: '#a9a69d', line: '#ececec', rail: null, concrete: [0.62, 0.62, 0.6], trim: null },
+    sky: null, wx: null,
+    along: null, field: null, wisps: 0, wisp: 'green', art: null, glow: 'orange',
+    fx: {}, words: { count: '', go: 'GO!', final: 'Final lap!', finish: '🏁' },
+    cls: '', overlay: '', void: false,
+    // (And a few for one kind of thing: a castle wall's crenels, the stone of the graves and the
+    // arch, the street lamps' light, the drums' paint.)
+    crenels: false, stone: null, lamp: 'warm', drum: null,
+  };
+
   // At the Halloween venue the track's a haunted graveyard (after its room art: lib/roomArt.js,
   // hauntedHill()): always dark (the server only picks night or fog there), a full moon low over a
   // purple and green sky, a haunted house on the hill, dead grass and graveyard earth for verges,
@@ -85,14 +133,210 @@
   // jack-o'-lanterns, a gothic arch over the start, ghosts and skeletons in the grandstand. Low fog
   // drifts over the ground (`low`), bats flit over the sky, will-o'-the-wisps float about, lightning
   // flashes now and then, and a phantom car drives a lap every so often (only for show: it goes
-  // through everything). All of it's decoration: the road, the walls and the cars are the same.
-  const haunted = (s = PB.state) => venueOf(s) === 'halloween';
+  // through everything).
   const HAUNTED_WX = {
     night: { light: [0.34, 0.3, 0.5], sky: ['#06030d', '#24463a'], haze: [0.1, 0.12, 0.13], far: 560, lamps: true, flat: 'rgba(22, 8, 40, 0.5)', moon: true, low: [0.3, 0.28, 0.4], lowK: 0.55 },
     fog: { light: [0.52, 0.5, 0.64], sky: ['#1a1228', '#4e5a58'], haze: [0.34, 0.35, 0.4], far: 250, mute: 0.3, lamps: true, flat: 'rgba(110, 100, 140, 0.45)', moon: true, low: [0.46, 0.45, 0.52], lowK: 0.32 },
   };
+  // Rainbow Road (the space lounge's easter egg: games/trackRacing.js): out among the stars the road
+  // glows by its own light, whatever the server calls the weather (always night), fading into the
+  // dark far off.
+  const SPACE_WX = { light: [0.95, 0.95, 1], sky: ['#030210', '#120a2e'], haze: [0.02, 0.015, 0.06], far: 900, flat: 'rgba(6, 4, 30, 0.25)' };
+  const RAINBOW_WX = Object.fromEntries(Object.keys(WX).map((k) => [k, SPACE_WX]));
+  const RAINBOW = ['#ff3b5c', '#ff8a1f', '#ffd23f', '#4ade5a', '#2ab8ff', '#5a6aff', '#b04aff'];
+
+  const RACE_THEMES = {
+    classic: {},
+    // The dive: the car park out back after midnight. Cracked tarmac, concrete blocks, oil drums,
+    // street lamps, the town's lights.
+    dive: {
+      ground: 'lot', out: [0.08, 0.08, 0.09], line: '#e8e2d0', kerb: '#1a1612',
+      barrier: 'wall', wall: '#9a958c', wall2: '#ff5a36', stack: 'drums', tree: 'lamp', trees: 0.3, lamp: 'warm',
+      stand: '#4a3f36', seat: [0.3, 0.26, 0.22], crowd: ['#3a3a40', '#5a4a3a', '#7a2a2a', '#2a3a5a', '#d8c8a8'],
+      sky: { skyline: 'city', lights: '#ff5a36' },
+    },
+    // The tavern: the village green. A wooden fence, hay bales, oaks.
+    tavern: {
+      dim: 0.24, ground: 'meadow', out: [0.12, 0.2, 0.09], line: '#efe6d0', kerb: '#f7ead2',
+      barrier: 'rail', wall: '#6a4424', stack: 'hay', tree: 'round',
+      stand: '#6a4a30', seat: [0.42, 0.29, 0.19], crowd: ['#7a5a3a', '#3a5a2a', '#8a2a1a', '#c8a870', '#4a3a6a'], roof: '#8a2a1a',
+      post: [0.42, 0.27, 0.14], beam: '#4a3018',
+    },
+    // The club: a neon grid in the dark, glowing tubes for barriers, speaker stacks, the city lit up.
+    club: {
+      ground: 'neon', out: [0.03, 0.02, 0.06], line: '#29f0ff', kerb: '#141022',
+      barrier: 'neon', wall: '#29f0ff', stack: 'speakers', tree: 'lamp', trees: 0.25, lamp: 'pink',
+      stand: '#201a36', seat: [0.13, 0.1, 0.21], crowd: ['#ff2bd6', '#29f0ff', '#ffe14d', '#7dff9e', '#b04aff'],
+      gantry: 'neon', sky: { skyline: 'city', lights: '#ff2bd6' },
+    },
+    // The castle: the bailey. Cobbles, a crenellated stone wall with torches along it, an arch over
+    // the start, towers on the skyline.
+    castle: {
+      ground: 'cobble', out: [0.16, 0.15, 0.17], line: '#efe9dc', kerb: '#c8303f',
+      barrier: 'wall', wall: '#8a8694', wall2: '#6a6674', crenels: true, stack: 'hay', tree: 'pine', trees: 0.6,
+      stand: '#5a5666', seat: [0.36, 0.34, 0.4], crowd: ['#c8303f', '#d4af37', '#3a5aa8', '#6a6a7a', '#efe9dc'], roof: '#c8303f',
+      gantry: 'arch', pillar: 'torch', beam: '#5a5666', stone: [0.5, 0.48, 0.55],
+      along: { kind: 'torch', size: [12, 2], every: 12 }, art: [['torch', 34, 0.4, 0, true]], glow: 'fire',
+      bridge: { slab: '#6a6674', deck: '#7a7684', line: '#efe9dc', rail: '#d4af37', concrete: [0.45, 0.43, 0.5], trim: [0.83, 0.69, 0.22] },
+      sky: { skyline: 'towers' },
+    },
+    // The jazz club: New Orleans at night. Brick streets, wrought iron, gas lamps.
+    jazz: {
+      ground: 'brick', out: [0.12, 0.06, 0.05], line: '#e3b04b', kerb: '#1a0d12',
+      barrier: 'fence', stack: 'barrels', tree: 'lamp', trees: 0.3, lamp: 'warm',
+      stand: '#3a1c27', seat: [0.23, 0.11, 0.15], crowd: ['#1a1a1a', '#e3b04b', '#7a1a2a', '#f6e7d8', '#3a3a5a'],
+      sky: { skyline: 'city', lights: '#e3b04b' },
+    },
+    // The diner: a black and white checked floor, chrome stools, neon.
+    diner: {
+      dim: 0.24, ground: 'checker', out: [0.2, 0.2, 0.2], line: '#ffffff', kerb: '#ffffff',
+      barrier: 'neon', wall: '#ff4d6d', stack: 'stools', tree: 'round', trees: 0.5,
+      stand: '#d8d0c0', seat: [0.8, 0.78, 0.74], crowd: ['#ff8fab', '#8fd3ff', '#ffe08a', '#9be8b4', '#e63946'], roof: '#e63946',
+      gantry: 'neon',
+    },
+    // The tiki bar: a beach at dusk. Sand, a bamboo fence with tiki torches along it, palms, lava
+    // rocks, the sea on the horizon.
+    tiki: {
+      dim: 0.24, ground: 'sand', out: [0.1, 0.32, 0.42], line: '#fbf1dc', kerb: '#fbf1dc',
+      barrier: 'rail', wall: '#c9a45a', stack: 'rocks', tree: 'palm', trees: 0.7,
+      stand: '#7a5a3a', seat: [0.48, 0.35, 0.23], crowd: ['#ff8a3d', '#ff4f5e', '#6fdc8c', '#ffd23f', '#2ab8ff'], roof: '#c9a45a',
+      gantry: 'torch', post: [0.79, 0.64, 0.35], beam: '#8a6a3a', pillar: 'torch',
+      along: { kind: 'torch', size: [12, 2], every: 10 }, art: [['torch', 34, 0.4, 0, true]], glow: 'fire',
+      sky: { skyline: 'sea' },
+    },
+    // The speakeasy: Chicago after dark. Wet cobbles, iron railings, gas lamps, barrels of the good stuff.
+    speakeasy: {
+      ground: 'cobble', out: [0.08, 0.06, 0.06], line: '#c9a24a', kerb: '#22110f',
+      barrier: 'fence', stack: 'barrels', tree: 'lamp', trees: 0.3, lamp: 'warm',
+      stand: '#331a16', seat: [0.2, 0.1, 0.09], crowd: ['#1a1a1a', '#c9a24a', '#5a1a1a', '#f3e8d4', '#2a2a3a'],
+      sky: { skyline: 'city', lights: '#ffd27a' },
+    },
+    // The casino: the Strip. Casino carpet, gold neon, stacks of chips, palms, the lights of Vegas.
+    casino: {
+      ground: 'carpet', out: [0.2, 0.04, 0.05], line: '#f5c542', kerb: '#c8202e',
+      barrier: 'neon', wall: '#f5c542', stack: 'chips', tree: 'palm', trees: 0.45,
+      stand: '#3a1418', seat: [0.23, 0.08, 0.09], crowd: ['#f5c542', '#c8202e', '#141414', '#fff2e0', '#4fd18b'],
+      gantry: 'neon', sky: { skyline: 'city', lights: '#f5c542' },
+    },
+    // The saloon: the desert. Red sand, a wooden rail, hay bales, cacti, mesas.
+    saloon: {
+      dim: 0.24, ground: 'desert', out: [0.55, 0.32, 0.17], line: '#fbecd2', kerb: '#fbecd2', kerbAlt: '#c8452f',
+      barrier: 'rail', wall: '#7a5230', stack: 'hay', tree: 'cactus', trees: 0.6,
+      stand: '#6a4a2a', seat: [0.42, 0.29, 0.16], crowd: ['#7a5a3a', '#3a5a8a', '#c8452f', '#e0a43a', '#d0b28a'], roof: '#7a5230',
+      post: [0.48, 0.32, 0.19], beam: '#4a3018',
+      sky: { skyline: 'mesas' },
+    },
+    // The pirate tavern: the harbour. A boardwalk round the track, out over the sea; rope on posts,
+    // barrels, rocks in the water.
+    pirate: {
+      ground: 'sea', verge: 'boards', out: [0.06, 0.2, 0.3], line: '#f2e6cc', kerb: '#f2e6cc',
+      barrier: 'rope', wall: '#5a3a1e', wall2: '#c9a86a', stack: 'barrels', tree: 'rock', trees: 0.35,
+      stand: '#4a3220', seat: [0.29, 0.2, 0.13], crowd: ['#c8302e', '#f2e6cc', '#1a1a1a', '#e3b23c', '#3a5a7a'],
+      post: [0.35, 0.23, 0.12], beam: '#2a1a0e',
+      sky: { skyline: 'sea' },
+    },
+    // The beer hall: Bavaria. A meadow, bunting in blue and white, kegs, pines, the Alps.
+    beerhall: {
+      dim: 0.24, ground: 'meadow', out: [0.16, 0.3, 0.12], line: '#ffffff', kerb: '#ffffff',
+      barrier: 'bunting', wall: '#2a6fdb', wall2: '#ffffff', stack: 'barrels', tree: 'pine',
+      stand: '#8a6a4a', seat: [0.54, 0.42, 0.29], crowd: ['#2a6fdb', '#ffffff', '#2b9a5a', '#d63c3c', '#e8c88a'], roof: '#2a6fdb',
+      sky: { skyline: 'peaks' },
+    },
+    // The space lounge (without its easter egg: only in a preview): a base on the moon.
+    space: {
+      ground: 'moon', out: [0.05, 0.05, 0.07], line: '#7cf0ff', kerb: '#eef1ff',
+      barrier: 'neon', wall: '#7cf0ff', stack: 'rocks', tree: 'rock', trees: 0.5,
+      stand: '#1a1f3d', seat: [0.1, 0.12, 0.24], crowd: ['#7dff9e', '#7cf0ff', '#ff5c8a', '#b04aff', '#eef1ff'],
+      gantry: 'neon', sky: { draw: (pal, wx) => spaceSky(pal, wx, false) }, fx: { comets: true },
+    },
+    // Rainbow Road: the space lounge's easter egg. No ground, no walls: a glowing rainbow of a road
+    // out among the stars and planets, comets going over, a neon arcade gantry at the start.
+    rainbow: {
+      void: true, out: [0.01, 0.01, 0.03], line: '#ffffff', kerb: '#ffffff',
+      barrier: 'none', stack: 'none', tree: 'none', trees: 0, stand: null,
+      gantry: 'neon', wx: RAINBOW_WX, sky: { draw: (pal, wx) => spaceSky(pal, wx, true) },
+      fx: { comets: true }, words: { final: '🌈 Final lap!', finish: '🌈' }, cls: 'rainbow',
+    },
+    // The lighthouse: the coast. Grass on the cliff tops, a whitewashed wall, rocks, the sea.
+    lighthouse: {
+      dim: 0.24, ground: 'meadow', out: [0.1, 0.25, 0.35], line: '#eef3f8', kerb: '#f4f1ea', kerbAlt: '#c8302e',
+      barrier: 'wall', wall: '#d8d8d0', wall2: '#b8b8b0', stack: 'rocks', tree: 'rock', trees: 0.5,
+      stand: '#4a5d6e', seat: [0.29, 0.36, 0.43], crowd: ['#f4c95d', '#2a4a6a', '#c8302e', '#eef3f8', '#3a6a5a'],
+      sky: { skyline: 'sea' },
+    },
+    // The vineyard: rows of vines, a low stone wall, wine barrels, cypresses.
+    vineyard: {
+      dim: 0.24, ground: 'vines', out: [0.4, 0.36, 0.2], line: '#f8f0dc', kerb: '#f8f0dc',
+      barrier: 'wall', wall: '#c9a77a', wall2: '#a8875a', stack: 'barrels', tree: 'cypress', trees: 0.5,
+      stand: '#8a6a4a', seat: [0.54, 0.42, 0.29], crowd: ['#c0392b', '#f8f0dc', '#6a8a3a', '#e0a050', '#3a3a5a'], roof: '#b5562a',
+    },
+    // The frat house: the back lawn, striped. Kegs on the bends.
+    frat: {
+      dim: 0.24, ground: 'turf', out: [0.14, 0.3, 0.12], line: '#ffffff', kerb: '#ffffff',
+      stack: 'drums', tree: 'round', drum: [0.75, 0.77, 0.8],
+      stand: '#6a4a3a', seat: [0.42, 0.29, 0.23], crowd: ['#d62828', '#1b3f8e', '#ffffff', '#d4af37', '#3a3a3a'], roof: '#d62828',
+    },
+    // The garage: the yard out back. Concrete, hazard kerbs, oil drums, floodlights.
+    garage: {
+      dim: 0.24, ground: 'concrete', out: [0.3, 0.3, 0.32], line: '#ffd23f', kerb: '#ffd23f', kerbAlt: '#1a1a1a',
+      stack: 'drums', tree: 'lamp', trees: 0.2, lamp: 'white',
+      stand: '#3a4048', seat: [0.23, 0.25, 0.28], crowd: ['#2a5a9a', '#ffd23f', '#5a5a5a', '#d0d0d0', '#c84a2a'],
+      sky: { skyline: 'city', lights: '#ffd23f' },
+    },
+    // The château: the formal garden. Raked gravel, lawns inside box hedges, clipped trees.
+    chateau: {
+      dim: 0.24, ground: 'gravel', verge: 'turf', out: [0.6, 0.58, 0.52], line: '#fbf8ee', kerb: '#fbf8ee',
+      barrier: 'hedge', wall: '#2f6e34', stack: 'topiary', tree: 'round', trees: 0.5,
+      stand: '#d8d0b8', seat: [0.8, 0.77, 0.68], crowd: ['#1a1a1a', '#e6c06a', '#fbf8ee', '#3a4a8a', '#8a2a4a'], roof: '#3a4a6a',
+    },
+    // Christmas: it always snows. Candy-cane barriers and kerbs, presents, snowy pines and peaks.
+    christmas: {
+      dim: 0.24, ground: 'snow', out: [0.78, 0.81, 0.86], line: '#ffffff', kerb: '#ffffff', kerbAlt: '#e2403b',
+      barrier: 'candy', wall: '#e2403b', wall2: '#ffffff', stack: 'presents', tree: 'pine',
+      stand: '#5a3a2a', seat: [0.36, 0.23, 0.16], crowd: ['#e2403b', '#2a8a4a', '#ffffff', '#e8b84a', '#c8302e'], roof: '#e2403b',
+      post: [0.9, 0.25, 0.23], beam: '#e2403b', sky: { skyline: 'peaks' },
+    },
+    halloween: {
+      ground: 'earth', out: [0.07, 0.055, 0.05], line: '#d4cab4', kerb: '#141016',
+      barrier: 'fence', stack: 'graves', tree: 'dead',
+      stand: '#3e3848', seat: [0.3, 0.28, 0.34], crowd: 'ghosts',
+      gantry: 'arch', beam: '#4a4258', pillar: 'lantern', cap: '#5e5670',
+      bridge: { slab: '#4a4452', deck: '#5a5462', line: '#d4cab4', rail: '#e07a1a', concrete: [0.34, 0.31, 0.38], trim: [0.85, 0.36, 0.07] },
+      sky: { draw: (pal, wx) => (wx.moon ? hauntedSky(pal, wx) : null) },
+      wx: HAUNTED_WX,
+      along: { kind: 'lantern', size: [11, 4], every: 9 }, field: { kinds: [['tomb', 0.62], ['cross', 1]], count: 44, size: [13, 6] }, wisps: 12,
+      fx: { lightning: true, phantom: true, bats: true },
+      words: { count: '…', go: 'BOO!', final: '💀 Final lap!', finish: '🎃' },
+      cls: 'haunted', overlay: '<div class="tr-haunt" aria-hidden="true"><i class="tr-fog"></i><i class="tr-bats"></i><i class="tr-flash"></i></div>',
+    },
+    // The Highlands: heather, dry stone walls, Scots pines, the hills.
+    stpatricks: {
+      dim: 0.24, ground: 'heather', out: [0.2, 0.24, 0.16], line: '#f6f0e2', kerb: '#f6f0e2', kerbAlt: '#2f8a4a',
+      barrier: 'wall', wall: '#7d8085', wall2: '#5d6065', stack: 'rocks', tree: 'pine', trees: 0.7,
+      stand: '#4a3a2a', seat: [0.29, 0.23, 0.16], crowd: ['#2f6a3a', '#8a2a2a', '#2a3a6a', '#e6b84a', '#f6f0e2'],
+      sky: { skyline: 'peaks' },
+    },
+  };
+  // Easter eggs and moods race in their own room's (venueOf), but for these.
+  const THEME_LOOKS = { garageWasteland: 'saloon' };
+  const themes = {};
+  function themeIdOf(s = PB.state) {
+    if (s?.game?.rainbow) return 'rainbow';
+    const look = s?.look || s?.style;
+    return THEME_LOOKS[look] || venueOf(s);
+  }
+  function themeOf(s = PB.state) {
+    const id = themeIdOf(s);
+    if (!themes[id]) {
+      const t = RACE_THEMES[id] || {};
+      themes[id] = { ...THEME, ...t, id, bridge: { ...THEME.bridge, ...t.bridge }, words: { ...THEME.words, ...t.words }, fx: { ...THEME.fx, ...t.fx } };
+    }
+    return themes[id];
+  }
   // The weather as this venue sees it.
-  const wxOf = (s = PB.state) => (haunted(s) && HAUNTED_WX[weatherOf(s)]) || WX[weatherOf(s)];
+  const wxOf = (s = PB.state) => themeOf(s).wx?.[weatherOf(s)] || WX[weatherOf(s)];
+  // Whether a spot in the fields has something standing on it (`trees`: the share that do).
+  const kept = (p, th) => th.trees >= 1 || ((((p.x * 12.9898 + p.y * 78.233) % 1) + 1) % 1) < th.trees;
   const calm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   // Lightning, now and then (0 to 1): a flash, a gap, a second flash fading. Not for reduced motion.
   function lightning(ms) {
@@ -452,13 +696,17 @@
     return new Float32Array(v);
   }
 
-  // Halloween's extras round a track (worked out once a track): jack-o'-lanterns along the fence,
-  // gravestones and crosses out in the fields, where the will-o'-the-wisps float, and the
-  // centreline's length so far at each point (for the phantom car's lap).
-  const haunts = {};
-  function hauntOf(tr) {
-    const key = `${tr.id}:${tr.line.length}`;
-    if (haunts[key]) return haunts[key];
+  // A venue's extras round a track (worked out once a track): props along the fence every so often
+  // (`along`: Halloween's jack-o'-lanterns, the tiki bar's torches), more out in the fields
+  // (`field`: gravestones and crosses), where lights drift about (`wisps`: will-o'-the-wisps), and
+  // the centreline's length so far at each point (for the phantom car's lap).
+  const extras = {};
+  function extrasOf(tr, th = themeOf()) {
+    const venue = venueOf();
+    const key = `${tr.id}:${tr.line.length}:${th.id}:${venue}`;
+    if (extras[key]) return extras[key];
+    // (Which of them are lit from inside: the fifth of each in VENUE_PROPS, or the theme's `art`.)
+    const lit = new Set([...VENUE_PROPS[venue], ...(th.art || [])].filter((e) => e[4]).map((e) => e[0]));
     const sh = shapeOf(tr);
     const rand = seeded(`${tr.id}:haunt`);
     const W = tr.world.w;
@@ -473,27 +721,31 @@
     const free = (x, y, r) => taken.every(([px, py, pr]) => (px - x) ** 2 + (py - y) ** 2 > (pr + r + 3) ** 2);
     const inside = (x, y, m) => x > m && y > m && x < W - m && y < H - m;
     const things = []; // { kind, x, y, size }
-    for (let i = 0, k = 0; i < sh.N; i += 9, k++) {
+    const along = th.along;
+    for (let i = 0, k = 0; along && i < sh.N; i += along.every, k++) {
       const side = k % 2 ? 1 : -1;
       if (!sh.walls[side > 0 ? 1 : 0].ok[i]) continue;
       const d = edge + BARRIER + 7;
       const x = sh.xs[i] + sh.nx[i] * d * side;
       const y = sh.ys[i] + sh.ny[i] * d * side;
       if (!inside(x, y, 8) || near(x, y) < d - 1 || !free(x, y, 5)) continue;
-      things.push({ kind: 'lantern', x, y, size: 11 + rand() * 4 });
+      things.push({ kind: along.kind, x, y, size: along.size[0] + rand() * along.size[1], glow: lit.has(along.kind) });
       taken.push([x, y, 5]);
     }
-    for (let k = 0, graves = 0; k < 900 && graves < 44; k++) {
+    const field = th.field;
+    for (let k = 0, n = 0; field && k < 900 && n < field.count; k++) {
       const x = 10 + rand() * (W - 20);
       const y = 10 + rand() * (H - 20);
       const d = near(x, y);
       if (d < edge + BARRIER + 12 || d > edge + 160 || !free(x, y, 6)) continue;
-      things.push({ kind: rand() < 0.62 ? 'tomb' : 'cross', x, y, size: 13 + rand() * 6 });
+      const r = rand();
+      const kind = field.kinds.find(([, upTo]) => r < upTo)[0];
+      things.push({ kind, x, y, size: field.size[0] + rand() * field.size[1], glow: lit.has(kind) });
       taken.push([x, y, 6]);
-      graves++;
+      n++;
     }
     const wisps = [];
-    for (let k = 0; k < 600 && wisps.length < 12; k++) {
+    for (let k = 0; k < 600 && wisps.length < th.wisps; k++) {
       const x = 20 + rand() * (W - 40);
       const y = 20 + rand() * (H - 40);
       const d = near(x, y);
@@ -502,10 +754,9 @@
     }
     const cum = new Float32Array(sh.N + 1);
     for (let i = 1; i <= sh.N; i++) cum[i] = cum[i - 1] + Math.hypot(sh.xs[i % sh.N] - sh.xs[i - 1], sh.ys[i % sh.N] - sh.ys[i - 1]);
-    haunts[key] = { things, wisps, cum, len: cum[sh.N] };
-    return haunts[key];
+    extras[key] = { things, wisps, cum, len: cum[sh.N] };
+    return extras[key];
   }
-
   // The phantom car: every so often (race time, so every screen has it in the same place), a lap of
   // the track, weaving a little, quicker than anyone. Where it is now (filled in, not made), or null.
   const PHANTOM = { first: 7, every: 42, speed: 205 };
@@ -525,11 +776,11 @@
   }
   const phantom = { x: 0, y: 0, a: 0, fade: 0 };
   function phantomAt(s, tr) {
-    if (s.phase !== 'race' || !snaps.length || snapRace !== s.game.race || !playout.ready() || !haunted(s)) return null;
+    if (s.phase !== 'race' || !snaps.length || snapRace !== s.game.race || !playout.ready() || !themeOf(s).fx.phantom) return null;
     const t = playout.now(performance.now() / 1000) - PHANTOM.first;
     if (t < 0) return null;
     const sh = shapeOf(tr);
-    const hs = hauntOf(tr);
+    const hs = extrasOf(tr);
     const lap = hs.len / PHANTOM.speed;
     const into = t % PHANTOM.every;
     if (into > lap) return null;
@@ -568,16 +819,32 @@
     return c.createPattern(grain, 'repeat');
   }
 
-  // Halloween's verges: dead grass on graveyard earth, a pebble or two.
-  let earth = null;
-  function earthPattern(c) {
-    if (!earth) {
-      earth = document.createElement('canvas');
-      earth.width = earth.height = 96;
-      const g = earth.getContext('2d');
+  // The venues' ground (THEME.ground, verge): a tile each, 96 units square, painted once.
+  const blobs = (g, rand, n, cols, r0, r1) => {
+    for (let k = 0; k < n; k++) {
+      g.fillStyle = cols[Math.floor(rand() * cols.length)];
+      g.beginPath();
+      g.arc(rand() * 96, rand() * 96, r0 + rand() * (r1 - r0), 0, Math.PI * 2);
+      g.fill();
+    }
+  };
+  const blades = (g, rand, n, cols, len) => {
+    g.lineWidth = 1;
+    for (let k = 0; k < n; k++) {
+      const x = rand() * 96;
+      const y = rand() * 96;
+      g.strokeStyle = cols[Math.floor(rand() * cols.length)];
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + (rand() - 0.5) * 4, y - len * (0.5 + rand()));
+      g.stroke();
+    }
+  };
+  const GROUNDS = {
+    // Halloween: dead grass on graveyard earth, a pebble or two.
+    earth(g, rand) {
       g.fillStyle = '#2a2219';
       g.fillRect(0, 0, 96, 96);
-      const rand = seeded('earth');
       for (let k = 0; k < 40; k++) {
         g.fillStyle = rand() < 0.5 ? 'rgba(14, 10, 8, 0.4)' : 'rgba(58, 44, 30, 0.45)';
         g.beginPath();
@@ -598,8 +865,239 @@
         g.fillStyle = rand() < 0.5 ? '#4a4258' : '#3a3346';
         g.fillRect(rand() * 96, rand() * 96, 1.5 + rand() * 2, 1.5 + rand() * 1.5);
       }
+    },
+    // A car park: old tarmac, patched, cracked, oil stains.
+    lot(g, rand) {
+      g.fillStyle = '#2e2d30';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 30, ['rgba(0, 0, 0, 0.25)', 'rgba(90, 88, 92, 0.25)'], 3, 9);
+      blobs(g, rand, 4, ['rgba(8, 6, 14, 0.5)'], 4, 7);
+      g.strokeStyle = 'rgba(10, 10, 12, 0.7)';
+      g.lineWidth = 0.8;
+      g.beginPath();
+      for (let k = 0; k < 6; k++) {
+        let x = rand() * 96;
+        let y = rand() * 96;
+        g.moveTo(x, y);
+        for (let j = 0; j < 4; j++) g.lineTo((x += (rand() - 0.5) * 16), (y += (rand() - 0.5) * 16));
+      }
+      g.stroke();
+      g.fillStyle = 'rgba(230, 226, 210, 0.35)';
+      for (const x of [8, 56]) g.fillRect(x, 0, 1.6, 30);
+    },
+    meadow(g, rand) {
+      g.fillStyle = '#4c7d34';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 24, ['rgba(30, 60, 20, 0.3)', 'rgba(120, 160, 70, 0.25)'], 4, 10);
+      blades(g, rand, 300, ['#3a6a26', '#5e9440', '#6aa04a', '#2e5a1e'], 3);
+      blobs(g, rand, 10, ['#f4f0d8', '#ffd23f', '#e8a0c8'], 0.6, 1.1);
+    },
+    heather(g, rand) {
+      g.fillStyle = '#4a5a30';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 30, ['rgba(110, 60, 110, 0.45)', 'rgba(70, 50, 30, 0.35)', 'rgba(90, 120, 60, 0.3)'], 3, 8);
+      blades(g, rand, 220, ['#3a4a22', '#5a6a38', '#6a4a20'], 3);
+      blobs(g, rand, 70, ['#9a5aa0', '#b070b4', '#7a4a80'], 0.6, 1.3);
+    },
+    snow(g, rand) {
+      g.fillStyle = '#e6ecf3';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 26, ['rgba(180, 196, 220, 0.3)', 'rgba(255, 255, 255, 0.6)'], 4, 12);
+      blobs(g, rand, 40, ['#ffffff', '#c8d4e4'], 0.4, 0.9);
+    },
+    turf(g, rand) {
+      g.fillStyle = '#3f8a3a';
+      g.fillRect(0, 0, 96, 96);
+      g.fillStyle = '#4a9a42';
+      g.fillRect(0, 0, 48, 96);
+      blades(g, rand, 200, ['rgba(20, 60, 20, 0.5)', 'rgba(140, 200, 110, 0.35)'], 2);
+    },
+    // A neon grid on black (the club's dance floor, all the way out).
+    neon(g) {
+      g.fillStyle = '#0c0818';
+      g.fillRect(0, 0, 96, 96);
+      g.lineWidth = 1;
+      for (const [col, at, w] of [['rgba(255, 43, 214, 0.25)', 0, 4], ['#ff2bd6', 0, 1.2], ['rgba(41, 240, 255, 0.22)', 48, 4], ['#29f0ff', 48, 1]]) {
+        g.strokeStyle = col;
+        g.lineWidth = w;
+        g.beginPath();
+        g.moveTo(at + 0.5, 0); g.lineTo(at + 0.5, 96);
+        g.moveTo(0, at + 0.5); g.lineTo(96, at + 0.5);
+        g.stroke();
+      }
+    },
+    cobble(g, rand) {
+      g.fillStyle = '#2a282c';
+      g.fillRect(0, 0, 96, 96);
+      for (let row = 0; row < 12; row++) {
+        for (let k = 0; k < 9; k++) {
+          const x = k * 12 + (row % 2) * 6 - 6 + rand() * 1.5;
+          const v = 90 + Math.floor(rand() * 40);
+          g.fillStyle = `rgb(${v}, ${v - 4}, ${v + 4})`;
+          roundRect(g, x + 0.8, row * 8 + 0.8, 10.4, 6.4, 3);
+          g.fill();
+          g.fillStyle = 'rgba(255, 255, 255, 0.12)';
+          g.fillRect(x + 2.5, row * 8 + 1.6, 6, 1.2);
+        }
+      }
+    },
+    brick(g, rand) {
+      g.fillStyle = '#3a2420';
+      g.fillRect(0, 0, 96, 96);
+      for (let row = 0; row < 16; row++) {
+        for (let k = 0; k < 9; k++) {
+          const x = k * 12 + (row % 2) * 6 - 6;
+          const r = 120 + Math.floor(rand() * 40);
+          g.fillStyle = `rgb(${r}, ${Math.round(r * 0.45)}, ${Math.round(r * 0.36)})`;
+          g.fillRect(x + 0.6, row * 6 + 0.6, 10.8, 4.8);
+        }
+      }
+    },
+    checker(g) {
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { g.fillStyle = (x + y) % 2 ? '#4a4a56' : '#e6e0d4'; g.fillRect(x * 24, y * 24, 24, 24); }
+      g.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      g.fillRect(0, 0, 96, 30);
+    },
+    sand(g, rand) {
+      g.fillStyle = '#e0c48c';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 26, ['rgba(255, 240, 200, 0.3)', 'rgba(180, 140, 80, 0.2)'], 4, 12);
+      g.strokeStyle = 'rgba(160, 120, 70, 0.25)';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let y = 6; y < 96; y += 12) { g.moveTo(0, y); for (let x = 0; x <= 96; x += 8) g.lineTo(x, y + Math.sin((x / 96) * Math.PI * 4 + y) * 2); }
+      g.stroke();
+      blobs(g, rand, 60, ['#c8a870', '#f4e4c0', '#b08850'], 0.4, 0.9);
+    },
+    desert(g, rand) {
+      g.fillStyle = '#c47a42';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 26, ['rgba(220, 150, 90, 0.35)', 'rgba(140, 70, 30, 0.25)'], 4, 12);
+      g.strokeStyle = 'rgba(110, 50, 20, 0.45)';
+      g.lineWidth = 0.7;
+      g.beginPath();
+      for (let k = 0; k < 10; k++) {
+        let x = rand() * 96;
+        let y = rand() * 96;
+        g.moveTo(x, y);
+        for (let j = 0; j < 3; j++) g.lineTo((x += (rand() - 0.5) * 14), (y += (rand() - 0.5) * 14));
+      }
+      g.stroke();
+      blades(g, rand, 30, ['#8a7a3a', '#a08a48'], 2.5);
+      blobs(g, rand, 20, ['#8a5a3a', '#e0b080'], 0.6, 1.4);
+    },
+    sea(g, rand) {
+      g.fillStyle = '#1d5878';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 16, ['rgba(10, 40, 70, 0.35)', 'rgba(60, 130, 160, 0.25)'], 6, 14);
+      g.strokeStyle = 'rgba(200, 235, 245, 0.45)';
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let k = 0; k < 18; k++) {
+        const x = rand() * 96;
+        const y = rand() * 96;
+        g.moveTo(x, y);
+        g.quadraticCurveTo(x + 3, y - 2, x + 6, y);
+      }
+      g.stroke();
+    },
+    boards(g, rand) {
+      g.fillStyle = '#3a2614';
+      g.fillRect(0, 0, 96, 96);
+      for (let row = 0; row < 12; row++) {
+        const off = Math.floor(rand() * 48);
+        for (let k = -1; k < 2; k++) {
+          const v = rand();
+          g.fillStyle = `rgb(${130 + v * 30}, ${88 + v * 20}, ${52 + v * 14})`;
+          g.fillRect(off + k * 48 + 0.6, row * 8 + 0.7, 47, 6.6);
+          g.fillStyle = '#2a1a0c';
+          g.fillRect(off + k * 48 + 2, row * 8 + 3.4, 0.9, 0.9);
+        }
+        g.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        g.fillRect(0, row * 8 + 3, 96, 0.6);
+      }
+    },
+    moon(g, rand) {
+      g.fillStyle = '#7e7e86';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 30, ['rgba(40, 40, 50, 0.18)', 'rgba(200, 200, 210, 0.15)'], 3, 10);
+      for (let k = 0; k < 7; k++) {
+        const x = rand() * 96;
+        const y = rand() * 96;
+        const r = 2 + rand() * 6;
+        g.fillStyle = 'rgba(30, 30, 40, 0.35)';
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(220, 220, 230, 0.35)';
+        g.lineWidth = 0.8;
+        g.beginPath(); g.arc(x + 0.4, y + 0.4, r, Math.PI * 0.1, Math.PI * 1.1); g.stroke();
+      }
+    },
+    // Rows of vines on dry earth.
+    vines(g, rand) {
+      g.fillStyle = '#a8865a';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 20, ['rgba(140, 100, 60, 0.3)', 'rgba(200, 170, 120, 0.25)'], 3, 9);
+      for (let row = 0; row < 8; row++) {
+        g.fillStyle = 'rgba(60, 40, 20, 0.35)';
+        g.fillRect(0, row * 12 + 7, 96, 2);
+        for (let k = 0; k < 16; k++) {
+          g.fillStyle = ['#4a6a2a', '#5a7a30', '#3a5a22'][Math.floor(rand() * 3)];
+          g.beginPath();
+          g.arc(k * 6 + rand() * 2, row * 12 + 5, 2.6 + rand(), 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    },
+    concrete(g, rand) {
+      g.fillStyle = '#8e8e8c';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 24, ['rgba(60, 60, 60, 0.15)', 'rgba(200, 200, 196, 0.15)'], 3, 10);
+      blobs(g, rand, 3, ['rgba(20, 16, 10, 0.4)'], 3, 6);
+      g.fillStyle = 'rgba(40, 40, 40, 0.5)';
+      for (const p of [0, 48]) { g.fillRect(p, 0, 1, 96); g.fillRect(0, p, 96, 1); }
+    },
+    gravel(g, rand) {
+      g.fillStyle = '#d6ccb4';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 500, ['#b8ae98', '#e8e0cc', '#a89e88', '#c8beaa'], 0.4, 1);
+      g.strokeStyle = 'rgba(150, 140, 120, 0.3)';
+      g.lineWidth = 0.6;
+      g.beginPath();
+      for (let y = 3; y < 96; y += 6) { g.moveTo(0, y); g.lineTo(96, y); }
+      g.stroke();
+    },
+    carpet(g, rand) {
+      g.fillStyle = '#5c0e18';
+      g.fillRect(0, 0, 96, 96);
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 4; x++) {
+          const cx = x * 24 + 12 + (y % 2) * 12;
+          const cy = y * 24 + 12;
+          g.strokeStyle = '#d4a020';
+          g.lineWidth = 1.2;
+          g.beginPath();
+          g.arc(cx, cy, 6, 0, Math.PI * 2);
+          g.stroke();
+          g.fillStyle = '#1a6a6a';
+          g.beginPath();
+          g.moveTo(cx, cy - 3); g.lineTo(cx + 3, cy); g.lineTo(cx, cy + 3); g.lineTo(cx - 3, cy);
+          g.fill();
+          g.fillStyle = '#e0b040';
+          g.fillRect(cx - 12.5, cy - 0.6, 3, 1.2);
+        }
+      }
+      blobs(g, rand, 40, ['rgba(0, 0, 0, 0.12)'], 1, 4);
+    },
+  };
+  const grounds = {};
+  function groundPattern(c, kind) {
+    if (!grounds[kind]) {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 96;
+      GROUNDS[kind](cv.getContext('2d'), seeded(kind));
+      grounds[kind] = cv;
     }
-    return c.createPattern(earth, 'repeat');
+    return c.createPattern(grounds[kind], 'repeat');
   }
 
   // The track, the grass beside it and the barriers round it (outside them is darker). `sx`, `sy`:
@@ -612,15 +1110,16 @@
     const path = trackPath(tr.line);
     const sh = shapeOf(tr);
     const pal = palette();
+    const th = themeOf();
     const edge = tr.width / 2 + tr.band;
     const half = tr.width / 2;
     c.setTransform(sx, 0, 0, sy, 0, 0);
     c.clearRect(0, 0, tr.world.w, tr.world.h);
     c.lineJoin = 'round';
     c.lineCap = 'round';
+    if (th.void) { rainbowStatic(c, tr, sh, pal, path, { scenery, under }); return; }
     const snow = wxOf().snow;
-    const spooky = haunted();
-    c.fillStyle = `rgba(0, 0, 0, ${snow ? 0.14 : 0.42})`;
+    c.fillStyle = `rgba(0, 0, 0, ${snow ? 0.14 : th.dim})`;
     c.fillRect(0, 0, tr.world.w, tr.world.h);
     // Inside the barriers, the felt (grass) shows through, a little lighter.
     c.globalCompositeOperation = 'destination-out';
@@ -630,20 +1129,23 @@
     c.lineWidth = (edge + BARRIER) * 2;
     c.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     c.stroke(path);
+    c.globalCompositeOperation = 'destination-over';
+    // The venue's verges, inside the barriers (the pirates' boardwalk)...
+    if (th.verge && !snow) {
+      c.strokeStyle = groundPattern(c, th.verge);
+      c.stroke(path);
+    }
     // Snow: white over the grass, and greyer beyond the barriers (under what's there already).
     if (snow) {
-      c.globalCompositeOperation = 'destination-over';
       c.fillStyle = '#e9eef4';
       c.fillRect(0, 0, tr.world.w, tr.world.h);
-      c.globalCompositeOperation = 'source-over';
     }
-    // Halloween: dead grass and earth (and darker beyond the fence).
-    if (spooky) {
-      c.globalCompositeOperation = 'destination-over';
-      c.fillStyle = earthPattern(c);
+    // ...and its ground (Halloween: dead grass and earth, darker beyond the fence).
+    if (th.ground) {
+      c.fillStyle = groundPattern(c, th.ground);
       c.fillRect(0, 0, tr.world.w, tr.world.h);
-      c.globalCompositeOperation = 'source-over';
     }
+    c.globalCompositeOperation = 'source-over';
     // The hills cast their shadows (down and to the right, as the light comes from the top left).
     if (sh.hilly && !under) hillShadow(c, sh);
     // Gravel on the outside of the bends.
@@ -666,20 +1168,32 @@
     quads(half + 6, edge - 2, (i) => (bendy(i) > 0.24 ? -Math.sign(sh.bend[i]) : 0), 'rgba(214, 192, 150, 0.55)');
     // The asphalt, with a white line down each edge.
     c.lineWidth = tr.width + 2;
-    c.strokeStyle = spooky ? '#d4cab4' : '#ececec';
+    c.strokeStyle = th.line;
     c.stroke(path);
     c.lineWidth = tr.width - 4;
     c.strokeStyle = grainPattern(c);
     c.stroke(path);
-    // Kerbs round the bends, both sides, in the room's colour and white (Halloween: black).
-    const kerb = spooky ? '#141016' : '#f4f4f4';
+    // Kerbs round the bends, both sides, in the room's colour and white (or the venue's two).
+    const kerb = th.kerb;
+    const kerbAlt = th.kerbAlt || pal.accent;
     for (const odd of [0, 1]) {
-      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? 1 : 0), odd ? kerb : pal.accent);
-      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? -1 : 0), odd ? pal.accent : kerb);
+      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? 1 : 0), odd ? kerb : kerbAlt);
+      quads(half - 4, half + 6, (i) => (bendy(i) > 0.2 && i % 2 === odd ? -1 : 0), odd ? kerbAlt : kerb);
     }
     // The hills: lighter up high, darker down low, each slope lit as it faces.
     if (sh.hilly && !under) hillTint(c, sh);
-    // The start line, chequered, and the grid boxes behind it.
+    startLine(c, tr, sh);
+    // The barriers, as the venue has them.
+    barrierAbove(c, sh, pal, th);
+    // The figure eight's bridge over the road below (or, for the car's ground, that road in its
+    // shadow), and a ▲ at each sharp crest.
+    if (sh.hilly) bridgeAbove(c, tr, sh, pal, under, th);
+    if (sh.hilly && !under) crestMarks(c, sh);
+    if (scenery) drawScenery(c, tr, sh, pal);
+  }
+
+  // The start line, chequered, and the grid boxes behind it.
+  function startLine(c, tr, sh) {
     const [stx, sty, sa] = tr.start;
     c.save();
     c.translate(stx, sty);
@@ -707,46 +1221,210 @@
       c.stroke();
       c.restore();
     }
-    // Halloween: an iron cemetery fence, a stone pillar every so often.
-    if (spooky) {
-      for (const w of sh.walls) {
+  }
+
+  // The barriers from above, one side at a time (not where one would fold back on itself, nor on
+  // the bridge).
+  function wallPath(sh, w) {
+    const p = new Path2D();
+    for (let i = 0; i < sh.N; i++) {
+      const j = (i + 1) % sh.N;
+      if (!w.ok[i] || !w.ok[j] || sh.deck[i]) continue;
+      p.moveTo(w.x[i], w.y[i]);
+      p.lineTo(w.x[j], w.y[j]);
+    }
+    return p;
+  }
+  function barrierAbove(c, sh, pal, th) {
+    const col = th.wall || pal.rim;
+    const kind = th.barrier;
+    if (kind === 'none') return;
+    for (const w of sh.walls) {
+      const each = (step, fn) => { for (let i = 0; i < sh.N; i += step) if (w.ok[i] && !sh.deck[i]) fn(w.x[i], w.y[i], i); };
+      if (kind === 'tyres') {
+        // Tyres in the room's trim colour and black.
+        each(1, (x, y, i) => {
+          c.fillStyle = i % 2 ? th.wall2 : col;
+          c.beginPath();
+          c.arc(x, y, 4.6, 0, Math.PI * 2);
+          c.fill();
+          c.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          c.beginPath();
+          c.arc(x, y, 1.8, 0, Math.PI * 2);
+          c.fill();
+        });
+        continue;
+      }
+      if (kind === 'fence') {
+        // An iron fence, a stone pillar every so often.
         c.strokeStyle = '#08060a';
         c.lineWidth = 2.2;
-        c.beginPath();
-        for (let i = 0; i < sh.N; i++) {
-          const j = (i + 1) % sh.N;
-          if (!w.ok[i] || !w.ok[j] || sh.deck[i]) continue;
-          c.moveTo(w.x[i], w.y[i]);
-          c.lineTo(w.x[j], w.y[j]);
-        }
-        c.stroke();
-        for (let i = 0; i < sh.N; i++) {
-          if (!w.ok[i] || sh.deck[i]) continue;
+        c.stroke(wallPath(sh, w));
+        each(1, (x, y, i) => {
           c.fillStyle = i % 10 ? '#4a4258' : '#7a7090';
           const r = i % 10 ? 1.2 : 2.8;
-          c.fillRect(w.x[i] - r, w.y[i] - r, r * 2, r * 2);
-        }
+          c.fillRect(x - r, y - r, r * 2, r * 2);
+        });
+        continue;
+      }
+      const p = wallPath(sh, w);
+      c.lineCap = 'round';
+      if (kind === 'wall' || kind === 'hedge') {
+        // A wall (or a box hedge): its shadow, the top, a darker edge, crenels on a castle's.
+        c.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+        c.lineWidth = kind === 'hedge' ? 9 : 7;
+        c.save();
+        c.translate(2, 2);
+        c.stroke(p);
+        c.restore();
+        c.strokeStyle = th.wall2 && kind === 'wall' ? th.wall2 : 'rgba(0, 0, 0, 0.3)';
+        c.stroke(p);
+        c.strokeStyle = col;
+        c.lineWidth = kind === 'hedge' ? 7.5 : 5;
+        c.stroke(p);
+        if (kind === 'hedge') each(2, (x, y, i) => { c.fillStyle = i % 4 ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'; c.beginPath(); c.arc(x, y, 2.4, 0, Math.PI * 2); c.fill(); });
+        if (th.crenels) each(2, (x, y) => { c.fillStyle = th.wall2; c.fillRect(x - 1.6, y - 1.6, 3.2, 3.2); });
+      } else if (kind === 'rail' || kind === 'rope') {
+        // A rail on posts (wood, bamboo), or a rope slung between posts (the docks).
+        c.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        c.lineWidth = 2.6;
+        c.save();
+        c.translate(1.5, 1.5);
+        c.stroke(p);
+        c.restore();
+        c.strokeStyle = kind === 'rope' ? th.wall2 : col;
+        c.lineWidth = kind === 'rope' ? 1.2 : 2.4;
+        c.stroke(p);
+        each(2, (x, y) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, kind === 'rope' ? 2.4 : 1.8, 0, Math.PI * 2); c.fill(); });
+      } else if (kind === 'neon') {
+        // A glowing tube on a low black kerb.
+        c.strokeStyle = '#0a0a10';
+        c.lineWidth = 4.5;
+        c.stroke(p);
+        c.shadowColor = col;
+        c.shadowBlur = 6;
+        c.strokeStyle = col;
+        c.lineWidth = 2;
+        c.stroke(p);
+        c.shadowBlur = 0;
+        c.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+        c.lineWidth = 0.7;
+        c.stroke(p);
+      } else if (kind === 'candy') {
+        // Candy canes: a white rail, striped.
+        c.strokeStyle = th.wall2;
+        c.lineWidth = 4;
+        c.stroke(p);
+        c.lineCap = 'butt';
+        c.setLineDash([3.5, 3.5]);
+        c.strokeStyle = col;
+        c.stroke(p);
+        c.setLineDash([]);
+      } else if (kind === 'bunting') {
+        // A line of little flags, in the venue's two colours.
+        c.strokeStyle = '#3a3a40';
+        c.lineWidth = 0.8;
+        c.stroke(p);
+        each(1, (x, y, i) => {
+          c.fillStyle = i % 2 ? th.wall2 : col;
+          c.beginPath();
+          c.moveTo(x - 2.4, y - 1.6);
+          c.lineTo(x + 2.4, y - 1.6);
+          c.lineTo(x, y + 2.4);
+          c.fill();
+        });
+        each(4, (x, y) => { c.fillStyle = '#5a3a1e'; c.fillRect(x - 1.1, y - 1.1, 2.2, 2.2); });
       }
     }
-    // The tyre wall: tyres in the room's trim colour and black.
-    for (const w of spooky ? [] : sh.walls) {
-      for (let i = 0; i < sh.N; i++) {
-        if (!w.ok[i] || sh.deck[i]) continue;
-        c.fillStyle = i % 2 ? '#151515' : pal.rim;
-        c.beginPath();
-        c.arc(w.x[i], w.y[i], 4.6, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        c.beginPath();
-        c.arc(w.x[i], w.y[i], 1.8, 0, Math.PI * 2);
-        c.fill();
+  }
+
+  // ---------- Rainbow Road, from above ----------
+  //
+  // Space all round (the TV's: for the car's ground, `under`, nothing: the shader puts space
+  // there), the road a glowing band of rainbow as wide as the road and its verges (there's no
+  // grass, and no walls: off its edge, you fall), the start line, and the venue's props and the
+  // neon gantry (drawScenery).
+  function rainbowStatic(c, tr, sh, pal, path, { scenery, under }) {
+    const edge = tr.width / 2 + tr.band;
+    if (!under) spaceAbove(c, tr, sh, edge);
+    // A soft glow round it, a white edge, then the bands, red outside to violet down the middle.
+    if (!under) {
+      for (const [w, a] of [[16, 0.08], [9, 0.14]]) {
+        c.lineWidth = edge * 2 + w;
+        c.strokeStyle = `rgba(255, 255, 255, ${a})`;
+        c.stroke(path);
       }
     }
-    // The figure eight's bridge over the road below (or, for the car's ground, that road in its
-    // shadow), and a ▲ at each sharp crest.
-    if (sh.hilly) bridgeAbove(c, tr, sh, pal, under, spooky);
+    c.lineWidth = edge * 2 + 2.5;
+    c.strokeStyle = '#ffffff';
+    c.stroke(path);
+    RAINBOW.forEach((col, k) => {
+      c.lineWidth = (edge * 2 * (7 - k)) / 7;
+      c.strokeStyle = col;
+      c.stroke(path);
+    });
+    // A dashed line down the middle, and a sheen along it.
+    c.lineWidth = 1.6;
+    c.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    c.setLineDash([10, 12]);
+    c.stroke(path);
+    c.setLineDash([]);
+    if (sh.hilly && !under) hillTint(c, sh);
+    startLine(c, tr, sh);
+    if (sh.hilly) bridgeAbove(c, tr, sh, pal, under);
     if (sh.hilly && !under) crestMarks(c, sh);
     if (scenery) drawScenery(c, tr, sh, pal);
+  }
+
+  // The stars from above: deep space, clouds of colour, stars, and a planet or two out where the
+  // road isn't.
+  function spaceAbove(c, tr, sh, edge) {
+    const W = tr.world.w;
+    const H = tr.world.h;
+    const bg = c.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#05031a');
+    bg.addColorStop(1, '#0c0626');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, W, H);
+    const rand = seeded(`${tr.id}:space`);
+    for (const [col, x, y, r] of [['140, 70, 255', 0.2, 0.3, 280], ['42, 160, 255', 0.75, 0.7, 300], ['255, 74, 154', 0.8, 0.15, 220], ['58, 224, 200', 0.35, 0.85, 200]]) {
+      const n = c.createRadialGradient(x * W, y * H, 0, x * W, y * H, r);
+      n.addColorStop(0, `rgba(${col}, 0.2)`);
+      n.addColorStop(1, `rgba(${col}, 0)`);
+      c.fillStyle = n;
+      c.fillRect(0, 0, W, H);
+    }
+    for (let k = 0; k < 420; k++) {
+      c.fillStyle = `rgba(255, 255, 255, ${0.25 + rand() * 0.7})`;
+      const s = rand() < 0.08 ? 2.2 : 1.2;
+      c.fillRect(rand() * W, rand() * H, s, s);
+    }
+    // Planets, wherever there's room for one clear of the road.
+    const clear = (x, y, r) => {
+      if (x < r || y < r || x > W - r || y > H - r) return false;
+      for (let i = 0; i < sh.N; i++) if ((sh.xs[i] - x) ** 2 + (sh.ys[i] - y) ** 2 < (edge + r + 14) ** 2) return false;
+      return true;
+    };
+    const planets = [[46, '#ffd0a0', '#7a3a2a', true], [26, '#9ad8ff', '#1a2a7a', false], [16, '#e8e4f0', '#4a4660', false]];
+    for (const [r, a, b, ring] of planets) {
+      for (let k = 0; k < 200; k++) {
+        const x = rand() * W;
+        const y = rand() * H;
+        if (!clear(x, y, ring ? r * 1.9 : r)) continue;
+        const pg = c.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+        pg.addColorStop(0, a);
+        pg.addColorStop(1, b);
+        c.strokeStyle = 'rgba(230, 210, 255, 0.55)';
+        c.lineWidth = 4;
+        if (ring) { c.beginPath(); c.ellipse(x, y, r * 1.9, r * 0.5, -0.4, Math.PI, Math.PI * 2); c.stroke(); }
+        c.fillStyle = pg;
+        c.beginPath();
+        c.arc(x, y, r, 0, Math.PI * 2);
+        c.fill();
+        if (ring) { c.beginPath(); c.ellipse(x, y, r * 1.9, r * 0.5, -0.4, 0, Math.PI); c.stroke(); }
+        break;
+      }
+    }
   }
 
   // ---------- The hills, from above ----------
@@ -854,12 +1532,32 @@
     }
   }
 
-  function bridgeAbove(c, tr, sh, pal, under, spooky) {
+  function bridgeAbove(c, tr, sh, pal, under, th = themeOf()) {
     if (!sh.deck.some((d) => d)) return;
     const half = tr.width / 2;
     const span = sh.top - 2.5;
     const rail = sh.top - 4;
     const on = (i, j) => sh.deck[i] && sh.deck[j];
+    if (th.void) {
+      // Rainbow Road: the bridge is more road, in its bands (the car's ground has none: it's the
+      // road's own model there).
+      if (under) return;
+      const lift = Math.max(...sh.zs) * 0.32;
+      c.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      strip(c, sh, -sh.top, sh.top, on, lift, lift);
+      c.fill();
+      const edge = tr.width / 2 + tr.band;
+      c.fillStyle = '#ffffff';
+      strip(c, sh, -edge - 1.2, edge + 1.2, on);
+      c.fill();
+      RAINBOW.forEach((col, k) => {
+        const w = (edge * (7 - k)) / 7;
+        c.fillStyle = col;
+        strip(c, sh, -w, w, on);
+        c.fill();
+      });
+      return;
+    }
     if (under) {
       // The car's ground: the road below, white lines and all, in the bridge's shadow.
       const below = (i) => sh.ceil[i] < 1e4;
@@ -881,13 +1579,13 @@
     c.fillStyle = 'rgba(0, 0, 0, 0.25)';
     strip(c, sh, -span - 3, span + 3, on, lift * 0.6, lift * 0.6);
     c.fill();
-    c.fillStyle = spooky ? '#4a4452' : '#8f8d86';
+    c.fillStyle = th.bridge.slab;
     strip(c, sh, -span, span, on);
     c.fill();
-    c.fillStyle = spooky ? '#5a5462' : '#a9a69d';
+    c.fillStyle = th.bridge.deck;
     strip(c, sh, -rail + 1, rail - 1, on);
     c.fill();
-    c.fillStyle = spooky ? '#d4cab4' : '#ececec';
+    c.fillStyle = th.bridge.line;
     strip(c, sh, -half - 1, half + 1, on);
     c.fill();
     c.fillStyle = grainPattern(c);
@@ -905,7 +1603,7 @@
         c.lineTo(sh.xs[j] + sh.nx[j] * rail * side, sh.ys[j] + sh.ny[j] * rail * side);
       }
       c.stroke();
-      c.strokeStyle = spooky ? '#e07a1a' : pal.accent;
+      c.strokeStyle = th.bridge.rail || pal.accent;
       c.lineWidth = 1.2;
       c.stroke();
       c.fillStyle = '#f4f4f4';
@@ -918,100 +1616,27 @@
 
   // The scenery seen from above (the TV and the phones' maps).
   function drawScenery(c, tr, sh, pal) {
-    const greens = ['#2f7d3a', '#3c8f45', '#2a6b34', '#4d9a3e'];
     const snowy = wxOf().snow;
-    const spooky = haunted();
+    const th = themeOf();
     const art = propArt(pal);
     for (const p of sh.props) {
-      if (p.kind === 'tyres' && spooky) {
-        // Halloween: a gravestone and a cross where the tyres would be.
-        c.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        c.fillRect(p.x - 3, p.y - 1, 9, 6);
-        c.fillStyle = '#6a6478';
-        roundRect(c, p.x - 5, p.y - 5, 7, 8, [3.5, 3.5, 0.5, 0.5]);
-        c.fill();
-        c.fillStyle = '#5a546a';
-        c.fillRect(p.x + 3, p.y - 5, 1.6, 8);
-        c.fillRect(p.x + 1.4, p.y - 3, 4.8, 1.6);
-      } else if (p.kind === 'tyres') {
-        for (const [dx, dy] of [[-3, -2], [3, -2], [0, 3]]) {
-          c.fillStyle = '#141414';
-          c.beginPath();
-          c.arc(p.x + dx, p.y + dy, 3.6, 0, Math.PI * 2);
-          c.fill();
-          c.fillStyle = pal.rim;
-          c.beginPath();
-          c.arc(p.x + dx, p.y + dy, 1.4, 0, Math.PI * 2);
-          c.fill();
-        }
-      } else if (p.kind === 'tree' && spooky) {
-        // A dead tree: bare, twisted branches (and their shadow).
-        const rand = seeded(`${Math.round(p.x)}:${Math.round(p.y)}`);
-        const limbs = [];
-        const n = 4 + Math.floor(rand() * 2);
-        for (let k = 0; k < n; k++) {
-          const a = (k / n) * Math.PI * 2 + rand() * 0.9;
-          const len = p.r * (0.8 + rand() * 0.5);
-          const bend = (rand() - 0.5) * 1.2;
-          limbs.push([a, len, bend]);
-        }
-        c.lineCap = 'round';
-        for (const [dx, col] of [[4, 'rgba(0, 0, 0, 0.4)'], [0, '#100a14']]) {
-          c.strokeStyle = col;
-          for (const [a, len, bend] of limbs) {
-            const mx = p.x + dx + Math.cos(a) * len * 0.55;
-            const my = p.y + dx + Math.sin(a) * len * 0.55;
-            c.lineWidth = 2.2;
-            c.beginPath();
-            c.moveTo(p.x + dx, p.y + dx);
-            c.lineTo(mx, my);
-            c.lineTo(mx + Math.cos(a + bend) * len * 0.5, my + Math.sin(a + bend) * len * 0.5);
-            c.stroke();
-            c.lineWidth = 0.9;
-            c.beginPath();
-            c.moveTo(mx, my);
-            c.lineTo(mx + Math.cos(a - bend * 1.4) * len * 0.4, my + Math.sin(a - bend * 1.4) * len * 0.4);
-            c.stroke();
-          }
-          c.fillStyle = col;
-          c.beginPath();
-          c.arc(p.x + dx, p.y + dx, 2.2, 0, Math.PI * 2);
-          c.fill();
-        }
-      } else if (p.kind === 'tree') {
+      if (p.kind === 'tyres') stackAbove(c, p, pal, th);
+      else if (p.kind === 'tree' && kept(p, th)) treeAbove(c, p, th, snowy);
+    }
+    // The venue's extras (Halloween's gravestones, crosses and jack-o'-lanterns; the tiki bar's
+    // torches), standing up like the room's props.
+    for (const p of extrasOf(tr, th).things) {
+      const it = art.byKind[p.kind];
+      if (!it) continue;
+      if (it.glow) {
+        c.drawImage(glowSprite(th.glow), p.x - p.size * 1.2, p.y - p.size * 1.3, p.size * 2.4, p.size * 2.4);
+      } else {
         c.fillStyle = 'rgba(0, 0, 0, 0.3)';
         c.beginPath();
-        c.arc(p.x + 4, p.y + 4, p.r, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = greens[Math.floor(p.tone * greens.length)];
-        c.beginPath();
-        c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        c.fill();
-        if (snowy) {
-          c.fillStyle = 'rgba(250, 252, 255, 0.45)';
-          c.fill();
-        }
-        c.fillStyle = snowy ? 'rgba(250, 252, 255, 0.8)' : 'rgba(255, 255, 255, 0.14)';
-        c.beginPath();
-        c.arc(p.x - p.r * 0.3, p.y - p.r * 0.3, p.r * 0.5, 0, Math.PI * 2);
+        c.ellipse(p.x + 2, p.y + p.size * 0.42, p.size * 0.3, p.size * 0.14, 0, 0, Math.PI * 2);
         c.fill();
       }
-    }
-    // Halloween's gravestones, crosses and jack-o'-lanterns, standing up like the room's props.
-    if (spooky) {
-      for (const p of hauntOf(tr).things) {
-        const it = art.byKind[p.kind];
-        if (!it) continue;
-        if (p.kind === 'lantern') {
-          c.drawImage(glowSprite('orange'), p.x - p.size * 1.2, p.y - p.size * 1.3, p.size * 2.4, p.size * 2.4);
-        } else {
-          c.fillStyle = 'rgba(0, 0, 0, 0.3)';
-          c.beginPath();
-          c.ellipse(p.x + 2, p.y + p.size * 0.42, p.size * 0.3, p.size * 0.14, 0, 0, Math.PI * 2);
-          c.fill();
-        }
-        c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-      }
+      c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     // The room's props, standing up (the way the TV's scenery shows things), each over its shadow.
     for (const p of sh.props) {
@@ -1019,23 +1644,24 @@
       const it = art.items[p.which % art.items.length];
       const [x, y] = propAt(p, it);
       const size = Math.min(it.size, 40);
-      if (it.glow) c.drawImage(glowSprite('orange'), x - size, y - size, size * 2, size * 2);
+      if (it.glow) c.drawImage(glowSprite(th.glow), x - size, y - size, size * 2, size * 2);
       c.fillStyle = 'rgba(0, 0, 0, 0.3)';
       c.beginPath();
       c.ellipse(x + 3, y + size * 0.38, it.half * 0.9, it.half * 0.4, 0, 0, Math.PI * 2);
       c.fill();
       c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, x - size / 2, y - size / 2 - (it.lift ? 8 : 0), size, size);
     }
-    if (sh.stand) {
+    if (sh.stand && th.stand) {
       const s = sh.stand;
       c.save();
       c.translate(s.x, s.y);
       c.rotate(s.a);
       c.fillStyle = 'rgba(0, 0, 0, 0.35)';
       c.fillRect(-s.len / 2 + 4, -s.depth / 2 + 4, s.len, s.depth);
-      c.fillStyle = spooky ? '#3e3848' : '#8d939b';
+      c.fillStyle = th.stand;
       c.fillRect(-s.len / 2, -s.depth / 2, s.len, s.depth);
-      // Rows of people (the front row nearest the track). Halloween: ghosts and skeletons.
+      // Rows of people (the front row nearest the track), in the venue's colours. Halloween: ghosts
+      // and skeletons.
       const rand = seeded(`${tr.id}:crowd`);
       for (let row = 0; row < 4; row++) {
         for (let k = 0; k < 30; k++) {
@@ -1043,22 +1669,23 @@
           const l = rand();
           const x = -s.len / 2 + 4 + k * 5.4;
           const y = (-s.depth / 2 + 4 + row * 6) * s.side - 2;
-          if (spooky) {
+          if (th.crowd === 'ghosts') {
             c.fillStyle = h < 0.6 ? `rgba(226, 240, 255, ${0.6 + l * 0.35})` : '#d8d0b4';
             c.beginPath();
             c.arc(x + 1.8, y + 1.8, 1.9, 0, Math.PI * 2);
             c.fill();
           } else {
-            c.fillStyle = `hsl(${Math.floor(h * 360)}, 70%, ${45 + l * 25}%)`;
+            c.fillStyle = th.crowd ? th.crowd[Math.floor(h * th.crowd.length)] : `hsl(${Math.floor(h * 360)}, 70%, ${45 + l * 25}%)`;
             c.fillRect(x, y, 3.6, 3.6);
           }
         }
       }
-      c.fillStyle = pal.accent;
+      c.fillStyle = th.roof || pal.accent;
       c.fillRect(-s.len / 2, (s.depth / 2 - 3) * s.side - 1.5, s.len, 3);
       c.restore();
     }
-    // The gantry over the start line (Halloween: a stone arch, a jack-o'-lantern on each pillar).
+    // The gantry over the start line (Halloween: a stone arch, a jack-o'-lantern on each pillar; at
+    // the tiki bar, a torch on each post).
     const i = sh.startI;
     const span = tr.width / 2 + 12;
     c.lineCap = 'butt';
@@ -1068,29 +1695,181 @@
     c.moveTo(sh.xs[i] - sh.nx[i] * span + 6, sh.ys[i] - sh.ny[i] * span + 6);
     c.lineTo(sh.xs[i] + sh.nx[i] * span + 6, sh.ys[i] + sh.ny[i] * span + 6);
     c.stroke();
-    c.strokeStyle = spooky ? '#4a4258' : '#26262b';
-    c.lineWidth = spooky ? 6 : 5;
+    if (th.gantry === 'neon') {
+      c.shadowColor = '#ff5ad8';
+      c.shadowBlur = 8;
+    }
+    c.strokeStyle = th.gantry === 'neon' ? '#140a24' : th.beam;
+    c.lineWidth = th.gantry === 'arch' ? 6 : 5;
     c.beginPath();
     c.moveTo(sh.xs[i] - sh.nx[i] * span, sh.ys[i] - sh.ny[i] * span);
     c.lineTo(sh.xs[i] + sh.nx[i] * span, sh.ys[i] + sh.ny[i] * span);
     c.stroke();
-    c.strokeStyle = pal.accent;
+    c.shadowBlur = 0;
+    c.strokeStyle = th.gantry === 'neon' ? '#29f0ff' : pal.accent;
     c.lineWidth = 2;
     c.stroke();
-    if (spooky && art.byKind.lantern) {
-      const it = art.byKind.lantern;
+    if (th.gantry === 'neon') {
       for (const side of [-1, 1]) {
         const x = sh.xs[i] + sh.nx[i] * span * side;
         const y = sh.ys[i] + sh.ny[i] * span * side;
-        c.fillStyle = '#5e5670';
+        c.drawImage(glowSprite(side < 0 ? 'pink' : 'cyan'), x - 14, y - 14, 28, 28);
+        c.fillStyle = side < 0 ? '#ff5ad8' : '#29f0ff';
+        c.fillRect(x - 3, y - 3, 6, 6);
+      }
+    }
+    const top = th.pillar && art.byKind[th.pillar];
+    if (top) {
+      for (const side of [-1, 1]) {
+        const x = sh.xs[i] + sh.nx[i] * span * side;
+        const y = sh.ys[i] + sh.ny[i] * span * side;
+        c.fillStyle = th.cap || (th.gantry === 'arch' ? th.beam : hex(th.post));
         c.fillRect(x - 4, y - 4, 8, 8);
-        c.drawImage(glowSprite('orange'), x - 16, y - 18, 32, 32);
-        c.drawImage(art.cv, it.cell * CELL, 0, CELL, CELL, x - 8, y - 11, 16, 16);
+        c.drawImage(glowSprite(th.glow), x - 16, y - 18, 32, 32);
+        c.drawImage(art.cv, top.cell * CELL, 0, CELL, CELL, x - 8, y - 11, 16, 16);
       }
     }
   }
 
-  // A soft glow (a jack-o'-lantern's, a will-o'-the-wisp's), painted once each.
+  // What's piled on the outside of the bends, from above.
+  function stackAbove(c, p, pal, th) {
+    const kind = th.stack;
+    const disc = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
+    if (kind === 'none') return;
+    if (kind === 'graves') {
+      // A gravestone and a cross where the tyres would be.
+      c.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      c.fillRect(p.x - 3, p.y - 1, 9, 6);
+      c.fillStyle = '#6a6478';
+      roundRect(c, p.x - 5, p.y - 5, 7, 8, [3.5, 3.5, 0.5, 0.5]);
+      c.fill();
+      c.fillStyle = '#5a546a';
+      c.fillRect(p.x + 3, p.y - 5, 1.6, 8);
+      c.fillRect(p.x + 1.4, p.y - 3, 4.8, 1.6);
+      return;
+    }
+    const three = [[-3, -2], [3, -2], [0, 3]];
+    if (kind === 'tyres') {
+      for (const [dx, dy] of three) { disc(p.x + dx, p.y + dy, 3.6, '#141414'); disc(p.x + dx, p.y + dy, 1.4, th.wall || pal.rim); }
+    } else if (kind === 'drums' || kind === 'barrels' || kind === 'stools' || kind === 'chips') {
+      const [rim, top] = { drums: [th.drum ? hex(th.drum) : '#2a5a8a', '#1a1a1a'], barrels: ['#7a4a22', '#a87a4a'], stools: ['#c9ccd1', '#e63946'], chips: ['#f4f4f4', '#c8202e'] }[kind];
+      for (const [dx, dy] of three) {
+        disc(p.x + dx + 1.5, p.y + dy + 1.5, 3.6, 'rgba(0, 0, 0, 0.3)');
+        disc(p.x + dx, p.y + dy, 3.6, rim);
+        disc(p.x + dx, p.y + dy, kind === 'stools' ? 2.8 : 2.4, top);
+      }
+    } else if (kind === 'hay' || kind === 'presents' || kind === 'speakers') {
+      const cols = { hay: ['#d8b860', '#b89840'], presents: ['#e2403b', '#2a8a4a', '#e8b84a'], speakers: ['#1a1a20', '#2a2a32'] }[kind];
+      [[-4, -1, 7, 5], [3, -3, 6, 6], [-1, 3, 6, 5]].forEach(([dx, dy, w, h], k) => {
+        c.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        c.fillRect(p.x + dx - w / 2 + 1.5, p.y + dy - h / 2 + 1.5, w, h);
+        c.fillStyle = cols[k % cols.length];
+        c.fillRect(p.x + dx - w / 2, p.y + dy - h / 2, w, h);
+        c.fillStyle = kind === 'presents' ? '#ffffff' : kind === 'speakers' ? '#5a5a66' : 'rgba(255, 255, 255, 0.2)';
+        if (kind === 'speakers') disc(p.x + dx, p.y + dy, 1.6, '#5a5a66');
+        else c.fillRect(p.x + dx - 0.6, p.y + dy - h / 2, 1.2, h);
+      });
+    } else if (kind === 'rocks') {
+      for (const [dx, dy, r] of [[-3, -1, 4], [3, 1, 3], [0, 4, 2.4]]) { disc(p.x + dx + 1.5, p.y + dy + 1.5, r, 'rgba(0, 0, 0, 0.3)'); disc(p.x + dx, p.y + dy, r, '#4a4448'); disc(p.x + dx - r * 0.3, p.y + dy - r * 0.3, r * 0.45, '#6a6468'); }
+    } else if (kind === 'topiary') {
+      for (const [dx, dy] of three) { disc(p.x + dx + 1.5, p.y + dy + 1.5, 3.4, 'rgba(0, 0, 0, 0.3)'); disc(p.x + dx, p.y + dy, 3.4, '#2f6e34'); disc(p.x + dx - 1, p.y + dy - 1, 1.4, 'rgba(255, 255, 255, 0.18)'); }
+    }
+  }
+
+  // What stands about in the fields, from above.
+  const GREENS = ['#2f7d3a', '#3c8f45', '#2a6b34', '#4d9a3e'];
+  function treeAbove(c, p, th, snowy) {
+    const kind = th.tree;
+    const disc = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
+    if (kind === 'none') return;
+    if (kind === 'dead') {
+      // A dead tree: bare, twisted branches (and their shadow).
+      const rand = seeded(`${Math.round(p.x)}:${Math.round(p.y)}`);
+      const limbs = [];
+      const n = 4 + Math.floor(rand() * 2);
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2 + rand() * 0.9;
+        const len = p.r * (0.8 + rand() * 0.5);
+        const bend = (rand() - 0.5) * 1.2;
+        limbs.push([a, len, bend]);
+      }
+      c.lineCap = 'round';
+      for (const [dx, col] of [[4, 'rgba(0, 0, 0, 0.4)'], [0, '#100a14']]) {
+        c.strokeStyle = col;
+        for (const [a, len, bend] of limbs) {
+          const mx = p.x + dx + Math.cos(a) * len * 0.55;
+          const my = p.y + dx + Math.sin(a) * len * 0.55;
+          c.lineWidth = 2.2;
+          c.beginPath();
+          c.moveTo(p.x + dx, p.y + dx);
+          c.lineTo(mx, my);
+          c.lineTo(mx + Math.cos(a + bend) * len * 0.5, my + Math.sin(a + bend) * len * 0.5);
+          c.stroke();
+          c.lineWidth = 0.9;
+          c.beginPath();
+          c.moveTo(mx, my);
+          c.lineTo(mx + Math.cos(a - bend * 1.4) * len * 0.4, my + Math.sin(a - bend * 1.4) * len * 0.4);
+          c.stroke();
+        }
+        c.fillStyle = col;
+        c.beginPath();
+        c.arc(p.x + dx, p.y + dx, 2.2, 0, Math.PI * 2);
+        c.fill();
+      }
+      return;
+    }
+    if (kind === 'pine' || kind === 'round' || kind === 'cypress') {
+      const r = kind === 'cypress' ? p.r * 0.45 : p.r;
+      disc(p.x + 4, p.y + 4, r, 'rgba(0, 0, 0, 0.3)');
+      disc(p.x, p.y, r, kind === 'cypress' ? '#1f4a28' : kind === 'round' ? ['#4a8a34', '#5a9a3a', '#3a7a2e', '#6aa040'][Math.floor(p.tone * 4)] : GREENS[Math.floor(p.tone * GREENS.length)]);
+      if (snowy) {
+        c.fillStyle = 'rgba(250, 252, 255, 0.45)';
+        c.fill();
+      }
+      disc(p.x - r * 0.3, p.y - r * 0.3, r * 0.5, snowy ? 'rgba(250, 252, 255, 0.8)' : 'rgba(255, 255, 255, 0.14)');
+    } else if (kind === 'palm') {
+      // Fronds out from the top, over the trunk's shadow.
+      disc(p.x + 5, p.y + 5, p.r * 0.8, 'rgba(0, 0, 0, 0.25)');
+      c.strokeStyle = '#2f8a3a';
+      c.lineCap = 'round';
+      c.lineWidth = 2.4;
+      c.beginPath();
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2 + p.tone * 3;
+        c.moveTo(p.x, p.y);
+        c.quadraticCurveTo(p.x + Math.cos(a) * p.r * 0.6, p.y + Math.sin(a) * p.r * 0.6 - 2, p.x + Math.cos(a) * p.r, p.y + Math.sin(a) * p.r);
+      }
+      c.stroke();
+      disc(p.x, p.y, 2.2, '#6a4a2a');
+    } else if (kind === 'cactus') {
+      c.save();
+      c.translate(p.x, p.y);
+      c.scale(p.r / 6, p.r / 6);
+      c.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      c.fillRect(-1, 1, 6, 3);
+      c.fillStyle = '#3f7a3a';
+      roundRect(c, -2.2, -7, 4.4, 10, 2.2);
+      c.fill();
+      roundRect(c, -6, -4, 4, 3, 1.5);
+      c.fill();
+      roundRect(c, 2, -6, 4, 3, 1.5);
+      c.fill();
+      c.restore();
+    } else if (kind === 'lamp') {
+      // A street lamp: its pool of light, the post, the lamp.
+      c.drawImage(glowSprite(th.lamp || 'warm'), p.x - 16, p.y - 16, 32, 32);
+      disc(p.x + 2, p.y + 2, 1.6, 'rgba(0, 0, 0, 0.4)');
+      disc(p.x, p.y, 1.8, '#26262b');
+      disc(p.x, p.y, 1, '#fff6d8');
+    } else if (kind === 'rock') {
+      disc(p.x + 3, p.y + 3, p.r * 0.6, 'rgba(0, 0, 0, 0.3)');
+      disc(p.x, p.y, p.r * 0.6, ['#6a6468', '#5a5658', '#7a7270'][Math.floor(p.tone * 3)]);
+      disc(p.x - p.r * 0.2, p.y - p.r * 0.2, p.r * 0.3, 'rgba(255, 255, 255, 0.14)');
+    }
+  }
+
+  // A soft glow (a jack-o'-lantern's, a will-o'-the-wisp's, a torch's, a lamp's), painted once each.
+  const GLOWS = { orange: [255, 150, 40], green: [140, 255, 170], fire: [255, 140, 40], warm: [255, 210, 130], pink: [255, 90, 216], cyan: [80, 230, 255], white: [230, 240, 255] };
   const glows = {};
   function glowSprite(kind) {
     if (glows[kind]) return glows[kind];
@@ -1098,7 +1877,7 @@
     cv.width = cv.height = 64;
     const c = cv.getContext('2d');
     const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
-    const [r, gg, b] = kind === 'green' ? [140, 255, 170] : [255, 150, 40];
+    const [r, gg, b] = GLOWS[kind] || GLOWS.orange;
     g.addColorStop(0, `rgba(${r}, ${gg}, ${b}, ${kind === 'green' ? 0.9 : 0.6})`);
     g.addColorStop(kind === 'green' ? 0.18 : 0.3, `rgba(${r}, ${gg}, ${b}, ${kind === 'green' ? 0.45 : 0.28})`);
     g.addColorStop(1, `rgba(${r}, ${gg}, ${b}, 0)`);
@@ -1152,28 +1931,31 @@
     return batPics;
   }
 
-  // Halloween over the track from above, each frame (the TV, the maps, the phone with no WebGL):
-  // the jack-o'-lanterns flickering, the will-o'-the-wisps drifting and the phantom car.
-  function hauntAbove(c, s, tr, ms) {
-    const hs = hauntOf(tr);
-    const glow = glowSprite('orange');
+  // The venue's goings-on over the track from above, each frame (the TV, the maps, the phone with no
+  // WebGL): what glows flickering (jack-o'-lanterns, torches), the will-o'-the-wisps drifting, the
+  // phantom car, comets going over. Nothing new made each frame.
+  function aboveFx(c, s, tr, ms, th = themeOf(s)) {
+    const hs = extrasOf(tr, th);
+    const glow = glowSprite(th.glow);
     c.globalCompositeOperation = 'lighter';
     for (let k = 0; k < hs.things.length; k++) {
       const p = hs.things[k];
-      if (p.kind !== 'lantern') continue;
+      if (!p.glow) continue;
       c.globalAlpha = Math.max(0, (flicker(ms, k) - 0.7) * 2.2);
       c.drawImage(glow, p.x - p.size * 1.3, p.y - p.size * 1.4, p.size * 2.6, p.size * 2.6);
     }
-    const green = glowSprite('green');
+    const wisp = glowSprite(th.wisp);
     for (const w of hs.wisps) {
       const t = ms / 1000 + w.k;
       c.globalAlpha = 0.55 + 0.35 * Math.sin(t * 1.3);
-      c.drawImage(green, w.x + Math.sin(t * 0.4) * 14 - 9, w.y + Math.cos(t * 0.33) * 10 - 9, 18, 18);
+      c.drawImage(wisp, w.x + Math.sin(t * 0.4) * 14 - 9, w.y + Math.cos(t * 0.33) * 10 - 9, 18, 18);
     }
     c.globalCompositeOperation = 'source-over';
     c.globalAlpha = 1;
+    if (th.fx.comets) cometAbove(c, tr, ms);
     const ph = phantomAt(s, tr);
     if (ph) {
+      const green = glowSprite('green');
       c.globalCompositeOperation = 'lighter';
       c.globalAlpha = 0.7 * ph.fade;
       c.drawImage(green, ph.x - 26, ph.y - 26, 52, 52);
@@ -1191,6 +1973,63 @@
       c.fillText('👻', ph.x, ph.y - 20);
       c.globalAlpha = 1;
     }
+  }
+
+  // A comet: a bright head and a tail fading behind it, along +x (painted once).
+  let cometPic = null;
+  function cometSprite() {
+    if (cometPic) return cometPic;
+    cometPic = document.createElement('canvas');
+    cometPic.width = 256;
+    cometPic.height = 32;
+    const c = cometPic.getContext('2d');
+    const g = c.createLinearGradient(0, 0, 240, 0);
+    g.addColorStop(0, 'rgba(120, 200, 255, 0)');
+    g.addColorStop(0.7, 'rgba(170, 220, 255, 0.35)');
+    g.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(0, 16);
+    c.lineTo(240, 10);
+    c.lineTo(240, 22);
+    c.closePath();
+    c.fill();
+    const h = c.createRadialGradient(240, 16, 0, 240, 16, 14);
+    h.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    h.addColorStop(0.35, 'rgba(200, 235, 255, 0.6)');
+    h.addColorStop(1, 'rgba(160, 210, 255, 0)');
+    c.fillStyle = h;
+    c.fillRect(224, 0, 32, 32);
+    return cometPic;
+  }
+  // Every so often a comet goes over (the same on every screen at the same time, near enough):
+  // where it is, 0 to 1 across its pass, and which pass it is, or null between them.
+  const COMET = { every: 9, pass: 1.8 };
+  function cometNow(ms) {
+    if (calm.matches) return null;
+    const t = ms / 1000;
+    const n = Math.floor(t / COMET.every);
+    const into = t - n * COMET.every;
+    return into > COMET.pass ? null : { n, f: into / COMET.pass };
+  }
+  function cometAbove(c, tr, ms) {
+    const at = cometNow(ms);
+    if (!at) return;
+    const r = seeded(`comet${at.n}`);
+    const W = tr.world.w;
+    const H = tr.world.h;
+    const x0 = r() * W;
+    const y0 = -40;
+    const x1 = x0 + (r() < 0.5 ? -1 : 1) * (300 + r() * 300);
+    const y1 = H * (0.4 + r() * 0.5);
+    const a = Math.atan2(y1 - y0, x1 - x0);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = Math.min(1, (1 - at.f) * 3, at.f * 6);
+    c.translate(x0 + (x1 - x0) * at.f, y0 + (y1 - y0) * at.f);
+    c.rotate(a);
+    c.drawImage(cometSprite(), -120, -8, 128, 16);
+    c.restore();
   }
 
   // ---------- The room's own props ----------
@@ -1226,7 +2065,7 @@
     chateau: [['⛲', 38, 0.9], ['topiary', 40, 0.5]],
     christmas: [['🎄', 50, 0.8], ['⛄', 36, 0.7]],
     // (Halloween's jack-o'-lantern glows and flickers: the fifth, `glow`. Its tomb and cross stand
-    // in the fields too, and more lanterns along the fence: see hauntOf.)
+    // in the fields too, and more lanterns along the fence: see extrasOf.)
     halloween: [['lantern', 30, 0.9, 0, true], ['tomb', 32, 0.46], ['scarecrow', 52, 0.66], ['cross', 40, 0.5]],
     stpatricks: [['whisky', 30, 0.66], ['stone', 50, 0.4]],
   };
@@ -1525,6 +2364,17 @@
       write(c, 'RIP', 50, 46, 'bold 16px Georgia, serif', '#3a3644');
       poly(c, '#6a5a2e', 'M20 99 L26 88 L30 96 L36 86 L40 99Z M60 99 L66 86 L70 96 L76 88 L80 99Z');
     },
+    // A torch on a pole (the tiki bar's bamboo; the castle's on the walls), lit.
+    torch(c) {
+      fillRound(c, 46, 30, 8, 70, 2, '#8a6a3a');
+      c.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      for (const y of [46, 64, 82]) c.fillRect(46, y, 8, 2);
+      poly(c, '#5a3a1e', 'M36 22 H64 L58 34 H42Z');
+      glow(c, '#ffb040', 8);
+      poly(c, '#ff8a1f', 'M50 0 Q64 12 60 22 H40 Q36 12 50 0Z');
+      poly(c, '#ffe08a', 'M50 8 Q57 15 55 22 H45 Q43 15 50 8Z');
+      c.shadowBlur = 0;
+    },
     // Halloween: a jack-o'-lantern (as on the room's haunted hill), lit inside.
     lantern(c) {
       poly(c, '#3c5a1e', 'M46 34 Q44 18 54 12 L59 18 Q52 21 54 34Z');
@@ -1595,10 +2445,13 @@
   function propArt(pal = palette()) {
     const s = PB.state;
     const venue = venueOf(s);
+    const th = themeOf(s);
     const host = venue === 'saloon' && s?.hostId ? `${PB.look(s.hostId).avatar}${name(s.hostId)}` : '';
-    const key = `${venue}:${pal.accent}:${host}`;
+    const key = `${venue}:${th.id}:${pal.accent}:${host}`;
     if (propCache?.key === key) return propCache;
-    const list = VENUE_PROPS[venue];
+    // (The venue's props, then any its race puts round the track as well: the tiki bar's torches.)
+    const own = VENUE_PROPS[venue];
+    const list = th.art ? own.concat(th.art) : own;
     const cv = document.createElement('canvas');
     // (A power of two across, for the mipmaps.)
     const cols = 2 ** Math.ceil(Math.log2(Math.max(2, list.length)));
@@ -1618,7 +2471,7 @@
       c.restore();
       return { cell, size, lift, glow: glows, kind: what.split(':')[0], half: Math.min(SPOT_R, (size * wide) / 2) };
     });
-    propCache = { key, cv, items, cols, byKind: Object.fromEntries(items.map((it) => [it.kind, it])) };
+    propCache = { key, cv, items: items.slice(0, own.length), cols, byKind: Object.fromEntries(items.map((it) => [it.kind, it])) };
     return propCache;
   }
 
@@ -1632,6 +2485,8 @@
   function drawCar(c, car, id, { label, mine, honk, lamps, big }) {
     const [x, y, a, flags] = car;
     const look = lookNow(id);
+    // (Rainbow Road: being put back on after a fall, it blinks.)
+    if (flags & 16 && Math.floor(performance.now() / 120) % 2) return;
     c.save();
     c.translate(x, y);
     c.rotate(a);
@@ -1765,6 +2620,8 @@
 
   // Between two updates (f from 0 to 1), or a little past the second (f over 1).
   function lerpCar(a, b, f, out) {
+    // (Rainbow Road: a car that's just fallen off is put straight back, not slid across the gap.)
+    if (b[3] & 16 && !(a[3] & 16)) f = 1;
     let da = b[2] - a[2];
     da = Math.atan2(Math.sin(da), Math.cos(da));
     out[0] = a[0] + (b[0] - a[0]) * f;
@@ -1822,7 +2679,7 @@
     const c = cv.getContext('2d');
     c.setTransform(scale, 0, 0, scale, -x0 * scale, -y0 * scale);
     c.lineJoin = 'round';
-    bridgeAbove(c, tr, sh, palette(), false, haunted());
+    bridgeAbove(c, tr, sh, palette(), false);
     return { cv, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
 
@@ -1860,13 +2717,14 @@
     // The leader on top.
     order.sort((a, b) => (cars[b][4] || 0) - (cars[a][4] || 0));
     const lamps = !!wxOf(s).lamps;
-    const spooky = haunted(s);
+    const th = themeOf(s);
+    const fx = th.along || th.field || th.wisps || th.fx.phantom || th.fx.comets;
     for (const v of views) {
       const c = v.fg.getContext('2d');
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.clearRect(0, 0, v.fg.width, v.fg.height);
       c.setTransform(v.scale, 0, 0, v.scale, 0, 0);
-      if (spooky && !v.mini) hauntAbove(c, s, s.game.track, now);
+      if (fx && !v.mini) aboveFx(c, s, s.game.track, now, th);
       const m = v.marks.getContext('2d');
       m.setTransform(v.scale, 0, 0, v.scale, 0, 0);
       // (The figure eight: cars under the bridge first, then the bridge over them, then the rest.)
@@ -1904,10 +2762,11 @@
 
   function stage(s, { mini = false } = {}) {
     const g = s.game;
-    return `<div class="tr-stage ${mini ? 'mini' : ''} ${haunted(s) ? 'haunted' : ''}" data-race="${g.race}">
+    const th = themeOf(s);
+    return `<div class="tr-stage ${mini ? 'mini' : ''} ${th.cls}" data-race="${g.race}">
       <canvas class="tr-bg"></canvas><canvas class="tr-marks"></canvas><div class="tr-wx tr-wx-${weatherOf(s)}"></div><canvas class="tr-fg"></canvas>
       ${WX[weatherOf(s)].fall ? `<div class="tr-fall tr-fall-${WX[weatherOf(s)].fall}"></div>` : ''}
-      ${haunted(s) && !mini ? '<div class="tr-haunt" aria-hidden="true"><i class="tr-fog"></i><i class="tr-bats"></i><i class="tr-flash"></i></div>' : ''}
+      ${mini ? '' : th.overlay}
       ${mini ? '' : countHtml(s)}
     </div>`;
   }
@@ -1948,6 +2807,16 @@
       float n = 0.55 + 0.28 * sin(w.x * 0.021 + uTime * 0.31) * sin(w.y * 0.027 - uTime * 0.23) + 0.17 * sin((w.x - w.y) * 0.013 + uTime * 0.17);
       return clamp(uLowK * n * (1.0 - smoothstep(0.0, 9.0, w.z)), 0.0, 1.0);
     }`;
+  // Rainbow Road's space, below the road: deep blue-black, a glow of colour, stars (each a cell of
+  // the sky in a few hundred lit, picked by a hash of where it is).
+  const SPACE_GLSL = `
+    vec3 space(vec3 d) {
+      vec3 n = normalize(d);
+      vec3 q = floor(n * 240.0);
+      float h = fract(sin(dot(q, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+      vec3 c = vec3(0.03, 0.02, 0.09) + vec3(0.1, 0.03, 0.16) * max(0.0, sin(n.x * 3.1 + n.y * 1.7)) * (0.5 - 0.5 * n.z);
+      return c + vec3(step(0.9965, h) * (0.45 + 0.55 * fract(h * 37.0)));
+    }`;
   // Each pixel's ray from the camera, to where it meets the ground (or the sky, above the horizon).
   const GROUND_FS = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -1957,10 +2826,11 @@
     #endif
     uniform sampler2D uGround, uSky;
     uniform vec2 uC, uWorld;
-    uniform float uFocal, uFar, uWet, uFlash;
+    uniform float uFocal, uFar, uWet, uFlash, uVoid;
     uniform vec3 uCam, uF, uR, uU, uHaze, uOut, uLow;
     ${LIGHT_GLSL}
     ${LOW_GLSL}
+    ${SPACE_GLSL}
     void main() {
       vec2 p = (gl_FragCoord.xy - uC) / uFocal;
       vec3 d = uF + uR * p.x + uU * p.y;
@@ -1972,10 +2842,14 @@
         gl_FragColor = vec4(mix(uHaze, sky, smoothstep(0.0, 0.035, el)), 1.0);
         return;
       }
+      // (Rainbow Road: below the road, space; on the hills, the road's a model of its own.)
+      if (uVoid > 1.5) { gl_FragColor = vec4(space(d), 1.0); return; }
       float t = uCam.z / -d.z;
       vec2 w = uCam.xy + d.xy * t;
       vec2 uv = w / uWorld;
-      vec3 col = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? uOut : texture2D(uGround, uv).rgb;
+      vec4 gc = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? vec4(uOut, 1.0 - uVoid) : texture2D(uGround, uv);
+      if (uVoid > 0.5 && gc.a < 0.5) { gl_FragColor = vec4(space(d), 1.0); return; }
+      vec3 col = gc.rgb;
       if (uWet > 0.0) {
         // Wet: the asphalt (grey, dark) darker still, with the sky shining in it, more so far off.
         float hi = max(col.r, max(col.g, col.b));
@@ -2090,7 +2964,7 @@
     #endif
     uniform sampler2D uGround;
     uniform vec2 uWorld;
-    uniform float uHalf, uWet;
+    uniform float uHalf, uWet, uVoid;
     uniform vec3 uHaze, uLow;
     varying vec3 vW;
     varying vec2 vA;
@@ -2099,6 +2973,20 @@
     ${LOW_GLSL}
     void main() {
       vec3 col;
+      if (uVoid > 0.5) {
+        // Rainbow Road on the hills: the road's picture, nothing beyond it (and the bridge's deck
+        // in stripes of rainbow across it).
+        if (vA.y < 0.5) {
+          vec4 g = texture2D(uGround, vW.xy / uWorld);
+          if (g.a < 0.5) discard;
+          col = g.rgb;
+        } else {
+          float h = (1.0 - clamp(abs(vA.x) / (uHalf * 1.9), 0.0, 1.0)) * 0.8;
+          col = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+        }
+        gl_FragColor = vec4(mix(col, uHaze, vFog), 1.0);
+        return;
+      }
       if (vA.y < 0.5) {
         col = texture2D(uGround, vW.xy / uWorld).rgb;
         float hi = max(col.r, max(col.g, col.b));
@@ -2218,80 +3106,375 @@
     return m;
   }
 
-  // The barriers, the scenery and the gantry, as one model.
-  function sceneModel(tr, sh, pal, wx) {
-    if (haunted()) return hauntedModel(tr, sh, pal);
+  // The barriers, the scenery and the gantry, as one model, as the venue has them (THEME).
+  function sceneModel(tr, sh, pal, wx, th = themeOf()) {
     const m = mesher();
-    const rim = rgb(pal.rim, [0.85, 0.85, 0.85]);
-    const black = [0.09, 0.09, 0.1];
-    const H = 7;
+    // (One stream of random numbers for the lot, in the order they're built: the same every time.)
+    const rand = seeded(`${tr.id}:haunted`);
+    barrierModel(m, sh, pal, th);
+    m.lift = 0;
+    if (!th.void) bridgeModel(m, tr, sh, th.bridge.concrete, th.bridge.trim || pal.accentRgb);
+    for (const p of sh.props) {
+      m.lift = p.z || 0;
+      if (p.kind === 'tyres') stackModel(m, p, rand, pal, th);
+      else if (p.kind === 'tree' && kept(p, th)) treeModel(m, p, rand, wx, th);
+    }
+    m.lift = sh.stand?.z || 0;
+    if (sh.stand && th.stand) standModel(m, tr, sh, pal, th);
+    gantryModel(m, tr, sh, pal, th);
+    return new Float32Array(m.v);
+  }
+
+  const BLACK = [0.09, 0.09, 0.1];
+  const IRON = [0.17, 0.15, 0.2];
+  const STONE = [0.36, 0.33, 0.41];
+  const DEAD = [0.15, 0.11, 0.14];
+
+  // The barriers, each side: a stretch for each step round, where there's room for one.
+  function barrierModel(m, sh, pal, th) {
+    const kind = th.barrier;
+    if (kind === 'none') return;
+    const col = rgb(th.wall || pal.rim, [0.85, 0.85, 0.85]);
+    const col2 = rgb(th.wall2, BLACK);
     for (const w of sh.walls) {
       for (let i = 0; i < sh.N; i++) {
         const j = (i + 1) % sh.N;
         if (!w.ok[i] || !w.ok[j] || (sh.deck[i] && sh.deck[j])) continue;
-        // A stack of tyres: a short box each, alternating colours.
         const x = (w.x[i] + w.x[j]) / 2;
         const y = (w.y[i] + w.y[j]) / 2;
         const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
-        const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.3;
+        const len = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2;
         m.lift = (w.z[i] + w.z[j]) / 2;
-        m.box(x, y, a, hl, 3, 0, H, i % 2 ? black : rim, i % 2 ? 0 : 4);
-      }
-    }
-    m.lift = 0;
-    bridgeModel(m, tr, sh, [0.62, 0.62, 0.6], pal.accentRgb);
-    const greens = [[0.18, 0.49, 0.23], [0.24, 0.56, 0.27], [0.16, 0.42, 0.2], [0.3, 0.6, 0.24]];
-    for (const p of sh.props) {
-      m.lift = p.z || 0;
-      if (p.kind === 'tyres') {
-        for (const [dx, dy] of [[-3, -2], [3, -2], [0, 3]]) {
-          m.cyl(p.x + dx, p.y + dy, 0, 9, 3.6, 3.6, black, 8);
-          m.cyl(p.x + dx, p.y + dy, 9, 9.6, 3.6, 3.6, rim, 8);
+        if (kind === 'tyres') {
+          // A stack of tyres: a short box each, alternating colours.
+          m.box(x, y, a, len + 0.3, 3, 0, 7, i % 2 ? BLACK : col, i % 2 ? 0 : 4);
+        } else if (kind === 'fence') {
+          // Two rails, railings with spear tips, and a stone pillar every so often.
+          const hl = len + 0.2;
+          m.box(x, y, a, hl, 0.35, 2.6, 3.4, IRON, 0, false);
+          m.box(x, y, a, hl, 0.35, 9.2, 10, IRON, 0, false);
+          for (const f of [0, 0.5]) {
+            const px = w.x[i] + (w.x[j] - w.x[i]) * f;
+            const py = w.y[i] + (w.y[j] - w.y[i]) * f;
+            if (f === 0 && i % 10 === 0) {
+              m.box(px, py, a, 2, 2, 0, 13, th.stone || STONE);
+              m.box(px, py, a, 2.5, 2.5, 13, 14.2, th.stone || STONE);
+              continue;
+            }
+            m.box(px, py, a, 0.35, 0.35, 0, 11.4, IRON, 0, false);
+            m.cyl(px, py, 11.4, 13.4, 0.8, 0, IRON, 4);
+          }
+        } else if (kind === 'rail' || kind === 'rope') {
+          // Posts, every other step, with two rails on them (or a rope slung along).
+          if (i % 2 === 0) m.box(w.x[i], w.y[i], a, 0.7, 0.7, 0, 9, col);
+          if (kind === 'rail') {
+            m.box(x, y, a, len + 0.2, 0.3, 3.4, 4.4, col, 0, false);
+            m.box(x, y, a, len + 0.2, 0.3, 7, 8, col, 0, false);
+          } else m.box(x, y, a, len + 0.2, 0.25, 6.4, 7, col2, 0, false);
+        } else if (kind === 'wall' || kind === 'hedge') {
+          // A wall with a coping along its top (crenels on a castle's), or a clipped box hedge.
+          const hedge = kind === 'hedge';
+          m.box(x, y, a, len + 0.3, hedge ? 2.8 : 2, 0, hedge ? 6.4 : 5.4, col);
+          m.box(x, y, a, len + 0.3, hedge ? 2.4 : 2.4, hedge ? 6.4 : 5.4, hedge ? 7.2 : 6.2, hedge ? col.map((v) => v * 1.2) : col2);
+          if (th.crenels && i % 2 === 0) m.box(x, y, a, len * 0.5, 2.2, 6.2, 8.4, col);
+        } else if (kind === 'neon') {
+          // A low black kerb with a glowing tube along it.
+          m.box(x, y, a, len + 0.3, 1.4, 0, 2.6, [0.05, 0.05, 0.07]);
+          m.box(x, y, a, len + 0.3, 0.6, 2.6, 3.6, col, 4);
+        } else if (kind === 'candy') {
+          // Candy-cane posts, red and white in turn, a striped rail across them.
+          m.box(w.x[i], w.y[i], a, 0.8, 0.8, 0, 8.4, i % 2 ? col2 : col);
+          m.box(x, y, a, len + 0.2, 0.5, 6.4, 7.6, i % 2 ? col : col2);
+        } else if (kind === 'bunting') {
+          // A line strung between tall posts, little flags hanging off it.
+          if (i % 4 === 0) m.box(w.x[i], w.y[i], a, 0.5, 0.5, 0, 11, [0.35, 0.23, 0.12]);
+          m.box(x, y, a, len + 0.2, 0.12, 9.8, 10.2, [0.2, 0.2, 0.22], 0, false);
+          const c = i % 2 ? col2 : col;
+          const ca = Math.cos(a) * len * 0.7, sa = Math.sin(a) * len * 0.7;
+          m.tri([x - ca, y - sa, 9.8], [x + ca, y + sa, 9.8], [x, y, 6.6], c.map((v) => v * 0.95), 0);
         }
-      } else if (p.kind === 'tree') {
-        const col = greens[Math.floor(p.tone * greens.length)];
-        const top = wx.snow ? mix(col, [0.95, 0.97, 1], 0.75) : col.map((c) => c * 1.12);
-        m.cyl(p.x, p.y, 0, p.h * 0.35, 1.6, 1.4, [0.4, 0.27, 0.15], 6);
-        m.cyl(p.x, p.y, p.h * 0.25, p.h * 0.75, p.r, 0, wx.snow ? mix(col, [0.95, 0.97, 1], 0.35) : col, 7);
-        m.cyl(p.x, p.y, p.h * 0.5, p.h, p.r * 0.72, 0, top, 7);
       }
     }
-    m.lift = sh.stand?.z || 0;
-    if (sh.stand) {
-      // Stepped seats, rising away from the track, full of people, under a roof.
-      const s = sh.stand;
-      const ca = Math.cos(s.a), sa = Math.sin(s.a);
-      const nx = -sa * s.side, ny = ca * s.side; // away from the track
-      const rand = seeded(`${tr.id}:crowd`);
-      const grey = [0.55, 0.58, 0.62];
-      for (let row = 0; row < 4; row++) {
-        const off = -s.depth / 2 + 4 + row * 6.5;
-        m.box(s.x + nx * off, s.y + ny * off, s.a, s.len / 2, 3.25, 0, 4 + row * 4, grey);
-        for (let k = 0; k < 30; k++) {
-          const u = -s.len / 2 + 4 + k * 5.6 + (rand() - 0.5);
-          const col = hsl(rand(), 0.7, 0.45 + rand() * 0.25);
-          m.box(s.x + nx * off + ca * u, s.y + ny * off + sa * u, s.a, 1.6, 1.4, 4 + row * 4, 7.5 + row * 4 + rand(), col);
+  }
+
+  // What's piled on the outside of a bend.
+  function stackModel(m, p, rand, pal, th) {
+    const kind = th.stack;
+    const three = [[-3, -2], [3, -2], [0, 3]];
+    if (kind === 'tyres') {
+      const rim = rgb(th.wall || pal.rim, [0.85, 0.85, 0.85]);
+      for (const [dx, dy] of three) {
+        m.cyl(p.x + dx, p.y + dy, 0, 9, 3.6, 3.6, BLACK, 8);
+        m.cyl(p.x + dx, p.y + dy, 9, 9.6, 3.6, 3.6, rim, 8);
+      }
+    } else if (kind === 'graves') {
+      // A gravestone and a cross, a little askew, facing the track.
+      const stone = th.stone || STONE;
+      const a = rand() * Math.PI;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const tx = p.x - ca * 2.5, ty = p.y - sa * 2.5;
+      m.box(tx, ty, a, 0.9, 3.4, 0, 7.4, stone);
+      m.box(tx, ty, a, 0.9, 2.6, 7.4, 8.6, stone);
+      m.box(tx, ty, a, 0.9, 1.5, 8.6, 9.3, stone);
+      const cx = p.x + ca * 3, cy = p.y + sa * 3;
+      m.box(cx, cy, a, 0.7, 0.7, 0, 11.5, stone);
+      m.box(cx, cy, a, 0.7, 3.2, 7.4, 8.8, stone);
+    } else if (kind === 'drums') {
+      // Oil drums (or the frat's kegs): ribbed, a dark lid.
+      const col = th.drum || [0.16, 0.36, 0.56];
+      for (const [dx, dy] of three) {
+        m.cyl(p.x + dx, p.y + dy, 0, 8.4, 3, 3, col, 8);
+        m.cyl(p.x + dx, p.y + dy, 8.4, 8.8, 3, 2.6, [0.12, 0.12, 0.14], 8);
+        m.cyl(p.x + dx, p.y + dy, 2.8, 3.4, 3.1, 3.1, col.map((v) => v * 0.7), 8);
+      }
+    } else if (kind === 'barrels') {
+      // Barrels: bellied, banded.
+      const wood = [0.52, 0.32, 0.15];
+      for (const [dx, dy] of three) {
+        m.cyl(p.x + dx, p.y + dy, 0, 4.4, 2.8, 3.4, wood, 8);
+        m.cyl(p.x + dx, p.y + dy, 4.4, 8.8, 3.4, 2.8, wood, 8);
+        m.cyl(p.x + dx, p.y + dy, 1.4, 2, 3.2, 3.2, [0.2, 0.19, 0.18], 8);
+        m.cyl(p.x + dx, p.y + dy, 6.8, 7.4, 3.2, 3.2, [0.2, 0.19, 0.18], 8);
+      }
+    } else if (kind === 'hay' || kind === 'presents' || kind === 'speakers') {
+      // Bales of hay; presents with a ribbon round them; a stack of speakers.
+      const cols = { hay: [[0.85, 0.72, 0.38], [0.76, 0.62, 0.3]], presents: [[0.89, 0.25, 0.23], [0.16, 0.54, 0.29], [0.91, 0.72, 0.29]], speakers: [[0.1, 0.1, 0.12], [0.14, 0.14, 0.17]] }[kind];
+      const a = Math.atan2(p.y - 312, p.x - 500);
+      [[-3, -1, 0, 4.4, 3, 3.6], [3, 1, 0, 4, 3, 4.4], [0, 0, kind === 'speakers' ? 4.4 : 3.6, 3.6, 2.6, 3.4]].forEach(([dx, dy, z, hl, hw, h], k) => {
+        const col = cols[k % cols.length];
+        m.box(p.x + dx, p.y + dy, a, hl, hw, z, z + h, col);
+        if (kind === 'presents') m.box(p.x + dx, p.y + dy, a, 0.4, hw + 0.05, z, z + h + 0.1, [0.96, 0.96, 0.96]);
+        if (kind === 'speakers') m.box(p.x + dx + Math.cos(a) * hl, p.y + dy + Math.sin(a) * hl, a, 0.15, hw * 0.6, z + h * 0.25, z + h * 0.75, [0.32, 0.32, 0.36], 0, false);
+      });
+    } else if (kind === 'stools') {
+      // Chrome diner stools, red tops.
+      for (const [dx, dy] of three) {
+        m.cyl(p.x + dx, p.y + dy, 0, 0.6, 2, 2, [0.72, 0.74, 0.78], 6);
+        m.cyl(p.x + dx, p.y + dy, 0.6, 6.4, 0.5, 0.5, [0.72, 0.74, 0.78], 4);
+        m.cyl(p.x + dx, p.y + dy, 6.4, 8, 2.6, 2.6, [0.9, 0.22, 0.27], 8);
+      }
+    } else if (kind === 'chips') {
+      // Stacks of casino chips.
+      const cols = [[0.78, 0.13, 0.18], [0.96, 0.96, 0.96], [0.08, 0.08, 0.08], [0.16, 0.6, 0.35]];
+      three.forEach(([dx, dy], k) => {
+        for (let n = 0; n < 4 + k; n++) m.cyl(p.x + dx, p.y + dy, n * 1.4, n * 1.4 + 1.3, 2.8, 2.8, cols[(n + k) % cols.length], 8);
+      });
+    } else if (kind === 'rocks') {
+      for (const [dx, dy, r, h] of [[-3, -1, 4, 5], [3, 1, 3, 3.6], [0, 4, 2.4, 2.6]]) m.cyl(p.x + dx, p.y + dy, 0, h, r, r * 0.35, [0.3, 0.28, 0.3], 6);
+    } else if (kind === 'topiary') {
+      for (const [dx, dy] of three) {
+        m.cyl(p.x + dx, p.y + dy, 0, 3, 0.5, 0.5, [0.4, 0.27, 0.15], 4);
+        m.cyl(p.x + dx, p.y + dy, 2.4, 5.4, 1.6, 3.2, [0.18, 0.43, 0.2], 8);
+        m.cyl(p.x + dx, p.y + dy, 5.4, 8.2, 3.2, 1.2, [0.2, 0.47, 0.22], 8);
+      }
+    }
+  }
+
+  // What stands about in the fields.
+  const TREE_GREENS = [[0.18, 0.49, 0.23], [0.24, 0.56, 0.27], [0.16, 0.42, 0.2], [0.3, 0.6, 0.24]];
+  function treeModel(m, p, rand, wx, th) {
+    const kind = th.tree;
+    const snowy = (col, k) => (wx.snow ? mix(col, [0.95, 0.97, 1], k) : col);
+    if (kind === 'pine') {
+      const col = TREE_GREENS[Math.floor(p.tone * TREE_GREENS.length)];
+      const top = wx.snow ? mix(col, [0.95, 0.97, 1], 0.75) : col.map((c) => c * 1.12);
+      m.cyl(p.x, p.y, 0, p.h * 0.35, 1.6, 1.4, [0.4, 0.27, 0.15], 6);
+      m.cyl(p.x, p.y, p.h * 0.25, p.h * 0.75, p.r, 0, wx.snow ? mix(col, [0.95, 0.97, 1], 0.35) : col, 7);
+      m.cyl(p.x, p.y, p.h * 0.5, p.h, p.r * 0.72, 0, top, 7);
+    } else if (kind === 'dead') {
+      // A dead tree: a leaning, twisted trunk, bare branches, twigs off them.
+      const h = p.h * 1.15;
+      const la = rand() * Math.PI * 2;
+      const lean = (rand() - 0.5) * 0.35;
+      const mid = [p.x + Math.cos(la) * lean * h * 0.3, p.y + Math.sin(la) * lean * h * 0.3, h * 0.35];
+      const top = [p.x + Math.cos(la) * lean * h, p.y + Math.sin(la) * lean * h, h * 0.66];
+      m.limb([p.x, p.y, 0], mid, 2.1, 1.6, DEAD);
+      m.limb(mid, top, 1.6, 0.8, DEAD);
+      const n = 3 + Math.floor(rand() * 2);
+      for (let k = 0; k < n; k++) {
+        const a = la + (k / n) * Math.PI * 2 + rand() * 0.9;
+        const from = k === 0 ? top : [mid[0] + (top[0] - mid[0]) * (0.3 + k * 0.2), mid[1] + (top[1] - mid[1]) * (0.3 + k * 0.2), mid[2] + (top[2] - mid[2]) * (0.3 + k * 0.2)];
+        const len = h * (0.28 + rand() * 0.22);
+        const end = [from[0] + Math.cos(a) * len * 0.8, from[1] + Math.sin(a) * len * 0.8, from[2] + len * (0.3 + rand() * 0.5)];
+        m.limb(from, end, 0.75, 0.3, DEAD);
+        const a2 = a + (rand() - 0.5) * 1.8;
+        const l2 = len * 0.55;
+        m.limb(end, [end[0] + Math.cos(a2) * l2, end[1] + Math.sin(a2) * l2, end[2] + l2 * (rand() * 0.9 - 0.2)], 0.3, 0.1, DEAD);
+      }
+    } else if (kind === 'round') {
+      // A broad-leaved tree: a trunk, a round crown.
+      const col = snowy([[0.29, 0.54, 0.2], [0.35, 0.6, 0.23], [0.23, 0.48, 0.18], [0.42, 0.63, 0.25]][Math.floor(p.tone * 4)], 0.35);
+      m.cyl(p.x, p.y, 0, p.h * 0.5, 1.4, 1.1, [0.38, 0.26, 0.15], 6);
+      m.cyl(p.x, p.y, p.h * 0.35, p.h * 0.7, p.r * 0.6, p.r, col, 8);
+      m.cyl(p.x, p.y, p.h * 0.7, p.h, p.r, p.r * 0.4, col.map((c) => Math.min(1, c * 1.12)), 8);
+    } else if (kind === 'cypress') {
+      m.cyl(p.x, p.y, 0, p.h * 0.15, 0.9, 0.9, [0.35, 0.23, 0.12], 5);
+      m.cyl(p.x, p.y, p.h * 0.1, p.h * 0.6, p.r * 0.32, p.r * 0.42, snowy([0.12, 0.29, 0.16], 0.3), 7);
+      m.cyl(p.x, p.y, p.h * 0.6, p.h * 1.45, p.r * 0.42, 0, snowy([0.14, 0.33, 0.18], 0.3), 7);
+    } else if (kind === 'palm') {
+      // A palm: a curving trunk, fronds drooping off the top.
+      const la = p.tone * Math.PI * 2;
+      const h = p.h * 1.1;
+      const trunk = [0.5, 0.36, 0.22];
+      const at = (f) => [p.x + Math.cos(la) * f * f * h * 0.3, p.y + Math.sin(la) * f * f * h * 0.3, f * h];
+      m.limb(at(0), at(0.5), 1.3, 1.1, trunk);
+      m.limb(at(0.5), at(1), 1.1, 0.9, trunk);
+      const top = at(1);
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2 + la;
+        const mid = [top[0] + Math.cos(a) * h * 0.22, top[1] + Math.sin(a) * h * 0.22, top[2] + h * 0.04];
+        const end = [top[0] + Math.cos(a) * h * 0.42, top[1] + Math.sin(a) * h * 0.42, top[2] - h * 0.14];
+        m.limb(top, mid, 0.5, 1.1, [0.2, 0.52, 0.22]);
+        m.limb(mid, end, 1.1, 0.2, [0.16, 0.45, 0.18]);
+      }
+    } else if (kind === 'cactus') {
+      // A saguaro: a trunk and an arm or two, curving up.
+      const g = [0.25, 0.48, 0.24];
+      const h = p.h * 0.8;
+      m.cyl(p.x, p.y, 0, h, 1.8, 1.6, g, 7);
+      m.cyl(p.x, p.y, h, h + 1.2, 1.6, 0.6, g, 7);
+      for (const [side, z0, up] of [[1, 0.35, 0.3], [-1, 0.5, 0.25]]) {
+        const a = p.tone * 6 + (side > 0 ? 0 : Math.PI);
+        const ox = Math.cos(a) * 4.5, oy = Math.sin(a) * 4.5;
+        m.limb([p.x, p.y, h * z0], [p.x + ox, p.y + oy, h * z0 + 1], 1.1, 1.1, g);
+        m.limb([p.x + ox, p.y + oy, h * z0 + 0.4], [p.x + ox, p.y + oy, h * (z0 + up) + 2], 1.1, 0.9, g);
+      }
+    } else if (kind === 'lamp') {
+      // A street lamp: a post, an arm, the lamp (lit up at night).
+      const lamp = { warm: [1, 0.86, 0.55], pink: [1, 0.4, 0.86], white: [0.95, 0.97, 1] }[th.lamp] || [1, 0.86, 0.55];
+      const a = p.tone * Math.PI * 2;
+      m.box(p.x, p.y, a, 0.45, 0.45, 0, 22, [0.14, 0.14, 0.16]);
+      m.box(p.x + Math.cos(a) * 2, p.y + Math.sin(a) * 2, a, 2.2, 0.35, 21.4, 22.2, [0.14, 0.14, 0.16]);
+      m.box(p.x + Math.cos(a) * 3.8, p.y + Math.sin(a) * 3.8, a, 1.3, 1, 19.6, 21.4, lamp, 4);
+    } else if (kind === 'rock') {
+      const col = [[0.42, 0.39, 0.4], [0.35, 0.33, 0.34], [0.48, 0.45, 0.43]][Math.floor(p.tone * 3)];
+      m.cyl(p.x, p.y, 0, p.h * 0.32, p.r * 0.7, p.r * 0.25, snowy(col, 0.5), 6);
+    }
+  }
+
+  // The grandstand: stepped seats, rising away from the track, full of people (Halloween: ghosts,
+  // pale and glowing, and skeletons, bone), under a roof.
+  function standModel(m, tr, sh, pal, th) {
+    const s = sh.stand;
+    const ca = Math.cos(s.a), sa = Math.sin(s.a);
+    const nx = -sa * s.side, ny = ca * s.side; // away from the track
+    const rand = seeded(`${tr.id}:crowd`);
+    const seat = th.seat;
+    const crowd = Array.isArray(th.crowd) ? th.crowd.map((c) => rgb(c)) : null;
+    for (let row = 0; row < 4; row++) {
+      const off = -s.depth / 2 + 4 + row * 6.5;
+      m.box(s.x + nx * off, s.y + ny * off, s.a, s.len / 2, 3.25, 0, 4 + row * 4, seat);
+      for (let k = 0; k < 30; k++) {
+        const u = -s.len / 2 + 4 + k * 5.6 + (rand() - 0.5);
+        const x = s.x + nx * off + ca * u;
+        const y = s.y + ny * off + sa * u;
+        if (th.crowd === 'ghosts') {
+          const ghost = rand() < 0.6;
+          rand();
+          const z = 4 + row * 4;
+          const tall = rand() * 0.8;
+          if (ghost) {
+            const col = [0.78, 0.86, 0.94];
+            m.box(x, y, s.a, 1.7, 1.5, z, z + 2.4, col, 4);
+            m.box(x, y, s.a, 1.3, 1.2, z + 2.4, z + 4.6 + tall, col, 4);
+            for (const e of [-0.55, 0.55]) m.box(x - nx * 1.25 + ca * e, y - ny * 1.25 + sa * e, s.a, 0.3, 0.12, z + 3.2 + tall, z + 4 + tall, [0.05, 0.05, 0.08], 0, false);
+          } else {
+            const bone = [0.82, 0.78, 0.66];
+            m.box(x, y, s.a, 0.9, 0.7, z, z + 3.4, bone, 4);
+            m.box(x, y, s.a, 1.1, 1.1, z + 3.6 + tall * 0.5, z + 5.6 + tall * 0.5, bone, 4);
+            for (const e of [-0.45, 0.45]) m.box(x - nx * 1.15 + ca * e, y - ny * 1.15 + sa * e, s.a, 0.38, 0.12, z + 4.4 + tall * 0.5, z + 5.1 + tall * 0.5, [0.05, 0.04, 0.05], 0, false);
+          }
+          continue;
         }
+        const col = crowd ? mix(crowd[Math.floor(rand() * crowd.length)], [1, 1, 1], rand() * 0.2) : hsl(rand(), 0.7, 0.45 + rand() * 0.25);
+        m.box(x, y, s.a, 1.6, 1.4, 4 + row * 4, 7.5 + row * 4 + rand(), col);
       }
-      const back = s.depth / 2;
-      m.box(s.x + nx * back, s.y + ny * back, s.a, s.len / 2, 1.2, 0, 26, grey);
-      for (const u of [-s.len / 2 + 2, 0, s.len / 2 - 2]) m.box(s.x - nx * (back - 3) + ca * u, s.y - ny * (back - 3) + sa * u, s.a, 0.8, 0.8, 0, 26, grey);
-      m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, pal.accentRgb, 4);
     }
-    // The gantry: posts either side of the start line, a beam across, five lights.
+    const back = s.depth / 2;
+    m.box(s.x + nx * back, s.y + ny * back, s.a, s.len / 2, 1.2, 0, 26, seat);
+    for (const u of [-s.len / 2 + 2, 0, s.len / 2 - 2]) m.box(s.x - nx * (back - 3) + ca * u, s.y - ny * (back - 3) + sa * u, s.a, 0.8, 0.8, 0, 26, seat);
+    m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, th.roof ? rgb(th.roof) : pal.accentRgb, 4);
+  }
+
+  // Over the start line: a gantry (posts either side, a beam across, five lights), a gothic arch
+  // (Halloween's, jack-o'-lanterns on its pinnacles; the castle's), a neon arcade gantry (glowing
+  // posts, a rainbow sign), or bamboo posts with a torch on each (the tiki bar's).
+  function gantryModel(m, tr, sh, pal, th) {
     const i = sh.startI;
     const a = sh.head[i];
     const span = tr.width / 2 + 12;
-    const post = [0.85, 0.85, 0.87];
+    const P = (off, z) => [sh.xs[i] + sh.nx[i] * off, sh.ys[i] + sh.ny[i] * off, z];
+    const back = (d) => [sh.xs[i] - Math.cos(a) * d, sh.ys[i] - Math.sin(a) * d];
+    const lights = (d, z0, z1) => {
+      for (let k = -2; k <= 2; k++) {
+        const [x, y] = back(d);
+        m.box(x + sh.nx[i] * k * 6, y + sh.ny[i] * k * 6, a, 0.5, 2, z0, z1, [1, 1, 1], 3, false);
+      }
+    };
     m.lift = sh.zs[i];
-    for (const side of [-1, 1]) m.box(sh.xs[i] + sh.nx[i] * span * side, sh.ys[i] + sh.ny[i] * span * side, a, 1.8, 1.8, 0, 36, post);
-    m.box(sh.xs[i], sh.ys[i], a, 2.4, span + 2, 30, 38, [0.15, 0.15, 0.17]);
-    m.box(sh.xs[i] - Math.cos(a) * 2.6, sh.ys[i] - Math.sin(a) * 2.6, a, 0.3, span - 4, 31, 37, pal.accentRgb, 4, false);
-    for (let k = -2; k <= 2; k++) {
-      m.box(sh.xs[i] - Math.cos(a) * 3.2 + sh.nx[i] * k * 6, sh.ys[i] - Math.sin(a) * 3.2 + sh.ny[i] * k * 6, a, 0.5, 2, 32.2, 35.8, [1, 1, 1], 3, false);
+    if (th.gantry === 'arch') {
+      // The gothic arch: pillars either side with pinnacles, a pointed arch over the road, the beam
+      // across with the start lights.
+      const stone = th.stone || STONE;
+      for (const side of [-1, 1]) {
+        const [x, y] = P(span * side, 0);
+        m.box(x, y, a, 3, 3, 0, 44, stone);
+        m.box(x, y, a, 3.6, 3.6, 36, 38, stone);
+        m.cyl(x, y, 44, 47, 3.4, 3.4, stone, 4);
+        if (th.pillar === 'lantern') pumpkin(m, x, y, 47, 4.4, a + Math.PI);
+      }
+      // (Each side an arc, from the pillar up to the point.)
+      const R = (span - 3) * 1.4;
+      const top = Math.acos(0.4 / 1.4);
+      for (const side of [-1, 1]) {
+        let prev = null;
+        for (let k = 0; k <= 8; k++) {
+          const phi = (k / 8) * top;
+          const p = P(side * (-0.4 * (span - 3) + R * Math.cos(phi)), 38 + 0.42 * R * Math.sin(phi));
+          if (prev) m.limb(prev, p, 1.9, 1.9, stone);
+          prev = p;
+        }
+      }
+      const [ax, ay] = P(0, 0);
+      if (th.pillar === 'lantern') pumpkin(m, ax, ay, 38 + 0.42 * R * Math.sin(top) + 0.5, 3.2, a + Math.PI);
+      m.box(sh.xs[i], sh.ys[i], a, 2.2, span - 2, 30, 36, IRON);
+      const [sx, sy] = back(2.4);
+      m.box(sx, sy, a, 0.3, span - 6, 31, 35, pal.accentRgb, 4, false);
+      lights(3, 31.6, 34.4);
+      return;
     }
-    return new Float32Array(m.v);
+    if (th.gantry === 'neon') {
+      // Glowing posts, pink and blue, a black beam with glowing strips, the lights, and a sign over
+      // it in stripes of rainbow.
+      for (const side of [-1, 1]) {
+        const [x, y] = P(span * side, 0);
+        m.box(x, y, a, 2.2, 2.2, 0, 2, [0.08, 0.06, 0.12]);
+        m.box(x, y, a, 1.2, 1.2, 2, 40, side < 0 ? [1, 0.35, 0.85] : [0.3, 0.9, 1], 4);
+      }
+      m.box(sh.xs[i], sh.ys[i], a, 2.4, span + 2, 30, 38, [0.08, 0.05, 0.14]);
+      for (const [d, col] of [[2.6, [1, 0.35, 0.85]], [-2.6, [0.3, 0.9, 1]]]) {
+        const [x, y] = back(d);
+        m.box(x, y, a, 0.3, span, 37.2, 38.2, col, 4, false);
+        m.box(x, y, a, 0.3, span, 29.8, 30.8, col, 4, false);
+      }
+      lights(3.2, 32.2, 35.8);
+      RAINBOW.forEach((c, k) => {
+        const [x, y] = back(1);
+        m.box(x, y, a, 0.6, span - 8, 38 + k * 1.3, 39.3 + k * 1.3, rgb(c), 4);
+      });
+      return;
+    }
+    // The plain gantry, or the tiki bar's: bamboo posts (a torch on each: see fp.load) and a beam.
+    const post = th.post;
+    const beam = th.beam === THEME.beam ? [0.15, 0.15, 0.17] : rgb(th.beam);
+    const thick = th.gantry === 'torch' ? 2.4 : 1.8;
+    for (const side of [-1, 1]) m.box(sh.xs[i] + sh.nx[i] * span * side, sh.ys[i] + sh.ny[i] * span * side, a, thick, thick, 0, 36, post);
+    m.box(sh.xs[i], sh.ys[i], a, 2.4, span + 2, 30, 38, beam);
+    const [sx, sy] = back(2.6);
+    m.box(sx, sy, a, 0.3, span - 4, 31, 37, pal.accentRgb, 4, false);
+    lights(3.2, 32.2, 35.8);
   }
+
   // The figure eight's bridge (the deck itself is part of the road: roadModel): its slab's edges
   // and underside, a parapet and railing each side, piers (never on the road below) and a wall at
   // each end where the embankment stops.
@@ -2336,8 +3519,7 @@
     }
   }
 
-  // Halloween's: the iron fence, gravestones, dead trees, a stand full of ghosts and skeletons, and
-  // a gothic arch over the start, jack-o'-lanterns on its pinnacles (their faces lit: tint 4).
+  // A jack-o'-lantern (Halloween's arch has them on its pinnacles), its face lit (tint 4).
   function pumpkin(m, x, y, z, r, a) {
     const orange = [0.85, 0.36, 0.07];
     m.cyl(x, y, z, z + r * 0.55, r * 0.7, r, orange, 8);
@@ -2353,148 +3535,6 @@
     const [mx, my] = at(r * 0.97, 0);
     m.box(mx, my, a, 0.2, r * 0.46, z + r * 0.24, z + r * 0.42, lit, 4, false);
   }
-  function hauntedModel(tr, sh, pal) {
-    const m = mesher();
-    const rand = seeded(`${tr.id}:haunted`);
-    const iron = [0.17, 0.15, 0.2];
-    const stone = [0.36, 0.33, 0.41];
-    const dark = [0.15, 0.11, 0.14];
-    for (const w of sh.walls) {
-      for (let i = 0; i < sh.N; i++) {
-        const j = (i + 1) % sh.N;
-        if (!w.ok[i] || !w.ok[j] || (sh.deck[i] && sh.deck[j])) continue;
-        const x = (w.x[i] + w.x[j]) / 2;
-        const y = (w.y[i] + w.y[j]) / 2;
-        const a = Math.atan2(w.y[j] - w.y[i], w.x[j] - w.x[i]);
-        const hl = Math.hypot(w.x[j] - w.x[i], w.y[j] - w.y[i]) / 2 + 0.2;
-        m.lift = (w.z[i] + w.z[j]) / 2;
-        // Two rails, railings with spear tips, and a stone pillar every so often.
-        m.box(x, y, a, hl, 0.35, 2.6, 3.4, iron, 0, false);
-        m.box(x, y, a, hl, 0.35, 9.2, 10, iron, 0, false);
-        for (const f of [0, 0.5]) {
-          const px = w.x[i] + (w.x[j] - w.x[i]) * f;
-          const py = w.y[i] + (w.y[j] - w.y[i]) * f;
-          if (f === 0 && i % 10 === 0) {
-            m.box(px, py, a, 2, 2, 0, 13, stone);
-            m.box(px, py, a, 2.5, 2.5, 13, 14.2, stone);
-            continue;
-          }
-          m.box(px, py, a, 0.35, 0.35, 0, 11.4, iron, 0, false);
-          m.cyl(px, py, 11.4, 13.4, 0.8, 0, iron, 4);
-        }
-      }
-    }
-    m.lift = 0;
-    bridgeModel(m, tr, sh, [0.34, 0.31, 0.38], [0.85, 0.36, 0.07]);
-    for (const p of sh.props) {
-      m.lift = p.z || 0;
-      if (p.kind === 'tyres') {
-        // A gravestone and a cross, a little askew, facing the track.
-        const a = rand() * Math.PI;
-        const ca = Math.cos(a), sa = Math.sin(a);
-        const tx = p.x - ca * 2.5, ty = p.y - sa * 2.5;
-        m.box(tx, ty, a, 0.9, 3.4, 0, 7.4, stone);
-        m.box(tx, ty, a, 0.9, 2.6, 7.4, 8.6, stone);
-        m.box(tx, ty, a, 0.9, 1.5, 8.6, 9.3, stone);
-        const cx = p.x + ca * 3, cy = p.y + sa * 3;
-        m.box(cx, cy, a, 0.7, 0.7, 0, 11.5, stone);
-        m.box(cx, cy, a, 0.7, 3.2, 7.4, 8.8, stone);
-      } else if (p.kind === 'tree') {
-        // A dead tree: a leaning, twisted trunk, bare branches, twigs off them.
-        const h = p.h * 1.15;
-        const la = rand() * Math.PI * 2;
-        const lean = (rand() - 0.5) * 0.35;
-        const mid = [p.x + Math.cos(la) * lean * h * 0.3, p.y + Math.sin(la) * lean * h * 0.3, h * 0.35];
-        const top = [p.x + Math.cos(la) * lean * h, p.y + Math.sin(la) * lean * h, h * 0.66];
-        m.limb([p.x, p.y, 0], mid, 2.1, 1.6, dark);
-        m.limb(mid, top, 1.6, 0.8, dark);
-        const n = 3 + Math.floor(rand() * 2);
-        for (let k = 0; k < n; k++) {
-          const a = la + (k / n) * Math.PI * 2 + rand() * 0.9;
-          const from = k === 0 ? top : [mid[0] + (top[0] - mid[0]) * (0.3 + k * 0.2), mid[1] + (top[1] - mid[1]) * (0.3 + k * 0.2), mid[2] + (top[2] - mid[2]) * (0.3 + k * 0.2)];
-          const len = h * (0.28 + rand() * 0.22);
-          const end = [from[0] + Math.cos(a) * len * 0.8, from[1] + Math.sin(a) * len * 0.8, from[2] + len * (0.3 + rand() * 0.5)];
-          m.limb(from, end, 0.75, 0.3, dark);
-          const a2 = a + (rand() - 0.5) * 1.8;
-          const l2 = len * 0.55;
-          m.limb(end, [end[0] + Math.cos(a2) * l2, end[1] + Math.sin(a2) * l2, end[2] + l2 * (rand() * 0.9 - 0.2)], 0.3, 0.1, dark);
-        }
-      }
-    }
-    m.lift = sh.stand?.z || 0;
-    if (sh.stand) {
-      // Crumbling stone seats, rising away from the track, full of ghosts (pale, glowing) and
-      // skeletons (bone), under a roof in the room's colour.
-      const s = sh.stand;
-      const ca = Math.cos(s.a), sa = Math.sin(s.a);
-      const nx = -sa * s.side, ny = ca * s.side;
-      const crowd = seeded(`${tr.id}:crowd`);
-      const seat = [0.3, 0.28, 0.34];
-      for (let row = 0; row < 4; row++) {
-        const off = -s.depth / 2 + 4 + row * 6.5;
-        m.box(s.x + nx * off, s.y + ny * off, s.a, s.len / 2, 3.25, 0, 4 + row * 4, seat);
-        for (let k = 0; k < 30; k++) {
-          const u = -s.len / 2 + 4 + k * 5.6 + (crowd() - 0.5);
-          const ghost = crowd() < 0.6;
-          crowd();
-          const z = 4 + row * 4;
-          const tall = crowd() * 0.8;
-          const x = s.x + nx * off + ca * u;
-          const y = s.y + ny * off + sa * u;
-          if (ghost) {
-            const col = [0.78, 0.86, 0.94];
-            m.box(x, y, s.a, 1.7, 1.5, z, z + 2.4, col, 4);
-            m.box(x, y, s.a, 1.3, 1.2, z + 2.4, z + 4.6 + tall, col, 4);
-            for (const e of [-0.55, 0.55]) m.box(x - nx * 1.25 + ca * e, y - ny * 1.25 + sa * e, s.a, 0.3, 0.12, z + 3.2 + tall, z + 4 + tall, [0.05, 0.05, 0.08], 0, false);
-          } else {
-            const bone = [0.82, 0.78, 0.66];
-            m.box(x, y, s.a, 0.9, 0.7, z, z + 3.4, bone, 4);
-            m.box(x, y, s.a, 1.1, 1.1, z + 3.6 + tall * 0.5, z + 5.6 + tall * 0.5, bone, 4);
-            for (const e of [-0.45, 0.45]) m.box(x - nx * 1.15 + ca * e, y - ny * 1.15 + sa * e, s.a, 0.38, 0.12, z + 4.4 + tall * 0.5, z + 5.1 + tall * 0.5, [0.05, 0.04, 0.05], 0, false);
-          }
-        }
-      }
-      const back = s.depth / 2;
-      m.box(s.x + nx * back, s.y + ny * back, s.a, s.len / 2, 1.2, 0, 26, seat);
-      for (const u of [-s.len / 2 + 2, 0, s.len / 2 - 2]) m.box(s.x - nx * (back - 3) + ca * u, s.y - ny * (back - 3) + sa * u, s.a, 0.8, 0.8, 0, 26, seat);
-      m.box(s.x, s.y, s.a, s.len / 2 + 2, s.depth / 2 + 2, 26, 27.5, pal.accentRgb, 4);
-    }
-    // The gothic arch: pillars either side with pinnacles (a jack-o'-lantern on each), a pointed
-    // arch over the road, the beam across with the start lights.
-    const i = sh.startI;
-    const a = sh.head[i];
-    const span = tr.width / 2 + 12;
-    m.lift = sh.zs[i];
-    const P = (off, z) => [sh.xs[i] + sh.nx[i] * off, sh.ys[i] + sh.ny[i] * off, z];
-    for (const side of [-1, 1]) {
-      const [x, y] = P(span * side, 0);
-      m.box(x, y, a, 3, 3, 0, 44, stone);
-      m.box(x, y, a, 3.6, 3.6, 36, 38, stone);
-      m.cyl(x, y, 44, 47, 3.4, 3.4, stone, 4);
-      pumpkin(m, x, y, 47, 4.4, a + Math.PI);
-    }
-    // (Each side an arc, from the pillar up to the point.)
-    const R = (span - 3) * 1.4;
-    const top = Math.acos(0.4 / 1.4);
-    for (const side of [-1, 1]) {
-      let prev = null;
-      for (let k = 0; k <= 8; k++) {
-        const phi = (k / 8) * top;
-        const p = P(side * (-0.4 * (span - 3) + R * Math.cos(phi)), 38 + 0.42 * R * Math.sin(phi));
-        if (prev) m.limb(prev, p, 1.9, 1.9, stone);
-        prev = p;
-      }
-    }
-    const [ax, ay] = P(0, 0);
-    pumpkin(m, ax, ay, 38 + 0.42 * R * Math.sin(top) + 0.5, 3.2, a + Math.PI);
-    m.box(sh.xs[i], sh.ys[i], a, 2.2, span - 2, 30, 36, iron);
-    m.box(sh.xs[i] - Math.cos(a) * 2.4, sh.ys[i] - Math.sin(a) * 2.4, a, 0.3, span - 6, 31, 35, pal.accentRgb, 4, false);
-    for (let k = -2; k <= 2; k++) {
-      m.box(sh.xs[i] - Math.cos(a) * 3 + sh.nx[i] * k * 6, sh.ys[i] - Math.sin(a) * 3 + sh.ny[i] * k * 6, a, 0.5, 2, 31.6, 34.4, [1, 1, 1], 3, false);
-    }
-    return new Float32Array(m.v);
-  }
-
   function hsl(h, s, l) {
     const f = (n) => {
       const k = (n + h * 12) % 12;
@@ -2935,8 +3975,14 @@
     return cv;
   }
 
-  function skyCanvas(pal, wx) {
-    if (wx.moon) return hauntedSky(pal, wx);
+  // The sky all round (1024 across: a radian's 1024 / 2π pixels, and 256 up to 0.55 of a radian
+  // above the horizon: see GROUND_FS). The venue's skyline (THEME.sky) on the horizon: hills, a
+  // city's lights, the sea, mesas, snowy peaks, a castle's towers. Or a sky of its own (Halloween's,
+  // space's).
+  function skyCanvas(pal, wx, th = themeOf()) {
+    const own = th.sky?.draw?.(pal, wx);
+    if (own) return own;
+    const line = th.sky?.skyline || 'hills';
     const cv = document.createElement('canvas');
     cv.width = 1024;
     cv.height = 256;
@@ -2955,20 +4001,124 @@
       c.fillRect(rand() * 1024, rand() * 150, 1.5, 1.5);
     }
     // Whole numbers of waves round the 1024 pixels, so the join doesn't show.
+    const height = (x, base, amp, waves, phase) => {
+      const t = (x / 1024) * Math.PI * 2;
+      return 256 - base - amp * (0.6 * Math.sin(t * waves[0] + phase) + 0.3 * Math.sin(t * waves[1] + phase * 2) + 0.1 * Math.sin(t * waves[2]));
+    };
     const ridge = (base, amp, waves, phase) => {
       c.beginPath();
       c.moveTo(0, 256);
-      for (let x = 0; x <= 1024; x += 8) {
-        const t = (x / 1024) * Math.PI * 2;
-        c.lineTo(x, 256 - base - amp * (0.6 * Math.sin(t * waves[0] + phase) + 0.3 * Math.sin(t * waves[1] + phase * 2) + 0.1 * Math.sin(t * waves[2])));
-      }
+      for (let x = 0; x <= 1024; x += 8) c.lineTo(x, height(x, base, amp, waves, phase));
       c.lineTo(1024, 256);
       c.fill();
     };
-    c.fillStyle = hex(mix(horizon, pal.card, 0.45));
-    ridge(26, 26, [2, 5, 13], 1);
-    c.fillStyle = hex(mix(horizon, pal.card, 0.75));
-    ridge(10, 12, [3, 7, 31], 4);
+    const far = hex(mix(horizon, pal.card, 0.45));
+    const near = hex(mix(horizon, pal.card, 0.75));
+    const r2 = seeded(`skyline:${line}`);
+    if (line === 'sea') {
+      // The sea out to the horizon, a sail or an island far off.
+      const sg = c.createLinearGradient(0, 238, 0, 256);
+      sg.addColorStop(0, hex(mix(horizon, [0.1, 0.3, 0.45], 0.55)));
+      sg.addColorStop(1, hex(mix(horizon, [0.04, 0.16, 0.26], 0.75)));
+      c.fillStyle = sg;
+      c.fillRect(0, 238, 1024, 18);
+      c.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      for (let k = 0; k < 50; k++) c.fillRect(r2() * 1024, 240 + r2() * 15, 3 + r2() * 6, 0.8);
+      c.fillStyle = near;
+      for (let k = 0; k < 3; k++) {
+        const x = r2() * 1024;
+        c.beginPath();
+        c.ellipse(x, 239, 30 + r2() * 40, 6 + r2() * 5, 0, Math.PI, 0);
+        c.fill();
+        if (k === 0) for (const dx of [-12, 6]) { c.fillRect(x + dx, 222, 1.6, 14); c.beginPath(); c.ellipse(x + dx + 1, 222, 7, 3, 0, 0, Math.PI * 2); c.fill(); }
+      }
+      c.beginPath();
+      const sx = r2() * 1024;
+      c.moveTo(sx, 238); c.lineTo(sx + 6, 222); c.lineTo(sx + 6, 238); c.closePath();
+      c.moveTo(sx - 3, 238); c.lineTo(sx + 10, 238); c.lineTo(sx + 8, 241); c.lineTo(sx - 1, 241);
+      c.fill();
+    } else if (line === 'peaks') {
+      // Mountains, snow on their tops, then the nearer hills.
+      const peak = (x) => 256 - 22 - Math.abs(((x / 1024) * 9 + 0.3) % 1 - 0.5) * 90 - 18 * Math.sin((x / 1024) * Math.PI * 2 * 4);
+      c.fillStyle = far;
+      c.beginPath();
+      c.moveTo(0, 256);
+      for (let x = 0; x <= 1024; x += 4) c.lineTo(x, peak(x));
+      c.lineTo(1024, 256);
+      c.fill();
+      c.save();
+      c.clip();
+      c.fillStyle = 'rgba(245, 248, 255, 0.85)';
+      c.beginPath();
+      c.moveTo(0, 0);
+      for (let x = 0; x <= 1024; x += 4) c.lineTo(x, Math.min(256, peak(x) + 10 + 4 * Math.sin(x * 0.3)));
+      c.lineTo(1024, 0);
+      c.fill();
+      c.restore();
+      c.fillStyle = near;
+      ridge(10, 12, [3, 7, 31], 4);
+    } else if (line === 'mesas') {
+      // Flat-topped buttes, red in the distance.
+      c.fillStyle = hex(mix(mix(horizon, [0.6, 0.3, 0.18], 0.5), pal.card, 0.3));
+      c.beginPath();
+      c.moveTo(0, 256);
+      let x = 0;
+      while (x < 1024) {
+        const w = 40 + r2() * 110;
+        const h = 18 + r2() * 46;
+        c.lineTo(x, 252);
+        c.lineTo(x + 10, 256 - h);
+        c.lineTo(Math.min(1024, x + w - 10), 256 - h);
+        c.lineTo(Math.min(1024, x + w), 252);
+        x += w + r2() * 90;
+      }
+      c.lineTo(1024, 256);
+      c.fill();
+      c.fillStyle = near;
+      ridge(6, 6, [3, 7, 31], 4);
+    } else {
+      c.fillStyle = far;
+      ridge(26, 26, [2, 5, 13], 1);
+      c.fillStyle = near;
+      ridge(10, 12, [3, 7, 31], 4);
+    }
+    if (line === 'city' || line === 'towers') {
+      // A city's skyline, windows lit; or a castle on its hill, towers and a flag on each.
+      const dark = hex(mix(horizon, pal.card, 0.9).map((v) => v * 0.7));
+      c.fillStyle = dark;
+      if (line === 'city') {
+        for (let x = r2() * 20; x < 1024; x += 10 + r2() * 26) {
+          const w = 12 + r2() * 26;
+          const h = 16 + r2() * (r2() < 0.15 ? 90 : 50);
+          c.fillStyle = dark;
+          c.fillRect(x, 256 - h, w, h);
+          for (let y = 256 - h + 4; y < 252; y += 6) for (let wx2 = x + 3; wx2 < x + w - 3; wx2 += 5) if (r2() < 0.28) { c.fillStyle = r2() < 0.8 ? 'rgba(255, 220, 150, 0.8)' : th.sky?.lights || pal.accent; c.fillRect(wx2, y, 2, 2.4); }
+        }
+      } else {
+        const base = (x) => height(x, 10, 12, [3, 7, 31], 4);
+        for (const x0 of [180, 610]) {
+          const y0 = base(x0 + 50);
+          c.fillStyle = dark;
+          c.fillRect(x0, y0 - 22, 100, 26);
+          for (let k = 0; k < 10; k++) c.fillRect(x0 + k * 10, y0 - 26, 6, 4);
+          for (const [tx, tw, th2] of [[-6, 16, 46], [44, 18, 62], [92, 16, 42]]) {
+            c.fillRect(x0 + tx, y0 - th2, tw, th2);
+            for (let k = 0; k < 3; k++) c.fillRect(x0 + tx - 1 + k * 7, y0 - th2 - 4, 4, 4);
+            c.fillRect(x0 + tx + tw / 2, y0 - th2 - 16, 1.2, 12);
+            c.fillStyle = pal.accent;
+            c.beginPath();
+            c.moveTo(x0 + tx + tw / 2 + 1, y0 - th2 - 16);
+            c.lineTo(x0 + tx + tw / 2 + 10, y0 - th2 - 13);
+            c.lineTo(x0 + tx + tw / 2 + 1, y0 - th2 - 10);
+            c.fill();
+            c.fillStyle = dark;
+          }
+          c.fillStyle = 'rgba(255, 190, 90, 0.8)';
+          for (const [wx2, wy] of [[52, 40], [52, 26], [2, 26], [98, 24]]) c.fillRect(x0 + wx2, y0 - wy, 2.4, 4);
+          c.fillStyle = dark;
+        }
+      }
+    }
     for (let k = 0; k < 40; k++) {
       c.fillStyle = `rgba(${pal.accentRgb.map((v) => Math.round(v * 255)).join(', ')}, ${0.35 + rand() * 0.4})`;
       c.fillRect(rand() * 1024, 238 + rand() * 12, 2, 2);
@@ -2976,14 +4126,88 @@
     return cv;
   }
 
+  // Space all round (the space lounge, and Rainbow Road): stars, glowing clouds of colour, a ringed
+  // planet and a moon (on Rainbow Road a second, banded one too). Below the horizon there's more of
+  // it, made as it's drawn (see GROUND_FS).
+  function spaceSky(pal, wx, rainbow) {
+    const W = 1024;
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = 256;
+    const c = cv.getContext('2d');
+    const g = c.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#02010a');
+    g.addColorStop(0.7, '#080518');
+    g.addColorStop(1, '#0a0620');
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, 256);
+    const rand = seeded('space');
+    for (const [x, y, rx, ry, col] of [[160, 120, 220, 70, '140, 70, 255'], [520, 170, 260, 60, '42, 160, 255'], [820, 110, 200, 80, '255, 74, 154'], [1020, 150, 160, 60, '58, 224, 200']]) {
+      for (const dx of [-W, 0]) {
+        const n = c.createRadialGradient(x + dx, y, 0, x + dx, y, rx);
+        n.addColorStop(0, `rgba(${col}, 0.28)`);
+        n.addColorStop(1, `rgba(${col}, 0)`);
+        c.save();
+        c.translate(0, y);
+        c.scale(1, ry / rx);
+        c.translate(0, -y);
+        c.fillStyle = n;
+        c.fillRect(x + dx - rx, y - rx, rx * 2, rx * 2);
+        c.restore();
+      }
+    }
+    for (let k = 0; k < 260; k++) {
+      c.fillStyle = `rgba(255, 255, 255, ${0.25 + rand() * 0.7})`;
+      const s = rand() < 0.1 ? 2 : 1.2;
+      c.fillRect(rand() * W, rand() * 250, s, s);
+    }
+    // (Round on screen: the sky's picture is stretched 2.85 times as much across as up.)
+    const planet = (px, py, r, a, b, ring) => {
+      c.save();
+      c.translate(px, py);
+      c.scale(1, 256 / 0.55 / (W / (Math.PI * 2)));
+      const x = 0;
+      const y = 0;
+      const pg = c.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+      pg.addColorStop(0, a);
+      pg.addColorStop(1, b);
+      if (ring) {
+        c.strokeStyle = 'rgba(230, 210, 255, 0.55)';
+        c.lineWidth = 3;
+        c.beginPath();
+        c.ellipse(x, y, r * 2, r * 0.45, -0.3, Math.PI, Math.PI * 2);
+        c.stroke();
+      }
+      c.fillStyle = pg;
+      c.beginPath();
+      c.arc(x, y, r, 0, Math.PI * 2);
+      c.fill();
+      if (ring) {
+        c.beginPath();
+        c.ellipse(x, y, r * 2, r * 0.45, -0.3, 0, Math.PI);
+        c.stroke();
+      }
+      c.restore();
+    };
+    planet(300, 130, 16, '#ffd0a0', '#7a3a2a', true);
+    planet(700, 80, 6, '#e8e4f0', '#4a4660', false);
+    if (rainbow) planet(880, 190, 10, '#9ad8ff', '#1a2a7a', false);
+    return cv;
+  }
+
   // The ground, from above, as a texture: the felt's colours (with a mown stripe) under the track.
-  function groundCanvas(tr, pal) {
+  // (Rainbow Road: just the road, nothing round it, which the ground's shader takes as space.)
+  function groundCanvas(tr, pal, th = themeOf()) {
     const cv = document.createElement('canvas');
     cv.width = 2048;
     cv.height = 1024;
     const c = cv.getContext('2d');
     const sx = cv.width / tr.world.w;
     const sy = cv.height / tr.world.h;
+    if (th.void) {
+      drawStatic(cv, tr, sx, sy, { scenery: false, under: true });
+      return cv;
+    }
     const felt = pal.felt;
     const g = c.createRadialGradient(cv.width / 2, cv.height / 2, 0, cv.width / 2, cv.height / 2, cv.width * 0.6);
     felt.forEach((col, i) => g.addColorStop(felt.length === 1 ? 0 : i / (felt.length - 1), hex(col)));
@@ -3007,7 +4231,7 @@
     c.fillStyle = 'rgba(0, 0, 0, 0.25)';
     const art = propArt(pal);
     for (const p of sh.props) {
-      if (p.kind === 'stand') continue;
+      if (p.kind === 'stand' || (p.kind === 'tree' && (!kept(p, th) || th.tree === 'none')) || (p.kind === 'tyres' && th.stack === 'none')) continue;
       c.beginPath();
       if (p.kind === 'venue') {
         const it = art.items[p.which % art.items.length];
@@ -3133,7 +4357,7 @@
     load(s, ms) {
       const tr = s.game.track;
       // (The room's colours are looked at again now and then: its stylesheet can come in late.)
-      const quick = `${tr.id}:${s.look || s.style}:${weatherOf(s)}`;
+      const quick = `${tr.id}:${s.look || s.style}:${themeIdOf(s)}:${weatherOf(s)}`;
       if (quick === this.quick && ms - this.checked < 1500) return;
       this.quick = quick;
       this.checked = ms;
@@ -3159,15 +4383,19 @@
       };
       if (this.groundTex) gl.deleteTexture(this.groundTex);
       if (this.skyTex) gl.deleteTexture(this.skyTex);
-      this.groundTex = texture(groundCanvas(tr, pal), false, true);
+      const th = themeOf(s);
+      this.th = th;
+      this.groundTex = texture(groundCanvas(tr, pal, th), false, true);
       const wx = wxOf(s);
       this.wx = wx;
-      this.spooky = haunted(s);
       if (wx.moon) moonFor(tr);
-      this.skyTex = texture(skyCanvas(pal, wx), true, false);
+      this.skyTex = texture(skyCanvas(pal, wx, th), true, false);
       const sh = shapeOf(tr);
       this.sh = sh;
-      const scene = sceneModel(tr, sh, pal, wx);
+      // Rainbow Road: off the road is space (1); on the hills, the road's a model of its own and
+      // the ground's all space (2).
+      this.void = th.void ? (sh.hilly ? 2 : 1) : 0;
+      const scene = sceneModel(tr, sh, pal, wx, th);
       this.sceneBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.sceneBuf);
       gl.bufferData(gl.ARRAY_BUFFER, scene, gl.STATIC_DRAW);
@@ -3184,8 +4412,8 @@
       const art = propArt(pal);
       if (this.propTex) gl.deleteTexture(this.propTex);
       this.propTex = texture(art.cv, false, true);
-      // (The ones that glow go last, drawn on their own: lit from inside, flickering. At Halloween,
-      // its gravestones and jack-o'-lanterns round the track too.)
+      // (The ones that glow go last, drawn on their own: lit from inside, flickering. The venue's
+      // extras round the track too: Halloween's gravestones and jack-o'-lanterns, the torches.)
       const v = [];
       const lit = [];
       const glowAt = [];
@@ -3205,8 +4433,15 @@
         const [x, y] = propAt(p, it);
         cutout(it, x, y, it.size, (it.lift || 0) + (p.z || 0));
       }
-      const hs = this.spooky ? hauntOf(tr) : null;
-      for (const p of hs ? hs.things : []) if (art.byKind[p.kind]) cutout(art.byKind[p.kind], p.x, p.y, p.size, groundZ(sh, p.x, p.y));
+      const hs = extrasOf(tr, th);
+      for (const p of hs.things) if (art.byKind[p.kind]) cutout(art.byKind[p.kind], p.x, p.y, p.size, groundZ(sh, p.x, p.y));
+      // (A torch on each of the gantry's posts: Halloween's arch has jack-o'-lanterns of its own.)
+      const top = th.pillar && th.pillar !== 'lantern' && art.byKind[th.pillar];
+      if (top) {
+        const i = sh.startI;
+        const span = tr.width / 2 + 12;
+        for (const side of [-1, 1]) cutout(top, sh.xs[i] + sh.nx[i] * span * side, sh.ys[i] + sh.ny[i] * span * side, 14, sh.zs[i] + (th.gantry === 'arch' ? 46 : 36));
+      }
       this.propBuf ||= gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, this.propBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v.concat(lit)), gl.STATIC_DRAW);
@@ -3214,10 +4449,10 @@
       this.glowCount = lit.length / 6;
       // Where the glows are (x, y, z, size), and the will-o'-the-wisps (x, y, phase).
       this.glowAt = new Float32Array(glowAt);
-      this.wisps = new Float32Array(hs ? hs.wisps.flatMap((w) => [w.x, w.y, w.k]) : []);
+      this.wisps = new Float32Array(hs.wisps.flatMap((w) => [w.x, w.y, w.k]));
       const [, horizon] = skyColours(pal, wx);
       this.haze = wx.haze ? mix(horizon, wx.haze, 0.85) : horizon;
-      this.out = wx.snow ? [0.78, 0.81, 0.86] : this.spooky ? [0.07, 0.055, 0.05] : mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
+      this.out = wx.snow && !th.void ? [0.78, 0.81, 0.86] : th.out || mix(pal.felt[pal.felt.length - 1], [0, 0, 0], 0.55);
       this.propLight = mix(wx.light, [1, 1, 1], 0.3);
       this.lamp = [0.25, 0.05, 0.05];
     },
@@ -3259,7 +4494,8 @@
     aim(car, ms, portrait) {
       const cam = this.cam;
       const dt = Math.min(0.1, Math.max(0.001, (ms - cam.t) / 1000));
-      const fresh = cam.race !== PB.state.game.race;
+      // (A new race; or the car's been put back on the road after a fall, somewhere else.)
+      const fresh = cam.race !== PB.state.game.race || (car[0] - cam.px) ** 2 + (car[1] - cam.py) ** 2 > 50 ** 2;
       cam.t = ms;
       if (fresh) { cam.race = PB.state.game.race; cam.yaw = car[2]; cam.px = car[0]; cam.py = car[1]; cam.pa = car[2]; cam.speed = 0; cam.roll = 0; cam.shake = 0; }
       const moved = Math.hypot(car[0] - cam.px, car[1] - cam.py) / dt;
@@ -3422,7 +4658,8 @@
       const wx = this.wx;
       const far = wx.far;
       // Halloween: lightning now and then (everything lit up), the low fog drifting.
-      const flash = this.spooky ? lightning(ms) * (wx.mute ? 0.5 : 1) : 0;
+      const fx = this.th.fx;
+      const flash = fx.lightning ? lightning(ms) * (wx.mute ? 0.5 : 1) : 0;
       const L = this.light;
       L[0] = wx.light[0] + flash * 0.75;
       L[1] = wx.light[1] + flash * 0.72;
@@ -3473,6 +4710,7 @@
       gl.uniform3f(G.u.uOut, this.out[0], this.out[1], this.out[2]);
       gl.uniform1f(G.u.uWet, wx.wet || 0);
       gl.uniform1f(G.u.uFlash, flash);
+      gl.uniform1f(G.u.uVoid, this.void);
       weather(G);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
       gl.enableVertexAttribArray(G.aP);
@@ -3495,6 +4733,7 @@
         gl.uniform2f(R.u.uWorld, s.game.track.world.w, s.game.track.world.h);
         gl.uniform1f(R.u.uHalf, s.game.track.width / 2);
         gl.uniform1f(R.u.uWet, wx.wet || 0);
+        gl.uniform1f(R.u.uVoid, this.void);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.groundTex);
         gl.uniform1i(R.u.uGround, 0);
@@ -3537,10 +4776,13 @@
         if (!c || !ids[i]) continue;
         // (Not one right under the camera: on the grid it hangs over the car behind yours.)
         if (i !== mine && (c[0] - cam.x) ** 2 + (c[1] - cam.y) ** 2 < 400) continue;
+        // Rainbow Road: a car being put back after a fall blinks, dropping back onto the road.
+        const drop = c[3] & 16 ? this.dropping(ids[i], ms) : 0;
+        if (drop < 0) continue;
         const col = this.colour(ids[i]);
         gl.uniform4f(M.u.uM, c[0], c[1], Math.cos(c[2]), Math.sin(c[2]));
         const h = this.carHill(ids[i], c, i === mine);
-        gl.uniform3f(M.u.uH, h.z, h.along, h.across);
+        gl.uniform3f(M.u.uH, h.z + drop, h.along, h.across);
         gl.uniform3f(M.u.uTint, col[0], col[1], col[2]);
         gl.uniform1f(M.u.uBrake, c[3] & 8 ? 1 : 0);
         const mesh = this.meshes?.[ids[i]];
@@ -3585,7 +4827,7 @@
         gl.disableVertexAttribArray(P.aT);
       }
       // Halloween's phantom car: see-through, pale green, through anything in its way.
-      const ph = this.spooky ? phantomAt(s, s.game.track) : null;
+      const ph = fx.phantom ? phantomAt(s, s.game.track) : null;
       // (Not when it's on top of the camera: a see-through car filling the screen is all blending.)
       if (ph && (ph.x - cam.x) ** 2 + (ph.y - cam.y) ** 2 > 2500) {
         gl.useProgram(M.p);
@@ -3608,7 +4850,7 @@
         gl.disable(gl.BLEND);
       }
       this.labels(s, cars, ids, mine, ms);
-      if (this.spooky) this.haunt(s, ph, flash, ms);
+      if (this.glowAt.length || this.wisps.length || ph || fx.bats || fx.comets || flash) this.ambient(s, ph, flash, ms);
       this.spray(s, cars, ids, ms);
       this.fall(s, wx, car, ms);
     },
@@ -3670,28 +4912,30 @@
       }
     },
 
-    // Halloween over the view from the car: the jack-o'-lanterns' glow, will-o'-the-wisps drifting
-    // about, the phantom's aura, bats flitting over the sky (round the moon, mostly), and the flash
-    // of the lightning. Everything from what's made already: nothing new each frame.
-    haunt(s, ph, flash, ms) {
+    // The venue's goings-on over the view from the car: the glow of what's lit (jack-o'-lanterns,
+    // torches) flickering, lights drifting about (will-o'-the-wisps), the phantom's aura, bats
+    // flitting over the sky (round the moon, mostly), comets going over, the flash of the
+    // lightning. Everything from what's made already: nothing new each frame.
+    ambient(s, ph, flash, ms) {
       const c = this.hud.getContext('2d');
       const W = this.hud.width;
       const H = this.hud.height;
       const k = this.k || 1;
       const cam = this.cam;
+      const fx = this.th.fx;
       const reach = this.wx.mute ? 260 : 440;
       const t = ms / 1000;
       c.globalCompositeOperation = 'lighter';
-      const orange = glowSprite('orange');
+      const lit = glowSprite(this.th.glow);
       const g = this.glowAt;
       for (let i = 0; i < g.length; i += 4) {
         if (!this.project(g[i], g[i + 1], g[i + 2]) || at.d > reach) continue;
         const size = at.s * g[i + 3] * 2.4;
         if (size < 3) continue;
         c.globalAlpha = Math.max(0, Math.min(1, (flicker(ms, i) - 0.62) * 2.4)) * (1 - at.d / reach);
-        c.drawImage(orange, at.x - size / 2, at.y - size / 2, size, size);
+        c.drawImage(lit, at.x - size / 2, at.y - size / 2, size, size);
       }
-      const green = glowSprite('green');
+      const green = glowSprite(this.th.wisp);
       const w = this.wisps;
       for (let i = 0; i < w.length; i += 3) {
         const q = t + w[i + 2];
@@ -3707,16 +4951,42 @@
         c.globalAlpha = 0.4 * ph.fade;
         c.drawImage(green, at.x - size / 2, at.y - size / 2, size, size);
       }
+      // A comet across the sky now and then: its head where it is, its tail back where it's been.
+      const comet = fx.comets ? cometNow(ms) : null;
+      if (comet) {
+        const r = seeded(`comet${comet.n}`);
+        const az0 = cam.yaw + (r() - 0.5) * 1.6;
+        const dir = r() < 0.5 ? -1 : 1;
+        const sky = (f) => {
+          const az = az0 + dir * f * 0.7;
+          const el = 0.42 - f * 0.26;
+          return this.project(cam.x + Math.cos(az) * 600, cam.y + Math.sin(az) * 600, cam.z + Math.tan(el) * 600);
+        };
+        if (sky(comet.f + 0.02)) {
+          const x1 = at.x, y1 = at.y;
+          if (sky(comet.f)) {
+            const len = Math.min(220 * k, Math.max(40 * k, Math.hypot(x1 - at.x, y1 - at.y) * 9));
+            c.globalAlpha = Math.min(1, (1 - comet.f) * 3, comet.f * 6);
+            c.save();
+            c.translate(x1, y1);
+            c.rotate(Math.atan2(y1 - at.y, x1 - at.x));
+            c.drawImage(cometSprite(), -len, -len / 16, len, len / 8);
+            c.restore();
+          }
+        }
+      }
       c.globalCompositeOperation = 'source-over';
-      const bats = batSprites();
       c.globalAlpha = 1;
-      for (let i = 0; i < 9; i++) {
-        const moon = i < 5;
-        const az = moon ? MOON.az + Math.sin(t * 0.15 + i * 1.9) * 0.32 : i * 1.3 + t * 0.04 * (i % 2 ? 1 : -1);
-        const el = (moon ? MOON.el + 0.02 : 0.16 + 0.05 * (i % 3)) + 0.04 * Math.sin(t * 0.7 + i * 2.3);
-        if (!this.project(cam.x + Math.cos(az) * 600, cam.y + Math.sin(az) * 600, cam.z + Math.tan(el) * 600)) continue;
-        const size = (moon ? 22 : 16) * k * (0.7 + (i % 3) * 0.2);
-        c.drawImage(bats[Math.sin(t * 17 + i * 1.3) > 0 ? 0 : 1], at.x - size / 2, at.y - size / 4, size, size / 2);
+      if (fx.bats) {
+        const bats = batSprites();
+        for (let i = 0; i < 9; i++) {
+          const moon = i < 5;
+          const az = moon ? MOON.az + Math.sin(t * 0.15 + i * 1.9) * 0.32 : i * 1.3 + t * 0.04 * (i % 2 ? 1 : -1);
+          const el = (moon ? MOON.el + 0.02 : 0.16 + 0.05 * (i % 3)) + 0.04 * Math.sin(t * 0.7 + i * 2.3);
+          if (!this.project(cam.x + Math.cos(az) * 600, cam.y + Math.sin(az) * 600, cam.z + Math.tan(el) * 600)) continue;
+          const size = (moon ? 22 : 16) * k * (0.7 + (i % 3) * 0.2);
+          c.drawImage(bats[Math.sin(t * 17 + i * 1.3) > 0 ? 0 : 1], at.x - size / 2, at.y - size / 4, size, size / 2);
+        }
       }
       if (flash > 0) {
         c.globalAlpha = flash * 0.16;
@@ -3724,6 +4994,18 @@
         c.fillRect(0, 0, W, H);
         c.globalAlpha = 1;
       }
+    },
+
+    // Rainbow Road: a car being put back after a fall (flag 16) drops back onto the road from just
+    // above it, blinking. How far above it is now, or -1 while it's blinked out.
+    fallen: {},
+    dropping(id, ms) {
+      const f = this.fallen[id];
+      if (!f || ms - f.seen > 400) this.fallen[id] = { from: ms, seen: ms };
+      else f.seen = ms;
+      const t = (ms - this.fallen[id].from) / 1000;
+      if (t < 1 && Math.floor(t * 8) % 2) return -1;
+      return Math.max(0, 14 * (1 - t / 1.1));
     },
 
     // Rain: spray thrown up behind the cars going at a lick.
@@ -3838,7 +5120,7 @@
     // No WebGL: the map from above, turned so the car points up the screen, close in.
     flat(s, cars, ids, car, portrait) {
       const tr = s.game.track;
-      const flatKey = `${tr.id}:${venueOf(s)}:${weatherOf(s)}`; // (Halloween: its own look)
+      const flatKey = `${tr.id}:${themeIdOf(s)}:${weatherOf(s)}`; // (each venue's own look)
       if (!this.flatBg || this.flatKey !== flatKey) {
         this.flatBg = document.createElement('canvas');
         this.flatBg.width = tr.world.w * 2;
@@ -3859,7 +5141,8 @@
       c.drawImage(this.flatBg, 0, 0, tr.world.w, tr.world.h);
       const now = performance.now();
       const wx = wxOf(s);
-      if (haunted(s)) hauntAbove(c, s, tr, now);
+      const th = themeOf(s);
+      if (th.along || th.field || th.wisps || th.fx.phantom || th.fx.comets) aboveFx(c, s, tr, now, th);
       if (wx.flat || wx.snow) {
         c.setTransform(1, 0, 0, 1, 0, 0);
         c.fillStyle = wx.flat || 'rgba(255, 255, 255, 0.1)';
@@ -3875,9 +5158,9 @@
 
   // 3, 2, 1, GO over the track (and over the view from the car). Halloween: 3… 2… 1… BOO!
   function countText(s) {
-    const spooky = haunted(s);
-    if (s.phase === 'countdown') return `${s.game.count}${spooky ? '…' : ''}`;
-    if (s.phase === 'race' && (!snaps.length || snaps[snaps.length - 1].t < 1.2)) return spooky ? 'BOO!' : 'GO!';
+    const words = themeOf(s).words;
+    if (s.phase === 'countdown') return `${s.game.count}${words.count}`;
+    if (s.phase === 'race' && (!snaps.length || snaps[snaps.length - 1].t < 1.2)) return words.go;
     return '';
   }
   const countClass = (text) => `tr-count ${text === 'GO!' ? 'go' : text === 'BOO!' ? 'go boo' : text.endsWith('…') ? 'spooky' : ''}`;
@@ -4863,6 +6146,7 @@
       sound.seen = '';
     },
     audio: sound, // (for tests: what it's playing)
+    looks: { THEME, RACE_THEMES, GROUNDS, themeOf, wxOf }, // (for tests: each venue's race)
     // Racing, the phone is all view, wheel and pedals.
     get fullscreen() {
       return driving();
@@ -4958,15 +6242,23 @@
         // Into another car if one's touching (they bump at twice the cars' radius), else the wall.
         if (driving() && mine) sound.hit(d.c.some((c) => c !== mine && Math.hypot(c[0] - mine[0], c[1] - mine[1]) < 26));
       }
+      // Off Rainbow Road: a drink (if it's been a while since the last), and back on.
+      for (const [id, drank] of d.f || []) {
+        if (id !== s.me || !driving()) continue;
+        PB.buzz('hit');
+        fp.cam.shake = 1.2;
+        sound.hit(false);
+        banner(drank ? '🍺 Drink!' : '🌈 Back on!');
+      }
       if (mine) {
         const done = !!(mine[3] & 4);
         if (lastMine.lap && mine[5] > lastMine.lap) {
           PB.buzz();
-          banner(mine[5] === s.game.laps ? (haunted(s) ? '💀 Final lap!' : 'Final lap!') : `Lap ${mine[5]}`);
+          banner(mine[5] === s.game.laps ? themeOf(s).words.final : `Lap ${mine[5]}`);
           if (driving()) sound.lap(mine[5] === s.game.laps);
         }
         if (done && !lastMine.done && lastMine.place) {
-          banner(`${haunted(s) ? '🎃' : '🏁'} ${ordinal(mine[4])}!`, true);
+          banner(`${themeOf(s).words.finish} ${ordinal(mine[4])}!`, true);
           if (driving()) sound.finish(mine[4], d.c.length);
         }
         if (mine[4] !== lastMine.place || mine[5] !== lastMine.lap || done !== lastMine.done) {

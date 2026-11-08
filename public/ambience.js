@@ -885,6 +885,8 @@
       tune(out, { bpm: 118, notes: SONGS.gameshow, voice: VOICES.keys, gain: 0.045, chords: [[48, 55, 64], [53, 60, 69], [55, 62, 67], [48, 55, 64]], every: 8, comp: strum(0.02, 'keys') }),
       now(30, (t) => CUES.cheer(out, t)),
     ],
+    // Rainbow Road (Track Racing in the space lounge): the lounge's own music.
+    spaceRainbow: (out) => ROOMS.space(out),
     // Open mic night: the jazz trio, low, between the acts.
     jazzOpenMic: (out) => ROOMS.jazz(out),
     // Oktoberfest: the oompah band, and someone yodelling.

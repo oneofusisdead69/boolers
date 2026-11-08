@@ -1451,6 +1451,8 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 @keyframes tr-fall { to { transform: translate3d(120px, 240px, 0); } }
 .tr-stage.mini .tr-fall { display: none; }
 @media (prefers-reduced-motion: reduce) { .tr-fall::before { animation: none; } }
+/* Rainbow Road (Track Racing in the space lounge): out in space the road glows by its own light. */
+.tr-stage.rainbow .tr-wx { display: none; }
 /* Halloween (see "Halloween" in public/games/trackRacing.js): the night tinted purple, low fog
    drifting over the track, bats crossing it, lightning now and then; the countdown ends in BOO. */
 .tr-stage.haunted .tr-wx-night { background: radial-gradient(ellipse at center, rgba(36, 12, 58, 0.32), rgba(10, 4, 22, 0.66)); }

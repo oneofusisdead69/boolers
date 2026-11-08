@@ -343,12 +343,13 @@ function showAlert(html, kind, ms) {
 
 // While it's your turn, a drink alert is a strip across the top instead of covering the screen,
 // so it never swallows your throw or tap (your cup's just been sunk, and now you throw). Checked
-// again with every state: the drink comes in just before the state that makes it your turn.
+// again with every state: the drink comes in just before the state that makes it your turn. The
+// same while a game has the whole screen (you're driving: falling off Rainbow Road mid-race).
 function compactAlert() {
   const el = document.getElementById('drink-alert');
   const s = PB.state;
   if (!el.hidden && el.classList.contains('water')) return;
-  el.classList.toggle('compact', !!(s?.game && s.phase !== 'over' && s.waiting?.includes(s.me)));
+  el.classList.toggle('compact', !!(s?.game && s.phase !== 'over' && (s.waiting?.includes(s.me) || PB.screens[s.gameType]?.fullscreen)));
 }
 document.getElementById('drink-alert').onclick = (e) => (e.currentTarget.hidden = true);
 
