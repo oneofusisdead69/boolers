@@ -876,6 +876,8 @@
       now(20, (t) => note(out, t, { freq: 55, to: 50, len: 6, gain: 0.05, type: 'sawtooth', attack: 2 })),
       now(11, (t) => { for (let k = 0; k < 4; k++) note(out, t + k * 0.1, { freq: hz(pick([84, 88, 91, 96])), len: 0.08, gain: 0.015, type: 'square' }); }),
     ],
+    // Rainbow Road (Track Racing in the space lounge): the lounge's own music.
+    spaceRainbow: (out) => ROOMS.space(out),
     // Open mic night: the jazz trio, low, between the acts.
     jazzOpenMic: (out) => ROOMS.jazz(out),
     // Oktoberfest: the oompah band, and someone yodelling.

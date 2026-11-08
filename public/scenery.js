@@ -232,6 +232,8 @@
     // Space: the cyan of the windows, magenta panel light.
     space: { sil: '#05070c', rims: [{ x: 1, y: -0.4, c: '#5ae0ff' }, { x: -1, y: -0.4, c: '#ff6ad8', o: 0.7 }] },
     spaceStarship: { sil: '#05070c', rims: [{ x: 0.3, y: -1, c: '#e8f6ff' }, { x: 1, y: -0.3, c: '#5ae0ff' }] },
+    // Rainbow Road (Track Racing in the space lounge): the lounge's light, more magenta.
+    spaceRainbow: { sil: '#05070c', rims: [{ x: 1, y: -0.4, c: '#5ae0ff' }, { x: -1, y: -0.4, c: '#ff5ad8', o: 0.85 }] },
     // The lighthouse at night: its lamp overhead, the moon off the sea.
     lighthouse: { sil: '#06080e', rims: [{ x: 0.2, y: -1, c: '#ffe8a0' }, { x: -1, y: -0.3, c: '#9ab8ff', o: 0.7 }] },
     // In daylight a slate-blue silhouette, the sun's white edge, the sky's blue.
@@ -3690,6 +3692,8 @@
         () => { el('', { left: '-40vw', top: `${rand(14, 40)}vh` }, 1400).classList.add('sc-sp-warp'); cue('warp'); },
       ],
     };
+    // Rainbow Road is the lounge (its art has the lounge behind the road): the same scenery.
+    SCENES.spaceRainbow = SCENES.space;
 
     // ----- The beer hall (see beerHall() in lib/roomArt.js) -----
     // The cuckoo clock on the wall ticks (and the cuckoo comes out), the wagon-wheel chandelier
