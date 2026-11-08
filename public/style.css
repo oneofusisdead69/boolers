@@ -1513,7 +1513,7 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
 .jp-head { text-align: center; }
 .jp-whose { font-size: 1.05rem; }
 .jp-board { --jp-blue: #0b1d9e; --jp-deep: #050d5c; --jp-gold: #ffcf3f; display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #000; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
-.jp-cat { display: flex; align-items: center; justify-content: center; min-height: 3.6em; padding: 4px 2px; background: var(--jp-blue); border-radius: 4px; color: #fff; text-align: center; font-weight: 900; font-size: 0.62rem; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 1px 2px 0 #000; overflow-wrap: anywhere; hyphens: auto; border-bottom: 3px solid #000; }
+.jp-cat { display: flex; align-items: center; justify-content: center; min-height: 3.6em; padding: 4px 2px; background: var(--jp-blue); border-radius: 4px; color: #fff; text-align: center; font-weight: 900; font-size: clamp(0.5rem, 2.5vw, 0.66rem); line-height: 1.1; text-transform: uppercase; letter-spacing: 0; text-shadow: 1px 2px 0 #000; overflow-wrap: break-word; hyphens: auto; border-bottom: 3px solid #000; }
 .jp-cat { flex-direction: column; gap: 1px; }
 .jp-cat.house { background: linear-gradient(#1a2bb0, #0b1d9e); box-shadow: inset 0 0 0 2px var(--jp-gold); }
 .jp-cat i { font-style: normal; font-size: 1.15em; line-height: 1; text-shadow: none; }
@@ -1655,3 +1655,48 @@ main.ls .jp-board .jp-cat { min-height: 2.8em; }
 main.ls .jp-buzz { min-height: 110px; }
 /* The TV page on a small screen (a phone held sideways): the clue box only as tall as its text. */
 @media (max-height: 500px) { .jp-tv .jp-clue.big { min-height: 0; } .jp-tv .jp-q { font-size: 2.4rem; } }
+
+/* Bool Jeopardy: the options while someone else answers are a plain list, not buttons. */
+.jp-options.watching .jp-opt { background: var(--card); border: 2px dashed color-mix(in srgb, var(--text) 22%, transparent); font-weight: 700; font-size: 1rem; padding: 10px 12px; }
+.jp-options.watching .jp-opt i { width: 1.6em; height: 1.6em; background: transparent; color: var(--muted); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text) 25%, transparent); }
+.jp-options .jp-opt.right, .jp-options.watching .jp-opt.right { background: var(--ok); color: #04210f; border: 2px solid #fff; opacity: 1; text-decoration: none; }
+.jp-opt { position: relative; }
+.jp-who { margin-left: auto; display: flex; gap: 2px; font-style: normal; }
+
+/* Bool Jeopardy with a TV: the phone is a controller. */
+.jp-look { align-items: center; text-align: center; gap: 8px; padding: 22px 16px; border: 2px solid var(--pc, transparent); background: color-mix(in srgb, var(--pc, var(--card)) 14%, var(--card)); }
+.jp-look small { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; font-size: 0.78rem; }
+.jp-look b { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 1.45rem; font-weight: 900; line-height: 1.2; }
+.jp-look span { color: var(--muted); font-size: 1rem; }
+.jp-look span b { display: inline; font-size: inherit; color: var(--text); }
+.jp-me { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-radius: 14px; background: var(--card); border-left: 4px solid var(--pc); }
+.jp-me > b { font-size: 1.25rem; font-weight: 900; color: #ffcf3f; font-variant-numeric: tabular-nums; }
+.jp-me > b.neg { color: var(--danger); }
+.jp-me > small { color: var(--muted); }
+.jp-me .sp-pay { margin-left: auto; }
+.jp-ctl-head { display: flex; justify-content: space-between; gap: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.9rem; color: var(--muted); }
+.jp-ctl-head b { color: var(--accent-ink, var(--accent)); white-space: nowrap; }
+.jp-buzz.giant { min-height: max(320px, 56dvh); font-size: clamp(3.5rem, 20vw, 5.5rem); border-radius: 32px; flex-direction: column; gap: 10px; }
+.jp-buzz.giant.wait { font-size: 2rem; }
+.jp-buzz.giant.out { font-size: 3rem; min-height: max(260px, 40dvh); }
+.jp-buzz.giant.out span { font-size: 1.3rem; }
+.jp-mine { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 12px 14px; border-radius: 14px; background: var(--card); font-weight: 800; border: 2px solid var(--ok); }
+.jp-mine.bad { border-color: var(--danger); }
+.jp-mine b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.jp-mine.ok b { color: var(--ok); }
+.jp-mine.bad b { color: var(--danger); }
+.jp-mine small { width: 100%; color: var(--muted); font-weight: 600; }
+.jp-checklist { display: flex; flex-direction: column; gap: 6px; }
+.jp-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--card); color: var(--text); text-align: left; font-weight: 700; font-size: 1.05rem; border: 2px solid transparent; }
+.jp-check i { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.5em; border-radius: 6px; font-style: normal; box-shadow: inset 0 0 0 2px var(--muted); color: var(--accent-text); }
+.jp-check.on { border-color: var(--accent); }
+.jp-check.on i { background: var(--accent); box-shadow: none; }
+.jp-checklist.locked .jp-check:not(.on) { opacity: 0.4; }
+.jp-picklist { display: flex; flex-direction: column; gap: 8px; }
+.jp-pickrow { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: var(--card); }
+.jp-pickrow > b { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.jp-pickrow > div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.jp-pickrow button { padding: 10px 0; font-size: 1rem; font-variant-numeric: tabular-nums; }
+/* In the game show studio (the easter egg, lib/roomStyles.js clubStudio) the set is the same blue
+   as the board: the clue gets a gold edge so it stands off it. */
+html[data-room="clubStudio"] .jp-clue { box-shadow: inset 0 0 0 3px #ffcf3f, 0 8px 24px rgba(0, 0, 0, 0.5); }

@@ -207,6 +207,8 @@
     // The jazz club: the warm stage spot overhead, the red velvet's glow from the side.
     jazz: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#ffd890' }, { x: -1, y: -0.2, c: '#ff5a4a', o: 0.75 }] },
     jazzOpenMic: { sil: NIGHT, rims: [{ x: 0, y: -1, c: '#fff0c8' }, { x: 1, y: -0.3, c: '#6a8cff', o: 0.75 }] },
+    // The game show studio: the white key lights from above, the board's blue glow from behind.
+    clubStudio: { sil: '#05071a', rims: [{ x: 0.2, y: -1, c: '#fff4d8' }, { x: -1, y: -0.3, c: '#4a7aff', o: 0.85 }] },
     // The diner, all chrome and white tiles: a deep plum silhouette, pink and turquoise neon.
     diner: { sil: '#24202c', rims: [{ x: -1, y: -0.4, c: '#ff5a9a' }, { x: 1, y: -0.5, c: '#6ae8ff', o: 0.85 }] },
     dinerRink: { sil: '#0a0812', rims: [{ x: -1, y: -0.4, c: '#d05aff' }, { x: 1, y: -0.5, c: '#5affe0', o: 0.85 }] },
@@ -2361,6 +2363,51 @@
       () => { cue('snaps'); for (let i = 0; i < 4; i++) later(() => popup('🫰', { x: rand(2, 14), bottom: rand(4, 20), size: 40, life: 1600 }), i * 400); },
       () => { const x = rand(2, 10); drift('🍅', { from: [-6, 60], to: [x, 72], dur: 0.9, size: 40, spin: 360 }); later(() => popup('💥', { x, bottom: 24, size: 50, life: 900 }), 900); cue('thud', 900); },
       () => layer.querySelector('.sc-sign.mic')?.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1200, easing: 'steps(1)' }),
+    ],
+  };
+
+  // Bool Jeopardy in the club: the game show studio. The spotlights sweep, the APPLAUSE sign
+  // lights up for every right answer (and the audience obliges), a Daily Double gets the sting,
+  // and the winner gets confetti.
+  let studioKey = null;
+  const applause = (ms = 2600) => {
+    const sign = layer.querySelector('.sc-sign.applause');
+    if (sign) { sign.classList.add('on'); later(() => sign.classList.remove('on'), ms); }
+    cue('cheer');
+  };
+  SCENES.clubStudio = {
+    gap: [12, 24],
+    decor() {
+      studioKey = null;
+      for (let i = 0; i < 4; i++) el('', { left: `${6 + i * 27}vw`, top: '-5vh', animationDelay: `-${i * 1.9}s` }).classList.add('sc-stagebeam', 'studio');
+      el('<span>APPLAUSE</span>', { left: '40vw', top: '3.6vh' }).classList.add('sc-sign', 'applause');
+      banner('Live from the studio', 'It’s Bool Jeopardy!', 'studio');
+      later(() => applause(3200), 900);
+    },
+    update(s) {
+      if (s?.gameType !== 'jeopardy') return;
+      const g = s.game || {};
+      const key = `${s.phase}:${g.clueNo}`;
+      if (key === studioKey) return;
+      const first = studioKey === null;
+      studioKey = key;
+      if (first) return;
+      if (s.phase === 'reveal') {
+        if (g.clue?.results?.some((x) => x.right)) applause();
+        else if (g.clue?.results?.length) cue('aww');
+      } else if (s.phase === 'ddWager') {
+        inFront('<b>DAILY DOUBLE!</b>', { left: '0', right: '26vw', top: '30vh' }, 2600).classList.add('sc-quote', 'studio');
+        cue('sting');
+      } else if (s.phase === 'over') {
+        applause(5000);
+        later(() => fall(['🎊', '✨', '🎉'], 6, 0.4, 1), 300);
+      }
+    },
+    moments: [
+      () => applause(),
+      () => { cue('flashbulb'); for (let i = 0; i < 10; i++) el('', { left: `${rand(0, 100)}vw`, top: `${rand(70, 96)}vh`, animationDelay: `${rand(0, 1)}s` }, 2200).classList.add('sc-flash'); },
+      () => fall(['🎊', '✨'], 4, 0.3, 0.8),
+      () => layer.querySelectorAll('.sc-stagebeam.studio').forEach((b, i) => b.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }], { duration: 900, delay: i * 150 })),
     ],
   };
 

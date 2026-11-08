@@ -444,3 +444,13 @@ test('every venue has a house category; looks within a room use the room\'s; any
   }
   assert.strictEqual(names.size, VENUES.castle.categories.length);
 });
+
+test('the secret room: Bool Jeopardy in the club is the game show studio', () => {
+  assert.strictEqual(ROOM_STYLES.eggOf('club', 'jeopardy'), 'clubStudio');
+  const studio = ROOM_STYLES.STYLES.clubStudio;
+  assert.ok(studio.egg && studio.mood && studio.room === 'club' && studio.vars && studio.font);
+  assert.strictEqual(ROOM_STYLES.roomOf('clubStudio'), 'club');
+  assert.strictEqual(venueOf(ROOM_STYLES.roomOf('clubStudio')), 'club', 'its house category is the club\'s');
+  const { ART } = require('../lib/roomArt');
+  assert.ok(ART.clubStudio?.bg().includes('data:image/svg+xml'), 'it has its art');
+});
