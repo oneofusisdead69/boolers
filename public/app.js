@@ -390,6 +390,7 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=boatRace">🚣 Boat Race</a>
         <a class="btn-link" href="/play/local.html?game=beerPong">🏓 Beer Pong</a>
         <a class="btn-link" href="/play/local.html?game=quarters">🪙 Quarters</a>
+        <a class="btn-link" href="/play/local.html?game=jeopardy">🟦 Bool Jeopardy</a>
       </div>
     </div>
     <div class="spacer"></div>

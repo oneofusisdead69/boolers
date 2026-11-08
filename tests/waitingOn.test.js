@@ -22,6 +22,7 @@ const OPTIONAL = {
   boatRace: ['cheer'], // bots cheer from the side
   trackRacing: ['honk', 'car', 'bet'], // a toot mid-race; a car, or a bet other than the sip on yourself everyone starts with
   bigTom: ['bestQuestion'], // the end-of-game poll: playing again goes ahead without it
+  jeopardy: ['buzz', 'paid'], // the buzzers are open to anyone (on a clock); a tab is paid straight away, though only the next pick waits for it
 };
 const HOST_MAY = { liarsDice: ['next'], shotPoker: ['deal'], bigTom: ['moveOn'] };
 // Options that reach phases the defaults rarely do (a ton in 501 hands out sips; bluffs to answer).

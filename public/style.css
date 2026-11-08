@@ -1507,3 +1507,144 @@ html[data-room="speakeasyNoir"] .tv-feed { filter: grayscale(1); }
   .tr-garage-in { flex-direction: row; align-items: flex-start; }
   .tr-preview { width: 42%; height: 170px; flex: none; }
 }
+
+/* Bool Jeopardy: a deep-blue game-show board of our own, gold $ values, bold category headers. */
+.jp-head { text-align: center; }
+.jp-whose { font-size: 1.05rem; }
+.jp-board { --jp-blue: #0b1d9e; --jp-deep: #050d5c; --jp-gold: #ffcf3f; display: grid; grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #000; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+.jp-cat { display: flex; align-items: center; justify-content: center; min-height: 3.6em; padding: 4px 2px; background: var(--jp-blue); border-radius: 4px; color: #fff; text-align: center; font-weight: 900; font-size: 0.62rem; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 1px 2px 0 #000; overflow-wrap: anywhere; hyphens: auto; border-bottom: 3px solid #000; }
+.jp-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 3; padding: 0; border-radius: 4px; background: radial-gradient(ellipse at 50% 40%, var(--jp-blue), var(--jp-deep)); color: var(--jp-gold); font-weight: 900; font-size: clamp(0.85rem, 4.4vw, 1.25rem); text-shadow: 2px 2px 0 #000; font-variant-numeric: tabular-nums; width: auto; }
+.jp-cell.used { background: #030836; }
+.jp-cell.used.last { box-shadow: inset 0 0 0 2px rgba(255, 207, 63, 0.5); }
+.jp-board.mine button.jp-cell { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18); }
+.jp-board.mine button.jp-cell:active { background: var(--jp-gold); color: var(--jp-deep); text-shadow: none; }
+.jp-last { font-size: 0.85rem; color: var(--muted); text-align: center; }
+.jp-last b { color: var(--text); }
+
+.jp-scores { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.jp-score { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--card); border: 2px solid transparent; font-size: 0.92rem; flex-wrap: wrap; }
+.jp-score.picker { border-color: var(--pc); }
+.jp-score.offline { opacity: 0.45; }
+.jp-score b { font-variant-numeric: tabular-nums; color: #ffcf3f; }
+.jp-score b.neg, .jp-standings em.neg, .jp-podium b.neg { color: var(--danger); }
+.jp-owes { color: var(--danger); font-weight: 700; font-size: 0.78rem; }
+
+.jp-clue { --jp-blue: #0b1d9e; --jp-deep: #050d5c; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 18px; border-radius: 16px; background: radial-gradient(ellipse at 50% 30%, var(--jp-blue), var(--jp-deep)); color: #fff; box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4); }
+.jp-clue.dd { box-shadow: inset 0 0 0 3px #ffcf3f, 0 8px 24px rgba(0, 0, 0, 0.4); }
+.jp-clue-head { display: flex; justify-content: space-between; gap: 10px; font-weight: 900; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.04em; opacity: 0.95; }
+.jp-clue-head b { color: #ffcf3f; text-shadow: 1px 1px 0 #000; white-space: nowrap; }
+.jp-q { font-size: clamp(1.25rem, 6vw, 1.7rem); font-weight: 800; line-height: 1.22; text-align: center; text-shadow: 2px 2px 0 #000; text-wrap: balance; }
+
+.jp-buzz { min-height: 150px; border-radius: 26px; font-size: 3rem; font-weight: 900; letter-spacing: 0.04em; display: flex; align-items: center; justify-content: center; text-align: center; }
+.jp-buzz.wait { background: #3a3550; color: #8f89a8; font-size: 1.6rem; opacity: 1; }
+.jp-buzz.out { background: var(--card); color: var(--muted); font-size: 1.3rem; min-height: 90px; }
+.jp-buzz.live { background: var(--pc); color: var(--pc-ink, #fff); box-shadow: 0 0 0 0 var(--pc); animation: jp-buzz 0.9s ease-in-out infinite; }
+@keyframes jp-buzz { 50% { transform: scale(1.03); box-shadow: 0 0 0 10px color-mix(in srgb, var(--pc) 30%, transparent), 0 0 40px var(--pc); } }
+.jp-in { text-align: center; font-weight: 900; font-size: 1.25rem; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--pc) 25%, var(--card)); border: 2px solid var(--pc); display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.jp-ring { gap: 10px; }
+.jp-ring > b { text-align: center; font-size: 1.2rem; }
+.jp-ring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jp-ring-grid button { background: var(--pc); color: var(--pc-ink, #fff); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 18px 8px; font-size: 1.15rem; }
+
+.jp-options { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.jp-opt { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px; border-radius: 14px; background: var(--card-2); color: var(--text); font-weight: 800; font-size: 1.12rem; border: 2px solid transparent; }
+.jp-opt i { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.9em; height: 1.9em; border-radius: 50%; background: #0b1d9e; color: #ffcf3f; font-style: normal; font-weight: 900; }
+button.jp-opt { background: #1a2bb0; color: #fff; }
+button.jp-opt i { background: #ffcf3f; color: #050d5c; }
+.jp-opt.wrong { opacity: 0.45; text-decoration: line-through; }
+.jp-opt.right { background: var(--ok); color: #04210f; border-color: #fff; opacity: 1; text-decoration: none; }
+.jp-opt.mine:not(.right) { border-color: var(--danger); }
+
+.jp-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.jp-results li { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--card); }
+.jp-results li > span:not(.av) { flex: 1; }
+.jp-results li em { font-style: normal; font-weight: 900; font-variant-numeric: tabular-nums; }
+.jp-results li.ok em { color: var(--ok); }
+.jp-results li.bad em { color: var(--danger); }
+.jp-owe { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; border: 2px solid var(--danger); }
+
+.jp-dd { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 22px 12px; border-radius: 18px; text-align: center; background: radial-gradient(ellipse at 50% 40%, #1a2bb0, #050d5c); box-shadow: inset 0 0 0 3px #ffcf3f; animation: jp-dd 0.7s ease-out; }
+.jp-dd b { font-size: clamp(2.4rem, 13vw, 3.6rem); line-height: 0.95; font-weight: 900; color: #ffcf3f; text-shadow: 3px 3px 0 #000; letter-spacing: 0.02em; }
+.jp-dd span { color: #fff; font-weight: 700; }
+@keyframes jp-dd { from { transform: scale(0.3) rotate(-8deg); opacity: 0; } 70% { transform: scale(1.06) rotate(1deg); } }
+.jp-wager > button[data-act] { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.jp-wager > button small { font-weight: 500; opacity: 0.8; font-size: 0.82rem; }
+
+.jp-final-cat { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 12px; border-radius: 18px; text-align: center; background: radial-gradient(ellipse at 50% 40%, #1a2bb0, #050d5c); color: #fff; }
+.jp-final-cat small { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; opacity: 0.85; }
+.jp-final-cat b { font-size: 2rem; font-weight: 900; color: #ffcf3f; text-shadow: 2px 2px 0 #000; text-transform: uppercase; }
+
+.jp-vote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jp-vote { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 10px 8px; border-radius: 12px; background: #0b1d9e; color: #fff; font-weight: 900; text-transform: uppercase; font-size: 0.92rem; text-align: center; border: 3px solid transparent; text-shadow: 1px 1px 0 #000; }
+.jp-vote span, .jp-vote b, .jp-vote i { position: relative; z-index: 1; }
+.jp-vote.on { border-color: #ffcf3f; background: #1a2bb0; }
+.jp-vote i { position: absolute; top: 4px; right: 8px; font-style: normal; color: #ffcf3f; }
+.jp-vote b { color: #ffcf3f; font-size: 0.8rem; text-transform: none; }
+.jp-vote em { position: absolute; left: 0; bottom: 0; height: 5px; background: #ffcf3f; transition: width 0.4s; }
+.jp-vote-grid.result .jp-vote.won { border-color: #ffcf3f; }
+.jp-vote-grid.result .jp-vote.lost { opacity: 0.35; }
+.jp-lock { font-size: 1.2rem; }
+
+.jp-standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.jp-standings li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--card-2); border: 2px solid transparent; }
+.jp-standings li.won { border-color: #ffcf3f; }
+.jp-standings li > i { font-style: normal; font-weight: 900; width: 1.2em; text-align: center; color: var(--muted); }
+.jp-standings li > span:not(.av) { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.jp-standings small { color: var(--muted); font-size: 0.8rem; }
+.jp-standings em { font-style: normal; font-weight: 900; color: #ffcf3f; font-variant-numeric: tabular-nums; }
+
+/* Bool Jeopardy on the TV: the board (or the clue) big in the middle, the podiums down the left. */
+#tv-center .jp-tv-turn { display: none; }
+#tv-center:has(.jp-tv) { width: 64rem; }
+/* (The board's fixed width is scaled to fit by tv.js: its column mustn't grow to hold it.) */
+.tv-wide:has(.jp-tv) { grid-template-columns: 15rem minmax(0, 1fr); }
+.tv-wide:has(.jp-tv) .tv-center-box { min-width: 0; overflow: hidden; }
+.jp-tv { width: 100%; display: flex; flex-direction: column; gap: 1rem; }
+.jp-tv-title { text-align: center; font-size: 2.2rem; font-weight: 900; }
+.jp-tv .jp-board.tv { gap: 6px; padding: 6px; border-radius: 14px; }
+.jp-tv .jp-cat { font-size: 1.15rem; min-height: 4.2em; padding: 6px; letter-spacing: 0.03em; }
+.jp-tv .jp-cell { font-size: 2.8rem; aspect-ratio: 16 / 9; text-shadow: 3px 3px 0 #000; }
+.jp-tv .jp-clue.big { min-height: 22rem; justify-content: space-between; padding: 1.4rem 2rem 2rem; }
+.jp-tv .jp-clue { padding: 1rem 1.6rem 1.4rem; }
+.jp-tv .jp-clue-head { font-size: 1.3rem; }
+.jp-tv .jp-q { font-size: 2.9rem; line-height: 1.18; flex: 1; display: flex; align-items: center; justify-content: center; text-shadow: 3px 3px 0 #000; }
+.jp-tv .jp-options { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.jp-tv .jp-opt { font-size: 1.6rem; padding: 0.8rem 1rem; }
+.jp-tv .jp-results { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.jp-tv .jp-results li { font-size: 1.1rem; }
+.jp-tv-status { text-align: center; font-size: 1.7rem; font-weight: 900; padding: 0.6rem; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
+.jp-tv-status.live { background: #ffcf3f; color: #050d5c; animation: jp-buzz-tv 0.9s ease-in-out infinite; }
+.jp-tv-status.live .timer { color: #050d5c; }
+.jp-tv-status.in { background: color-mix(in srgb, var(--pc) 35%, var(--card)); border: 3px solid var(--pc); }
+@keyframes jp-buzz-tv { 50% { transform: scale(1.02); } }
+.jp-tv-tabs { text-align: center; font-size: 1.4rem; font-weight: 900; color: #fff; background: #0b0a10; border: 3px solid var(--danger); border-radius: 14px; padding: 0.7rem; }
+.jp-tv-tabs span { display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 1.1rem; color: #ddd; margin-top: 0.3rem; }
+.jp-tv-locked { text-align: center; color: var(--muted); font-size: 1.1rem; min-height: 1.5em; }
+.jp-tv .jp-last { font-size: 1.05rem; }
+.jp-tv .jp-vote-grid { grid-template-columns: repeat(5, 1fr); gap: 0.8rem; }
+.jp-tv .jp-vote { min-height: 8rem; font-size: 1.3rem; }
+.jp-tv .jp-vote b { font-size: 1.3rem; }
+.jp-tv .jp-vote em { height: 8px; }
+.jp-tv .jp-dd.tv { padding: 4rem 2rem; }
+.jp-tv .jp-dd.tv b { font-size: 7rem; }
+.jp-tv .jp-dd.tv span { font-size: 1.8rem; }
+.jp-tv .jp-final-cat.tv { padding: 3rem 2rem; }
+.jp-tv .jp-final-cat.tv b { font-size: 4rem; }
+.jp-tv .jp-final-cat.tv small { font-size: 1.3rem; }
+.jp-tv .jp-standings li { font-size: 1.3rem; }
+.jp-side { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; }
+.jp-podium { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'av name' 'av money' 'tab tab'; align-items: center; column-gap: 0.6rem; padding: 0.55rem 0.8rem; border-radius: 12px; background: linear-gradient(#0b1d9e, #050d5c); color: #fff; border: 3px solid transparent; }
+.jp-podium .av { grid-area: av; }
+.jp-podium span { grid-area: name; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jp-podium b { grid-area: money; font-size: 1.6rem; font-weight: 900; color: #ffcf3f; text-shadow: 2px 2px 0 #000; font-variant-numeric: tabular-nums; }
+.jp-podium small { grid-area: tab; color: #ff9db0; font-weight: 700; }
+.jp-podium small.paid { color: var(--ok); }
+.jp-podium.picker { border-color: var(--pc); box-shadow: 0 0 18px var(--pc); }
+.jp-podium.buzzer { border-color: var(--pc); box-shadow: 0 0 24px var(--pc); animation: jp-buzz-tv 0.9s ease-in-out infinite; }
+.jp-podium.offline { opacity: 0.45; }
+/* Sideways phone: the whole board fits the height of the screen. */
+main.ls .jp-board .jp-cell { aspect-ratio: auto; height: clamp(30px, calc((100dvh - 7.5rem) / 5), 90px); font-size: 1.05rem; }
+main.ls .jp-board .jp-cat { min-height: 2.8em; }
+main.ls .jp-buzz { min-height: 110px; }
+/* The TV page on a small screen (a phone held sideways): the clue box only as tall as its text. */
+@media (max-height: 500px) { .jp-tv .jp-clue.big { min-height: 0; } .jp-tv .jp-q { font-size: 2.4rem; } }

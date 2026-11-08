@@ -15,6 +15,7 @@ Phone-only party drinking games. One person creates a room on their phone, and e
 | Horse Race | ✅ Playable |
 | Ace Race | ✅ Playable |
 | Darts (drinking darts, 301/501, around the clock, cricket) | ✅ Playable |
+| Bool Jeopardy (trivia board, buzz in; wrong answers go on your tab) | ✅ Playable |
 
 ### Darts
 Drag on the throwing pad to move the crosshair, then flick up to throw. A flick that leans left or right pulls the dart that way; too soft drops it low, too hard sends it high, and there's a little random wobble on top (Steady / Normal / Wobbly in the lobby). **Hard mode** hides the crosshair (on every phone and the TV) and the "Aiming at T20" readout, so you aim by feel. After each throw the pad says how it went ("Too soft (80%), leaning 6° left"). Without a TV the board is on every phone and everyone sees the crosshair and darts live; with a TV the board is on the TV and the thrower's phone becomes a big throwing pad.

@@ -91,6 +91,17 @@
         holderLabel: (room) => (room.game.phase === 'challenge' ? 'Who’s calling war?' : 'Who’s joining?'),
         oneTap: true,
       },
+      // The whole table watches a clue on the one phone: no "pass the phone" to whoever rang in.
+      // There's no buzzer race on one phone either: whoever's holding it taps who rang in first,
+      // and the buzz is theirs (actAs: the player a tap is for, instead of whoever's up).
+      jeopardy: {
+        noPass: (room) => ['voted', 'clue', 'reveal'].includes(room.game.phase),
+        actAs: (room, type, data) => (type === 'buzz' && room.players.some((p) => p.id === data.who) ? data.who : null),
+        // Once it's over, pick who's holding the phone to settle up.
+        switchable: (room) => room.game.phase === 'over' && Object.values(room.game.debts).some((d) => !d.paid),
+        holderLabel: () => 'Who’s settling up?',
+        hint: (room, id) => !!room.game.debts[id] && !room.game.debts[id].paid,
+      },
     };
     // Games played since this page opened, for the water reminder; and a number for each game.
     const localNight = {};
@@ -181,7 +192,7 @@
 
     PB.passAndPlay = true;
     PB.send = (type, data) => {
-      const p = room.players.find((x) => x.id === actorId());
+      const p = room.players.find((x) => x.id === (local.actAs?.(room, type, data) || actorId()));
       room.hostId = p.id;
       game.handle(room, p, { type, ...data }, ctx);
       if (local.oneTap) holder = null;
@@ -362,8 +373,11 @@
     function render() {
       if (!room) return;
       const me = actorId();
-      if (lastActor && me !== lastActor && !local.switchable?.(room)) passTo = me;
-      if (passTo && passTo !== me) passTo = me;
+      if (local.noPass?.(room)) passTo = null;
+      else {
+        if (lastActor && me !== lastActor && !local.switchable?.(room)) passTo = me;
+        if (passTo && passTo !== me) passTo = me;
+      }
       lastActor = me;
       const player = room.players.find((p) => p.id === me);
       const prev = PB.state;
