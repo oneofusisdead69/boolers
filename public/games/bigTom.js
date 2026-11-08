@@ -146,6 +146,20 @@
   const SIZE = 400; // the drawing's pixels (shown at screen width)
   const pad = { strokes: [], color: COLORS[0], width: 6, round: null };
 
+  // When the clock's nearly out, whatever's on the pad goes in by itself: nobody loses a drawing for
+  // not tapping Send in time.
+  setInterval(() => {
+    const s = PB.state;
+    if (s?.gameType !== 'bigTom' || s.phase !== 'draw' || !s.deadline || PB.isTV) return;
+    if (s.game.drew.includes(s.me) || !pad.strokes.length || pad.autoSent === s.game.round) return;
+    if (s.deadline - PB.now() > 2500) return;
+    const canvas = document.getElementById('bt-canvas');
+    if (!canvas) return;
+    pad.autoSent = s.game.round;
+    redraw(canvas);
+    PB.act('drawing', { image: canvas.toDataURL('image/png') });
+  }, 250);
+
   function redraw(canvas) {
     const c = canvas.getContext('2d');
     c.fillStyle = '#fff';

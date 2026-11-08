@@ -187,7 +187,12 @@ test('final: the host can move on; anyone who did not draw drinks double', () =>
   for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 3); t.act(0, 'nextRound'); }
   t.act(0, 'drawing', { image: PNG }).act(1, 'drawing', { image: PNG });
   t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'draw', 'a last few seconds for drawings still on their pads');
+  t.act(2, 'drawing', { image: PNG }); // p2's pad sends itself as the clock runs out...
   assert.strictEqual(g.phase, 'finalVote');
+  assert.strictEqual(g.finalOrder.length, 3, "...so p2's drawing is in");
+  delete g.drawings.p2; // (and for the rest of this test, p2 never drew a thing)
+  g.finalOrder = g.finalOrder.filter((id) => id !== 'p2');
   const before = t.drinks();
   t.act(0, 'moveOn');
   assert.strictEqual(g.phase, 'final');
@@ -629,5 +634,18 @@ test('the final is a drawing the room has not had yet tonight, and Generate star
   game.start(room, t.ctx, {});
   const top = room.game.deck.slice(-10);
   assert.ok(top.every((q) => !dealt.includes(q)));
+  t.cleanup();
+});
+
+test("final: the host's move-on waits a moment for pads, then votes on what's in", () => {
+  const t = setup(game, 3, { sips: 3 });
+  const g = t.room.game;
+  for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 3); t.act(0, 'nextRound'); }
+  t.act(0, 'drawing', { image: PNG }).act(1, 'drawing', { image: PNG });
+  t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'draw');
+  t.fireTimer(); // p2 had nothing on their pad
+  assert.strictEqual(g.phase, 'finalVote');
+  assert.strictEqual(g.finalOrder.length, 2);
   t.cleanup();
 });
