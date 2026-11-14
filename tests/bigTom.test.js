@@ -655,3 +655,18 @@ test("writing's on the clock: when it runs out, Big Tom writes the missing quest
   assert.ok(g.matchups.every((m) => m.question));
   t.cleanup();
 });
+
+test("final with no time limit: the host's move-on still waits for pads to send", () => {
+  const t = setup(game, 3, { answerTime: 0 });
+  const g = t.room.game;
+  for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 3); t.act(0, 'nextRound'); }
+  assert.strictEqual(g.phase, 'draw');
+  t.act(0, 'drawing', { image: PNG });
+  t.act(0, 'moveOn');
+  assert.strictEqual(g.phase, 'draw');
+  assert.ok(t.room.deadline > Date.now(), "phones see the clock, so their pads send");
+  t.act(1, 'drawing', { image: PNG }).act(2, 'drawing', { image: PNG });
+  assert.strictEqual(g.phase, 'finalVote');
+  assert.strictEqual(g.finalOrder.length, 3);
+  t.cleanup();
+});

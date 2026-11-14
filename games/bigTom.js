@@ -522,7 +522,7 @@ module.exports = {
       else if (g.phase === 'draw') {
         // Anyone still drawing gets a last couple of seconds: their pad sends what's on it as the
         // clock runs out (public/games/bigTom.js), so no picture is lost.
-        if (ctx.connectedPlayers(room).every((p) => g.drawings[p.id]) || !g.answerTime) startFinalVote(room, ctx);
+        if (ctx.connectedPlayers(room).every((p) => g.drawings[p.id])) startFinalVote(room, ctx);
         else if (!(room.deadline && room.deadline - Date.now() <= DRAW_GRACE)) ctx.setTimer(room, DRAW_GRACE, () => startFinalVote(room, ctx));
       } else if (g.phase === 'finalVote') finalReveal(room, ctx);
     } else if (action.type === 'next' && g.phase === 'reveal' && host) {
