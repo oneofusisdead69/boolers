@@ -281,12 +281,17 @@ const HOT_ROOMS = ['tiki', 'saloon', 'vineyard', 'space']; // (no snow)
 function pickWeather(room) {
   const style = room.style === 'storm' ? 'lighthouse' : room.style || 'classic'; // (an old saved room)
   if (style === 'christmas') return 'snow';
+  // Rainbow Road (below): out among the stars, it's always night.
+  if (rainbow(room)) return 'night';
   // Halloween: always dark. A full moon, mostly; now and then the graveyard fog rolls in.
   if (style === 'halloween') return Math.random() < 0.7 ? 'night' : 'fog';
   if (MOOD_ROOMS.includes(style)) return MOOD_WEATHER[room.mood] || MOOD_WEATHER[room.style] || 'clear';
+  // (The tiki bar races at dusk, mostly: the torches lit, the sun going down over the sea.)
   const odds = NIGHT_ROOMS.includes(style)
     ? { night: 6, clear: 1, rain: 1, fog: 1 }
-    : { clear: 5, sunset: 2, night: 2, rain: 2, fog: 1.5, snow: HOT_ROOMS.includes(style) ? 0 : 0.5 };
+    : style === 'tiki'
+      ? { sunset: 6, clear: 2, night: 2, rain: 1 }
+      : { clear: 5, sunset: 2, night: 2, rain: 2, fog: 1.5, snow: HOT_ROOMS.includes(style) ? 0 : 0.5 };
   let r = Math.random() * Object.values(odds).reduce((a, b) => a + b, 0);
   for (const [w, n] of Object.entries(odds)) if ((r -= n) < 0) return w;
   return 'clear';
@@ -299,6 +304,31 @@ const SPOOKY_WEATHER = {
   night: '🌕 A full moon over {track}: headlights on, and don’t look back…',
   fog: '🌫️ The graveyard fog rolls over {track}: something’s out there…',
 };
+
+// ---------- Rainbow Road ----------
+// Track Racing at the Space lounge is an easter egg (EGGS in lib/roomStyles.js: 'space:trackRacing'
+// is the spaceRainbow look): the track floats among the stars, a glowing rainbow, with no walls
+// and no grass. Drive off its edge and you fall: you're dropped back on at the nearest point of
+// the road, stopped, for a moment (`respawn`), and you drink a sip (not more often than every
+// `cooldown` seconds, so a bad patch can't run up a tab). The server decides who falls: the
+// screens only show it (flag 16 while a car's being put back, and who fell in each 'cars').
+const RAINBOW_ROOM = 'space';
+const RAINBOW = { respawn: 1.2, cooldown: 10, sips: 1 };
+const rainbow = (room) => room.style === RAINBOW_ROOM;
+
+// The car's gone over the edge: back on the road at the nearest point, facing the way round.
+function fall(g, tr, c, at) {
+  c.x = at.px;
+  c.y = at.py;
+  c.a = tr.dir[at.i];
+  c.vx = 0;
+  c.vy = 0;
+  c.drift = false;
+  c.respawn = RAINBOW.respawn;
+  c.falls = (c.falls || 0) + 1;
+  c.fell = true; // (the tick sees to the sip)
+  if (c.bot) { c.bot.stuck = 0; c.bot.backing = 0; c.bot.slip = 0; }
+}
 
 function gridCars(room, g) {
   const tr = trackOf(g.trackId);
@@ -328,6 +358,8 @@ function gridCars(room, g) {
       drift: false,
       finished: null, // race time, once over the line
       honkAt: -99,
+      respawn: 0, // Rainbow Road: seconds till it's back in the race after a fall
+      drankAt: -99, // ...and when it last drank for one
       bot: null, // a bot's driving state
     };
   });
@@ -349,7 +381,9 @@ function newRace(room, ctx) {
   g.last = null;
   g.bumps = [];
   g.honks = [];
+  g.rainbow = rainbow(room);
   g.weather = pickWeather(room);
+  g.falls = [];
   betting.reset(g);
   // Everyone starts with the least bet on their own car, already placed: change it if you like.
   g.autoBets = {};
@@ -358,7 +392,8 @@ function newRace(room, ctx) {
   g.phase = 'betting';
   const wx = WEATHERS[g.weather];
   const name = trackOf(g.trackId).name;
-  if (spooky(room) && SPOOKY_WEATHER[g.weather]) ctx.log(room, SPOOKY_WEATHER[g.weather].replace('{track}', name));
+  if (g.rainbow) ctx.log(room, `🌈 Rainbow Road: ${name}, floating among the stars. No walls: fall off and you drink!`);
+  else if (spooky(room) && SPOOKY_WEATHER[g.weather]) ctx.log(room, SPOOKY_WEATHER[g.weather].replace('{track}', name));
   else ctx.log(room, `${wx.emoji} ${wx.label} at ${name}: ${wx.says}`);
 }
 
@@ -374,7 +409,8 @@ function countdown(room, ctx) {
   if (g.count > 0) return ctx.setTimer(room, COUNT_MS, () => countdown(room, ctx));
   g.phase = 'race';
   g.clock = Date.now() + TICK_MS; // when the first step is due (see tick)
-  ctx.log(room, spooky(room) ? `👻 BOO! Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}, if you dare!` : `🏁 Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}!`);
+  const off = `Race ${g.race} is off: ${g.laps} laps of ${trackOf(g.trackId).name}`;
+  ctx.log(room, g.rainbow ? `🌈 ${off}. Mind the edge!` : spooky(room) ? `👻 BOO! ${off}, if you dare!` : `🏁 ${off}!`);
   ctx.setTimer(room, TICK_MS, () => tick(room, ctx));
 }
 
@@ -436,6 +472,20 @@ function botDrive(g, tr, c, skill) {
   const noise = (Math.random() - 0.5) * 0.5 * (1 - skill);
   let steer = clamp(diff * 2.6 + noise, -1, 1);
   if (b.slip > 0) steer = clamp(steer * 0.2 + (b.slip > 0.5 ? 0.7 : -0.7), -1, 1);
+  // Rainbow Road, with no walls to lean on: easier into the bends, and if it's about to go over
+  // the edge, back toward the middle and off the gas (a good driver sees it coming sooner).
+  if (g.rainbow) {
+    want *= 0.82 + 0.1 * skill;
+    const soon = 0.2 + 0.3 * skill;
+    const at = locate(tr, c.x + c.vx * soon, c.y + c.vy * soon, c.seg);
+    if (at.dist > tr.edge - 2 - tr.width * 0.25 * skill && b.slip <= 0) {
+      let back = Math.atan2(at.py - c.y, at.px - c.x) - c.a;
+      back = Math.atan2(Math.sin(back), Math.cos(back));
+      const k = Math.random() < 0.3 + 0.7 * skill ? 1 : 0.3; // (a bad one is slow to react)
+      steer = clamp(steer * (1 - k) + back * 3 * k, -1, 1);
+      if (speed > 70) return { steer, gas: 0, brake: 1 };
+    }
+  }
   return { steer, gas: speed < want ? 1 : 0, brake: speed > want + 20 ? 1 : 0 };
 }
 
@@ -446,7 +496,15 @@ function moveCar(g, tr, c, dt) {
   let fwd = c.vx * fx + c.vy * fy;
   let side = -c.vx * fy + c.vy * fx;
   const loc = locate(tr, c.x, c.y, c.seg);
-  c.grass = loc.dist > tr.width / 2 + 2;
+  // (Rainbow Road has no grass: it's road, or it's space.)
+  c.grass = !g.rainbow && loc.dist > tr.width / 2 + 2;
+  // Being put back after a fall: stopped where it was dropped till it's back in the race.
+  if (c.respawn > 0) {
+    c.respawn = Math.max(0, c.respawn - dt);
+    c.vx = 0;
+    c.vy = 0;
+    return null;
+  }
   const top = c.grass ? tr.topGrass : CAR.top;
   const racing = g.phase === 'race' && c.finished == null;
   // After the line a car rolls to a stop on its own.
@@ -481,10 +539,15 @@ function moveCar(g, tr, c, dt) {
   c.vy = ny * fwd + nx * side;
   c.x += c.vx * dt;
   c.y += c.vy * dt;
-  // The wall: past the grass, back you come.
+  // The wall: past the grass, back you come. (Rainbow Road: past the edge, down you go.)
   const at = locate(tr, c.x, c.y, loc.i);
   const edge = tr.edge;
-  if (at.dist > edge) {
+  if (g.rainbow) {
+    if (at.dist > edge && g.phase === 'race' && c.finished == null) {
+      fall(g, tr, c, at);
+      return null;
+    }
+  } else if (at.dist > edge) {
     const ux = (c.x - at.px) / at.dist;
     const uy = (c.y - at.py) / at.dist;
     const vn = c.vx * ux + c.vy * uy;
@@ -533,8 +596,9 @@ function collide(g) {
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i];
       const b = cars[j];
-      // (One on the bridge and one under it pass each other.)
-      if (Math.abs(a.z - b.z) > LEVEL_GAP) continue;
+      // (One on the bridge and one under it pass each other; nor does anyone hit a car that's being
+      // put back on Rainbow Road.)
+      if (Math.abs(a.z - b.z) > LEVEL_GAP || a.respawn > 0 || b.respawn > 0) continue;
       let dx = b.x - a.x;
       let dy = b.y - a.y;
       const d = Math.hypot(dx, dy);
@@ -558,7 +622,8 @@ function collide(g) {
 }
 
 // The cars, as they go out to every screen each tick: [x, y, heading, flags, place, lap].
-// Flags: 1 drifting, 2 on the grass, 4 finished, 8 braking.
+// Flags: 1 drifting, 2 on the grass, 4 finished, 8 braking, 16 being put back after a fall (Rainbow
+// Road). `f`: who fell this tick, [id, 1 if they drink for it].
 function snapshot(g) {
   const order = standings(g);
   return {
@@ -568,12 +633,13 @@ function snapshot(g) {
       Math.round(c.x * 10) / 10,
       Math.round(c.y * 10) / 10,
       Math.round(c.a * 100) / 100,
-      (c.drift ? 1 : 0) | (c.grass ? 2 : 0) | (c.finished != null ? 4 : 0) | (c.brake && g.phase === 'race' ? 8 : 0),
+      (c.drift ? 1 : 0) | (c.grass ? 2 : 0) | (c.finished != null ? 4 : 0) | (c.brake && g.phase === 'race' ? 8 : 0) | (c.respawn > 0 ? 16 : 0),
       order.indexOf(c.id) + 1,
       lapOf(g, c),
     ]),
     b: g.bumps,
     h: g.honks,
+    ...(g.falls?.length ? { f: g.falls } : {}),
   };
 }
 
@@ -591,6 +657,7 @@ function tick(room, ctx) {
   const steps = clamp(due, 1, 3);
   g.clock = due > 3 ? now + TICK_MS : g.clock + steps * TICK_MS;
   g.bumps = [];
+  g.falls = [];
   let news = false;
   for (let n = 0; n < steps; n++) {
     g.t += DT;
@@ -608,6 +675,18 @@ function tick(room, ctx) {
           if (place === 1) g.firstIn = g.t;
           const icon = spooky(room) ? (place === 1 ? '🎃' : '🦇') : place === 1 ? '🏆' : '🏁';
           ctx.log(room, `${icon} ${ctx.name(room, c.id)} finishes ${ordinal(place)} (${g.t.toFixed(1)}s)`);
+        }
+        if (c.fell) {
+          // Off Rainbow Road: a sip, unless they've only just had one for it.
+          c.fell = false;
+          const drinks = g.t - c.drankAt >= RAINBOW.cooldown;
+          if (drinks) {
+            c.drankAt = g.t;
+            ctx.drink(room, c.id, RAINBOW.sips, 'fell off Rainbow Road');
+            g.drank[c.id] = (g.drank[c.id] || 0) + RAINBOW.sips;
+            news = true;
+          }
+          g.falls.push([c.id, drinks ? 1 : 0]);
         }
       }
       collide(g);
@@ -744,6 +823,7 @@ module.exports = {
     } else if (action.type === 'startRace' && g.phase === 'betting' && host && Object.keys(g.bets).length) {
       g.phase = 'countdown';
       g.count = 3;
+      g.rainbow = rainbow(room); // (the room may have changed while the bets went on)
       ctx.setTimer(room, COUNT_MS, () => countdown(room, ctx));
     } else if (action.type === 'give') {
       betting.give(room, ctx, me, action.alloc, `${ctx.name(room, g.winner)} won`);
@@ -821,6 +901,7 @@ module.exports = {
       race: g.race,
       laps: g.laps,
       weather: g.weather || 'clear',
+      rainbow: !!g.rainbow,
       count: g.count,
       tickMs: TICK_MS,
       track: {
@@ -866,4 +947,6 @@ module.exports = {
   WEATHERS,
   WIDTH,
   BAND,
+  RAINBOW,
+  RAINBOW_ROOM,
 };

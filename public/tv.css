@@ -58,7 +58,8 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-felt {
   position: absolute; inset: 16% 13%;
   border-radius: 50%;
-  background: var(--felt, radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%));
+  /* --scrim: a shade in the middle of a busy cloth, so what's written on it reads (lib/roomArt.js). */
+  background: var(--scrim, linear-gradient(transparent, transparent)), var(--felt, radial-gradient(ellipse at center, #1f7a4d 0%, #135c39 70%, #0d4229 100%));
   /* A dark padded bumper where the felt meets the wood, and the felt sinking into it. */
   box-shadow: 0 0 0 0.35rem rgba(0, 0, 0, 0.55), inset 0 0 0 0.15rem rgba(0, 0, 0, 0.4), inset 0 0 3.5rem rgba(0, 0, 0, 0.5);
 }

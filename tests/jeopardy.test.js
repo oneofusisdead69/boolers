@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { setup } = require('./helpers');
 const game = require('../games/jeopardy');
-const { CATEGORIES } = require('../lib/jeopardyQuestions');
+const { CATEGORIES, VENUES, venueOf } = require('../lib/jeopardyQuestions');
+const ROOM_STYLES = require('../lib/roomStyles');
 
 // A game past the vote, on the board, with p0 picking and no Daily Double unless asked for.
 function ready(players = 3, options = {}, { dd = false } = {}) {
@@ -31,29 +32,43 @@ function open(t, c = 0, r = 0, by = 0) {
   return t;
 }
 
-test('the vote: up to five picks each, lock in, the top five make the board', () => {
+test('the vote: up to four picks each, lock in, the top four make the board, then the house category', () => {
   const t = setup(game, 3);
+  t.room.style = 'pirate'; // (the venue is read when the game starts)
+  t.room.game = { type: 'jeopardy' };
+  t.ctx.clearTimer(t.room);
+  game.start(t.room, t.ctx, {});
   const g = t.room.game;
   assert.strictEqual(g.phase, 'vote');
   assert.strictEqual(t.view(0).vote.pool.length, 10);
   assert.deepStrictEqual(game.waitingOn(t.room), ['p0', 'p1', 'p2']);
-  for (const i of [0, 1, 2, 3, 4, 5]) t.act(0, 'toggle', { i: String(i) });
-  assert.deepStrictEqual(g.votes.p0, [0, 1, 2, 3, 4], 'no more than five');
-  t.act(0, 'toggle', { i: 4 });
-  assert.deepStrictEqual(g.votes.p0, [0, 1, 2, 3]);
+  const house = t.view(0).vote.house;
+  assert.ok(VENUES.pirate.categories.some((c) => c.name === house.name), 'a pirate category');
+  assert.strictEqual(house.emoji, VENUES.pirate.emoji);
+  const pooled = t.view(0).vote.pool;
+  assert.ok(!Object.values(VENUES).some((v) => v.categories.some((c) => pooled.includes(c.name))), 'no venue categories in the vote');
+  for (const i of [0, 1, 2, 3, 4]) t.act(0, 'toggle', { i: String(i) });
+  assert.deepStrictEqual(g.votes.p0, [0, 1, 2, 3], 'no more than four');
+  t.act(0, 'toggle', { i: 3 });
+  assert.deepStrictEqual(g.votes.p0, [0, 1, 2]);
   t.act(0, 'toggle', { i: 9 });
   t.act(0, 'lockIn');
   t.act(0, 'toggle', { i: 0 });
-  assert.deepStrictEqual(g.votes.p0, [0, 1, 2, 3, 9], 'locked in: no more changes');
+  assert.deepStrictEqual(g.votes.p0, [0, 1, 2, 9], 'locked in: no more changes');
   assert.deepStrictEqual(game.waitingOn(t.room), ['p1', 'p2']);
-  assert.deepStrictEqual(t.view(1).vote.counts, [1, 1, 1, 1, 0, 0, 0, 0, 0, 1]);
+  assert.deepStrictEqual(t.view(1).vote.counts, [1, 1, 1, 0, 0, 0, 0, 0, 0, 1]);
   t.act(1, 'lockIn', { picks: '9,8,7' });
   t.act(2, 'lockIn', { picks: [9, 8, 0] });
   assert.strictEqual(g.phase, 'voted');
-  // 9 has 3 votes, 0 and 8 two, then 1, 2, 3, 7 one each: two of those four, at random.
+  // 9 has 3 votes, 0 and 8 two, then 1, 2, 7 one each: one of those three, at random.
+  assert.strictEqual(g.chosen.length, 4);
   assert.deepStrictEqual(g.chosen.slice(0, 3).sort(), [0, 8, 9].sort());
-  assert.ok(g.chosen.slice(3).every((i) => [1, 2, 3, 7].includes(i)));
-  assert.deepStrictEqual(g.cats.map((c) => c.name), g.chosen.map((i) => CATEGORIES[g.pool[i]].name));
+  assert.ok([1, 2, 7].includes(g.chosen[3]));
+  assert.deepStrictEqual(g.cats.map((c) => c.name), [...g.chosen.map((i) => CATEGORIES[g.pool[i]].name), house.name]);
+  assert.strictEqual(t.view(0).board[4].emoji, VENUES.pirate.emoji, 'the house column wears the venue\'s emoji');
+  assert.ok(t.view(0).board.slice(0, 4).every((c) => !c.emoji));
+  const finalFrom = g.pool.filter((_, i) => !g.chosen.includes(i)).map((i) => CATEGORIES[i].name);
+  assert.ok(finalFrom.includes(g.finalClue.cat), 'the Final comes from the categories that weren\'t chosen');
   assert.strictEqual(g.cats.reduce((n, c) => n + c.clues.filter((x) => x.dd).length, 0), 1, 'one Daily Double');
   assert.ok(g.cats.every((c) => !c.clues[0].dd), 'never a $200');
   assert.deepStrictEqual(game.waitingOn(t.room), []);
@@ -381,7 +396,9 @@ test('the question bank: 40+ categories of five, each with three distinct wrong 
   assert.ok(CATEGORIES.length >= 40, `${CATEGORIES.length} categories`);
   const qs = new Set();
   const names = new Set();
-  for (const c of CATEGORIES) {
+  const venueCats = Object.values(VENUES).flatMap((v) => v.categories);
+  assert.ok(venueCats.length >= Object.keys(VENUES).length);
+  for (const c of [...CATEGORIES, ...venueCats]) {
     assert.ok(c.name && !names.has(c.name), `category name ${c.name}`);
     names.add(c.name);
     assert.strictEqual(c.clues.length, 5, c.name);
@@ -395,4 +412,45 @@ test('the question bank: 40+ categories of five, each with three distinct wrong 
       qs.add(x.q);
     }
   }
+});
+
+test('every venue has a house category; looks within a room use the room\'s; anything else is bar trivia', () => {
+  for (const id of ROOM_STYLES.IDS) {
+    const room = ROOM_STYLES.roomOf(id);
+    assert.ok(VENUES[room], `${id} (room ${room}) has a house category`);
+    // (A room's style is always the room itself: server.js and the pass-and-play page keep the
+    // look, a weather or an easter egg, apart from it.)
+    assert.strictEqual(venueOf(room), room, `${id} resolves to ${room}`);
+    if (id.startsWith(room)) assert.strictEqual(venueOf(id), room, `${id} itself resolves to ${room}`);
+    if (room !== 'classic') assert.strictEqual(VENUES[room].emoji, ROOM_STYLES.STYLES[room].emoji, `${room}: its emoji`);
+  }
+  for (const v of Object.keys(VENUES)) assert.ok(ROOM_STYLES.STYLES[v], `${v} is a room`);
+  assert.strictEqual(venueOf(undefined), 'classic');
+  assert.strictEqual(venueOf('nowhere'), 'classic');
+  assert.strictEqual(VENUES.classic.categories[0].name, 'Bar Trivia');
+  // A room with no style gets bar trivia; two categories a venue, so it varies.
+  const t = setup(game, 2);
+  assert.ok(VENUES.classic.categories.some((c) => c.name === t.view(0).vote.house.name));
+  t.cleanup();
+  const names = new Set();
+  for (let i = 0; i < 40; i++) {
+    const u = setup(game, 2);
+    u.room.style = 'castle';
+    u.room.game = { type: 'jeopardy' };
+    u.ctx.clearTimer(u.room);
+    game.start(u.room, u.ctx, {});
+    names.add(u.view(0).vote.house.name);
+    u.cleanup();
+  }
+  assert.strictEqual(names.size, VENUES.castle.categories.length);
+});
+
+test('the secret room: Bool Jeopardy in the club is the game show studio', () => {
+  assert.strictEqual(ROOM_STYLES.eggOf('club', 'jeopardy'), 'clubStudio');
+  const studio = ROOM_STYLES.STYLES.clubStudio;
+  assert.ok(studio.egg && studio.mood && studio.room === 'club' && studio.vars && studio.font);
+  assert.strictEqual(ROOM_STYLES.roomOf('clubStudio'), 'club');
+  assert.strictEqual(venueOf(ROOM_STYLES.roomOf('clubStudio')), 'club', 'its house category is the club\'s');
+  const { ART } = require('../lib/roomArt');
+  assert.ok(ART.clubStudio?.bg().includes('data:image/svg+xml'), 'it has its art');
 });

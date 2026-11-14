@@ -569,6 +569,9 @@
     VOICES.piano(out, t, hz(bass), len / 3, gain * 1.4);
     for (const k of [1, 2]) chord.forEach((m) => VOICES.piano(out, t + (k * len) / 3, hz(m), len / 4, gain * 0.5));
   };
+  // The game show studio's theme: bright and bouncy, in C (made up).
+  SONGS.gameshow = [[72, 1], [76, 1], [79, 2], [76, 1], [79, 1], [84, 4], [null, 2], [83, 1], [81, 1], [79, 2], [77, 2], [76, 2], [74, 2], [72, 4], [null, 2],
+    [74, 1], [77, 1], [81, 2], [77, 1], [81, 1], [84, 4], [null, 2], [86, 1], [84, 1], [83, 2], [79, 2], [77, 2], [74, 2], [72, 6], [null, 2]];
   // Noir: a slow line in A minor, like a sax in an empty bar.
   SONGS.noir = [[69, 6], [72, 2], [71, 4], [69, 4], [67, 6], [64, 2], [65, 8], [null, 4], [64, 2], [65, 2], [67, 4], [69, 2], [71, 2], [72, 6], [71, 2], [69, 8], [null, 8]];
   // A slow dirge in D minor on the Dutchman's organ, with the chords held under it.
@@ -876,6 +879,14 @@
       now(20, (t) => note(out, t, { freq: 55, to: 50, len: 6, gain: 0.05, type: 'sawtooth', attack: 2 })),
       now(11, (t) => { for (let k = 0; k < 4; k++) note(out, t + k * 0.1, { freq: hz(pick([84, 88, 91, 96])), len: 0.08, gain: 0.015, type: 'square' }); }),
     ],
+    // The game show studio: a bouncy little theme on the keys between clues (made up, ours), and the
+    // studio audience now and then.
+    clubStudio: (out) => [
+      tune(out, { bpm: 118, notes: SONGS.gameshow, voice: VOICES.keys, gain: 0.045, chords: [[48, 55, 64], [53, 60, 69], [55, 62, 67], [48, 55, 64]], every: 8, comp: strum(0.02, 'keys') }),
+      now(30, (t) => CUES.cheer(out, t)),
+    ],
+    // Rainbow Road (Track Racing in the space lounge): the lounge's own music.
+    spaceRainbow: (out) => ROOMS.space(out),
     // Open mic night: the jazz trio, low, between the acts.
     jazzOpenMic: (out) => ROOMS.jazz(out),
     // Oktoberfest: the oompah band, and someone yodelling.

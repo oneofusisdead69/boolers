@@ -47,7 +47,8 @@
   function board(s, { tappable = false, tv = false } = {}) {
     const g = s.game;
     const cols = g.board.length;
-    const heads = g.board.map((c) => `<div class="jp-cat"><span>${esc(c.name)}</span></div>`).join('');
+    // (The house category, about the venue, wears the venue's emoji.)
+    const heads = g.board.map((c) => `<div class="jp-cat ${c.emoji ? 'house' : ''}">${c.emoji ? `<i>${esc(c.emoji)}</i>` : ''}<span>${esc(c.name)}</span></div>`).join('');
     let cells = '';
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < cols; c++) {
@@ -79,12 +80,14 @@
 
   // The four options: tappable for whoever's answering, else just shown. Wrong picks are crossed
   // out; at the reveal, the right one lights up.
-  function options(s, list, { act = null, answer = null, wrong = [], mine = null } = {}) {
+  // Only whoever's answering gets buttons; everyone else sees a plain list (with who picked what).
+  function options(s, list, { act = null, answer = null, wrong = [], mine = null, picks = [] } = {}) {
     if (!list) return '';
-    return `<div class="jp-options">${list.map((o, i) => {
+    return `<div class="jp-options ${act ? '' : 'watching'}">${list.map((o, i) => {
       const cls = [answer === i ? 'right' : '', wrong.includes(i) ? 'wrong' : '', mine === i ? 'mine' : ''].join(' ');
       const tag = act && !wrong.includes(i) ? 'button' : 'div';
-      return `<${tag} class="jp-opt ${cls}" ${tag === 'button' ? `data-act="${act}" data-i="${i}"` : ''}><i>${LETTERS[i]}</i><span>${esc(o)}</span></${tag}>`;
+      const who = picks.filter((x) => x.pick === i).map((x) => PB.avatar(x.id, 'sm')).join('');
+      return `<${tag} class="jp-opt ${cls}" ${tag === 'button' ? `data-act="${act}" data-i="${i}"` : ''}><i>${LETTERS[i]}</i><span>${esc(o)}</span>${who ? `<em class="jp-who">${who}</em>` : ''}</${tag}>`;
     }).join('')}</div>`;
   }
 
@@ -167,16 +170,21 @@
     if (s.phase === 'voted') {
       return `${banner('🗳️ The votes are in', 'Here’s your board')}
         ${voteGrid(s, { result: true })}
+        ${houseLine(g.vote)}
         ${scores(s)}`;
     }
-    return `${banner('🗳️ Pick the categories', `Tap up to ${g.maxPicks}: the top five make the board ${g.relaxed ? '' : PB.timer()}`)}
+    return `${banner('🗳️ Pick the categories', `Tap up to ${g.maxPicks}: the top ${v.voted} make the board ${g.relaxed ? '' : PB.timer()}`)}
       ${PB.passAndPlay ? `<p class="center jp-whose">${PB.avatar(s.me, 'sm')} <b>${esc(name(s.me))}</b>’s picks</p>` : ''}
       ${voteGrid(s, { tappable: !locked })}
+      ${houseLine(v)}
       ${locked
         ? `<p class="center muted">✓ Locked in${waiting.length ? ` · waiting on ${waiting.join(', ')}` : ''}</p>`
         : `<button class="jp-lock" data-act="lockIn">🔒 Lock in (${v.mine.length}/${g.maxPicks})</button>`}
       ${scores(s)}`;
   }
+
+  // The fifth column, which isn't voted on: the venue's own.
+  const houseLine = (v) => `<p class="jp-house">+ the house category: <b>${esc(v.house.emoji)} ${esc(v.house.name)}</b></p>`;
 
   function voteGrid(s, { tappable = false, result = false, counts = false } = {}) {
     const v = s.game.vote;
@@ -207,8 +215,7 @@
       ${board(s, { tappable: mine && !blocked && !PB.isTV })}
       ${scores(s)}
       ${debtFlash(s)}
-      ${tab(s)}
-      ${PB.feed(3)}`;
+      ${tab(s)}`;
   }
 
   function ddScreen(s) {
@@ -245,17 +252,17 @@
         below = `<div class="jp-in mine" style="--pc:${colour(id)}">🔔 ${PB.passAndPlay ? `${esc(name(id))}, you’re in!` : 'You’re in!'} Pick one ${PB.timer()}</div>
           ${options(s, k.options, { act: 'answer', wrong: k.wrong })}`;
       } else {
-        below = `<div class="jp-in" style="--pc:${colour(id)}">${PB.avatar(id, 'sm')} ${esc(name(id))} ${isMe(s, id) ? 'are' : 'is'} in! ${PB.timer()}</div>
-          ${options(s, k.options, { wrong: k.wrong })}`;
+        below = `<div class="jp-in" style="--pc:${colour(id)}">${PB.avatar(id, 'sm')} ${esc(name(id))} is answering… ${PB.timer()}</div>
+          ${options(s, k.options, { wrong: k.wrong, picks: k.results })}`;
       }
     }
     // (The options only show once someone's buzzed in: after a miss, they stay up with it crossed out.)
-    const between = g.stage === 'open' && k.options ? options(s, k.options, { wrong: k.wrong }) : '';
+    const between = g.stage === 'open' && k.options ? options(s, k.options, { wrong: k.wrong, picks: k.results }) : '';
     return `${clueCard(s)}
       ${below}
+      ${myTab(s)}
       ${between}
       ${results(s, k.results)}
-      ${myTab(s)}
       ${scores(s)}`;
   }
 
@@ -267,8 +274,9 @@
     let give = '';
     if (g.give) give = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `jp:${g.clueNo}`, title: g.give.from === s.me ? '💥 Daily Double!' : '' });
     return `${banner(right ? `✅ ${esc(realName(s, right.id))} got it!` : k.results.length ? '❌ Nobody got it' : '⏱ Nobody buzzed in', `It was ${esc(k.options[k.answer])}`)}
+      ${PB.passAndPlay ? '' : myResult(s)}
       ${clueCard(s)}
-      ${options(s, k.options, { answer: k.answer, wrong: k.wrong, mine })}
+      ${options(s, k.options, { answer: k.answer, wrong: k.wrong, mine, picks: k.results })}
       ${results(s, k.results)}
       ${give}
       ${myTab(s)}
@@ -324,6 +332,169 @@
       ${PB.feed(4)}`;
   }
 
+
+  // ---------- With a TV: the phone is a controller ----------
+  // The TV has the board, the clue and the scores. A phone only has what its player does: tick
+  // categories, pick a clue, BUZZ, answer, wager, settle up. Everything else is a pointer to the
+  // TV and how you're doing.
+
+  const controller = (s) => s.tv && !PB.isTV && !PB.passAndPlay;
+
+  // "👀 Look at the TV": what's going on, in a line, with whoever it's about.
+  const lookUp = (id, text, sub = '') => `<div class="card jp-look" ${id ? `style="--pc:${colour(id)}"` : ''}>
+    <small>📺 On the TV</small>
+    <b>${id ? PB.avatar(id, 'lg') : ''}${text}</b>${sub ? `<span>${sub}</span>` : ''}</div>`;
+
+  // You, at the bottom: your $ and what you owe (with the button to settle it).
+  function meBar(s) {
+    const g = s.game;
+    const d = g.debts[s.me];
+    const owes = d && !d.paid;
+    const rank = g.order.slice().sort((a, b) => (g.scores[b] || 0) - (g.scores[a] || 0)).indexOf(s.me) + 1;
+    return `<div class="jp-me ${owes ? 'owes' : ''}" style="--pc:${colour(s.me)}">
+      ${PB.avatar(s.me, 'sm')}<b class="${(g.scores[s.me] || 0) < 0 ? 'neg' : ''}">${money(g.scores[s.me] || 0)}</b><small>${rank ? `#${rank} of ${g.order.length}` : ''}</small>
+      ${owes ? `<button class="sp-pay" data-act="paid">☠️🥃 ${esc(d.text)}: settled</button>` : ''}</div>`;
+  }
+
+  // The vote as a checklist.
+  function ctlVote(s) {
+    const g = s.game;
+    const v = g.vote;
+    const locked = v.lockedIn.includes(s.me);
+    if (s.phase === 'voted') {
+      const names = [...v.chosen.map((i) => esc(v.pool[i])), `${esc(v.house.emoji)} ${esc(v.house.name)}`];
+      return `${lookUp(null, '🗳️ The votes are in', names.join(' · '))}${meBar(s)}`;
+    }
+    const waiting = s.players.filter((p) => p.connected && !v.lockedIn.includes(p.id)).map((p) => esc(realName(s, p.id)));
+    return `${banner('🗳️ Pick the categories', `Up to ${g.maxPicks}: the top ${v.voted} make the board ${PB.timer()}`)}
+      <div class="jp-checklist ${locked ? 'locked' : ''}">${v.pool.map((n, i) => {
+        const on = v.mine.includes(i);
+        return locked
+          ? `<div class="jp-check ${on ? 'on' : ''}"><i>${on ? '✓' : ''}</i><span>${esc(n)}</span></div>`
+          : `<button class="jp-check ${on ? 'on' : ''}" data-act="toggle" data-i="${i}"><i>${on ? '✓' : ''}</i><span>${esc(n)}</span></button>`;
+      }).join('')}</div>
+      ${houseLine(v)}
+      ${locked
+        ? `<p class="center muted">✓ Locked in${waiting.length ? ` · waiting on ${waiting.join(', ')}` : ''}</p>`
+        : `<button class="jp-lock" data-act="lockIn">🔒 Lock in (${v.mine.length}/${g.maxPicks})</button>`}
+      ${meBar(s)}`;
+  }
+
+  // The picker picks: each category, then its values left (no show board: that's on the TV).
+  function ctlBoard(s) {
+    const g = s.game;
+    const blocked = g.unpaid.length > 0;
+    if (!g.left) return `${lookUp(null, '🏁 Board cleared', g.final ? (blocked ? 'The Final starts once every tab is settled' : 'The Final is next') : '')}${meBar(s)}${debtFlash(s)}`;
+    if (g.pickerId !== s.me || blocked) {
+      const who = blocked ? null : g.pickerId;
+      const text = blocked ? '☠️ Settling tabs' : `${esc(name(g.pickerId))} is picking a clue`;
+      return `${lookUp(who, text, blocked ? `Then ${esc(name(g.pickerId))} picks the next clue` : '')}${meBar(s)}${debtFlash(s)}`;
+    }
+    return `${PB.turn(g.pickerId, 'Pick a clue')}
+      <div class="jp-picklist">${g.board.map((c, ci) => {
+        const left = c.cells.map((x, r) => ({ ...x, r })).filter((x) => !x.used);
+        if (!left.length) return '';
+        return `<div class="jp-pickrow"><b>${c.emoji ? `${esc(c.emoji)} ` : ''}${esc(c.name)}</b>
+          <div>${left.map((x) => `<button data-act="pick" data-c="${ci}" data-r="${x.r}">$${x.value}</button>`).join('')}</div></div>`;
+      }).join('')}</div>
+      ${meBar(s)}`;
+  }
+
+  function ctlDd(s) {
+    const g = s.game;
+    const k = g.clue;
+    if (g.pickerId !== s.me) return `${lookUp(g.pickerId, `💥 ${esc(name(g.pickerId))} found the Daily Double`, 'Only they answer this one')}${meBar(s)}`;
+    return `<div class="jp-dd"><b>DAILY<br>DOUBLE!</b><span>${esc(k.cat)} · $${k.value}</span></div>
+      <p class="center">Wager sips before you see the clue. Only you answer.</p>
+      ${wagerPicker(s, `dd:${g.clueNo}`, 'wager', 'Wager')}
+      ${meBar(s)}`;
+  }
+
+  // How the clue went for you, in a line (no reveal of the others' screens: the TV has that).
+  function myResult(s) {
+    const g = s.game;
+    const k = g.clue;
+    const r = k.results.find((x) => x.id === s.me);
+    if (!r) return '';
+    const sips = k.dd ? k.wager : k.sips;
+    return `<div class="jp-mine ${r.right ? 'ok' : 'bad'}">${r.right ? '✅ You got it' : r.timeout ? '⏱ Out of time' : '❌ You missed'}
+      <b>${r.delta ? signed(r.delta) : ''}</b>${!r.right && !r.left && sips ? `<small>🍺 ${esc(shotText(sips, g.perShot))} on your tab</small>` : ''}</div>`;
+  }
+
+  function ctlClue(s) {
+    const g = s.game;
+    const k = g.clue;
+    const head = `<p class="jp-ctl-head"><span>${esc(k.cat)}</span><b>${k.dd ? 'Daily Double' : `$${k.value}`}</b></p>`;
+    const me = colour(s.me);
+    const ink = PB.inkOn(PB.look(s.me).color);
+    if (g.stage === 'answer' && k.buzzerId === s.me) {
+      return `${head}
+        <div class="jp-in mine" style="--pc:${me}">🔔 You’re in! Pick one ${PB.timer()}</div>
+        ${options(s, k.options, { act: 'answer', wrong: k.wrong })}
+        ${meBar(s)}`;
+    }
+    let main;
+    if (k.dd) main = lookUp(g.pickerId, `💥 ${esc(name(g.pickerId))} is answering alone`, PB.timer());
+    else if (g.stage === 'read') main = '<button class="jp-buzz giant wait" disabled>Get ready…</button>';
+    else if (g.stage === 'answer') main = lookUp(k.buzzerId, `${esc(name(k.buzzerId))} is answering…`, PB.timer());
+    else if (k.locked.includes(s.me)) main = `<div class="jp-buzz giant out">🔒<span>You’re out of this one</span></div>`;
+    else main = `<button class="jp-buzz giant live" data-act="buzz" style="--pc:${me};--pc-ink:${ink}">BUZZ!</button>`;
+    return `${head}${main}${myResult(s)}${meBar(s)}`;
+  }
+
+  function ctlReveal(s) {
+    const g = s.game;
+    const k = g.clue;
+    const right = k.results.find((x) => x.right);
+    const title = right ? `✅ ${esc(name(right.id))} got it` : k.results.length ? '❌ Nobody got it' : '⏱ Nobody buzzed in';
+    const give = g.give ? PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `jp:${g.clueNo}`, title: g.give.from === s.me ? '💥 Daily Double!' : '' }) : '';
+    return `${lookUp(right?.id, title, `It was <b>${esc(k.options[k.answer])}</b>`)}${myResult(s)}${give}${meBar(s)}`;
+  }
+
+  function ctlFinal(s) {
+    const g = s.game;
+    const f = g.finalRound;
+    const head = `<p class="jp-ctl-head"><span>🏁 The Final</span><b>${esc(f.cat)}</b></p>`;
+    if (s.phase === 'finalWager') {
+      if (f.myWager) {
+        const waiting = s.players.filter((p) => p.connected && !f.wagered.includes(p.id)).map((p) => esc(realName(s, p.id)));
+        return `${head}${lookUp(null, `✓ You wagered ${esc(shotText(f.myWager, g.perShot))}`, `Waiting on ${waiting.join(', ') || 'nobody'}… ${PB.timer()}`)}${meBar(s)}`;
+      }
+      return `${head}<p class="center">Wager in secret, before you see the clue ${PB.timer()}</p>${wagerPicker(s, `final:${s.me}`, 'finalWager', 'Wager')}${meBar(s)}`;
+    }
+    if (f.myWager && f.myAnswer === null) {
+      return `${head}<p class="center">Pick your answer in secret ${PB.timer()}</p>${options(s, f.options, { act: 'finalAnswer' })}${meBar(s)}`;
+    }
+    const waiting = s.players.filter((p) => p.connected && f.wagered.includes(p.id) && !f.answered.includes(p.id)).map((p) => esc(realName(s, p.id)));
+    return `${head}${lookUp(null, f.myAnswer !== null ? `✓ Locked in: ${esc(f.options[f.myAnswer])}` : 'The Final', `Waiting on ${waiting.join(', ') || 'nobody'}… ${PB.timer()}`)}${meBar(s)}`;
+  }
+
+  function ctlOver(s) {
+    const g = s.game;
+    const names = (g.winners || []).map((id) => esc(name(id))).join(' & ');
+    const won = g.winners?.includes(s.me);
+    const r = g.finalRound?.results?.find((x) => x.id === s.me);
+    const final = r ? `<div class="jp-mine ${r.right ? 'ok' : 'bad'}">🏁 Final: ${r.right ? '✅ right' : '❌ wrong'} <b>${signed(r.delta)}</b>${r.drinks ? `<small>🍺 ${esc(shotText(r.drinks, g.perShot))} on your tab</small>` : r.top && !r.right ? '<small>Top score: you drink nothing</small>' : ''}</div>` : '';
+    return `<div class="turn jp-head jp-win">${won ? '🏆 You win!' : `🏆 ${names || 'Nobody'} win${g.winners?.length === 1 ? 's' : ''}`}<span>Bool Jeopardy</span></div>
+      ${final}
+      <div class="card"><h2>Final standings</h2>${standings(s)}</div>
+      ${meBar(s)}
+      ${debtFlash(s)}`;
+  }
+
+  function controllerScreen(s) {
+    switch (s.phase) {
+      case 'vote': case 'voted': return ctlVote(s);
+      case 'board': return ctlBoard(s);
+      case 'ddWager': return ctlDd(s);
+      case 'clue': return ctlClue(s);
+      case 'reveal': return ctlReveal(s);
+      case 'finalWager': case 'finalAnswer': return ctlFinal(s);
+      case 'over': return ctlOver(s);
+      default: return '';
+    }
+  }
+
   // ---------- TV ----------
 
   // Scores down the side, with tabs to settle.
@@ -351,7 +522,8 @@
         const v = g.vote;
         main = `<div class="jp-tv-title">${s.phase === 'vote' ? `🗳️ Vote for the categories on your phones ${g.relaxed ? '' : PB.timer()}` : '🗳️ The votes are in'}</div>
           ${voteGrid(s, { counts: true, result: s.phase === 'voted' })}
-          ${s.phase === 'vote' ? `<p class="jp-tv-locked">${v.lockedIn.length ? `Locked in: ${v.lockedIn.map((id) => PB.avatar(id, 'sm')).join('')}` : 'Up to five picks each: the top five make the board'}</p>` : ''}`;
+          ${houseLine(v)}
+          ${s.phase === 'vote' ? `<p class="jp-tv-locked">${v.lockedIn.length ? `Locked in: ${v.lockedIn.map((id) => PB.avatar(id, 'sm')).join('')}` : `Up to ${g.maxPicks} picks each: the top ${v.voted} make the board`}</p>` : ''}`;
         break;
       }
       case 'board':
@@ -422,7 +594,7 @@
       flash = { key: null, at: 0 };
     },
     // Sideways: the board or the clue on the left.
-    stage: '.jp-board, .jp-clue, .jp-dd, .jp-final-cat, .jp-vote-grid, .jp-last',
+    stage: '.jp-board, .jp-clue, .jp-dd, .jp-final-cat, .jp-vote-grid, .jp-house, .jp-last',
     tv: tvScreen,
     tvTable: false,
     tvLeft: '.jp-side',
@@ -439,6 +611,7 @@
       return [];
     },
     render(s) {
+      if (controller(s)) return controllerScreen(s);
       switch (s.phase) {
         case 'vote': case 'voted': return voteScreen(s);
         case 'board': return boardScreen(s);

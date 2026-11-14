@@ -3,7 +3,7 @@
 // high. The board is on everyone's phone, or on the TV if there is one.
 //
 // Modes:
-//   Drinking darts  rounds of 3 darts; lowest score each round drinks, bulls hand out sips.
+//   Drinking darts  rounds of 3 darts; lowest score each round drinks, bulls bank sips to hand out at the end.
 //   301 / 501       count down to exactly zero (optionally finishing on a double). Bust and drink.
 //   Around the clock  hit 1 to 20 in order, then the bull. A turn with no hits drinks.
 //   Cricket         close 15–20 and the bull; score on numbers others haven't closed.
@@ -87,12 +87,21 @@ function win(room, ctx, id) {
   g.phase = 'over';
   ctx.log(room, `🏆 ${ctx.name(room, id)} wins Darts`);
   for (const other of others(room, ctx, g, id)) ctx.drink(room, other, g.sips, `${ctx.name(room, id)} won`);
+  // Everything banked during the game is handed out now, one player at a time.
+  g.gives = g.order.filter((pid) => g.bank[pid] > 0).map((pid) => ({ from: pid, sips: g.bank[pid], reason: 'their darts winnings' }));
+  payout(room, ctx);
 }
 
-// After a turn: hand out any sips that were won, then the next thrower.
-function afterTurn(room, ctx) {
+// Sips won mid-game (bulls, tons) go in the bank, to hand out at the end.
+function bankSips(room, ctx, id, sips, reason) {
   const g = room.game;
-  if (g.phase === 'over') return;
+  g.bank[id] = (g.bank[id] || 0) + sips;
+  ctx.log(room, `🏦 ${ctx.name(room, id)} banks ${sips} sip${sips === 1 ? '' : 's'} for ${reason}`);
+}
+
+// After the winner: each player with sips in the bank hands them out, then the game's over.
+function payout(room, ctx) {
+  const g = room.game;
   if (g.phase === 'give') ctx.clearTimer(room); // that one's handed out: its clock stops
   const give = g.gives.find((x) => ctx.turns.isActive(room, x.from));
   if (give) {
@@ -104,6 +113,13 @@ function afterTurn(room, ctx) {
   }
   g.gives = [];
   g.give = null;
+  g.phase = 'over';
+}
+
+// After a turn: the next thrower.
+function afterTurn(room, ctx) {
+  const g = room.game;
+  if (g.phase !== 'turnEnd') return;
   nextThrower(room, ctx);
 }
 
@@ -116,7 +132,7 @@ function giveClock(room, ctx) {
 function autoGive(room, ctx, skipped = false) {
   const g = room.game;
   giving.auto(room, ctx, g.give.from, g.give.sips, g.give.reason, { skipped });
-  afterTurn(room, ctx);
+  payout(room, ctx);
 }
 
 function nextThrower(room, ctx) {
@@ -164,7 +180,7 @@ function endTurn(room, ctx, note = '') {
     ctx.drink(room, me, g.sips, 'no marks');
   }
   if (g.mode === 'x01' && note !== 'bust' && g.turnScore >= 100) {
-    g.gives.push({ from: me, sips: g.sips, reason: `a ton (${g.turnScore})` });
+    bankSips(room, ctx, me, g.sips, `a ton (${g.turnScore})`);
     ctx.log(room, `💯 ${ctx.name(room, me)} scored ${g.turnScore}!`);
   }
   if (g.mode === 'drinking') g.roundScores[me] = g.turnScore;
@@ -172,7 +188,7 @@ function endTurn(room, ctx, note = '') {
     ctx.highlight(room, 'dartsBest', me, g.turnScore, `🎯 ${ctx.name(room, me)} threw ${g.turnScore} in one turn of darts`);
   }
   g.lastTurn = { id: me, darts: g.darts, total: g.turnScore, note };
-  if (g.phase === 'over') return;
+  if (note === 'won') return win(room, ctx, me);
   g.phase = 'turnEnd';
   ctx.setTimer(room, TURN_PAUSE, () => afterTurn(room, ctx));
 }
@@ -185,7 +201,7 @@ function apply(room, ctx, me, seg) {
     g.turnScore += v;
     if (seg.n === 25) {
       const sips = seg.m === 2 ? g.sips * 2 : g.sips;
-      g.gives.push({ from: me, sips, reason: seg.m === 2 ? 'a bullseye' : 'the 25' });
+      bankSips(room, ctx, me, sips, seg.m === 2 ? 'a bullseye' : 'the 25');
     }
   } else if (g.mode === 'x01') {
     const left = g.left[me] - v;
@@ -200,7 +216,6 @@ function apply(room, ctx, me, seg) {
     g.left[me] = left;
     g.turnScore += v;
     if (left === 0) {
-      win(room, ctx, me);
       return 'won';
     }
   } else if (g.mode === 'clock') {
@@ -210,7 +225,6 @@ function apply(room, ctx, me, seg) {
       g.target[me] += 1;
       g.turnScore += 1;
       if (g.target[me] > 21) {
-        win(room, ctx, me);
         return 'won';
       }
     }
@@ -233,7 +247,6 @@ function apply(room, ctx, me, seg) {
     }
     const closedAll = CRICKET.every((n) => g.marks[me][n] >= 3);
     if (closedAll && others(room, ctx, g, me).every((id) => g.points[me] >= g.points[id])) {
-      win(room, ctx, me);
       return 'won';
     }
   }
@@ -295,8 +308,8 @@ module.exports = {
   rules: [
     'Drag to aim, then flick up to throw. A crooked or too-soft flick goes astray.',
     'Three darts a turn. Missing the board is a sip.',
-    'Drinking darts: lowest score each round drinks. Bull hands out double, 25 hands out sips.',
-    '301/501: hit exactly zero. Bust and drink. A ton (100+) hands out sips.',
+    'Drinking darts: lowest score each round drinks. Bull banks double, 25 banks sips: handed out at the end.',
+    '301/501: hit exactly zero. Bust and drink. A ton (100+) banks sips: handed out at the end.',
     'Around the clock: 1 to 20, then the bull. No hits in a turn? Drink.',
     'Cricket: close 15–20 and the bull. Close one and everyone still open drinks.',
   ],
@@ -358,6 +371,7 @@ module.exports = {
       target: {},
       marks: {},
       points: {},
+      bank: {},
       gives: [],
       give: null,
       lastTurn: null,
@@ -391,14 +405,14 @@ module.exports = {
       else if (g.darts.length >= 3) endTurn(room, ctx);
     } else if (action.type === 'give' && g.phase === 'give' && g.give?.from === me) {
       // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
-      if (giving.give(room, ctx, me, action, g.give.sips, g.give.reason)) afterTurn(room, ctx);
+      if (giving.give(room, ctx, me, action, g.give.sips, g.give.reason)) payout(room, ctx);
     } else if (action.type === 'skipGive' && g.phase === 'give' && me === room.hostId) {
       autoGive(room, ctx, true);
     }
   },
 
   // A bot throws on its turn at what's worth going for in this mode (good ones go for trebles,
-  // bad ones the bigger singles), and hands out its sips when it's won some.
+  // bad ones the bigger singles), and hands out its banked sips at the end.
   bot(room, me, ctx, skill) {
     const g = room.game;
     if (g.phase === 'give' && g.give?.from === me.id) {
@@ -425,7 +439,7 @@ module.exports = {
       g.lastTurn = null;
       nextThrower(room, ctx);
     } else if (g.phase === 'give' && !ctx.turns.isActive(room, g.give.from)) {
-      afterTurn(room, ctx);
+      payout(room, ctx);
     } else if (g.phase === 'give' && !room.timer) {
       giveClock(room, ctx); // (lost in a restart)
     } else if (g.phase === 'turnEnd' && !room.timer) {
@@ -466,6 +480,7 @@ module.exports = {
       turnScore: g.turnScore,
       lastTurn: g.lastTurn,
       give: g.phase === 'give' ? g.give : null,
+      bank: g.bank || {},
       total: g.total,
       roundScores: g.roundScores,
       roundEnd: g.roundEnd,
@@ -481,6 +496,7 @@ module.exports = {
 
   score,
   land,
+  __payout: payout,
   PERFECT,
   SECTORS,
   RINGS,

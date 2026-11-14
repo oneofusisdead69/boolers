@@ -168,11 +168,27 @@
       if (PB.screens[gameId]) return void done();
       if (loadingScreens[gameId]) return;
       loadingScreens[gameId] = true;
+      PB.freshStyles();
       const script = document.createElement('script');
       script.src = `/games/${encodeURIComponent(gameId)}.js`;
       script.onload = done;
       script.onerror = failed;
       document.head.appendChild(script);
+    },
+
+    // A page left open across a deploy has the old stylesheet but loads a game's screens fresh, so
+    // a new game would arrive unstyled. Before loading screens on a page that's been open a while,
+    // fetch the stylesheet again (swapped in once it's loaded, so nothing flashes).
+    freshStyles() {
+      if (performance.now() - (PB._stylesAt || 0) < 60000) return;
+      PB._stylesAt = performance.now();
+      const old = document.querySelector('link[rel=stylesheet][href^="/style.css"]');
+      if (!old) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `/style.css?r=${Date.now()}`;
+      link.onload = () => old.remove();
+      old.after(link);
     },
 
     // Which sounds what changed between two states of the same game makes: the game's own (its

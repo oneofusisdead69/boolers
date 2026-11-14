@@ -1,8 +1,10 @@
 // Bool Jeopardy: a trivia board of five categories × five values ($200 to $1000).
 //
 // First everyone votes on the categories: ten are drawn from the bank (ones the room hasn't had
-// yet first), everyone ticks up to five and locks in, and the five with the most votes make the
-// board (ties broken at random).
+// yet first), everyone ticks up to four and locks in, and the four with the most votes make the
+// board (ties broken at random). The fifth column is always the house category: one about the
+// venue the room is dressed as (the pirate tavern gets pirates, the château French wine; a plain
+// room gets bar trivia).
 //
 // The picker (a random player to start; then whoever last answered right) picks a clue. It shows
 // on the TV and every phone; after a short beat the buzzers light up and the first to buzz gets four
@@ -29,12 +31,13 @@ const { isActive, next } = require('../lib/turns');
 const { pickHuman } = require('../lib/bots');
 const giving = require('../lib/give');
 const { shotText } = require('./shotPoker');
-const { CATEGORIES } = require('../lib/jeopardyQuestions');
+const { CATEGORIES, VENUES, venueOf } = require('../lib/jeopardyQuestions');
 
-const COLS = 5; // categories on the board
+const COLS = 5; // categories on the board: the top VOTED from the vote, then the house category
+const VOTED = 4;
 const ROWS = 5; // clues in each ($200 … $1000)
 const POOL = 10; // categories to vote on
-const MAX_PICKS = 5; // categories each player can vote for
+const MAX_PICKS = 4; // categories each player can vote for
 const VALUE = 200; // $ a row (and $ a sip wagered)
 
 const VOTE_MS = 30 * 1000;
@@ -76,6 +79,17 @@ function drawPool(room) {
   return [...fresh, ...again].slice(0, POOL);
 }
 
+// The house category: one of the venue's own (lib/jeopardyQuestions.js VENUES), one the room
+// hasn't had tonight if there is one.
+function drawHouse(room) {
+  const venue = venueOf(room.style);
+  const seen = room.jeopardySeen || [];
+  const list = VENUES[venue].categories.map((_, i) => i);
+  const fresh = list.filter((i) => !seen.includes(VENUES[venue].categories[i].name));
+  return { venue, i: pick(fresh.length ? fresh : list) };
+}
+const houseCat = (g) => VENUES[g.house.venue].categories[g.house.i];
+
 // How many votes each category in the pool has (everyone's ticks, locked in or not).
 function tally(g) {
   const counts = g.pool.map(() => 0);
@@ -90,29 +104,31 @@ function closeVote(room, ctx) {
   const counts = tally(g);
   // Most votes first; ties at random (shuffled first, and the sort keeps that order for ties).
   const ranked = shuffle(g.pool.map((_, i) => i)).sort((a, b) => counts[b] - counts[a]);
-  g.chosen = ranked.slice(0, COLS);
+  g.chosen = ranked.slice(0, VOTED);
   g.counts = counts;
-  buildBoard(room, g.chosen.map((i) => g.pool[i]), ranked.slice(COLS).map((i) => g.pool[i]));
+  const cat = (i) => CATEGORIES[g.pool[i]];
+  // The Final comes from the best of the categories that didn't make it.
+  buildBoard(room, [...g.chosen.map(cat), { ...houseCat(g), emoji: VENUES[g.house.venue].emoji }], cat(ranked[VOTED]));
   ctx.log(room, `🗳️ The board: ${g.cats.map((c) => c.name).join(', ')}`);
   g.phase = 'voted';
   ctx.setTimer(room, VOTED_MS, () => toBoard(room, ctx));
 }
 
-// The board from the chosen categories (each clue's options shuffled), with one Daily Double
-// hidden off the top row; the Final's clue from the best of the rest.
-function buildBoard(room, catIds, rest) {
+// The board from its categories, in order (each clue's options shuffled), with one Daily Double
+// hidden off the top row; the Final's clue is `final`'s $800 one.
+function buildBoard(room, cats, final) {
   const g = room.game;
   const clue = (x) => {
     const options = shuffle([x.a, ...x.wrong]);
     return { q: x.q, options, answer: options.indexOf(x.a) };
   };
-  g.cats = catIds.map((ci) => ({
-    name: CATEGORIES[ci].name,
-    clues: CATEGORIES[ci].clues.slice(0, ROWS).map((x, r) => ({ ...clue(x), value: (r + 1) * VALUE, used: false, dd: false })),
+  g.cats = cats.map((cat) => ({
+    name: cat.name,
+    emoji: cat.emoji || null,
+    clues: cat.clues.slice(0, ROWS).map((x, r) => ({ ...clue(x), value: (r + 1) * VALUE, used: false, dd: false })),
   }));
-  g.cats[Math.floor(Math.random() * COLS)].clues[1 + Math.floor(Math.random() * (ROWS - 1))].dd = true;
-  const fc = rest[0] ?? CATEGORIES.findIndex((_, i) => !catIds.includes(i));
-  g.finalClue = { cat: CATEGORIES[fc].name, ...clue(CATEGORIES[fc].clues[3]) };
+  g.cats[Math.floor(Math.random() * g.cats.length)].clues[1 + Math.floor(Math.random() * (ROWS - 1))].dd = true;
+  g.finalClue = { cat: final.name, ...clue(final.clues[3]) };
   const seen = (room.jeopardySeen ||= []);
   for (const name of [...g.cats.map((c) => c.name), g.finalClue.cat]) if (!seen.includes(name)) seen.push(name);
 }
@@ -349,7 +365,7 @@ module.exports = {
   name: 'Bool Jeopardy',
   description: 'Vote on categories, pick a clue, race to buzz in. Wrong answers go on your tab, Shot Poker style.',
   rules: [
-    'Vote for the categories: the top five make the board.',
+    'Vote for the categories: the top four make the board, plus a house category for the venue.',
     'The picker picks a clue; first to buzz in answers.',
     'Right: win the $ and pick next. Wrong: lose the $, and $200 a sip goes on your tab.',
     'A shot is a set number of sips. Every tab is settled before the next clue.',
@@ -380,6 +396,7 @@ module.exports = {
       seed: Math.random().toString(36).slice(2, 8),
       clueNo: 0,
       pool: drawPool(room),
+      house: drawHouse(room),
       votes: {},
       lockedIn: {},
       cats: null,
@@ -612,12 +629,14 @@ module.exports = {
       // The vote: the categories, and how many votes each has (not who voted for what).
       vote: g.phase === 'vote' || g.phase === 'voted' ? {
         pool: g.pool.map((i) => CATEGORIES[i].name),
+        house: { name: houseCat(g).name, emoji: VENUES[g.house.venue].emoji },
+        voted: VOTED,
         counts: g.phase === 'voted' ? g.counts : tally(g),
         mine: g.votes[me] || [],
         lockedIn: Object.keys(g.lockedIn).filter((id) => isActive(room, id)),
         chosen: g.phase === 'voted' ? g.chosen : null,
       } : null,
-      board: g.cats ? g.cats.map((c) => ({ name: c.name, cells: c.clues.map((x) => ({ value: x.value, used: x.used })) })) : null,
+      board: g.cats ? g.cats.map((c) => ({ name: c.name, emoji: c.emoji, cells: c.clues.map((x) => ({ value: x.value, used: x.used })) })) : null,
       left: cellsLeft(g),
       // The clue in play. The Daily Double's question stays hidden until the wager's in; the
       // options show once someone's buzzed in; the answer only at the reveal.
@@ -658,6 +677,8 @@ module.exports = {
   },
 
   CATEGORIES,
+  VENUES,
+  venueOf,
   VALUE,
   __buildBoard: buildBoard, // (for the tests)
 };

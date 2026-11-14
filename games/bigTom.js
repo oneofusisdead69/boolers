@@ -90,6 +90,16 @@ function startRound(room, ctx) {
   g.current = 0;
   g.give = null;
   g.poll = null;
+  // On the clock, nobody's left waiting on a slow writer: when it runs out, Big Tom writes the
+  // missing questions (startAnswering) so everyone still gets two to answer.
+  if (g.answerTime) ctx.setTimer(room, g.answerTime * 1000, () => writeTimeUp(room, ctx));
+}
+
+function writeTimeUp(room, ctx) {
+  const g = room.game;
+  if (g.phase !== 'write') return;
+  if (ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
+  else ctx.setTimer(room, 15000, () => writeTimeUp(room, ctx)); // (wait for a third player)
 }
 
 // Hands out the questions: seat i's question to seats i+1 and i+2.
@@ -240,6 +250,9 @@ function startFinal(room, ctx) {
 // Everyone here votes, as long as there's a drawing that isn't theirs.
 const finalVoters = (room, ctx) => ctx.connectedPlayers(room).map((p) => p.id)
   .filter((id) => room.game.finalOrder.some((d) => d !== id));
+
+// How long the host's "Start voting now" waits for drawings still on their pads.
+const DRAW_GRACE = 3000;
 
 function startFinalVote(room, ctx) {
   const g = room.game;
@@ -537,8 +550,12 @@ module.exports = {
       if (g.phase === 'write' && ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
       else if (g.phase === 'answer') startVoting(room, ctx);
       else if (g.phase === 'vote') reveal(room, ctx);
-      else if (g.phase === 'draw') startFinalVote(room, ctx);
-      else if (g.phase === 'finalVote') finalReveal(room, ctx);
+      else if (g.phase === 'draw') {
+        // Anyone still drawing gets a last couple of seconds: their pad sends what's on it as the
+        // clock runs out (public/games/bigTom.js), so no picture is lost.
+        if (ctx.connectedPlayers(room).every((p) => g.drawings[p.id]) || !g.answerTime) startFinalVote(room, ctx);
+        else if (!(room.deadline && room.deadline - Date.now() <= DRAW_GRACE)) ctx.setTimer(room, DRAW_GRACE, () => startFinalVote(room, ctx));
+      } else if (g.phase === 'finalVote') finalReveal(room, ctx);
     } else if (action.type === 'next' && g.phase === 'reveal' && host) {
       g.current += 1;
       if (g.current < g.matchups.length) openMatchup(room, ctx);

@@ -419,3 +419,130 @@ test('cars: a bot picks one of its own before it bets', () => {
   assert.strictEqual(t.bot(1).type, 'bet', 'then its bet');
   t.cleanup();
 });
+
+// ---------- Rainbow Road (Track Racing at the Space lounge) ----------
+
+// A race at the Space lounge, off the line; the cars' signals kept.
+function rainbowRace(track = 'oval', players = 2) {
+  const t = setup(game, players, { track, laps: 2 });
+  t.signals = [];
+  t.ctx.signal = (room, event, data) => t.signals.push({ event, data });
+  t.room.style = game.RAINBOW_ROOM;
+  startRace(t, Array.from({ length: players }, (_, i) => [`p${i}`, 1]));
+  return t;
+}
+// Puts a car just past the edge of the road (where the wall would be), going outward.
+function overTheEdge(t, id, i = 30) {
+  const g = t.room.game;
+  const tr = game.trackOf(g.trackId);
+  const car = g.cars.find((c) => c.id === id);
+  const nx = -Math.sin(tr.dir[i]);
+  const ny = Math.cos(tr.dir[i]);
+  Object.assign(car, { x: tr.xs[i] + nx * (tr.edge + 3), y: tr.ys[i] + ny * (tr.edge + 3), vx: nx * 60, vy: ny * 60, seg: i, gas: 0, brake: 0, steer: 0 });
+  return { car, tr, i };
+}
+const drinksOf = (t, id) => t.events.filter((e) => e.event === 'drink' && e.playerId === id);
+
+test('Rainbow Road: the Space lounge\'s easter egg for Track Racing, always at night', () => {
+  const STYLES = require('../lib/roomStyles');
+  assert.strictEqual(STYLES.eggOf(game.RAINBOW_ROOM, 'trackRacing'), 'spaceRainbow');
+  assert.strictEqual(STYLES.STYLES.spaceRainbow.room, game.RAINBOW_ROOM);
+  assert.deepStrictEqual([...new Set(Array.from({ length: 100 }, () => game.pickWeather({ style: 'space' })))], ['night']);
+  const t = rainbowRace();
+  const g = t.room.game;
+  assert.strictEqual(g.rainbow, true);
+  assert.strictEqual(t.view(0).rainbow, true);
+  assert.ok(t.room.feed.some((f) => f.text.startsWith('🌈 Race 1 is off')));
+  t.cleanup();
+  // Anywhere else: walls, as ever.
+  const t2 = setup(game, 2, { track: 'oval' });
+  assert.strictEqual(t2.room.game.rainbow, false);
+  assert.strictEqual(t2.view(0).rainbow, false);
+  t2.cleanup();
+});
+
+test('Rainbow Road: off the edge, you\'re put back on the road at the nearest point, stopped a moment, and drink a sip', () => {
+  const t = rainbowRace();
+  const g = t.room.game;
+  const { car, tr, i } = overTheEdge(t, 'p0');
+  t.fireTimer();
+  // Back on the centreline near where it went off, facing the way round, stopped.
+  const at = game.locate(tr, car.x, car.y);
+  assert.ok(at.dist < 1, `on the road (${at.dist.toFixed(1)} off it)`);
+  assert.ok(Math.abs(at.i - i) <= 2, 'at the nearest point');
+  assert.ok(Math.abs(Math.atan2(Math.sin(car.a - tr.dir[at.i]), Math.cos(car.a - tr.dir[at.i]))) < 0.3, 'facing the way round');
+  assert.strictEqual(Math.hypot(car.vx, car.vy), 0);
+  assert.ok(car.respawn > 0);
+  // One sip, through ctx.drink (the phone's buzzed), and the screens told who fell.
+  assert.strictEqual(t.player(0).drinks, 1);
+  assert.strictEqual(drinksOf(t, 'p0').length, 1);
+  assert.strictEqual(drinksOf(t, 'p0')[0].data.reason, 'fell off Rainbow Road');
+  assert.strictEqual(g.drank.p0, 1, 'in this race\'s drinks');
+  const snap = t.signals.at(-1).data;
+  assert.deepStrictEqual(snap.f, [['p0', 1]]);
+  assert.ok(snap.c[g.cars.indexOf(car)][3] & 16, 'flagged while it\'s put back');
+  // It stays put while it's being put back, even flat out, then it's off again.
+  car.gas = 1;
+  const { x, y } = car;
+  t.fireTimer();
+  assert.strictEqual(car.x, x);
+  assert.strictEqual(car.y, y);
+  for (let k = 0; k < 40; k++) t.fireTimer();
+  assert.strictEqual(car.respawn, 0);
+  assert.ok(Math.hypot(car.x - x, car.y - y) > 10, 'driving again');
+  assert.ok(!(t.signals.at(-1).data.c[g.cars.indexOf(car)][3] & 16));
+  assert.ok(!t.signals.at(-1).data.f, 'nobody fell');
+  assert.strictEqual(t.player(1).drinks, 0, 'nobody else drank');
+  t.cleanup();
+});
+
+test('Rainbow Road: a fall costs a sip at most every so often (no running up a tab)', () => {
+  const t = rainbowRace();
+  const g = t.room.game;
+  const car = g.cars.find((c) => c.id === 'p0');
+  const fallAt = (i) => {
+    car.respawn = 0;
+    overTheEdge(t, 'p0', i);
+    t.fireTimer();
+    return t.signals.at(-1).data.f;
+  };
+  assert.deepStrictEqual(fallAt(20), [['p0', 1]]);
+  // Straight off again: put back, but no sip.
+  assert.deepStrictEqual(fallAt(40), [['p0', 0]]);
+  assert.deepStrictEqual(fallAt(60), [['p0', 0]]);
+  assert.strictEqual(t.player(0).drinks, 1);
+  assert.strictEqual(drinksOf(t, 'p0').length, 1);
+  assert.strictEqual(car.falls, 3);
+  // Once the cooldown's run out, the next fall is a sip again.
+  g.t = car.drankAt + game.RAINBOW.cooldown + 0.01;
+  assert.deepStrictEqual(fallAt(80), [['p0', 1]]);
+  assert.strictEqual(t.player(0).drinks, 2);
+  t.cleanup();
+});
+
+test('Rainbow Road: before the lights, nobody falls', () => {
+  const t = setup(game, 2, { track: 'oval' });
+  t.room.style = game.RAINBOW_ROOM;
+  t.act(0, 'startRace');
+  overTheEdge(t, 'p0');
+  t.fireTimer(); // (a countdown step: nothing moves)
+  assert.strictEqual(t.player(0).drinks, 0);
+  t.cleanup();
+});
+
+test('Rainbow Road: bots rarely fall off (the bad ones more), and everyone finishes', () => {
+  const falls = { booler: 0, baller: 0, npc: 0 };
+  for (const track of ['bar', 'hairpin', 'chicanes']) {
+    const t = rainbowRace(track, 3);
+    t.room.players.forEach((p, i) => (p.bot = ['booler', 'baller', 'npc'][i]));
+    runRace(t);
+    for (const c of t.room.game.cars) {
+      falls[t.room.players.find((p) => p.id === c.id).bot] += c.falls || 0;
+      assert.ok(c.finished != null, `${track}: ${c.id} finished`);
+    }
+    t.cleanup();
+  }
+  assert.ok(falls.booler <= 2, `Booler fell ${falls.booler} times`);
+  assert.ok(falls.baller <= 3, `Baller fell ${falls.baller} times`);
+  assert.ok(falls.npc <= 8, `NPC fell ${falls.npc} times`);
+});

@@ -25,7 +25,7 @@
     if (g.suggestion && g.suggestion !== lastSuggestion) { drafts[key] = g.suggestion; lastSuggestion = g.suggestion; }
     const mine = g.myQuestion;
     return `
-      <div class="turn">🎤 Round ${g.round} of ${g.rounds}<span>Write a question for the others to answer</span></div>
+      <div class="turn">🎤 Round ${g.round} of ${g.rounds}<span>Write a question for the others to answer ${PB.timer()}</span></div>
       ${mine
         ? `<div class="card bt-done"><small>Your question</small><p class="bt-q">${esc(mine)}</p><p class="muted">✓ Sent. It goes to two other players.</p></div>`
         : `<div class="card bt-write">
@@ -145,6 +145,28 @@
   const COLORS = ['#111111', '#e53950', '#3d7cff', '#2fbf71', '#f5c518', '#9b5cff', '#ffffff'];
   const SIZE = 400; // the drawing's pixels (shown at screen width)
   const pad = { strokes: [], color: COLORS[0], width: 6, round: null };
+
+  // When the clock's nearly out, whatever's on the pad goes in by itself: nobody loses a drawing for
+  // not tapping Send in time.
+  setInterval(() => {
+    const s = PB.state;
+    if (s?.gameType !== 'bigTom' || !s.deadline || PB.isTV || s.deadline - PB.now() > 2500) return;
+    // A question or answer typed but not sent goes in too.
+    if (s.phase === 'write' || s.phase === 'answer') {
+      document.querySelectorAll('[data-bt-send]').forEach((b) => {
+        if ((drafts[b.dataset.key] || '').trim()) b.click();
+      });
+      return;
+    }
+    if (s.phase !== 'draw') return;
+    if (s.game.drew.includes(s.me) || !pad.strokes.length || pad.autoSent === s.game.round) return;
+    if (s.deadline - PB.now() > 2500) return;
+    const canvas = document.getElementById('bt-canvas');
+    if (!canvas) return;
+    pad.autoSent = s.game.round;
+    redraw(canvas);
+    PB.act('drawing', { image: canvas.toDataURL('image/png') });
+  }, 250);
 
   function redraw(canvas) {
     const c = canvas.getContext('2d');
