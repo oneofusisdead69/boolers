@@ -1043,8 +1043,9 @@ main.ls .ar-track { padding: 6px; gap: 2px; }
 .dt-scores th { color: var(--muted); font-weight: 600; font-size: 0.8rem; padding: 2px 4px; }
 .dt-scores td { padding: 5px 4px; text-align: center; }
 .dt-scores td.dt-who { text-align: left; }
-.dt-who { display: flex; align-items: center; gap: 8px; }
-.dt-who span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
+/* The name cell stays a table cell (a flex cell breaks the rows apart); its insides line up. */
+.dt-who > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dt-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
 .dt-bank { color: var(--accent); font-weight: 700; white-space: nowrap; }
 .dt-scores tr.up td { background: var(--card-2); }
 .dt-scores tr.up td:first-child { border-radius: 8px 0 0 8px; }
