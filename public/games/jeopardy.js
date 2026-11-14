@@ -1,9 +1,12 @@
 // Screens for Bool Jeopardy. Server logic: games/jeopardy.js
 (() => {
   const { esc, name } = PB;
-  // The wager being built on this phone (Daily Double, Final), reset for each new one.
+  // The wager being built on this phone (sips in the Final, $ on a Daily Double), reset for each
+  // new one.
   let wager = null;
   let wagerFor = null;
+  let dollars = null;
+  let dollarsFor = null;
   // The full-screen "settle your tabs" flash plays once per clue.
   let flash = { key: null, at: 0 };
 
@@ -24,6 +27,8 @@
   const here = (s, id) => s.players.find((p) => p.id === id)?.connected;
   const colour = (id) => esc(PB.look(id).color);
   const LETTERS = ['A', 'B', 'C', 'D'];
+  // Hard questions on: a small badge wherever the board or a clue is.
+  const hardTag = (s) => (s.game.hard ? '<span class="jp-hard">🔥 Hard</span>' : '');
 
   // ---------- Pieces ----------
 
@@ -59,7 +64,7 @@
         else cells += `<div class="jp-cell">$${x.value}</div>`;
       }
     }
-    return `<div class="jp-board ${tv ? 'tv' : ''} ${tappable ? 'mine' : ''}" style="--cols:${cols}">${heads}${cells}</div>`;
+    return `${g.hard ? `<div class="jp-board-tag">${hardTag(s)}</div>` : ''}<div class="jp-board ${tv ? 'tv' : ''} ${tappable ? 'mine' : ''}" style="--cols:${cols}">${heads}${cells}</div>`;
   }
 
   // How the last clue went, in a line.
@@ -67,13 +72,13 @@
     const l = s.game.last;
     if (!l) return '';
     const parts = l.results.map((x) => `${x.right ? '✅' : x.left ? '🚪' : '❌'} ${esc(realName(s, x.id))}${x.delta ? ` ${signed(x.delta)}` : ''}`);
-    return `<p class="jp-last">Last: ${esc(l.cat)} $${l.value}${l.dd ? ' (Daily Double)' : ''} · ${parts.length ? parts.join(' · ') : 'nobody buzzed'} · it was <b>${esc(l.answer)}</b></p>`;
+    return `<p class="jp-last">Last: ${esc(l.cat)} $${l.value}${l.dd ? ` (Daily Double${l.wager ? `, ${money(l.wager)} wagered` : ''})` : ''} · ${parts.length ? parts.join(' · ') : 'nobody buzzed'} · it was <b>${esc(l.answer)}</b></p>`;
   }
 
   function clueCard(s, { big = false } = {}) {
     const k = s.game.clue;
     return `<div class="jp-clue ${big ? 'big' : ''} ${k.dd ? 'dd' : ''}">
-      <div class="jp-clue-head"><span>${esc(k.cat)}</span><b>${k.dd ? `Daily Double · ${esc(shotText(k.wager || 0, s.game.perShot))}` : `$${k.value}`}</b></div>
+      <div class="jp-clue-head"><span>${esc(k.cat)} ${hardTag(s)}</span><b>${k.dd ? `Daily Double${k.wager ? ` · ${money(k.wager)}` : ''}` : `$${k.value}`}</b></div>
       <p class="jp-q">${esc(k.q || '')}</p>
     </div>`;
   }
@@ -97,7 +102,7 @@
     const g = s.game;
     const k = g.clue;
     return `<ul class="jp-results">${list.map((x) => {
-      const sips = k?.dd ? k.wager : k?.sips;
+      const sips = k?.dd ? 0 : k?.sips; // (a Daily Double is points only)
       const what = x.right ? 'got it' : x.left ? 'left' : x.timeout ? 'ran out of time' : 'missed';
       const tab = !x.right && !x.left && sips ? ` · 🍺 ${esc(shotText(sips, g.perShot))} on the tab` : '';
       return `<li class="${x.right ? 'ok' : 'bad'}">${PB.avatar(x.id, 'sm')}<span><b>${esc(realName(s, x.id))}</b> ${what}${tab}</span><em>${x.delta ? signed(x.delta) : ''}</em></li>`;
@@ -118,9 +123,33 @@
         <button class="secondary" data-jp="set" data-to="${Math.min(g.cap, g.perShot)}">1 shot</button>
         <button class="secondary" data-jp="set" data-to="${g.cap}">Max (${g.cap})</button>
       </div>
-      <button data-act="${act}" data-sips="${wager}">${label} ${esc(shotText(wager, g.perShot))}<small>Right: +${money(wager * 200)}${act === 'wager' ? ' and you hand them out' : ''} · Wrong: they're on your tab</small></button>
+      <button data-act="${act}" data-sips="${wager}">${label} ${esc(shotText(wager, g.perShot))}<small>Right: +${money(wager * 200)} · Wrong: they're on your tab</small></button>
     </div>`;
   }
+
+  // The Daily Double's wager, in $ like the show: − / + $100, $500, or all in (the most you can:
+  // your score, or $1000 if that's more). Points only: no sips either way.
+  function ddPicker(s) {
+    const k = s.game.clue;
+    const lo = k.ddMin;
+    const hi = k.ddMax;
+    const key = `dd:${s.game.clueNo}`;
+    if (dollarsFor !== key) { dollars = Math.min(hi, 500); dollarsFor = key; }
+    dollars = Math.min(hi, Math.max(lo, dollars));
+    return `<div class="card jp-wager">
+      <div class="ld-qty jp-dollars">
+        <button class="secondary" data-jp="dd" data-step="-100" ${dollars <= lo ? 'disabled' : ''}>−</button>
+        <b>${money(dollars)}</b>
+        <button class="secondary" data-jp="dd" data-step="100" ${dollars >= hi ? 'disabled' : ''}>+</button>
+      </div>
+      <div class="sp-quick">
+        <button class="secondary" data-jp="ddSet" data-to="${Math.min(hi, 500)}">$500</button>
+        <button class="secondary jp-allin" data-jp="ddSet" data-to="${hi}">True Daily Double (${money(hi)})</button>
+      </div>
+      <button data-act="wager" data-amount="${dollars}">Wager ${money(dollars)}<small>Right: +${money(dollars)} · Wrong: −${money(dollars)} · no sips either way</small></button>
+    </div>`;
+  }
+  const ddLine = (s) => `<p class="center">Wager $${s.game.clue.ddMin} to ${money(s.game.clue.ddMax)} before you see the clue. Only you answer. Points only: no sips.</p>`;
 
   // Tabs to settle. In the middle of a clue it's a card (the buzzer stays in reach); between
   // clues it's Shot Poker's "All debts must be paid" flash right across the screen.
@@ -173,7 +202,7 @@
         ${houseLine(g.vote)}
         ${scores(s)}`;
     }
-    return `${banner('🗳️ Pick the categories', `Tap up to ${g.maxPicks}: the top ${v.voted} make the board ${g.relaxed ? '' : PB.timer()}`)}
+    return `${banner(`🗳️ Pick the categories ${hardTag(s)}`, `Tap up to ${g.maxPicks}: the top ${v.voted} make the board ${g.relaxed ? '' : PB.timer()}`)}
       ${PB.passAndPlay ? `<p class="center jp-whose">${PB.avatar(s.me, 'sm')} <b>${esc(name(s.me))}</b>’s picks</p>` : ''}
       ${voteGrid(s, { tappable: !locked })}
       ${houseLine(v)}
@@ -223,9 +252,10 @@
     const k = g.clue;
     const mine = g.pickerId === s.me;
     return `<div class="jp-dd"><b>DAILY<br>DOUBLE!</b><span>${esc(k.cat)} · $${k.value}</span></div>
+      ${hardTag(s) ? `<p class="center">${hardTag(s)}</p>` : ''}
       ${mine
-        ? `<p class="center">Wager sips before you see the clue. Only you answer.</p>${wagerPicker(s, `dd:${g.clueNo}`, 'wager', 'Wager')}`
-        : `<p class="center muted">${PB.avatar(g.pickerId, 'sm')} ${esc(name(g.pickerId))} is wagering…</p>`}
+        ? `${ddLine(s)}${ddPicker(s)}`
+        : `<p class="center muted">${PB.avatar(g.pickerId, 'sm')} ${esc(name(g.pickerId))} is wagering up to ${money(k.ddMax)}…</p>`}
       ${scores(s)}`;
   }
 
@@ -271,14 +301,11 @@
     const k = g.clue;
     const right = k.results.find((x) => x.right);
     const mine = k.results.find((x) => x.id === s.me && !PB.passAndPlay)?.pick ?? null;
-    let give = '';
-    if (g.give) give = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `jp:${g.clueNo}`, title: g.give.from === s.me ? '💥 Daily Double!' : '' });
     return `${banner(right ? `✅ ${esc(realName(s, right.id))} got it!` : k.results.length ? '❌ Nobody got it' : '⏱ Nobody buzzed in', `It was ${esc(k.options[k.answer])}`)}
       ${PB.passAndPlay ? '' : myResult(s)}
       ${clueCard(s)}
       ${options(s, k.options, { answer: k.answer, wrong: k.wrong, mine, picks: k.results })}
       ${results(s, k.results)}
-      ${give}
       ${myTab(s)}
       ${scores(s)}`;
   }
@@ -352,7 +379,7 @@
     const owes = d && !d.paid;
     const rank = g.order.slice().sort((a, b) => (g.scores[b] || 0) - (g.scores[a] || 0)).indexOf(s.me) + 1;
     return `<div class="jp-me ${owes ? 'owes' : ''}" style="--pc:${colour(s.me)}">
-      ${PB.avatar(s.me, 'sm')}<b class="${(g.scores[s.me] || 0) < 0 ? 'neg' : ''}">${money(g.scores[s.me] || 0)}</b><small>${rank ? `#${rank} of ${g.order.length}` : ''}</small>
+      ${PB.avatar(s.me, 'sm')}${hardTag(s)}<b class="${(g.scores[s.me] || 0) < 0 ? 'neg' : ''}">${money(g.scores[s.me] || 0)}</b><small>${rank ? `#${rank} of ${g.order.length}` : ''}</small>
       ${owes ? `<button class="sp-pay" data-act="paid">☠️🥃 ${esc(d.text)}: settled</button>` : ''}</div>`;
   }
 
@@ -366,7 +393,7 @@
       return `${lookUp(null, '🗳️ The votes are in', names.join(' · '))}${meBar(s)}`;
     }
     const waiting = s.players.filter((p) => p.connected && !v.lockedIn.includes(p.id)).map((p) => esc(realName(s, p.id)));
-    return `${banner('🗳️ Pick the categories', `Up to ${g.maxPicks}: the top ${v.voted} make the board ${PB.timer()}`)}
+    return `${banner(`🗳️ Pick the categories ${hardTag(s)}`, `Up to ${g.maxPicks}: the top ${v.voted} make the board ${PB.timer()}`)}
       <div class="jp-checklist ${locked ? 'locked' : ''}">${v.pool.map((n, i) => {
         const on = v.mine.includes(i);
         return locked
@@ -403,10 +430,10 @@
   function ctlDd(s) {
     const g = s.game;
     const k = g.clue;
-    if (g.pickerId !== s.me) return `${lookUp(g.pickerId, `💥 ${esc(name(g.pickerId))} found the Daily Double`, 'Only they answer this one')}${meBar(s)}`;
+    if (g.pickerId !== s.me) return `${lookUp(g.pickerId, `💥 ${esc(name(g.pickerId))} found the Daily Double`, `Wagering up to ${money(k.ddMax)}: only they answer this one`)}${meBar(s)}`;
     return `<div class="jp-dd"><b>DAILY<br>DOUBLE!</b><span>${esc(k.cat)} · $${k.value}</span></div>
-      <p class="center">Wager sips before you see the clue. Only you answer.</p>
-      ${wagerPicker(s, `dd:${g.clueNo}`, 'wager', 'Wager')}
+      ${ddLine(s)}
+      ${ddPicker(s)}
       ${meBar(s)}`;
   }
 
@@ -416,7 +443,7 @@
     const k = g.clue;
     const r = k.results.find((x) => x.id === s.me);
     if (!r) return '';
-    const sips = k.dd ? k.wager : k.sips;
+    const sips = k.dd ? 0 : k.sips; // (a Daily Double is points only)
     return `<div class="jp-mine ${r.right ? 'ok' : 'bad'}">${r.right ? '✅ You got it' : r.timeout ? '⏱ Out of time' : '❌ You missed'}
       <b>${r.delta ? signed(r.delta) : ''}</b>${!r.right && !r.left && sips ? `<small>🍺 ${esc(shotText(sips, g.perShot))} on your tab</small>` : ''}</div>`;
   }
@@ -424,7 +451,7 @@
   function ctlClue(s) {
     const g = s.game;
     const k = g.clue;
-    const head = `<p class="jp-ctl-head"><span>${esc(k.cat)}</span><b>${k.dd ? 'Daily Double' : `$${k.value}`}</b></p>`;
+    const head = `<p class="jp-ctl-head"><span>${esc(k.cat)}</span><b>${k.dd ? `Daily Double${k.wager ? ` · ${money(k.wager)}` : ''}` : `$${k.value}`}</b></p>`;
     const me = colour(s.me);
     const ink = PB.inkOn(PB.look(s.me).color);
     if (g.stage === 'answer' && k.buzzerId === s.me) {
@@ -447,8 +474,7 @@
     const k = g.clue;
     const right = k.results.find((x) => x.right);
     const title = right ? `✅ ${esc(name(right.id))} got it` : k.results.length ? '❌ Nobody got it' : '⏱ Nobody buzzed in';
-    const give = g.give ? PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `jp:${g.clueNo}`, title: g.give.from === s.me ? '💥 Daily Double!' : '' }) : '';
-    return `${lookUp(right?.id, title, `It was <b>${esc(k.options[k.answer])}</b>`)}${myResult(s)}${give}${meBar(s)}`;
+    return `${lookUp(right?.id, title, `It was <b>${esc(k.options[k.answer])}</b>`)}${myResult(s)}${meBar(s)}`;
   }
 
   function ctlFinal(s) {
@@ -520,7 +546,7 @@
       case 'vote':
       case 'voted': {
         const v = g.vote;
-        main = `<div class="jp-tv-title">${s.phase === 'vote' ? `🗳️ Vote for the categories on your phones ${g.relaxed ? '' : PB.timer()}` : '🗳️ The votes are in'}</div>
+        main = `<div class="jp-tv-title">${s.phase === 'vote' ? `🗳️ Vote for the categories on your phones ${g.relaxed ? '' : PB.timer()}` : '🗳️ The votes are in'} ${hardTag(s)}</div>
           ${voteGrid(s, { counts: true, result: s.phase === 'voted' })}
           ${houseLine(v)}
           ${s.phase === 'vote' ? `<p class="jp-tv-locked">${v.lockedIn.length ? `Locked in: ${v.lockedIn.map((id) => PB.avatar(id, 'sm')).join('')}` : `Up to ${g.maxPicks} picks each: the top ${v.voted} make the board`}</p>` : ''}`;
@@ -533,12 +559,12 @@
           ${lastLine(s)}`;
         break;
       case 'ddWager':
-        main = `${turnFor(g.pickerId, 'found the Daily Double!')}<div class="jp-dd tv"><b>DAILY<br>DOUBLE!</b><span>${esc(g.clue.cat)} · ${esc(name(g.pickerId))} is wagering…</span></div>`;
+        main = `${turnFor(g.pickerId, 'found the Daily Double!')}<div class="jp-dd tv"><b>DAILY<br>DOUBLE!</b><span>${esc(g.clue.cat)} · ${esc(name(g.pickerId))} is wagering $${g.clue.ddMin} to ${money(g.clue.ddMax)}…</span><small>Right wins the wager, wrong loses it. Points only, no sips.</small></div>`;
         break;
       case 'clue': {
         const k = g.clue;
         let status = '';
-        if (g.stage === 'read') status = `<div class="jp-tv-status">${k.dd ? `💥 ${esc(name(g.pickerId))} answers this one alone` : 'Buzzers open in a moment…'}</div>`;
+        if (g.stage === 'read') status = `<div class="jp-tv-status">${k.dd ? `💥 ${esc(name(g.pickerId))} answers this one alone, for ${money(k.wager)}` : 'Buzzers open in a moment…'}</div>`;
         else if (g.stage === 'open') status = `<div class="jp-tv-status live">🔔 BUZZERS OPEN ${PB.timer()}</div>`;
         else status = `<div class="jp-tv-status in" style="--pc:${colour(k.buzzerId)}">${PB.avatar(k.buzzerId, '')} ${esc(name(k.buzzerId))} is in! ${PB.timer()}</div>`;
         main = `${k.buzzerId ? turnFor(k.buzzerId, 'is answering') : ''}${clueCard(s, { big: true })}${status}
@@ -552,8 +578,7 @@
         main = `${clueCard(s, { big: true })}
           ${options(s, k.options, { answer: k.answer, wrong: k.wrong })}
           <div class="jp-tv-status ${right ? 'in' : ''}" ${right ? `style="--pc:${colour(right.id)}"` : ''}>${right ? `✅ ${esc(name(right.id))} got it! ${signed(right.delta)}` : k.results.length ? '❌ Nobody got it' : '⏱ Nobody buzzed in'}</div>
-          ${results(s, k.results)}
-          ${g.give ? PB.giveWait(s, [g.give.from], g.give.sips, '💥 Daily Double') : ''}`;
+          ${results(s, k.results)}`;
         break;
       }
       case 'finalWager': {
@@ -591,6 +616,8 @@
     reset() {
       wager = null;
       wagerFor = null;
+      dollars = null;
+      dollarsFor = null;
       flash = { key: null, at: 0 };
     },
     // Sideways: the board or the clue on the left.
@@ -629,8 +656,15 @@
       document.querySelectorAll('[data-jp]').forEach((b) => {
         b.onclick = () => {
           const cap = s.game.cap;
+          const k = s.game.clue;
           if (b.dataset.jp === 'step') wager = Math.min(cap, Math.max(1, wager + Number(b.dataset.step)));
           else if (b.dataset.jp === 'set') wager = Number(b.dataset.to);
+          // $ on a Daily Double: up from $5 goes to $100, then in hundreds.
+          else if (b.dataset.jp === 'dd') {
+            const up = Number(b.dataset.step) > 0;
+            const to = up ? (dollars < 100 ? 100 : dollars + 100) : dollars - 100;
+            dollars = Math.min(k.ddMax, Math.max(k.ddMin, to));
+          } else if (b.dataset.jp === 'ddSet') dollars = Number(b.dataset.to);
           PB.rerender();
         };
       });
