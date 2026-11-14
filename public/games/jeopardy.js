@@ -424,7 +424,8 @@
   function ctlClue(s) {
     const g = s.game;
     const k = g.clue;
-    const head = `<p class="jp-ctl-head"><span>${esc(k.cat)}</span><b>${k.dd ? 'Daily Double' : `$${k.value}`}</b></p>`;
+    // The clue itself, on every phone too (not only the TV), so nobody has to look up to read it.
+    const head = `<p class="jp-ctl-head"><span>${esc(k.cat)}</span><b>${k.dd ? 'Daily Double' : `$${k.value}`}</b></p>${k.q ? `<p class="jp-ctl-q">${esc(k.q)}</p>` : ''}`;
     const me = colour(s.me);
     const ink = PB.inkOn(PB.look(s.me).color);
     if (g.stage === 'answer' && k.buzzerId === s.me) {
@@ -463,7 +464,7 @@
       return `${head}<p class="center">Wager in secret, before you see the clue ${PB.timer()}</p>${wagerPicker(s, `final:${s.me}`, 'finalWager', 'Wager')}${meBar(s)}`;
     }
     if (f.myWager && f.myAnswer === null) {
-      return `${head}<p class="center">Pick your answer in secret ${PB.timer()}</p>${options(s, f.options, { act: 'finalAnswer' })}${meBar(s)}`;
+      return `${head}${f.q ? `<p class="jp-ctl-q">${esc(f.q)}</p>` : ''}<p class="center">Pick your answer in secret ${PB.timer()}</p>${options(s, f.options, { act: 'finalAnswer' })}${meBar(s)}`;
     }
     const waiting = s.players.filter((p) => p.connected && f.wagered.includes(p.id) && !f.answered.includes(p.id)).map((p) => esc(realName(s, p.id)));
     return `${head}${lookUp(null, f.myAnswer !== null ? `✓ Locked in: ${esc(f.options[f.myAnswer])}` : 'The Final', `Waiting on ${waiting.join(', ') || 'nobody'}… ${PB.timer()}`)}${meBar(s)}`;
@@ -604,7 +605,11 @@
       if (s.phase === 'voted' && prev.phase === 'vote') return ['card'];
       if (s.phase === 'ddWager' && prev.phase !== 'ddWager') return ['bell'];
       if (b.clueNo !== a.clueNo && s.phase === 'clue') return ['card'];
-      if (s.phase === 'clue' && b.clue?.buzzerId && b.clue.buzzerId !== a.clue?.buzzerId) return ['bell'];
+      if (s.phase === 'clue' && b.clue?.buzzerId && b.clue.buzzerId !== a.clue?.buzzerId) {
+        // You won the buzz: your phone buzzes in your hand (on phones that can; not iPhones).
+        if (b.clue.buzzerId === s.me && !PB.isTV) { try { navigator.vibrate?.([220, 80, 220]); } catch {} }
+        return ['bell'];
+      }
       if (s.phase === 'clue' && b.stage === 'open' && a.stage !== 'open') return ['turn'];
       if (s.phase === 'reveal' && prev.phase !== 'reveal' && b.clue?.results.some((x) => x.right)) return ['win'];
       if (s.phase === 'finalWager' && prev.phase !== 'finalWager') return ['bell'];
