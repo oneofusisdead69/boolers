@@ -47,7 +47,7 @@ test('each question goes to two other players; everyone answers two', () => {
   t.cleanup();
 });
 
-test('vote, reveal: loser drinks, winner hands out the same', () => {
+test('vote, reveal: loser drinks, nobody hands out', () => {
   const t = setup(game, 4, { sips: 3 });
   writeAll(t, 4);
   answerAll(t, 4);
@@ -63,10 +63,9 @@ test('vote, reveal: loser drinks, winner hands out the same', () => {
   assert.deepStrictEqual(t.view(0).matchup.result, { a: 2, b: 0, winner: m.a });
   const drinks = t.drinks();
   assert.strictEqual(drinks[idx(m.b)], 3);
-  t.act(idx(m.a), 'give', { targetId: m.a }); // not yourself
-  t.act(idx(m.a), 'give', { targetId: 'p' + voters[0] });
-  assert.strictEqual(t.drinks()[voters[0]], drinks[voters[0]] + 3);
-  assert.strictEqual(g.give, null);
+  assert.strictEqual(drinks.reduce((a, b) => a + b, 0), 3, 'only the loser drinks');
+  assert.strictEqual(t.view(0).give, undefined);
+  assert.deepStrictEqual(game.waitingOn(t.room), [t.room.hostId], 'straight on to the host');
   assert.strictEqual(g.wins[m.a], 1);
   t.act(0, 'next');
   assert.strictEqual(g.current, 1);
@@ -140,7 +139,7 @@ test('three rounds, then a final round answered by drawing', () => {
   t.cleanup();
 });
 
-test('final: drawings are checked, voted on anonymously; fewest votes drink double, winner hands out double', () => {
+test('final: drawings are checked, voted on anonymously; fewest votes drink double, nobody hands out', () => {
   const t = setup(game, 4, { sips: 2 });
   const g = t.room.game;
   for (let r = 0; r < game.ROUNDS; r++) { playRound(t, 4); t.act(0, 'nextRound'); }
@@ -165,9 +164,7 @@ test('final: drawings are checked, voted on anonymously; fewest votes drink doub
   assert.deepStrictEqual(g.finalResult.winners, ['p1']);
   assert.deepStrictEqual(g.finalResult.losers, ['p0']);
   assert.strictEqual(t.drinks()[0], before[0] + 4);
-  assert.deepStrictEqual(g.give, { from: 'p1', sips: 4 });
-  t.act(1, 'give', { targetId: 'p3' });
-  assert.strictEqual(t.drinks()[3], before[3] + 4);
+  assert.strictEqual(t.drinks()[3], before[3], 'the winner hands nothing out');
   assert.strictEqual(g.points.p1, (pointsBefore.p1 || 0) + 2, 'final votes are points');
   // Drawings are linked, not sent: the link points at p1's drawing.
   const link = t.view(2).drawings.find((d) => d.by === 'p1').image;
@@ -201,7 +198,7 @@ test('final: the host can move on; anyone who did not draw drinks double', () =>
   t.cleanup();
 });
 
-test('bots write, answer, vote (never on their own), draw a real PNG and hand out to humans', () => {
+test('bots write, answer, vote (never on their own), draw a real PNG', () => {
   const zlib = require('node:zlib');
   const t = setup(game, 4);
   const g = t.room.game;
@@ -226,9 +223,6 @@ test('bots write, answer, vote (never on their own), draw a real PNG and hand ou
   step(0.25);
   if (g.phase === 'vote') t.act(0, 'vote', { side: 'a' });
   assert.strictEqual(g.phase, 'reveal');
-  if (g.give && g.give.from !== 'p0') {
-    assert.deepStrictEqual(t.bot(idx(g.give.from), 0.6), { type: 'give', targetId: 'p0' }, 'sips go to the human');
-  }
   // The final: the drawing is a valid PNG the game accepts.
   t.room.hostId = 'p1';
   g.round = game.ROUNDS;
