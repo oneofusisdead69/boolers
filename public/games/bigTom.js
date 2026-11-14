@@ -97,7 +97,6 @@
         : m.canVote ? `<p class="center muted">${m.myVote ? 'Voted. Tap the other to change.' : 'Tap the better answer'} ${PB.timer()}</p>` : '';
       below += `<p class="center muted">${m.voted} / ${m.voters} voted</p>${moveOn(s, 'Reveal now')}`;
     } else {
-      if (g.give) below = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: `bt:${g.round}:${m.index}`, title: g.give.from === s.me ? '🎤 You won!' : '' });
       below += s.isHost
         ? `<button data-act="next">${m.index + 1 < m.total ? 'Next matchup' : 'See the round'}</button>`
         : `<p class="center muted">${esc(name(s.hostId))} moves on…</p>`;
@@ -252,8 +251,6 @@
     const champs = s.players.slice().sort((a, b) => (g.points[b.id] || 0) - (g.points[a.id] || 0));
     const best = g.points[champs[0]?.id] || 0;
     const kings = champs.filter((p) => (g.points[p.id] || 0) === best && best > 0);
-    let give = '';
-    if (g.give) give = PB.giveSips(s, { from: g.give.from, sips: g.give.sips, key: 'bt:final', title: g.give.from === s.me ? '🎨 You won the final!' : '' });
     return `
       <div class="drink win"><div class="big">👑 ${kings.length ? kings.map((p) => esc(p.name)).join(' & ') : 'Nobody'}</div>
         <div class="sips">${kings.length > 1 ? 'share' : 'is'} the Big Tom champion${kings.length > 1 ? 's' : ''}</div></div>
@@ -267,7 +264,6 @@
           <span class="bt-voters">${voters.map((v) => PB.avatar(v, 'sm')).join('')}</span>
         </div>`;
       }).join('')}</div>
-      ${give}
       ${pollCard(s)}
       <div class="card bt-scores"><h2>Final scores</h2><ul class="players">${champs.map((p) => `
         <li>${PB.avatar(p.id)}<span class="name">${esc(p.name)}</span><span class="count">${g.points[p.id] || 0}</span></li>`).join('')}</ul>

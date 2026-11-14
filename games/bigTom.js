@@ -1,14 +1,14 @@
 // Big Tom: Quiplash but worse. Everyone writes a question (or taps Generate for one from the list),
 // and each question goes to two other players, who answer it secretly. Then the matchups are
 // shown one at a time: the question and the two answers, no names, and everyone else votes for
-// the better one. The losing answer drinks; the winner hands out sips. Tie: both drink.
+// the better one. The losing answer drinks. Tie: both drink.
 //
 // With n players, the question written by seat i goes to seats i+1 and i+2, so everyone answers
 // two questions and never their own. Needs 3 players.
 //
 // Three rounds like that, then the final round: one question for everyone, answered by drawing a
 // picture. Everyone votes for their favourite drawing (not their own); the least-voted drawings
-// drink double and the winner hands out double. Most points (matchups won + final votes) is the
+// drink double. Most points (matchups won + final votes) is the
 // Big Tom champion.
 //
 // At the end of the game, everyone also picks the best question the players wrote themselves (not
@@ -17,10 +17,8 @@
 // games. The poll never holds the game up.
 
 const { shuffle, pick } = require('../lib/random');
-const { pickHuman } = require('../lib/bots');
 const { optionValues } = require('../lib/options');
 const { isActive } = require('../lib/turns');
-const giving = require('../lib/give');
 const { NORMAL, NSFW, DRAW_NORMAL, DRAW_NSFW } = require('../lib/bigTomQuestions');
 
 const VOTE_MS = 30 * 1000;
@@ -88,7 +86,6 @@ function startRound(room, ctx) {
   g.suggest = {};
   g.matchups = [];
   g.current = 0;
-  g.give = null;
   g.poll = null;
   // On the clock, nobody's left waiting on a slow writer: when it runs out, Big Tom writes the
   // missing questions (startAnswering) so everyone still gets two to answer.
@@ -136,24 +133,9 @@ function startVoting(room, ctx) {
 // Who may vote on a matchup: everyone here except its two answerers.
 const voters = (room, ctx, m) => ctx.connectedPlayers(room).map((p) => p.id).filter((id) => id !== m.a && id !== m.b);
 
-// A winner handing out sips is on the clock: when it's up (or the host skips the wait), they go out
-// at random.
-function giveClock(room, ctx) {
-  const g = room.game;
-  const give = g.give;
-  if (give) giving.clock(room, ctx, () => g.give === give && autoGive(room, ctx));
-}
-function autoGive(room, ctx, skipped = false) {
-  const g = room.game;
-  ctx.clearTimer(room);
-  giving.auto(room, ctx, g.give.from, g.give.sips, 'Big Tom winner', { skipped });
-  g.give = null;
-}
-
 function openMatchup(room, ctx) {
   const g = room.game;
   const m = g.matchups[g.current];
-  g.give = null;
   g.phase = 'vote';
   // A missing answer loses without a vote; two missing answers both drink.
   if (!m.answers[m.a] || !m.answers[m.b] || !voters(room, ctx, m).length) return reveal(room, ctx);
@@ -176,8 +158,6 @@ function reveal(room, ctx) {
     g.wins[winner] = (g.wins[winner] || 0) + 1;
     g.points[winner] = (g.points[winner] || 0) + 1;
     ctx.drink(room, loser, g.sips, 'lost the vote');
-    g.give = { from: winner, sips: g.sips };
-    giveClock(room, ctx);
     ctx.log(room, `🎤 ${ctx.name(room, winner)} beat ${ctx.name(room, loser)}`);
   } else {
     for (const id of [m.a, m.b]) ctx.drink(room, id, g.sips, m.answers[m.a] ? 'tied' : 'no answer');
@@ -240,7 +220,6 @@ function startFinal(room, ctx) {
   g.drawings = {};
   g.finalOrder = [];
   g.finalVotes = {};
-  g.give = null;
   g.finalResult = null;
   const ms = g.answerTime ? Math.max(g.answerTime, 90) * 1000 : 0;
   if (ms) ctx.setTimer(room, ms, () => startFinalVote(room, ctx));
@@ -284,8 +263,6 @@ function finalReveal(room, ctx) {
   const blank = ctx.connectedPlayers(room).map((p) => p.id).filter((id) => !g.drawings[id]);
   for (const id of losers) ctx.drink(room, id, g.sips * 2, 'fewest votes in the final');
   for (const id of blank) ctx.drink(room, id, g.sips * 2, 'no drawing in the final');
-  g.give = winners.length === 1 && !tied ? { from: winners[0], sips: g.sips * 2 } : null;
-  giveClock(room, ctx);
   g.finalResult = { counts, winners: tied ? [] : winners, losers: [...losers, ...blank] };
   if (g.finalResult.winners.length) ctx.log(room, `🎨 ${g.finalResult.winners.map((id) => ctx.name(room, id)).join(' & ')} won the final`);
   g.phase = 'final';
@@ -464,7 +441,7 @@ module.exports = {
   // A reminder of the rules, shown on the TV.
   rules: [
     "Write a question; two other players answer it.",
-    "Vote for the better answer. Loser drinks; winner hands out.",
+    "Vote for the better answer. Loser drinks.",
     "Three rounds, then the final: answer by drawing.",
     "Fewest votes in the final drinks double. Most points is Big Tom champion.",
   ],
@@ -472,7 +449,7 @@ module.exports = {
   order: 1,
   options: [
     { id: 'questions', label: 'Generated questions', default: 'normal', choices: [{ value: 'normal', label: 'Normal' }, { value: 'nsfw', label: '🥴 We are already drunk' }] },
-    { id: 'sips', label: 'Sips for losing (the winner hands out the same)', default: 3, choices: [2, 3, 5].map((n) => ({ value: n, label: `${n}` })) },
+    { id: 'sips', label: 'Sips for losing', default: 3, choices: [2, 3, 5].map((n) => ({ value: n, label: `${n}` })) },
     { id: 'answerTime', label: 'Time to answer', default: 90, choices: [{ value: 60, label: '60s' }, { value: 90, label: '90s' }, { value: 120, label: '2 min' }, { value: 0, label: 'No limit' }] },
   ],
   custom: [
@@ -537,14 +514,6 @@ module.exports = {
       if (!['a', 'b'].includes(action.side) || !voters(room, ctx, m).includes(me)) return;
       m.votes[me] = action.side;
       if (voters(room, ctx, m).every((id) => m.votes[id])) reveal(room, ctx);
-    } else if (action.type === 'give' && (g.phase === 'reveal' || g.phase === 'final') && g.give?.from === me) {
-      // All to one person ({ targetId }) or split ({ alloc }): see lib/give.js.
-      if (giving.give(room, ctx, me, action, g.give.sips, 'Big Tom winner')) {
-        g.give = null;
-        ctx.clearTimer(room);
-      }
-    } else if (action.type === 'skipGive' && g.give && host) {
-      autoGive(room, ctx, true);
     } else if (action.type === 'moveOn' && host) {
       // The host can hurry things along: missing questions come from Big Tom, missing answers lose.
       if (g.phase === 'write' && ctx.connectedPlayers(room).length >= 3) startAnswering(room, ctx);
@@ -553,13 +522,13 @@ module.exports = {
       else if (g.phase === 'draw') {
         // Anyone still drawing gets a last couple of seconds: their pad sends what's on it as the
         // clock runs out (public/games/bigTom.js), so no picture is lost.
-        if (ctx.connectedPlayers(room).every((p) => g.drawings[p.id]) || !g.answerTime) startFinalVote(room, ctx);
+        if (ctx.connectedPlayers(room).every((p) => g.drawings[p.id])) startFinalVote(room, ctx);
         else if (!(room.deadline && room.deadline - Date.now() <= DRAW_GRACE)) ctx.setTimer(room, DRAW_GRACE, () => startFinalVote(room, ctx));
       } else if (g.phase === 'finalVote') finalReveal(room, ctx);
     } else if (action.type === 'next' && g.phase === 'reveal' && host) {
       g.current += 1;
       if (g.current < g.matchups.length) openMatchup(room, ctx);
-      else { g.phase = 'summary'; g.give = null; ctx.clearTimer(room); }
+      else { g.phase = 'summary'; ctx.clearTimer(room); }
     } else if (action.type === 'bestQuestion' && g.phase === 'final' && g.poll && !g.poll.closed && g.poll.votes[me] === undefined) {
       // One pick each, and it stays: an index into the poll's questions, or "none".
       const i = /^\d+$/.test(String(action.pick)) ? Number(action.pick) : -1;
@@ -614,12 +583,7 @@ module.exports = {
       const side = Math.random() < skill && a !== b ? (a > b ? 'a' : 'b') : pick(['a', 'b']);
       return { type: 'vote', side };
     }
-    if ((g.phase === 'reveal' || g.phase === 'final') && g.give?.from === me.id) {
-      const targetId = pickHuman(room, me.id);
-      return targetId && { type: 'give', targetId };
-    }
-    // The host moves on once the winner has handed out their sips.
-    if (g.phase === 'reveal' && host && !g.give) return { type: 'next' };
+    if (g.phase === 'reveal' && host) return { type: 'next' };
     // The best question of the game: any one, or now and then none of them.
     if (g.phase === 'final' && g.poll && !g.poll.closed && g.poll.votes[me.id] === undefined) {
       return { type: 'bestQuestion', pick: Math.random() < 0.2 ? 'none' : String(Math.floor(Math.random() * g.poll.options.length)) };
@@ -634,14 +598,13 @@ module.exports = {
     return null;
   },
 
-  // Everyone here still to write, answer, vote or draw; the winner handing out; or the host, to
+  // Everyone here still to write, answer, vote or draw; or the host, to
   // move on. (Only the players a phase waits for: the host's "move on" can hurry any of them.)
   // The best-question poll waits for nobody: the host can play again or end the game without it.
   waitingOn(room) {
     const g = room.game;
     const here = room.players.filter((p) => p.connected).map((p) => p.id);
     const m = g.matchups[g.current];
-    if (g.give && isActive(room, g.give.from)) return [g.give.from];
     switch (g.phase) {
       case 'write': return here.filter((id) => !g.questions[id]);
       case 'answer': return here.filter((id) => g.matchups.some((x) => (x.a === id || x.b === id) && x.answers[id] === undefined));
@@ -656,8 +619,6 @@ module.exports = {
   // Nobody who has left holds up a phase.
   check(room, ctx) {
     const g = room.game;
-    if (g.give && !ctx.turns.isActive(room, g.give.from)) g.give = null;
-    else if (g.give && !room.timer) giveClock(room, ctx); // (lost in a restart)
     const here = ctx.connectedPlayers(room);
     if (g.phase === 'write' && here.length >= 3 && here.every((p) => g.questions[p.id])) startAnswering(room, ctx);
     else if (g.phase === 'answer' && answerersDone(room, ctx)) startVoting(room, ctx);
@@ -709,7 +670,6 @@ module.exports = {
         voted: Object.keys(m.votes).length,
         voters: voters(room, ctx, m).length,
       },
-      give: g.give,
       wins: g.wins,
       points: g.points,
       rounds: ROUNDS,
