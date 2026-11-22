@@ -1201,7 +1201,7 @@
   function kit(u, f, a) {
     const st = `stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"`;
     const grad = (id, c) => `<linearGradient id="${u}${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lt(c, 0.5)}"/><stop offset="0.38" stop-color="${c}"/><stop offset="1" stop-color="${dk(c, 0.5)}"/></linearGradient>`;
-    const F = (c = 'f') => (c.startsWith('#') ? c : `url(#${u}${c})`);
+    const F = (c = 'f') => (/^[a-z]$/.test(c) ? `url(#${u}${c})` : c); // (a letter: one of the gradients; else a colour)
     const K = {
       defs: `<defs>${grad('f', f)}${grad('a', a)}${grad('s', '#a8aeb8')}${grad('b', '#d8a84a')}${grad('w', '#7a4a26')}${grad('d', '#2a2a30')}
         <pattern id="${u}k" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H3.2M0 0V3.2" stroke="rgba(0,0,0,0.4)" stroke-width="0.7"/></pattern>
