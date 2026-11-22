@@ -176,6 +176,20 @@
       document.head.appendChild(script);
     },
 
+    // A page left open across a deploy runs the old screens against the new server (a new game's
+    // live data has nowhere to go). The server says which build it is on every connection: on a
+    // new one, reload, straight away if nothing's going on (the TV, the home page, the lobby), or
+    // once the game in progress is back in the lobby.
+    checkBuild(build, busy = () => false) {
+      if (!build) return;
+      if (PB._build && PB._build !== build) PB._reloadDue = true;
+      PB._build ??= build;
+      PB.reloadIfDue(busy);
+    },
+    reloadIfDue(busy = () => false) {
+      if (PB._reloadDue && !busy()) { PB._reloadDue = false; location.reload(); }
+    },
+
     // A page left open across a deploy has the old stylesheet but loads a game's screens fresh, so
     // a new game would arrive unstyled. Before loading screens on a page that's been open a while,
     // fetch the stylesheet again (swapped in once it's loaded, so nothing flashes).
