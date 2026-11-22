@@ -751,7 +751,7 @@
     saloon: { top: 'beam', rail: 'shelf', side: 'post', counter: 'bar', decor: ['🤠', '🐎', '🌵', '🔔'], c: { top: '#5a3a1e', rail: ['#5a3a1e', '#8a5a2e'], side: '#5a3a1e', counter: '#4a2a14' } },
     pirate: { top: 'rigging', rail: 'rope', side: 'mast', counter: 'deck', decor: ['🦜', '⚓', '💰', '🏴‍☠️'], c: { top: '#e8dcc0', rail: ['#6a4428', '#c8a870'], side: '#5a3a22', counter: '#7a5430' } },
     beerhall: { top: 'garland', rail: 'shelf', side: 'post', counter: 'wood', decor: ['🥨', '🍺', '🌭', '🍺'], c: { top: '#2a6fdb', rail: ['#8a5a2e', '#b07c46'], side: '#7a5430', counter: '#9a6a3a', garland: ['#2a6fdb', '#ffffff'] } },
-    space: { top: 'metal', rail: 'metal', side: 'bulkhead', counter: 'console', decor: ['🛰️', '👽', '🪐', '🚀'], c: { top: '#7cf0ff', rail: ['#7cf0ff', '#ff5ad8'], side: '#2a3040', counter: '#1a1f3d' } },
+    space: { sideW: 40, top: 'metal', rail: 'metal', side: 'bulkhead', counter: 'console', decor: ['🛰️', '👽', '🪐', '🚀'], c: { top: '#7cf0ff', rail: ['#7cf0ff', '#ff5ad8'], side: '#2a3040', counter: '#1a1f3d' } },
     lighthouse: { top: 'rigging', rail: 'rope', side: 'mast', counter: 'deck', decor: ['⚓', '🐚', '🦀', '🛟'], c: { top: '#f4f0e8', rail: ['#4a3a2a', '#c8b088'], side: '#3a4a5a', counter: '#5a6a7a' } },
     vineyard: { top: 'pergola', rail: 'shelf', side: 'post', counter: 'wood', decor: ['🍇', '🍷', '🧀', '🍇'], c: { top: '#6a4a2a', rail: ['#6a4a2a', '#9a7a4a'], side: '#6a4a2a', counter: '#8a6a3a' } },
     frat: { top: 'pennants', rail: 'shelf', side: 'brick', counter: 'table', decor: ['🏈', '🥤', '🍕', '🏆'], c: { top: '#d62828', rail: ['#3a3a40', '#5a5a64'], side: '#6a3220', counter: '#2a6a2a' } },
@@ -762,7 +762,8 @@
     stpatricks: { top: 'beam', rail: 'shelf', side: 'post', counter: 'wood', decor: ['🍀', '🥃', '🪕', '🍀'], c: { top: '#4a2e17', rail: ['#4a2e17', '#6a4428'], side: '#4a2e17', counter: '#5a3a1e' } },
   };
   const boothOf = (set) => BOOTHS[set] || BOOTHS.classic;
-  const SIDE = 80; // how wide the booth's sides are (targets stay inside them)
+  const SIDE = 80; // how wide the booth's sides are (targets stay inside them)...
+  const sideOf = (set) => (set === 'duckPond' ? 46 : boothOf(set).sideW || SIDE); // ...unless the booth says
 
   function topTrim(c, b, P) {
     const col = b.c.top;
@@ -852,6 +853,7 @@
 
   function sideDraw(c, b, P) {
     const col = b.c.side;
+    const SIDE = b.sideW || 80;
     for (const side of [0, 1]) {
       const x = side ? W - SIDE : 0;
       const g = c.createLinearGradient(x, 0, x + SIDE, 0);
@@ -863,7 +865,7 @@
           for (let y = 160; y < SHELF * H; y += 70) { circ(c, x + 40, y, 12, 'rgba(255,230,140,0.35)'); circ(c, x + 40, y, 7, '#fff2b0'); }
           break;
         case 'bulkhead':
-          c.fillRect(x, 0, SIDE, H); for (let y = 0; y < H; y += 150) { rr(c, x + 6, y + 6, SIDE - 12, 138, 8, 'rgba(255,255,255,0.05)'); circ(c, x + SIDE / 2, y + 75, 22, '#0a0e1a'); circ(c, x + SIDE / 2, y + 75, 22, 'rgba(124,240,255,0.15)'); c.lineWidth = 4; c.strokeStyle = '#8a92a4'; c.beginPath(); c.arc(x + SIDE / 2, y + 75, 22, 0, Math.PI * 2); c.stroke(); }
+          c.fillRect(x, 0, SIDE, H); for (let y = 0; y < H; y += 150) { rr(c, x + 6, y + 6, SIDE - 12, 138, 8, 'rgba(255,255,255,0.05)'); circ(c, x + SIDE / 2, y + 75, SIDE * 0.26, '#0a0e1a'); circ(c, x + SIDE / 2, y + 75, SIDE * 0.26, 'rgba(124,240,255,0.25)'); c.lineWidth = 3; c.strokeStyle = '#8a92a4'; c.beginPath(); c.arc(x + SIDE / 2, y + 75, SIDE * 0.26, 0, Math.PI * 2); c.stroke(); }
           c.save(); c.shadowColor = b.c.top; c.shadowBlur = 16; c.fillStyle = b.c.top; c.fillRect(side ? x : x + SIDE - 4, 0, 4, H); c.restore();
           break;
         case 'mast':
@@ -958,10 +960,12 @@
     c.font = '50px system-ui, sans-serif';
     c.textAlign = 'center';
     c.textBaseline = 'middle';
+    c.fillStyle = '#ffffff'; // (an emoji takes the fill's alpha)
+    c.globalAlpha = 1;
     const hang = b.top === 'metal' ? 90 : b.top === 'marquee' || b.top === 'neon' || b.top === 'deco' ? 76 : 60;
     b.decor.forEach((p, i) => {
       const n = b.decor.length / 2;
-      const x = i < n ? SIDE + 50 + i * 62 : W - SIDE - 50 - (i - n) * 62;
+      const x = i < n ? (b.sideW || SIDE) + 50 + i * 62 : W - (b.sideW || SIDE) - 50 - (i - n) * 62;
       c.strokeStyle = 'rgba(30,20,10,0.8)'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, hang); c.lineTo(x, hang + 50); c.stroke();
       c.fillText(p, x, hang + 80);
     });
@@ -996,13 +1000,17 @@
     const [c0, c1] = b.c.rail;
     const dk2 = (k) => mix(k, '#000000', lane * 0.1);
     switch (b.rail) {
-      case 'waves':
-        for (let k = 0; k < 2; k++) {
-          c.beginPath(); c.moveTo(0, h);
-          for (let x = 0; x <= W; x += 8) c.lineTo(x, at + 2 + k * 8 + Math.sin((x + k * 60 + lane * 90) / 46) * 7);
-          c.lineTo(W, h); c.closePath(); c.fillStyle = dk2(k ? c1 : c0); c.fill(); c.lineWidth = 2; c.strokeStyle = k ? '#ffffff' : '#ffd77a'; c.stroke();
-        }
+      case 'waves': {
+        // A slim painted wave on a brass rail: the sky shows above and below it.
+        const wave = (y0, amp) => { c.beginPath(); for (let x = 0; x <= W; x += 8) c.lineTo(x, y0 + Math.sin((x + lane * 90) / 40) * amp); };
+        c.beginPath(); for (let x = 0; x <= W; x += 8) c.lineTo(x, at + 2 + Math.sin((x + lane * 90) / 40) * 5);
+        for (let x = W; x >= 0; x -= 8) c.lineTo(x, at + 12);
+        c.closePath(); c.fillStyle = dk2(c0); c.fill();
+        wave(at + 2, 5); c.lineWidth = 2.5; c.strokeStyle = '#ffffff'; c.stroke();
+        const g = c.createLinearGradient(0, at + 11, 0, at + 17); g.addColorStop(0, '#fff2c0'); g.addColorStop(1, '#8a6a2a');
+        c.fillStyle = g; c.fillRect(0, at + 11, W, 6);
         break;
+      }
       case 'metal': case 'chrome': case 'brass': {
         const g = c.createLinearGradient(0, at - 2, 0, at + 12); g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, b.rail === 'brass' ? c1 : '#b8c0cc'); g.addColorStop(1, b.rail === 'brass' ? c0 : '#4a5260');
         c.fillStyle = g; rr(c, 0, at - 2, W, 14, 4, g);
@@ -1193,7 +1201,7 @@
   function kit(u, f, a) {
     const st = `stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"`;
     const grad = (id, c) => `<linearGradient id="${u}${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lt(c, 0.5)}"/><stop offset="0.38" stop-color="${c}"/><stop offset="1" stop-color="${dk(c, 0.5)}"/></linearGradient>`;
-    const F = (c = 'f') => (c.startsWith('#') ? c : `url(#${u}${c})`);
+    const F = (c = 'f') => (/^[a-z]$/.test(c) ? `url(#${u}${c})` : c); // (a letter: one of the gradients; else a colour)
     const K = {
       defs: `<defs>${grad('f', f)}${grad('a', a)}${grad('s', '#a8aeb8')}${grad('b', '#d8a84a')}${grad('w', '#7a4a26')}${grad('d', '#2a2a30')}
         <pattern id="${u}k" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H3.2M0 0V3.2" stroke="rgba(0,0,0,0.4)" stroke-width="0.7"/></pattern>
@@ -1557,7 +1565,7 @@
       for (const cv of [bg, fg]) { cv.width = Math.round(W * scale); cv.height = Math.round(H * scale); }
       drawBooth(bg.getContext('2d'), s.game.set);
       const fronts = [0, 1, 2].map((i) => railFront(s.game.set, i, scale)).filter(Boolean);
-      return { el, fg, bgCv: bg, c: fg.getContext('2d'), scale, fronts, time: el.querySelector('.sg-time'), score: el.querySelector('.sg-score-now') };
+      return { el, fg, bgCv: bg, side: sideOf(s.game.set), c: fg.getContext('2d'), scale, fronts, time: el.querySelector('.sg-time'), score: el.querySelector('.sg-score-now') };
     });
     kick();
   }
@@ -1606,7 +1614,7 @@
         drawTarget(c, tg, t, s.game.set);
       }
       while (f < v.fronts.length) { const fr = v.fronts[f++]; c.drawImage(fr.cv, 0, fr.y, W, fr.h); }
-      if (s.game.set !== 'duckPond') { c.drawImage(v.bgCv, 0, 0, 80 * v.scale, H * v.scale, 0, 0, 80, H); c.drawImage(v.bgCv, (W - 80) * v.scale, 0, 80 * v.scale, H * v.scale, W - 80, 0, 80, H); }
+      if (s.game.set !== 'duckPond') { const sw = v.side; c.drawImage(v.bgCv, 0, 0, sw * v.scale, H * v.scale, 0, 0, sw, H); c.drawImage(v.bgCv, (W - sw) * v.scale, 0, sw * v.scale, H * v.scale, W - sw, 0, sw, H); }
       for (const b of bits) if (b.on) { c.globalAlpha = Math.min(1, b.life * 2); c.fillStyle = b.c; c.fillRect(b.x - b.s / 2, b.y - b.s / 2, b.s, b.s); }
       c.globalAlpha = 1;
       // Muzzle flashes, at the shot.
@@ -1675,7 +1683,7 @@
     c.save();
     c.globalAlpha = alpha;
     // (Inside the booth's curtains, but for what flies over them.)
-    if (tg.z < 5 && set !== 'duckPond') { c.beginPath(); c.rect(80, 0, W - 160, H); c.clip(); }
+    if (tg.z < 5 && set !== 'duckPond') { const sw = sideOf(set); c.beginPath(); c.rect(sw, 0, W - 2 * sw, H); c.clip(); }
     // (The shelf's pop-ups are hidden behind the counter's front.)
     if (tg.p === 'pop') { c.beginPath(); c.rect(0, 0, W, SHELF * H - 8); c.clip(); }
     if (tg.p === 'swing' && tg.k === 'sign') {
