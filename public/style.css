@@ -1736,9 +1736,13 @@ html[data-room="clubStudio"] .jp-clue { box-shadow: inset 0 0 0 3px #ffcf3f, 0 8
 .tv-game:has(.sg-stage) .tv-center-box { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 #tv-center:has(.sg-stage) { width: 1600px; }
 #tv-center .sg-stage { border-radius: 0; box-shadow: none; }
-/* (The TV's own buttons go small in the top-left corner, out of the gallery's way.) */
-body:has(.sg-stage) :is(.tv-full, .tv-music, #tv-leave, .tv-sound) { top: 0.4vh; bottom: auto; padding: 3px 10px; font-size: 0.75rem; opacity: 0.55; }
-body:has(.sg-stage) .tv-sound { left: 17rem; right: auto; transform: none; opacity: 0.9; }
+/* (The TV's own buttons go small into the bottom corners, faded, beside the score strip.) */
+body:has(.sg-stage) :is(.tv-full, .tv-music, #tv-leave, .tv-sound) { top: auto; bottom: 0.5vh; padding: 3px 9px; font-size: 0.7rem; opacity: 0.3; }
+body:has(.sg-stage) .tv-full { left: 0.5vw; }
+body:has(.sg-stage) #tv-leave { left: calc(0.5vw + 6.2rem); }
+body:has(.sg-stage) :is(.tv-music, .tv-sound) { left: auto; right: 0.5vw; transform: none; }
+body:has(.sg-stage) .tv-sound { opacity: 0.85; }
+body:has(.sg-stage) :is(.tv-full, .tv-music, #tv-leave):hover { opacity: 1; }
 /* The scores along the bottom of the gallery, over the counter. */
 .sg-strip { position: absolute; left: 6%; right: 6%; bottom: 0.8%; display: flex; justify-content: center; pointer-events: none; }
 .sg-scores { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; justify-content: center; flex-wrap: nowrap; }
@@ -1766,8 +1770,8 @@ body:has(.sg-stage) .tv-sound { left: 17rem; right: auto; transform: none; opaci
 .sg-dot.corner { left: 94%; top: 8%; font-size: 1.6rem; }
 .sg-dot.corner b { position: absolute; top: 120%; right: 0; white-space: nowrap; }
 .sg-dot.corner span { position: absolute; top: 210%; right: 0; }
-.sg-dot i { display: block; width: 1.6em; height: 1.6em; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, var(--accent) 20% 48%, transparent 52%); box-shadow: 0 0 0 0.25em rgba(255, 255, 255, 0.9), 0 0 40px var(--accent); animation: sg-pulse 1.2s ease-in-out infinite; }
-.sg-dot.mid i { width: 3em; height: 3em; }
+.sg-dot > i { display: block; width: 1.6em; height: 1.6em; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, var(--accent) 20% 48%, transparent 52%); box-shadow: 0 0 0 0.25em rgba(255, 255, 255, 0.9), 0 0 40px var(--accent); animation: sg-pulse 1.2s ease-in-out infinite; }
+.sg-dot.mid > i { width: 3em; height: 3em; }
 .sg-dot.idle { opacity: 0.35; }
 .sg-dot span { display: flex; gap: 4px; }
 @keyframes sg-pulse { 50% { transform: scale(1.18); } }
@@ -1842,4 +1846,11 @@ body:has(.sg-stage) .tv-sound { left: 17rem; right: auto; transform: none; opaci
 .sg-fire .sg-thumb { animation: sg-thumb 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes sg-thumb { 50% { opacity: 0.45; } }
 .sg-fire.empty .sg-thumb, .sg-fire.reloading .sg-thumb { display: none; }
-body:has(.sg-stage) .tv-music { right: 8.5rem; }
+.sg-mycol { margin: 2px 0; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.sg-mycol i, .sg-mycol-stat i { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.5); margin-right: 6px; vertical-align: -2px; }
+.sg-mycol-stat b { font-size: 1.05rem; white-space: nowrap; }
+.sg-scores li { padding-left: 14px; border-width: 4px; }
+.sg-scores li::before { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.7); flex: none; }
+.sg-chip { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
+.sg-chip i { width: 0.8em; height: 0.8em; border-radius: 50%; background: var(--pc); box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6); }
+.sg-dot span { font-size: 0.6em; gap: 0.6em; }

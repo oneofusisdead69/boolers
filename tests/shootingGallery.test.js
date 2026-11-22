@@ -215,8 +215,9 @@ test('a player leaving mid-round: the round carries on; their score stays', () =
 });
 
 test('gun looks are cleaned; every venue has its own house gun', () => {
-  assert.deepStrictEqual(game.gunLook({ finish: '#c8302f', accent: 'red', sight: 'star', model: 'rayGun' }), { finish: '#c8302f', accent: null, sight: 'star', bold: true, pip: false });
-  assert.deepStrictEqual(game.gunLook(), { finish: null, accent: null, sight: 'ring', bold: true, pip: false });
+  assert.deepStrictEqual(game.gunLook({ finish: '#c8302f', accent: 'red', sight: 'duplex', model: 'rayGun' }), { finish: '#c8302f', accent: null, sight: 'duplex', bold: true, pip: false });
+  assert.deepStrictEqual(game.gunLook(), { finish: null, accent: null, sight: 'cross', bold: true, pip: false });
+  assert.strictEqual(game.gunLook({ sight: 'ring' }).sight, 'cross', 'an old phone\'s saved shape');
   assert.deepStrictEqual(game.gunLook({ sight: 'chevron', bold: false, pip: true }), { finish: null, accent: null, sight: 'chevron', bold: false, pip: true });
   const venues = ROOM_STYLES.PICKABLE;
   for (const v of venues) assert.ok(game.GUNS[v], `${v} has a gun`);
@@ -263,4 +264,29 @@ test('bots calibrate, shoot, reload and finish a game', () => {
   assert.ok(reloads > 0, 'and reloaded');
   assert.ok(Object.values(t.room.game.stats).some((s) => s.score > 0), 'and hit things');
   t.cleanup();
+});
+
+test('crosshair colours: never two the same in a game, own colour when it\'s free, stable, late joiners too', () => {
+  // A full room where everyone picked the same colour: still all different.
+  const t = gallery(15);
+  t.cleanup();
+  t.room.players.forEach((p) => { p.color = '#ff4d6d'; });
+  t.room.game.colors = {};
+  for (const p of t.room.players) game.onJoin(t.room, p, t.ctx);
+  t.room.players.push({ id: 'late', name: 'Late', connected: true, drinks: 0, color: '#ff4d6d' });
+  game.onJoin(t.room, t.room.players[15], t.ctx);
+  const colors = t.view(0).colors;
+  const hexes = Object.values(colors).map(([, hex]) => hex);
+  assert.strictEqual(hexes.length, 16);
+  assert.strictEqual(new Set(hexes).size, 16, 'all different, up to a full room');
+  assert.deepStrictEqual(colors.p0, ['Red', '#ff3b30'], 'the first gets the nearest to their own');
+  // Stable: asking again changes nothing.
+  for (const p of t.room.players) game.onJoin(t.room, p, t.ctx);
+  assert.deepStrictEqual(t.view(0).colors, colors);
+  // A late joiner gets their own colour's nearest when it's free.
+  const u = gallery(3);
+  u.cleanup();
+  u.room.players.push({ id: 'late', name: 'Late', connected: true, drinks: 0, color: '#22c3e6' });
+  game.onJoin(u.room, u.room.players[3], u.ctx);
+  assert.deepStrictEqual(u.view(0).colors.late, ['Cyan', '#2ee6ff']);
 });

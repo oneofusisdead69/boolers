@@ -154,16 +154,47 @@ const GUN_STATS = {
   sideBySide: { rate: 300, mag: 2, reload: 1300, spread: 0.03 },
 };
 const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
-const SIGHTS = ['ring', 'dot', 'cross', 'star', 'chevron', 'diamond'];
+// Crosshairs: the classic cross, a red dot, a holographic circle-dot, a hunting scope's duplex, a
+// sniper's mil-dot, a chevron (aim with its tip), a T and an old scope's ring-and-cross.
+const SIGHTS = ['cross', 'dot', 'holo', 'duplex', 'mildot', 'chevron', 'tcross', 'scope'];
 // A gun as a phone sent it, cleaned (null finish or accent: the gun's own colours).
 function gunLook(a = {}) {
   return {
     finish: FINISHES.includes(a.finish) ? a.finish : null,
     accent: FINISHES.includes(a.accent) ? a.accent : null,
-    sight: SIGHTS.includes(a.sight) ? a.sight : 'ring',
+    sight: SIGHTS.includes(a.sight) ? a.sight : 'cross',
     bold: a.bold !== false && a.bold !== 'false', // a bold line (or thin)
     pip: a.pip === true || a.pip === 'true', // a dot in the middle too
   };
+}
+
+// ---------- Crosshair colours ----------
+// Everyone's crosshair is told apart by its colour alone, so no two in a game share one: each
+// player gets one of these (as many as a room has players), their own colour's nearest if it's
+// free and close, else the first free one, in the order they joined. Kept for the whole game.
+const SIGHT_COLORS = [
+  ['Red', '#ff3b30'], ['Orange', '#ff8c1a'], ['Yellow', '#ffe14d'], ['Lime', '#8cff3a'], ['Cyan', '#2ee6ff'], ['Blue', '#3a6bff'],
+  ['Purple', '#a04dff'], ['Magenta', '#ff3ad8'], ['White', '#ffffff'], ['Black', '#111111'], ['Pink', '#ffa6c9'], ['Teal', '#14a88f'],
+  ['Brown', '#9a5a2a'], ['Lavender', '#c8b0ff'], ['Olive', '#8a9a2a'], ['Grey', '#8a8f98'],
+];
+const rgbOf = (hex) => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+function assignColor(g, player) {
+  if (g.colors[player.id] != null) return;
+  const taken = new Set(Object.values(g.colors));
+  const own = rgbOf(player.color);
+  let pick = -1;
+  if (own) {
+    let best = Infinity;
+    SIGHT_COLORS.forEach(([, hex], i) => {
+      const c = rgbOf(hex);
+      const d = Math.hypot(c[0] - own[0], c[1] - own[1], c[2] - own[2]);
+      if (!taken.has(i) && d < best && d < 130) { best = d; pick = i; }
+    });
+  }
+  if (pick < 0) pick = SIGHT_COLORS.findIndex((_, i) => !taken.has(i));
+  // (More players than colours: round again.)
+  if (pick < 0) pick = Object.keys(g.colors).length % SIGHT_COLORS.length;
+  g.colors[player.id] = pick;
 }
 
 // ---------- The gallery's layout ----------
@@ -588,6 +619,7 @@ module.exports = {
       calStep: {}, // id -> 1 or 2 while calibrating (so the TV shows the dot)
       aims: {}, // id -> [x, y]
       guns: {}, // id -> gunLook
+      colors: {}, // id -> their crosshair colour (an index into SIGHT_COLORS)
       stats: {},
       lastShot: {},
       ammo: {},
@@ -602,6 +634,7 @@ module.exports = {
       winnerId: null,
     });
     for (const id of room.game.order) stat(room.game, id);
+    for (const p of room.players) assignColor(room.game, p);
     ctx.setTimer(room, 100, () => relay(room, ctx));
   },
 
@@ -701,6 +734,7 @@ module.exports = {
     const g = room.game;
     if (!g.order.includes(player.id)) g.order.push(player.id);
     stat(g, player.id);
+    assignColor(g, player);
   },
 
   waitingOn(room) {
@@ -717,6 +751,8 @@ module.exports = {
       set: g.set,
       gun: GUNS[g.set] || GUNS.classic,
       guns: g.guns,
+      // Everyone's crosshair colour: [name, hex].
+      colors: Object.fromEntries(Object.entries(g.colors || {}).map(([id, i]) => [id, SIGHT_COLORS[i]])),
       myGun: g.guns[player.id] || null,
       round: g.round,
       rounds: g.rounds,
@@ -754,5 +790,6 @@ module.exports = {
   gunLook,
   setIdOf,
   GUN_STATS,
+  SIGHT_COLORS,
   LAG_MAX,
 };
