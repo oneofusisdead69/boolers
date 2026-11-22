@@ -269,11 +269,13 @@ function spawn(g, upTo) {
   const set = SETS[g.set];
   const s = g.spawn;
   const lanes = set.pond ? POND_LANES : RAILS;
-  const badOdds = 0.16;
+  // Don't-shoot cut-outs: about one target in eight, and never more than two out at once.
+  const badOk = (t0) => g.live.filter((tg) => tg.bad && tg.t0 + tg.life > t0).length < 2;
+  const badOdds = 0.125;
   lanes.forEach((lane, i) => {
     while (s.rail[i] <= upTo) {
       const t0 = s.rail[i];
-      const bad = rnd(g) < badOdds;
+      const bad = rnd(g) < badOdds && badOk(t0);
       const kind = bad ? set.bad : pickR(g, set.rail);
       const speed = (set.pond ? 0.07 + rnd(g) * 0.05 : 0.09 + rnd(g) * 0.06) * lane.dir;
       const r = KINDS[kind].r;
@@ -286,7 +288,7 @@ function spawn(g, upTo) {
     const busy = g.live.filter((tg) => tg.p === 'pop' && tg.t0 + tg.life > t0).map((tg) => tg.x);
     const free = SHELF_SLOTS.filter((x) => !busy.includes(x));
     if (busy.length < SHELF_MAX && free.length) {
-      const kind = rnd(g) < badOdds ? set.bad : pickR(g, set.shelf);
+      const kind = rnd(g) < badOdds && badOk(t0) ? set.bad : pickR(g, set.shelf);
       const r = KINDS[kind].r;
       newTarget(g, 'shelf', kind, { p: 'pop', t0, x: pickR(g, free), y: SHELF_Y - r, a: r * 2.4, life: 3 + rnd(g) * 3 });
     }
@@ -506,13 +508,13 @@ function botsAim(room, g) {
         if (d < bestD) { best = x; bestD = d; }
       }
       b.target = best ? best.id : 0;
-      b.ready = g.t + 0.45 + (1 - skill) * 0.8 + Math.random() * 0.4;
+      b.ready = g.t + 0.6 + (1 - skill) * 0.8 + Math.random() * 0.5;
       tg = best;
     }
     const wobble = 0.004 + (1 - skill) * 0.02;
     if (tg) {
       posAt(tg, g.t + 0.1 * skill, tmp); // (a good one leads a moving target)
-      const k = 1 - Math.exp(-(1.8 + 5 * skill) * DT);
+      const k = 1 - Math.exp(-(1.8 + 3.8 * skill) * DT);
       b.x += (tmp.x - b.x) * k + (Math.random() - 0.5) * wobble;
       b.y += (tmp.y - b.y) * k + (Math.random() - 0.5) * wobble;
     } else {

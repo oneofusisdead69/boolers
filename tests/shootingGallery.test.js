@@ -290,3 +290,22 @@ test('crosshair colours: never two the same in a game, own colour when it\'s fre
   game.onJoin(u.room, u.room.players[3], u.ctx);
   assert.deepStrictEqual(u.view(0).colors.late, ['Cyan', '#2ee6ff']);
 });
+
+test('don\'t-shoot cut-outs: about one in eight, never more than two out at once', () => {
+  let bad = 0;
+  let all = 0;
+  for (const style of ['classic', 'pirate', 'space']) {
+    const t = gallery(1, { length: 90 }, style);
+    toRound(t);
+    const g = t.room.game;
+    const seen = new Set();
+    while (g.phase === 'round') {
+      t.fireTimer();
+      const out = g.live.filter((tg) => tg.bad && tg.t0 <= g.t && g.t <= tg.t0 + tg.life);
+      assert.ok(out.length <= 2, `${style}: ${out.length} out at once`);
+      for (const tg of g.live) if (!seen.has(tg.id)) { seen.add(tg.id); all++; if (tg.bad) bad++; }
+    }
+    t.cleanup();
+  }
+  assert.ok(bad / all < 0.16 && bad > 0, `${bad} of ${all}`);
+});
