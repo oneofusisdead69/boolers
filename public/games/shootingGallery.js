@@ -25,7 +25,7 @@
   const SEND_MS = 40; // the crosshair goes to the server at most this often
   const CORNER = { x: 0.94, y: 0.08 }; // the second calibration dot, a little in from the corner
   const FREEZE_PITCH = 35; // degrees off the middle, up or down: past it, turning isn't counted (see onMotion)
-  const RELOAD_PITCH = 55; // degrees above the middle: muzzle up, and it reloads...
+  const RELOAD_PITCH = 55; // degrees above (or below) the middle: muzzle up (or down), and it reloads...
   const RELOAD_HOLD = 200; // ...held this long (ms)
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
@@ -1901,6 +1901,7 @@
   // to gravity. Unlike alpha/beta/gamma, neither goes haywire with the phone on its side (held like
   // a pistol, gamma near 90°, where the Euler angles lock up and the heading spins).
   const imu = { live: false, t: 0, g: null, yaw: 0 };
+  let gunSide = 'right';
   function onMotion(e) {
     const r = e.rotationRate;
     const a = e.accelerationIncludingGravity;
@@ -1913,6 +1914,9 @@
     imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
     const n = Math.hypot(...imu.g) || 1;
     const gx = imu.g[0] / n, gy = imu.g[1] / n, gz = imu.g[2] / n;
+    // On its side, which edge is up: the gun's drawn the right way up for either hand.
+    const side = gx > 0.45 ? 'left' : gx < -0.45 ? 'right' : gunSide;
+    if (side !== gunSide) { gunSide = side; document.getElementById('sg-fire')?.classList.toggle('left', side === 'left'); }
     const s = PB.state;
     const hold = cal.hold || holdFor(s);
     // The pointer: the top edge (0, 1, 0), or the back (0, 0, −1) held like a camera.
@@ -1960,13 +1964,22 @@
       // Tipped up to reload (or way down): the crosshair waits where it was, rather than vanishing
       // off the top of the screen.
       if (Math.abs(aim.pitch - cal.pitch0) < FREEZE_PITCH) {
-        aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
-        aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
+        const x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
+        const y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
+        // Smoothing that adapts (like a "one euro" filter): held still, the crosshair follows
+        // slowly, so the shake of a hand doesn't make it jitter; swung fast, it follows straight
+        // away, so a quick turn doesn't lag. (About 60 readings a second.)
+        if (!aim.steady) { aim.x = x; aim.y = y; aim.steady = true; } else {
+          const speed = Math.hypot(x - aim.x, y - aim.y);
+          const k = clamp(0.08 + speed * 9, 0.08, 0.75);
+          aim.x += (x - aim.x) * k;
+          aim.y += (y - aim.y) * k;
+        }
       }
       aim.ok = true;
       sendAim();
-      // Muzzle to the ceiling: reload.
-      const up = (aim.pitch - cal.pitch0) * Math.sign(cal.ky);
+      // Muzzle to the ceiling, or to the floor: reload.
+      const up = Math.abs(aim.pitch - cal.pitch0);
       if (up > RELOAD_PITCH) {
         tiltAt ??= performance.now();
         if (performance.now() - tiltAt > RELOAD_HOLD) { tiltAt = Infinity; startReload(); }
@@ -2039,6 +2052,7 @@
   }
   function finishCal(kx, ky) {
     Object.assign(cal, { step: 0, kx, ky, done: true });
+    aim.steady = false;
     try { localStorage.setItem(CAL_SAVED, JSON.stringify({ hold: cal.hold, kx, ky })); } catch {}
     PB.act('calibrated');
   }
@@ -2134,7 +2148,8 @@
   screen.orientation?.addEventListener?.('change', turnWithScreen);
 
   // Which hand holds it: the gun's drawn the other way round for a left hand.
-  const hand = () => { try { return localStorage.getItem('sg-hand') || 'right'; } catch { return 'right'; } };
+  // Which way up the gun's drawn: whichever way the phone's held (see onMotion), no setting needed.
+  const hand = () => gunSide;
 
   // ---------- Screens ----------
   function stage(s, { overlay = true } = {}) {
@@ -2260,7 +2275,7 @@
       <span id="sg-hitnote" class="sg-hitnote"></span>
       <button class="sg-fire ${hand() === 'left' ? 'left' : ''}" id="sg-fire" style="--pc:${esc(sightCol(s, s.me))}">${gunSvg(gun, '', { flash: true, thumb: true, n: g.gunStats?.mag || gun.def.mag })}<span class="sg-fire-word">TAP TO FIRE</span></button>
       <div class="sg-ammo" id="sg-ammo"></div>
-      <div class="sg-foot">${PB.endButton()}<button class="secondary tr-small" data-sg="hand">${hand() === 'left' ? '🫲 Left-handed' : '🫱 Right-handed'}</button>${motion.live ? '' : '<button class="secondary tr-small" data-sg="reload">🔄 Reload</button>'}</div>
+      <div class="sg-foot">${PB.endButton()}${motion.live ? '' : '<button class="secondary tr-small" data-sg="reload">🔄 Reload</button>'}</div>
     </div>`;
   }
 
@@ -2361,7 +2376,6 @@
           if (what === 'recal') return recalibrate();
           if (what === 'ready') { cal.done = true; aim.ok = true; PB.act('calibrated'); lastKey = ''; return PB.rerender(); }
           if (what === 'cancelcal') { cal.step = 0; PB.act('calib', { step: 0 }); lastKey = ''; return PB.rerender(); }
-          if (what === 'hand') { try { localStorage.setItem('sg-hand', hand() === 'left' ? 'right' : 'left'); } catch {} }
           if (what === 'reload') return startReload();
           if (what === 'sound') { try { localStorage.setItem('sg-sound', soundOn() ? 'off' : 'on'); } catch {} }
           if (what === 'look') setLook(b.dataset.k, b.dataset.v);
