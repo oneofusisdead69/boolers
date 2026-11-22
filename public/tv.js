@@ -231,7 +231,7 @@ function lobbyScreen(s) {
           <div class="tv-player ${p.connected ? '' : 'offline'}">${PB.avatar(p.id, 'lg')}<span>${esc(p.name)}${p.id === s.hostId ? ' 👑' : ''}</span></div>`).join('') || '<p class="muted">Nobody here yet</p>'}</div>
       </div>
       <div class="card tv-lobby-game">
-        <h2>Up next</h2>
+        <h2>Up next <small class="tv-menu-tag">${game.menu === 'notBool' ? '🎲 (Not) Bool Games' : '🍻 Bool Games'}</small></h2>
         <div class="tv-game-name">${esc(game.name)}</div>
         <p class="muted">${esc(game.description)}</p>
         ${game.rules.length ? `<ol class="tv-rules">${game.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}

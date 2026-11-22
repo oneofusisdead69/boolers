@@ -241,3 +241,4 @@ body.tv h1.tv-venue-name { font-size: 4.4rem; color: var(--accent); white-space:
 /* Boat Race on the TV: the teams side by side at their own width, so the middle scales them up. */
 #tv-center .br-teams { grid-template-columns: repeat(var(--n), 190px); width: max-content; margin: 8px auto; }
 #tv-center .br-go { width: max-content; margin: 0 auto 8px; padding: 8px 28px; }
+.tv-menu-tag { font-size: 0.55em; font-weight: 600; color: var(--muted); margin-left: 10px; }

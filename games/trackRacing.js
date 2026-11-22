@@ -757,6 +757,7 @@ module.exports = {
   minPlayers: 2,
   bestWithTv: true,
   order: 9.5,
+  menu: 'notBool', // in the (Not) Bool Games menu: a group game that isn't about drinking
   TRACKS,
   options: [
     { id: 'laps', label: 'Laps', default: 3, choices: [2, 3, 5, 8].map((n) => ({ value: n, label: `${n}` })) },

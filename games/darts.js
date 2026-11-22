@@ -317,6 +317,7 @@ module.exports = {
   bestWithTv: true,
   minPlayers: 1,
   order: 10,
+  menu: 'notBool', // in the (Not) Bool Games menu: a group game that isn't about drinking
   options: [
     {
       id: 'mode',
