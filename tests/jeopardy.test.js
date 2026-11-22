@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const { setup } = require('./helpers');
 const game = require('../games/jeopardy');
 const { CATEGORIES, VENUES, venueOf } = require('../lib/jeopardyQuestions');
+const { HARD_CATEGORIES, HARD_VENUES } = require('../lib/jeopardyHard');
 const ROOM_STYLES = require('../lib/roomStyles');
 
 // A game past the vote, on the board, with p0 picking and no Daily Double unless asked for.
@@ -197,55 +198,121 @@ test('nobody buzzes: the answer is shown, nobody pays, same picker', () => {
   t.cleanup();
 });
 
-test('Daily Double, right: only the picker plays, +wager × $200, and they hand the wager out', () => {
+test('Daily Double, right: only the picker plays, wagers $5 up to $1000 (or their score), +the wager, no sips', () => {
   const t = ready(3, {}, { dd: true });
   t.act(0, 'pick', { c: 0, r: 2 });
   const g = t.room.game;
   assert.strictEqual(g.phase, 'ddWager');
   assert.strictEqual(t.view(1).clue.q, null, 'the clue stays hidden until the wager is in');
+  assert.strictEqual(t.view(1).clue.ddMax, 1000, 'at $0 the most is $1000');
+  assert.strictEqual(t.view(1).clue.ddMin, 5);
   assert.deepStrictEqual(game.waitingOn(t.room), ['p0']);
-  t.act(0, 'wager', { sips: 11 });
-  assert.strictEqual(g.phase, 'ddWager', 'no more than the cap (10)');
-  t.act(0, 'wager', { sips: '4' });
+  t.act(1, 'wager', { amount: 500 });
+  assert.strictEqual(g.phase, 'ddWager', 'only the picker wagers');
+  for (const bad of [1001, 4, 0, -100, '12.5', 'all', undefined]) {
+    t.act(0, 'wager', { amount: bad });
+    assert.strictEqual(g.phase, 'ddWager', `no ${bad}`);
+  }
+  t.act(0, 'wager', { sips: 3 });
+  assert.strictEqual(g.phase, 'ddWager', 'sips are no wager here');
+  t.act(0, 'wager', { amount: '700' });
   assert.strictEqual(g.phase, 'clue');
+  assert.strictEqual(g.clue.wager, 700);
   t.fireTimer();
   assert.strictEqual(g.stage, 'answer');
   assert.strictEqual(g.buzzerId, 'p0');
   t.act(1, 'buzz');
   assert.strictEqual(g.buzzerId, 'p0', 'nobody else buzzes');
   t.act(0, 'answer', { i: rightI(t) });
-  assert.strictEqual(g.scores.p0, 800);
-  assert.deepStrictEqual(g.give, { from: 'p0', sips: 4 });
-  assert.deepStrictEqual(game.waitingOn(t.room), ['p0']);
-  t.act(0, 'give', { alloc: JSON.stringify({ p1: 3, p2: 1 }) });
-  assert.deepStrictEqual(t.drinks(), [0, 3, 1]);
+  assert.strictEqual(g.phase, 'reveal');
+  assert.strictEqual(g.scores.p0, 700);
+  assert.strictEqual(g.pickerId, 'p0');
+  assert.deepStrictEqual(t.drinks(), [0, 0, 0], 'nothing handed out');
+  assert.deepStrictEqual(g.debts, {});
+  assert.ok(!t.events.some((e) => e.event === 'drink'), 'no drink alert');
+  assert.deepStrictEqual(game.waitingOn(t.room), [], 'nobody to wait on: no handing out');
+  assert.strictEqual(t.view(0).give, undefined);
+  t.act(0, 'give', { targetId: 'p1' });
+  t.act(0, 'skipGive');
+  assert.deepStrictEqual(t.drinks(), [0, 0, 0]);
+  t.fireTimer();
   assert.strictEqual(g.phase, 'board');
-  assert.deepStrictEqual(g.debts, {}, 'handed out, not owed');
   t.cleanup();
 });
 
-test('Daily Double, wrong: −wager × $200 and the wager goes on the tab; a quiet winner\'s sips go out at random', () => {
+test('Daily Double, wrong or out of time: −the wager, nothing on the tab; with more than $1000 you can wager it all', () => {
   const t = ready(3, {}, { dd: true });
   t.act(0, 'pick', { c: 0, r: 2 });
-  t.act(0, 'wager', { sips: 7 });
+  t.act(0, 'wager', { amount: 1000 });
   t.fireTimer();
   t.act(0, 'answer', { i: wrongI(t) });
   const g = t.room.game;
   assert.strictEqual(g.phase, 'reveal');
-  assert.strictEqual(g.scores.p0, -1400);
-  assert.deepStrictEqual(g.debts.p0, { sips: 7, text: '1 shot + 2 sips', paid: false });
-  assert.deepStrictEqual(t.drinks(), [7, 0, 0]);
+  assert.strictEqual(g.scores.p0, -1000);
+  assert.deepStrictEqual(g.debts, {}, 'nothing on the tab');
+  assert.deepStrictEqual(t.drinks(), [0, 0, 0]);
+  assert.ok(!t.events.some((e) => e.event === 'drink'));
+  t.fireTimer();
+  assert.strictEqual(g.phase, 'board');
+  assert.deepStrictEqual(game.waitingOn(t.room), ['p0'], 'no tab holds up the next pick');
 
+  // $2500: the most is the score; out of time loses the wager too.
   const u = ready(3, {}, { dd: true });
+  const h = u.room.game;
+  h.scores.p0 = 2500;
   u.act(0, 'pick', { c: 0, r: 2 });
-  u.act(0, 'wager', { sips: 2 });
-  u.fireTimer();
-  u.act(0, 'answer', { i: u.room.game.clue.answer });
-  u.fireTimer(); // the give clock
-  assert.deepStrictEqual(u.drinks().reduce((a, b) => a + b, 0), 2);
-  assert.strictEqual(u.room.game.phase, 'board');
+  assert.strictEqual(u.view(2).clue.ddMax, 2500);
+  u.act(0, 'wager', { amount: 2501 });
+  assert.strictEqual(h.phase, 'ddWager');
+  u.act(0, 'wager', { amount: 2500 });
+  assert.strictEqual(h.phase, 'clue');
+  u.fireTimer(); // read
+  u.fireTimer(); // out of time
+  assert.strictEqual(h.phase, 'reveal');
+  assert.strictEqual(h.scores.p0, 0);
+  assert.strictEqual(h.results[0].timeout, true);
+  assert.deepStrictEqual(u.drinks(), [0, 0, 0]);
+
+  // Below $0, the most is still $1000.
+  const w = ready(2, {}, { dd: true });
+  w.room.game.scores.p0 = -600;
+  w.act(0, 'pick', { c: 0, r: 2 });
+  assert.strictEqual(w.view(0).clue.ddMax, 1000);
+  w.act(0, 'wager', { amount: 5 });
+  assert.strictEqual(w.room.game.clue.wager, 5);
   t.cleanup();
   u.cleanup();
+  w.cleanup();
+});
+
+test('no handing out sips, ever: bots play whole games and nothing is given', () => {
+  for (let n = 0; n < 6; n++) {
+    const t = setup(game, 3, { hard: n % 2 === 1 });
+    for (const p of t.room.players) p.bot = 'baller';
+    const phases = new Set();
+    for (let step = 0; step < 3000 && t.room.game.phase !== 'over'; step++) {
+      phases.add(t.room.game.phase);
+      let moved = false;
+      for (let i = 0; i < 3; i++) {
+        const action = t.bot(i, [0.25, 0.6, 0.9][i]);
+        if (!action || action.type === '_wait') continue;
+        assert.ok(!['give', 'skipGive'].includes(action.type), 'no bot hands anything out');
+        if (action.type === 'wager') {
+          const max = Math.max(t.room.game.scores[t.room.players[i].id] || 0, 1000);
+          assert.ok(Number.isInteger(action.amount) && action.amount >= 5 && action.amount <= max, `a $ wager: ${action.amount}`);
+        }
+        const { delay, ...move } = action;
+        t.act(i, move.type, move);
+        moved = true;
+      }
+      if (!moved) t.fireTimer();
+      assert.strictEqual(t.room.game.give, undefined);
+    }
+    assert.strictEqual(t.room.game.phase, 'over');
+    assert.ok(!phases.has('give'));
+    assert.ok(!t.events.some((e) => e.event === 'drink' && e.data?.from), 'nobody gave anybody a drink');
+    t.cleanup();
+  }
 });
 
 // Plays out every clue on the board with nobody buzzing.
@@ -392,13 +459,10 @@ test('a room doesn\'t get the same categories again until it has seen the rest',
   t.cleanup();
 });
 
-test('the question bank: 40+ categories of five, each with three distinct wrong answers', () => {
-  assert.ok(CATEGORIES.length >= 40, `${CATEGORIES.length} categories`);
-  const qs = new Set();
-  const names = new Set();
-  const venueCats = Object.values(VENUES).flatMap((v) => v.categories);
-  assert.ok(venueCats.length >= Object.keys(VENUES).length);
-  for (const c of [...CATEGORIES, ...venueCats]) {
+// The same checks for a bank's categories: five clues each, three distinct wrong answers that
+// aren't the answer, and no question or category name twice (across both banks).
+function checkBank(cats, names, qs) {
+  for (const c of cats) {
     assert.ok(c.name && !names.has(c.name), `category name ${c.name}`);
     names.add(c.name);
     assert.strictEqual(c.clues.length, 5, c.name);
@@ -406,12 +470,92 @@ test('the question bank: 40+ categories of five, each with three distinct wrong 
       assert.ok(typeof x.q === 'string' && x.q.length > 5, `${c.name}: question`);
       assert.ok(typeof x.a === 'string' && x.a, `${c.name}: answer`);
       assert.strictEqual(x.wrong.length, 3, `${x.q}: three wrong answers`);
+      assert.ok(x.wrong.every((w) => typeof w === 'string' && w), `${x.q}: wrong answers`);
       const all = [x.a, ...x.wrong].map((s) => s.toLowerCase());
       assert.strictEqual(new Set(all).size, 4, `${x.q}: four different options`);
-      assert.ok(!qs.has(x.q), `duplicate question: ${x.q}`);
-      qs.add(x.q);
+      assert.ok(!qs.has(x.q.toLowerCase()), `duplicate question: ${x.q}`);
+      qs.add(x.q.toLowerCase());
     }
   }
+}
+
+test('the question banks: 40+ normal and 36+ hard categories of five, three distinct wrong answers each, no repeats across both', () => {
+  assert.ok(CATEGORIES.length >= 40, `${CATEGORIES.length} categories`);
+  assert.ok(HARD_CATEGORIES.length >= 36, `${HARD_CATEGORIES.length} hard categories`);
+  const qs = new Set();
+  const names = new Set();
+  const venueCats = Object.values(VENUES).flatMap((v) => v.categories);
+  assert.ok(venueCats.length >= Object.keys(VENUES).length);
+  checkBank([...CATEGORIES, ...venueCats], names, qs);
+  const hardVenueCats = Object.values(HARD_VENUES).flatMap((v) => v.categories);
+  checkBank([...HARD_CATEGORIES, ...hardVenueCats], names, qs);
+});
+
+test('every venue has its own hard house category, with the venue\'s emoji', () => {
+  assert.deepStrictEqual(Object.keys(HARD_VENUES).sort(), Object.keys(VENUES).sort());
+  for (const [id, v] of Object.entries(HARD_VENUES)) {
+    assert.ok(v.categories.length >= 1, `${id}: a hard house category`);
+    assert.strictEqual(v.emoji, VENUES[id].emoji, `${id}: its emoji`);
+    for (const c of v.categories) assert.ok(!VENUES[id].categories.some((n) => n.name === c.name), `${id}: its own name`);
+  }
+});
+
+test('Hard: the vote, the house category and the Final all come from the hard bank; nothing else changes', () => {
+  const hardNames = new Set(HARD_CATEGORIES.map((c) => c.name));
+  const normalNames = new Set(CATEGORIES.map((c) => c.name));
+  for (const style of ['pirate', 'classic', 'castle', 'spaceStarship']) {
+    const t = setup(game, 3, { hard: true });
+    t.room.style = style;
+    t.room.game = { type: 'jeopardy' };
+    t.ctx.clearTimer(t.room);
+    game.start(t.room, t.ctx, { hard: true });
+    const g = t.room.game;
+    const v = t.view(0);
+    assert.strictEqual(v.hard, true);
+    assert.strictEqual(v.vote.pool.length, 10);
+    assert.ok(v.vote.pool.every((n) => hardNames.has(n) && !normalNames.has(n)), 'a hard vote pool');
+    const venue = venueOf(style);
+    assert.ok(HARD_VENUES[venue].categories.some((c) => c.name === v.vote.house.name), `${style}: the hard house category`);
+    assert.strictEqual(v.vote.house.emoji, VENUES[venue].emoji);
+    for (let i = 0; i < 3; i++) t.act(i, 'lockIn', { picks: '0,1,2,3' });
+    assert.strictEqual(g.phase, 'voted');
+    const hardQs = new Set([...HARD_CATEGORIES, ...HARD_VENUES[venue].categories].flatMap((c) => c.clues.map((x) => x.q)));
+    for (const c of g.cats) for (const x of c.clues) assert.ok(hardQs.has(x.q), `a hard clue: ${x.q}`);
+    assert.ok(hardNames.has(g.finalClue.cat), 'a hard Final');
+    assert.ok(hardQs.has(g.finalClue.q));
+    assert.strictEqual(g.cats[4].emoji, VENUES[venue].emoji);
+    // Same values, sips and timers as ever.
+    assert.deepStrictEqual(g.cats[0].clues.map((x) => x.value), [200, 400, 600, 800, 1000]);
+    t.fireTimer();
+    for (const c of g.cats) for (const x of c.clues) x.dd = false;
+    g.pickerId = 'p0';
+    open(t, 0, 3);
+    t.act(1, 'buzz');
+    t.act(1, 'answer', { i: wrongI(t) });
+    assert.strictEqual(g.scores.p1, -800);
+    assert.deepStrictEqual(t.drinks(), [0, 4, 0]);
+    t.cleanup();
+  }
+  // Off by default: the normal bank.
+  const u = setup(game, 2);
+  assert.strictEqual(u.view(0).hard, false);
+  assert.ok(u.view(0).vote.pool.every((n) => normalNames.has(n)));
+  u.cleanup();
+});
+
+test('the room\'s seen list works across Normal and Hard', () => {
+  const t = setup(game, 2, { hard: true });
+  t.fireTimer();
+  const seen = t.room.jeopardySeen.slice();
+  assert.strictEqual(seen.length, 6, 'the board and the Final');
+  t.room.game = { type: 'jeopardy' };
+  game.start(t.room, t.ctx, { hard: true });
+  assert.ok(t.view(0).vote.pool.every((n) => !seen.includes(n)), 'fresh hard ones first');
+  // A normal game next: its pool is all fresh too (a hard game takes nothing from it).
+  t.room.game = { type: 'jeopardy' };
+  game.start(t.room, t.ctx, {});
+  assert.ok(t.view(0).vote.pool.every((n) => !seen.includes(n) && CATEGORIES.some((c) => c.name === n)));
+  t.cleanup();
 });
 
 test('every venue has a house category; looks within a room use the room\'s; anything else is bar trivia', () => {

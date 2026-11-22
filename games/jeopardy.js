@@ -17,28 +17,34 @@
 // shots at once. Owe something and you tap ☠️🥃 "Tab settled" once it's down: every tab has to be
 // settled before the next clue can be picked (players who've left don't hold it up).
 //
-// One clue hides a Daily Double: only the picker plays it, wagering sips before seeing it. Right:
-// +wager × $200 and they hand the wager out; wrong: −wager × $200 and the wager goes on their tab.
+// One clue hides a Daily Double: only the picker plays it, wagering dollars before seeing it, like
+// the show: $5 up to their score or $1000, whichever's more. Right: +the wager; wrong (or out of
+// time): −the wager. It's points only: no sips either way. Nobody hands out sips anywhere in
+// Bool Jeopardy.
 //
 // Once the board's cleared, the Final round (unless it's switched off): everyone sees the
 // category, wagers sips in secret, then answers the clue privately. Right +wager × $200, wrong
 // −wager × $200. Whoever has the most $ after the Final drinks nothing; everyone else who got it
 // wrong owes their wager.
+//
+// "🔥 Hard" questions (a lobby option) swap in the hard bank (lib/jeopardyHard.js) for the vote,
+// the house category and the Final. Everything else plays the same.
 
 const { shuffle, pick, steady } = require('../lib/random');
 const { optionValues } = require('../lib/options');
 const { isActive, next } = require('../lib/turns');
-const { pickHuman } = require('../lib/bots');
-const giving = require('../lib/give');
 const { shotText } = require('./shotPoker');
 const { CATEGORIES, VENUES, venueOf } = require('../lib/jeopardyQuestions');
+const { HARD_CATEGORIES, HARD_VENUES } = require('../lib/jeopardyHard');
 
 const COLS = 5; // categories on the board: the top VOTED from the vote, then the house category
 const VOTED = 4;
 const ROWS = 5; // clues in each ($200 … $1000)
 const POOL = 10; // categories to vote on
 const MAX_PICKS = 4; // categories each player can vote for
-const VALUE = 200; // $ a row (and $ a sip wagered)
+const VALUE = 200; // $ a row (and $ a sip wagered in the Final)
+const DD_MIN = 5; // the Daily Double's smallest wager ($)
+const DD_FLOOR = 1000; // … and its biggest is this or your score, whichever's more
 
 const VOTE_MS = 30 * 1000;
 const VOTED_MS = 4500; // the vote's result, before the board
@@ -70,25 +76,33 @@ function owe(room, ctx, id, sips, reason) {
 
 // ---------- The category vote ----------
 
+// The question bank in play: the normal one, or with Hard on, the hard one. (Their category names
+// never overlap, so the room's seen list works across both.)
+const bankOf = (hard) => (hard ? { cats: HARD_CATEGORIES, venues: HARD_VENUES } : { cats: CATEGORIES, venues: VENUES });
+
 // Ten categories to vote on: ones the room hasn't played tonight first.
-function drawPool(room) {
+function drawPool(room, hard) {
+  const { cats } = bankOf(hard);
   const seen = (room.jeopardySeen ||= []);
-  const all = CATEGORIES.map((_, i) => i);
-  const fresh = shuffle(all.filter((i) => !seen.includes(CATEGORIES[i].name)));
-  const again = shuffle(all.filter((i) => seen.includes(CATEGORIES[i].name)));
+  const all = cats.map((_, i) => i);
+  const fresh = shuffle(all.filter((i) => !seen.includes(cats[i].name)));
+  const again = shuffle(all.filter((i) => seen.includes(cats[i].name)));
   return [...fresh, ...again].slice(0, POOL);
 }
 
-// The house category: one of the venue's own (lib/jeopardyQuestions.js VENUES), one the room
-// hasn't had tonight if there is one.
-function drawHouse(room) {
+// The house category: one of the venue's own (VENUES, or HARD_VENUES), one the room hasn't had
+// tonight if there is one.
+function drawHouse(room, hard) {
+  const { venues } = bankOf(hard);
   const venue = venueOf(room.style);
   const seen = room.jeopardySeen || [];
-  const list = VENUES[venue].categories.map((_, i) => i);
-  const fresh = list.filter((i) => !seen.includes(VENUES[venue].categories[i].name));
+  const list = venues[venue].categories.map((_, i) => i);
+  const fresh = list.filter((i) => !seen.includes(venues[venue].categories[i].name));
   return { venue, i: pick(fresh.length ? fresh : list) };
 }
-const houseCat = (g) => VENUES[g.house.venue].categories[g.house.i];
+const houseOf = (g) => bankOf(g.hard).venues[g.house.venue];
+const houseCat = (g) => houseOf(g).categories[g.house.i];
+const poolCat = (g, i) => bankOf(g.hard).cats[g.pool[i]];
 
 // How many votes each category in the pool has (everyone's ticks, locked in or not).
 function tally(g) {
@@ -106,9 +120,9 @@ function closeVote(room, ctx) {
   const ranked = shuffle(g.pool.map((_, i) => i)).sort((a, b) => counts[b] - counts[a]);
   g.chosen = ranked.slice(0, VOTED);
   g.counts = counts;
-  const cat = (i) => CATEGORIES[g.pool[i]];
+  const cat = (i) => poolCat(g, i);
   // The Final comes from the best of the categories that didn't make it.
-  buildBoard(room, [...g.chosen.map(cat), { ...houseCat(g), emoji: VENUES[g.house.venue].emoji }], cat(ranked[VOTED]));
+  buildBoard(room, [...g.chosen.map(cat), { ...houseCat(g), emoji: houseOf(g).emoji }], cat(ranked[VOTED]));
   ctx.log(room, `🗳️ The board: ${g.cats.map((c) => c.name).join(', ')}`);
   g.phase = 'voted';
   ctx.setTimer(room, VOTED_MS, () => toBoard(room, ctx));
@@ -147,7 +161,6 @@ function toBoard(room, ctx) {
   const g = room.game;
   ctx.clearTimer(room);
   g.phase = 'board';
-  g.give = null;
   ensurePicker(room);
   maybeFinish(room, ctx);
 }
@@ -213,15 +226,18 @@ function openBuzzers(room, ctx) {
   ctx.setTimer(room, BUZZ_MS, () => reveal(room, ctx));
 }
 
+// The most the Daily Double's player can wager: their score, or $1000 if that's more.
+const ddMax = (g, id) => Math.max(g.scores[id] || 0, DD_FLOOR);
+
 // The buzzer's answer: an option, or null for out of time. `left`: they've gone (no drink, no $).
+// A Daily Double is the wager in $ either way, and no sips.
 function answered(room, ctx, id, pickIndex, { left = false } = {}) {
   const g = room.game;
   if (g.phase !== 'clue' || g.stage !== 'answer' || g.buzzerId !== id) return;
   ctx.clearTimer(room);
   const k = g.clue;
   const right = pickIndex === k.answer;
-  const stake = k.dd ? k.wager * VALUE : k.value;
-  const sips = k.dd ? k.wager : k.sips;
+  const stake = k.dd ? k.wager : k.value;
   const delta = left ? 0 : right ? stake : -stake;
   g.scores[id] = (g.scores[id] || 0) + delta;
   g.results.push({ id, pick: pickIndex, right, delta, timeout: pickIndex === null, left });
@@ -229,13 +245,12 @@ function answered(room, ctx, id, pickIndex, { left = false } = {}) {
   if (right) {
     g.pickerId = id;
     ctx.log(room, `✅ ${who} got it: +$${stake}`);
-    if (k.dd) g.give = { from: id, sips };
     return reveal(room, ctx);
   }
   if (left) ctx.log(room, `🚪 ${who} left mid-answer`);
   else {
     ctx.log(room, `❌ ${who} ${pickIndex === null ? 'ran out of time' : 'got it wrong'}: −$${stake}`);
-    owe(room, ctx, id, sips, k.dd ? 'missed the Daily Double' : `missed a $${k.value} clue`);
+    if (!k.dd) owe(room, ctx, id, k.sips, `missed a $${k.value} clue`);
   }
   g.locked.push(id);
   if (pickIndex !== null && !g.wrong.includes(pickIndex)) g.wrong.push(pickIndex);
@@ -252,23 +267,8 @@ function reveal(room, ctx) {
   g.buzzerId = null;
   const k = g.clue;
   if (!g.results.some((x) => x.right)) ctx.log(room, `💡 It was ${k.options[k.answer]}`);
-  g.last = { cat: k.cat, value: k.value, dd: k.dd, answer: k.options[k.answer], results: g.results.slice() };
-  if (g.give) giveClock(room, ctx);
-  else ctx.setTimer(room, REVEAL_MS, () => toBoard(room, ctx));
-}
-
-// A Daily Double winner handing out their wager is on the clock (none in pass and play); when it's
-// up, or the host skips the wait, it goes out at random.
-function giveClock(room, ctx) {
-  const g = room.game;
-  const give = g.give;
-  giving.clock(room, ctx, () => g.give === give && autoGive(room, ctx));
-}
-function autoGive(room, ctx, skipped = false) {
-  const g = room.game;
-  giving.auto(room, ctx, g.give.from, g.give.sips, 'Daily Double', { skipped });
-  g.give = null;
-  toBoard(room, ctx);
+  g.last = { cat: k.cat, value: k.value, dd: k.dd, wager: k.wager, answer: k.options[k.answer], results: g.results.slice() };
+  ctx.setTimer(room, REVEAL_MS, () => toBoard(room, ctx));
 }
 
 // ---------- The Final ----------
@@ -352,10 +352,16 @@ function botAnswer(g, me, skill, options, answer, row, key) {
 }
 
 // A bot's wager: bolder with skill, and when it's behind.
+const behind = (g, me) => ((g.scores[me] || 0) < Math.max(0, ...Object.values(g.scores)) ? 0.2 : 0);
 function botWager(g, me, skill) {
-  const scores = Object.values(g.scores);
-  const behind = (g.scores[me] || 0) < Math.max(0, ...scores) ? 0.2 : 0;
-  return Math.max(1, Math.min(g.cap, Math.round(g.cap * (0.15 + 0.45 * skill * Math.random() + behind))));
+  return Math.max(1, Math.min(g.cap, Math.round(g.cap * (0.15 + 0.45 * skill * Math.random() + behind(g, me)))));
+}
+// Its Daily Double wager in $: a share of the most it can (its score, or $1000) the same way,
+// in hundreds.
+function botDdWager(g, me, skill) {
+  const max = ddMax(g, me);
+  const share = Math.min(1, 0.15 + 0.55 * skill * Math.random() + behind(g, me));
+  return Math.max(DD_MIN, Math.min(max, Math.round((max * share) / 100) * 100));
 }
 
 // ---------- Module ----------
@@ -369,12 +375,13 @@ module.exports = {
     'The picker picks a clue; first to buzz in answers.',
     'Right: win the $ and pick next. Wrong: lose the $, and $200 a sip goes on your tab.',
     'A shot is a set number of sips. Every tab is settled before the next clue.',
-    'Daily Double: wager sips. Final: everyone wagers; the leader drinks nothing.',
+    'Daily Double: wager $ (up to your score or $1000), points only. Final: everyone wagers sips; the leader drinks nothing.',
   ],
   minPlayers: 2,
   order: 14,
   bestWithTv: true,
   options: [
+    { id: 'hard', label: 'Questions', default: false, choices: [{ value: false, label: 'Normal' }, { value: true, label: '🔥 Hard' }] },
     { id: 'perShot', label: 'Sips in a shot', default: 5, choices: [3, 4, 5].map((n) => ({ value: n, label: `${n}` })) },
     { id: 'maxShots', label: 'Max shots on a tab', default: 2, choices: [1, 2, 3, 5].map((n) => ({ value: n, label: `${n}` })) },
     { id: 'final', label: 'Final round', default: true, choices: [{ value: true, label: 'On' }, { value: false, label: 'Off' }] },
@@ -384,25 +391,24 @@ module.exports = {
     const o = optionValues(module.exports.options, options);
     const order = room.players.map((p) => p.id);
     Object.assign(room.game, {
-      ...o, // perShot, maxShots, final
+      ...o, // hard, perShot, maxShots, final
       cap: o.perShot * o.maxShots,
       order,
       scores: Object.fromEntries(order.map((id) => [id, 0])),
       debts: {},
       pickerId: pick(order.filter((id) => isActive(room, id))) || order[0],
-      // Pass and play (no clock on handing out sips: lib/context.js) passes one phone round for
-      // the Final, so nobody's on a clock there either.
+      // Pass and play (ctx.giveMs is 0 there: lib/context.js) passes one phone round for the
+      // vote and the Final, so nobody's on a clock there.
       relaxed: !ctx.giveMs,
       seed: Math.random().toString(36).slice(2, 8),
       clueNo: 0,
-      pool: drawPool(room),
-      house: drawHouse(room),
+      pool: drawPool(room, o.hard),
+      house: drawHouse(room, o.hard),
       votes: {},
       lockedIn: {},
       cats: null,
       clue: null,
       last: null,
-      give: null,
       phase: 'vote',
     });
     if (!room.game.relaxed) ctx.setTimer(room, VOTE_MS, () => closeVote(room, ctx));
@@ -447,12 +453,12 @@ module.exports = {
       if (c === null || r === null || g.cats[c].clues[r].used || unpaid(room).length) return;
       pickClue(room, ctx, c, r);
     } else if (action.type === 'wager' && g.phase === 'ddWager' && me === g.pickerId) {
-      const w = int(action.sips, 1, g.cap);
+      const w = int(action.amount, DD_MIN, ddMax(g, me));
       if (w === null) return;
       g.clue.wager = w;
       g.phase = 'clue';
       g.stage = 'read';
-      ctx.log(room, `💥 ${player.name} wagers ${shotText(w, g.perShot)}`);
+      ctx.log(room, `💥 ${player.name} wagers $${w}${w === ddMax(g, me) ? ': a true Daily Double!' : ''}`);
       ctx.setTimer(room, READ_MS, () => openBuzzers(room, ctx));
     } else if (action.type === 'buzz' && g.phase === 'clue' && g.stage === 'open' && here && !g.locked.includes(me)) {
       // First in wins (the server takes them in the order they arrive); buzzing early does nothing.
@@ -464,13 +470,6 @@ module.exports = {
       const i = int(action.i, 0, g.clue.options.length - 1);
       if (i === null || g.wrong.includes(i)) return;
       answered(room, ctx, me, i);
-    } else if (action.type === 'give' && g.phase === 'reveal' && g.give?.from === me) {
-      if (giving.give(room, ctx, me, action, g.give.sips, 'Daily Double')) {
-        g.give = null;
-        toBoard(room, ctx);
-      }
-    } else if (action.type === 'skipGive' && g.phase === 'reveal' && g.give && me === room.hostId) {
-      autoGive(room, ctx, true);
     } else if (action.type === 'finalWager' && g.phase === 'finalWager' && here && !g.finalWagers[me]) {
       const w = int(action.sips, 1, g.cap);
       if (w === null) return;
@@ -513,9 +512,7 @@ module.exports = {
         }
         break;
       case 'reveal':
-        if (g.give && !isActive(room, g.give.from)) toBoard(room, ctx);
-        else if (!room.timer && g.give) giveClock(room, ctx);
-        else if (!room.timer && !g.give) toBoard(room, ctx);
+        if (!room.timer) toBoard(room, ctx);
         break;
       case 'finalWager':
         if (ctx.connectedPlayers(room).length && !toWager(room).length) startFinalAnswer(room, ctx);
@@ -537,8 +534,8 @@ module.exports = {
   },
 
   // Everyone still to vote; whoever has a tab to settle, else the picker; the Daily Double's
-  // player; the buzzer once someone's in (while the buzzers are open it's anyone's: nobody); the
-  // Daily Double winner handing out; everyone still to wager or answer in the Final.
+  // player; the buzzer once someone's in (while the buzzers are open it's anyone's: nobody);
+  // everyone still to wager or answer in the Final.
   waitingOn(room) {
     const g = room.game;
     const here = room.players.filter((p) => p.connected).map((p) => p.id);
@@ -551,7 +548,6 @@ module.exports = {
       }
       case 'ddWager': return here.includes(g.pickerId) ? [g.pickerId] : [];
       case 'clue': return g.stage === 'answer' && here.includes(g.buzzerId) ? [g.buzzerId] : [];
-      case 'reveal': return g.give && here.includes(g.give.from) ? [g.give.from] : [];
       case 'finalWager': return toWager(room);
       case 'finalAnswer': return toAnswer(room);
       default: return [];
@@ -577,7 +573,7 @@ module.exports = {
         return cell ? { type: 'pick', ...cell } : null;
       }
       case 'ddWager':
-        return id === g.pickerId ? { type: 'wager', sips: botWager(g, id, skill) } : null;
+        return id === g.pickerId ? { type: 'wager', amount: botDdWager(g, id, skill) } : null;
       case 'clue': {
         if (g.stage === 'open' && !g.locked.includes(id)) {
           // Not every clue: the same yes or no however often it's asked (a fresh one after a miss).
@@ -590,11 +586,6 @@ module.exports = {
           return { type: 'answer', i, delay: 1500 + Math.random() * 2500 };
         }
         return null;
-      }
-      case 'reveal': {
-        if (g.give?.from !== id) return null;
-        const targetId = pickHuman(room, id);
-        return targetId && { type: 'give', targetId };
       }
       case 'finalWager':
         return g.finalWagers[id] ? null : { type: 'finalWager', sips: botWager(g, id, skill), delay: 2000 + Math.random() * 4000 };
@@ -615,6 +606,7 @@ module.exports = {
     const finalPhase = g.phase === 'finalWager' || g.phase === 'finalAnswer' || (g.phase === 'over' && g.finalResults);
     const fc = g.finalClue;
     return {
+      hard: !!g.hard,
       perShot: g.perShot,
       maxShots: g.maxShots,
       cap: g.cap,
@@ -628,8 +620,8 @@ module.exports = {
       maxPicks: MAX_PICKS,
       // The vote: the categories, and how many votes each has (not who voted for what).
       vote: g.phase === 'vote' || g.phase === 'voted' ? {
-        pool: g.pool.map((i) => CATEGORIES[i].name),
-        house: { name: houseCat(g).name, emoji: VENUES[g.house.venue].emoji },
+        pool: g.pool.map((_, i) => poolCat(g, i).name),
+        house: { name: houseCat(g).name, emoji: houseOf(g).emoji },
         voted: VOTED,
         counts: g.phase === 'voted' ? g.counts : tally(g),
         mine: g.votes[me] || [],
@@ -648,6 +640,9 @@ module.exports = {
         sips: k.sips,
         dd: k.dd,
         wager: k.wager,
+        // The Daily Double: the most its player can wager ($5 up to this).
+        ddMin: k.dd ? DD_MIN : null,
+        ddMax: k.dd ? ddMax(g, g.pickerId) : null,
         q: g.phase === 'ddWager' ? null : k.q,
         options: g.stage === 'answer' || g.results.length || revealed ? k.options : null,
         answer: revealed ? k.answer : null,
@@ -657,7 +652,6 @@ module.exports = {
         results: g.results,
       } : null,
       last: g.last,
-      give: g.give,
       debts: g.debts,
       unpaid: unpaid(room),
       // The Final: the category first, then the clue; your own wager and answer; everyone's at the end.
@@ -678,7 +672,11 @@ module.exports = {
 
   CATEGORIES,
   VENUES,
+  HARD_CATEGORIES,
+  HARD_VENUES,
   venueOf,
   VALUE,
+  DD_MIN,
+  DD_FLOOR,
   __buildBoard: buildBoard, // (for the tests)
 };

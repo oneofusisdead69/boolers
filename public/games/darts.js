@@ -100,7 +100,7 @@
     const g = s.game;
     const ids = g.order.filter((id) => s.players.some((p) => p.id === id));
     const row = (id, cells) => `<tr class="${id === g.throwerId && s.phase !== 'over' ? 'up' : ''}">
-      <td class="dt-who">${PB.avatar(id, 'sm')}<span>${esc(name(id))}</span>${g.bank?.[id] ? ` <small class="dt-bank" title="Banked sips, handed out at the end">🏦${g.bank[id]}</small>` : ''}</td>${cells}</tr>`;
+      <td class="dt-who"><div>${PB.avatar(id, 'sm')}<span>${esc(name(id))}</span>${g.bank?.[id] ? `<small class="dt-bank" title="Banked sips, handed out at the end">🏦${g.bank[id]}</small>` : ''}</div></td>${cells}</tr>`;
     let head;
     let rows;
     if (g.mode === 'drinking') {
@@ -118,7 +118,7 @@
       rows = `<tr><th></th>${CRICKET.map((n) => `<th>${n === 25 ? 'B' : n}</th>`).join('')}<th>Pts</th></tr>${ids.map((id) => row(id,
         `${CRICKET.map((n) => `<td class="dt-mark ${g.marks[id][n] >= 3 ? 'closed' : ''}">${MARKS[Math.min(3, g.marks[id][n])]}</td>`).join('')}<td><b>${g.points[id]}</b></td>`)).join('')}`;
     }
-    return `<div class="card dt-scores">${head}<table>${rows}</table></div>`;
+    return `<div class="card dt-scores dt-${g.mode}">${head}<table>${rows}</table></div>`;
   }
 
   // The darts of the current (or just-finished) turn.

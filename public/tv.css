@@ -153,6 +153,11 @@ body.tv .av.sm { width: 1.7rem; height: 1.7rem; font-size: 1rem; }
 .tv-wide .tv-center-box { position: static; inset: auto; min-height: 0; }
 #tv-left { width: 300px; display: flex; flex-direction: column; gap: 12px; font-size: 16px; }
 #tv-left:empty { display: none; }
+/* Cricket's table is wide (a name, seven numbers and the points): give it room, and tighten it. */
+#tv-left:has(.dt-cricket) { width: 440px; }
+#tv-left .dt-cricket table { font-size: 15px; }
+#tv-left .dt-cricket td, #tv-left .dt-cricket th { padding: 4px 3px; }
+#tv-left .dt-cricket .dt-who span { max-width: 6.5em; }
 /* A smaller sidebar, so the centrepiece gets the room. */
 .tv-game:has(.tv-wide) { grid-template-columns: 1fr 13rem; }
 .tv-game:has(.tv-wide) .tv-side { font-size: 0.75rem; gap: 0.8vh; }
