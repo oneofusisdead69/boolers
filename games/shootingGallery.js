@@ -121,7 +121,7 @@ const setIdOf = (room) => (room.style === POND_ROOM ? 'duckPond' : SETS[room.sty
 const GUNS = {
   classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss',
   diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock',
-  beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'slingshot', frat: 'foamBlaster', garage: 'nailGun',
+  beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun',
   chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle', duckPond: 'sideBySide',
 };
 // How each fires (the same for everyone in a venue, so it's fair; across venues roughly even):
@@ -144,7 +144,7 @@ const GUN_STATS = {
   corkPopper: { rate: 350, mag: 4, reload: 1000, spread: 0.008 },
   rayGun: { rate: 300, mag: 8, reload: 1400, spread: 0.008 },
   flarePistol: { rate: 400, mag: 1, reload: 900, spread: 0.03 },
-  slingshot: { rate: 400, mag: 1, reload: 700, spread: 0.014 },
+  overUnder: { rate: 300, mag: 2, reload: 1300, spread: 0.028 },
   foamBlaster: { rate: 220, mag: 8, reload: 1300, spread: 0 },
   nailGun: { rate: 120, mag: 20, reload: 1600, spread: -0.008 },
   duelPistol: { rate: 400, mag: 1, reload: 900, spread: 0.025 },
