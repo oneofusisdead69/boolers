@@ -44,6 +44,8 @@ app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/healthz', (req, res) => res.send('ok'));
 app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public/tv.html')));
+// Aim Lab: try the Shooting Gallery's phone aiming on its own, with live numbers (no room or TV).
+app.get('/aim-lab', (req, res) => res.sendFile(path.join(__dirname, 'public/aim-lab.html')));
 // Avatar and colour lists, shared with the phones.
 app.get('/looks.js', (req, res) => res.sendFile(path.join(__dirname, 'lib/looks.js')));
 // Room styles (dive bar, tavern…), shared with the phones and the TV: their names, colours and
