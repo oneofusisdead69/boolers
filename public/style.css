@@ -114,6 +114,9 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
 .players .kick { width: auto; padding: 4px 10px; font-size: 0.9rem; background: none; color: var(--muted); }
 
 .games { display: flex; flex-direction: column; gap: 8px; }
+.game-menus { margin-bottom: 10px; }
+.game-menus button { font-weight: 800; }
+.game-menu-tag { margin: 0 0 2px; font-size: 0.85rem; }
 .game-option { text-align: left; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
 .game-option.selected { border-color: var(--accent); }
 .game-option small { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
@@ -548,6 +551,7 @@ body.my-turn::after {
 
 /* ---------- Pass and play links ---------- */
 .pass-play { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pass-play[hidden] { display: none; }
 .btn-link {
   display: block;
   text-align: center;

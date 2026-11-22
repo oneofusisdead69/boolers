@@ -378,7 +378,13 @@ function renderHome() {
     <div class="card">
       <h2>📱 Pass and play</h2>
       <p class="muted">One phone, passed around. No room code needed.</p>
-      <div class="pass-play">
+      <div class="segmented game-menus pp-menus">${MENUS.map(([id, label], i) => `
+        <button class="${i ? '' : 'selected'}" data-pp-menu="${id}">${label}</button>`).join('')}</div>
+      <div class="pass-play" data-pp-list="notBool" hidden>
+        <a class="btn-link" href="/play/local.html?game=darts">🎯 Darts</a>
+        <a class="btn-link" href="/play/local.html?game=jeopardy">🟦 Bool Jeopardy</a>
+      </div>
+      <div class="pass-play" data-pp-list="bool">
         <a class="btn-link" href="/play/local.html?game=slevens">🎲 Slevens</a>
         <a class="btn-link" href="/play/local.html?game=madMax">🃏 Mad Max</a>
         <a class="btn-link" href="/play/local.html?game=rideTheBus">🚌 Ride the Bus</a>
@@ -387,17 +393,22 @@ function renderHome() {
         <a class="btn-link" href="/play/local.html?game=shotPoker">☠️ Shot Poker</a>
         <a class="btn-link" href="/play/local.html?game=horseRace">🏇 Horse Race</a>
         <a class="btn-link" href="/play/local.html?game=aceRace">♠️ Ace Race</a>
-        <a class="btn-link" href="/play/local.html?game=darts">🎯 Darts</a>
         <a class="btn-link" href="/play/local.html?game=boatRace">🚣 Boat Race</a>
         <a class="btn-link" href="/play/local.html?game=beerPong">🏓 Beer Pong</a>
         <a class="btn-link" href="/play/local.html?game=quarters">🪙 Quarters</a>
-        <a class="btn-link" href="/play/local.html?game=jeopardy">🟦 Bool Jeopardy</a>
       </div>
     </div>
     <div class="spacer"></div>
     ${fullscreenButtons()}
   `;
   PB.layout($app, '.ls-l');
+  // Pass and play's two menus: the toggle shows one list or the other.
+  $app.querySelectorAll('[data-pp-menu]').forEach((b) => {
+    b.onclick = () => {
+      $app.querySelectorAll('[data-pp-menu]').forEach((x) => x.classList.toggle('selected', x === b));
+      $app.querySelectorAll('[data-pp-list]').forEach((l) => { l.hidden = l.dataset.ppList !== b.dataset.ppMenu; });
+    };
+  });
   bindFullscreenButtons();
   const $name = document.getElementById('name');
   const $code = document.getElementById('code');
@@ -490,6 +501,24 @@ function roomStyleCard(s) {
     </div>`;
 }
 
+// The lobby's two game menus: Bool Games (the drinking games) and (Not) Bool Games (group games
+// that aren't about drinking). Which one the host is looking at; null = the selected game's.
+const MENUS = [['bool', '🍻 Bool Games'], ['notBool', '🎲 (Not) Bool Games']];
+let lobbyMenu = null;
+
+function gamePicker(s) {
+  const selected = s.games.find((g) => g.id === s.selectedGame);
+  const menu = lobbyMenu || selected?.menu || 'bool';
+  const list = s.games.filter((g) => (g.menu || 'bool') === menu);
+  return `
+    <div class="segmented game-menus">${MENUS.map(([id, label]) => `
+      <button class="${id === menu ? 'selected' : ''}" data-menu="${id}">${label}</button>`).join('')}</div>
+    <div class="games">${list.map((g) => `
+      <button class="game-option ${g.id === s.selectedGame ? 'selected' : ''}" data-cmd="selectGame" data-game-id="${PB.esc(g.id)}">
+        ${PB.esc(g.name)}${g.bestWithTv ? '<span class="tv-best">📺 Best with a TV</span>' : ''}<small>${PB.esc(g.description)}</small>
+      </button>`).join('') || '<p class="muted center">More coming soon.</p>'}</div>`;
+}
+
 function renderLobby() {
   const s = PB.state;
   // Someone joining redraws the lobby: keep the venue name the host is typing.
@@ -517,11 +546,8 @@ function renderLobby() {
       ${host && Trip.isOn() ? Trip.setup(s) : `
       <h2>Game</h2>
       ${host
-        ? `<div class="games">${s.games.map((g) => `
-            <button class="game-option ${g.id === s.selectedGame ? 'selected' : ''}" data-cmd="selectGame" data-game-id="${PB.esc(g.id)}">
-              ${PB.esc(g.name)}${g.bestWithTv ? '<span class="tv-best">📺 Best with a TV</span>' : ''}<small>${PB.esc(g.description)}</small>
-            </button>`).join('')}</div>`
-        : `<p><strong>${PB.esc(game.name)}</strong>${game.bestWithTv ? ' <span class="tv-best">📺 Best with a TV</span>' : ''}</p><p class="muted">${PB.esc(game.description)}</p>`}
+        ? gamePicker(s)
+        : `<p class="muted game-menu-tag">${game.menu === 'notBool' ? '🎲 (Not) Bool Games' : '🍻 Bool Games'}</p><p><strong>${PB.esc(game.name)}</strong>${game.bestWithTv ? ' <span class="tv-best">📺 Best with a TV</span>' : ''}</p><p class="muted">${PB.esc(game.description)}</p>`}
       ${PB.howToPlay(game.rules, `How to play ${game.name}`)}
       ${renderOptions()}
       ${host && s.custom.length ? `
@@ -549,6 +575,15 @@ function renderLobby() {
   `;
   PB.layout($app, '.ls-l');
   bindFullscreenButtons();
+  // Switching menus picks that menu's first game, unless the selected one is already in it.
+  $app.querySelectorAll('[data-menu]').forEach((b) => {
+    b.onclick = () => {
+      lobbyMenu = b.dataset.menu;
+      const inMenu = s.games.filter((g) => (g.menu || 'bool') === lobbyMenu);
+      if (inMenu.length && !inMenu.some((g) => g.id === s.selectedGame)) socket.emit('selectGame', { gameId: inMenu[0].id });
+      render();
+    };
+  });
   Trip.bind($app, (event, data) => socket.emit(event, data), render);
   // The venue's name is saved when you finish typing it.
   const venue = document.getElementById('venue');

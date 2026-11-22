@@ -379,6 +379,7 @@ module.exports = {
   ],
   minPlayers: 2,
   order: 14,
+  menu: 'notBool', // in the (Not) Bool Games menu: a group game that isn't about drinking
   bestWithTv: true,
   options: [
     { id: 'hard', label: 'Questions', default: false, choices: [{ value: false, label: 'Normal' }, { value: true, label: '🔥 Hard' }] },
