@@ -156,7 +156,22 @@ function leaveRoom() {
 }
 
 // Taps on anything with data-act send a game action; data-cmd sends a room command.
-PB.onTaps($app, (cmd, data) => (cmd === 'leaveRoom' ? leaveRoom() : socket.emit(cmd, data)));
+PB.onTaps($app, (cmd, data) => {
+  if (cmd === 'leaveRoom') return leaveRoom();
+  // The host's venue is remembered for their next room; picking one closes the venue list.
+  if (cmd === 'setStyle') {
+    store.set('lastVenue', data.style);
+    if (venuesOpen) { venuesOpen = false; render(); }
+  }
+  socket.emit(cmd, data);
+});
+// The venue list's "…" opens it; ✕, or a tap outside the list, closes it.
+$app.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-venues]');
+  if (!v || (v.classList.contains('venue-pop') && e.target !== v)) return;
+  venuesOpen = v.dataset.venues === 'open';
+  render();
+});
 
 // ---------- Connection ----------
 
@@ -419,7 +434,8 @@ function renderHome() {
     if (!name) { $err.textContent = 'Enter your name'; $name.focus(); return; }
     store.set('name', name);
     fullscreen.enter();
-    socket.emit(event, { ...payload, name, playerId, key: playerKey, ...lookToSend() }, (res) => {
+    const style = event === 'create' ? store.get('lastVenue') || undefined : undefined;
+    socket.emit(event, { ...payload, name, playerId, key: playerKey, style, ...lookToSend() }, (res) => {
       if (res.error) { $err.textContent = res.error; return; }
       homeError = '';
       store.set('room', res.code);
@@ -485,6 +501,9 @@ function renderRecap() {
 }
 
 // The host picks how the room looks; everyone's phone (and the TV) follows.
+// The full venue list pops up from the lobby's "…" button.
+let venuesOpen = false;
+
 function roomStyleCard(s) {
   const { STYLES } = ROOM_STYLES;
   const style = STYLES[s.look] || STYLES[s.style] || STYLES.classic;
@@ -495,7 +514,7 @@ function roomStyleCard(s) {
   return `<div class="card room-style-card">
       <h2>Venue &amp; style</h2>
       <input id="venue" maxlength="32" placeholder="Name it, e.g. Noah's Basement" value="${PB.esc(s.venue)}" autocomplete="off">
-      ${PB.roomStylePicker(s.randomStyle ? 'random' : s.style, (id) => `data-cmd="setStyle" data-style="${PB.esc(id)}"`)}
+      ${PB.venuePicker(s.randomStyle ? 'random' : s.style, s.style, (id) => `data-cmd="setStyle" data-style="${PB.esc(id)}"`, { open: venuesOpen })}
       ${s.randomStyle ? `<p class="muted center">🔀 Now: ${PB.esc(STYLES[s.style]?.label || '')} · somewhere new every game</p>` : ''}
       ${style.welcome ? `<p class="muted center">${PB.esc(style.welcome)}</p>` : ''}
     </div>`;

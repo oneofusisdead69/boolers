@@ -232,6 +232,23 @@
     // The room styles to pick from (the seasonal ones under their own heading). `attrs(id)` is
     // what a style's button does when tapped (its data-* attributes).
     // ('random' picks a new venue every game; `selected` is 'random' then.)
+    // The venue, compactly: the one you're in (or last played), Random, and "…" for the whole list
+    // (PB.roomStylePicker, in a pop-up the page opens: `open`, with data-venues="open"/"close").
+    venuePicker(selected, current, attrs, { open = false } = {}) {
+      const { STYLES } = ROOM_STYLES;
+      const st = STYLES[current] || STYLES.classic;
+      const id = STYLES[current] ? current : 'classic';
+      return `<div class="room-styles venue-row">
+          <button class="${selected === id ? 'selected' : ''}" ${attrs(id)}><span>${PB.esc(st.emoji)}</span>${PB.esc(st.label)}</button>
+          <button class="${selected === 'random' ? 'selected' : ''}" ${attrs('random')}><span>🔀</span>Random</button>
+          <button data-venues="open" aria-label="All venues"><span>⋯</span>All venues</button>
+        </div>
+        ${open ? `<div class="venue-pop" data-venues="close"><div class="card venue-pop-card">
+          <div class="venue-pop-head"><h2>Pick a venue</h2><button class="secondary" data-venues="close" aria-label="Close">✕</button></div>
+          ${PB.roomStylePicker(selected, attrs)}
+        </div></div>` : ''}`;
+    },
+
     roomStylePicker(selected, attrs) {
       const { STYLES } = ROOM_STYLES;
       const random = `<button class="${selected === 'random' ? 'selected' : ''}" ${attrs('random')}><span>🔀</span>Random</button>`;
