@@ -1066,6 +1066,11 @@ main.ls .dt-board { max-width: min(100%, 86vh); }
 .room-styles button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; font-size: 0.9rem; background: var(--card-2); color: var(--text); border: 2px solid transparent; }
 .room-styles button span { font-size: 1.6rem; }
 .room-styles button.selected { border-color: var(--accent); }
+.venue-row { grid-template-columns: repeat(3, 1fr); }
+.venue-pop { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.6); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
+.venue-pop-card { width: min(100%, 560px); margin: auto 0; }
+.venue-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.venue-pop-head button { width: auto; padding: 6px 12px; }
 .room-welcome b { font-size: 1.2rem; }
 
 /* Liar's Dice on the TV: everyone's dice in front of them. */

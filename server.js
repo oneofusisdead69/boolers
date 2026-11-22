@@ -368,6 +368,26 @@ const ctx = createContext({ emit, broadcast, signal, bank: questionBank });
 
 // Starts a game in the room: the host's pick, or the next stop of Around the World. `mine` is the
 // host's custom content (questions, rules…), if they wrote any.
+// Dresses a room up as a venue, or 'random' (a different one each game: see startGame). False for
+// anything else.
+function setStyle(room, style) {
+  if (style === 'random') {
+    if (!room.randomStyle) {
+      room.randomStyle = true;
+      room.style = ROOM_STYLES.pickRandom(room.style);
+      newMood(room);
+    }
+    return true;
+  }
+  if (!ROOM_STYLES.PICKABLE.includes(style)) return false;
+  room.randomStyle = false;
+  if (room.style !== style) {
+    room.style = style;
+    newMood(room);
+  }
+  return true;
+}
+
 function newRoom(hostId) {
   const code = makeCode();
   const r = {
@@ -501,7 +521,7 @@ io.on('connection', (socket) => {
     ensureHost(r);
   }
 
-  on('create', ({ name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
+  on('create', ({ name, playerId, key, avatar, color, drink, style } = {}, ack = () => {}) => {
     name = cleanName(name);
     if (!name) return ack({ error: 'Enter your name' });
     if (!validId(playerId)) return ack({ error: 'Missing player id' });
@@ -511,6 +531,8 @@ io.on('connection', (socket) => {
     analytics.track('room_created');
     const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }) };
     r.players.push(p);
+    // A new room starts where the host's last one was (their phone remembers the venue).
+    if (style) setStyle(r, style);
     attach(r, p);
     ack({ ok: true, code });
     broadcast(r);
@@ -603,21 +625,7 @@ io.on('connection', (socket) => {
   // 'random' is a different venue each game (see startGame).
   on('setStyle', ({ style } = {}) => {
     if (!hostOnly()) return;
-    if (style === 'random') {
-      if (!room.randomStyle) {
-        room.randomStyle = true;
-        room.style = ROOM_STYLES.pickRandom(room.style);
-        newMood(room);
-      }
-      return broadcast(room);
-    }
-    if (!ROOM_STYLES.PICKABLE.includes(style)) return;
-    room.randomStyle = false;
-    if (room.style !== style) {
-      room.style = style;
-      newMood(room);
-    }
-    broadcast(room);
+    if (setStyle(room, style)) broadcast(room);
   });
 
   on('selectGame', ({ gameId } = {}) => {
