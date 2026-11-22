@@ -24,6 +24,7 @@
   const DELAY = 0.06; // the gallery is drawn this far behind the newest tick (seconds)
   const SEND_MS = 40; // the crosshair goes to the server at most this often
   const CORNER = { x: 0.94, y: 0.08 }; // the second calibration dot, a little in from the corner
+  const FREEZE_PITCH = 35; // degrees off the middle, up or down: past it, turning isn't counted (see onMotion)
   const RELOAD_PITCH = 55; // degrees above the middle: muzzle up, and it reloads...
   const RELOAD_HOLD = 200; // ...held this long (ms)
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -1912,12 +1913,15 @@
     imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
     const n = Math.hypot(...imu.g) || 1;
     const gx = imu.g[0] / n, gy = imu.g[1] / n, gz = imu.g[2] / n;
-    // rotationRate: alpha about the screen's normal (z), beta about x, gamma about y; degrees/s.
-    imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
     const s = PB.state;
     const hold = cal.hold || holdFor(s);
     // The pointer: the top edge (0, 1, 0), or the back (0, 0, −1) held like a camera.
     const pitch = Math.asin(clamp(hold === 'remote' ? gy : -gz, -1, 1)) * R2D;
+    // rotationRate: alpha about the screen's normal (z), beta about x, gamma about y; degrees/s.
+    // Not while the muzzle's tipped well up or down (reloading): pointing at the ceiling, a twist
+    // of the wrist is a turn about the vertical too, and would leave the crosshair somewhere else
+    // when the gun comes back down. So it comes back where it was.
+    if (Math.abs(pitch - (cal.done || cal.step === 2 ? cal.pitch0 : 0)) < FREEZE_PITCH) imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
     if (!imu.live) { imu.live = true; motion.last = e; }
     point(imu.yaw, pitch, true);
   }
@@ -1953,8 +1957,12 @@
       return;
     }
     if (cal.done) {
-      aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
-      aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
+      // Tipped up to reload (or way down): the crosshair waits where it was, rather than vanishing
+      // off the top of the screen.
+      if (Math.abs(aim.pitch - cal.pitch0) < FREEZE_PITCH) {
+        aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
+        aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
+      }
       aim.ok = true;
       sendAim();
       // Muzzle to the ceiling: reload.
