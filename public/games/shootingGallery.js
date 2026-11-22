@@ -557,92 +557,256 @@
   }
 
   // ---------- The booth (drawn once) ----------
-  const BOOTH = {
-    // Per gallery: what's on the back wall. (The colours come from the room's own.)
-    space: 'stars', halloween: 'moon', christmas: 'snow', pirate: 'sea', lighthouse: 'sea', tiki: 'sunset', club: 'neon', saloon: 'planks', castle: 'stone', dive: 'bricks', garage: 'bricks', frat: 'bricks',
+  // A painted backdrop for the venue, then the booth in front of it: the striped awning with its
+  // bulbs and bunting, three rails the targets ride (each with a row of painted wooden waves in
+  // front, drawn over its targets: see railFront), the shelf and the counter with its prizes, and
+  // curtains either side. The colours come from the room's own (its CSS variables).
+  const RAIL_Y = [0.33, 0.53, 0.73];
+  const POND_Y = [0.72, 0.84];
+  const SHELF = 0.9;
+  function seeded(n) { let x = n; return () => ((x = (x * 16807) % 2147483647) - 1) / 2147483646; }
+  function sky(c, stops, h = H) { const g = c.createLinearGradient(0, 0, 0, h); stops.forEach((col, i) => g.addColorStop(i / (stops.length - 1), col)); c.fillStyle = g; c.fillRect(0, 0, W, h); }
+  function hills(c, y, amp, freq, col, ph = 0) {
+    c.beginPath(); c.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20) c.lineTo(x, y + Math.sin(x * freq + ph) * amp + Math.sin(x * freq * 2.7 + ph * 2) * amp * 0.3);
+    c.lineTo(W, H); c.closePath(); c.fillStyle = col; c.fill();
+  }
+  function cloud(c, x, y, s, col = 'rgba(255,255,255,0.92)') { for (const [dx, dy, r] of [[0, 0, 1], [0.9, 0.2, 0.75], [-0.9, 0.25, 0.7], [0.4, -0.45, 0.7], [-0.4, -0.35, 0.6]]) circ(c, x + dx * s, y + dy * s, r * s, col); }
+  function stars(c, n, ymax, r) { for (let i = 0; i < n; i++) circ(c, r() * W, r() * ymax, r() * 2.2 + 0.5, `rgba(255,255,255,${0.35 + r() * 0.65})`); }
+  function palm(c, x, y, h, col = '#1e3a22') {
+    c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 30, y - h * 0.5, x + 10, y - h); c.lineWidth = 14; c.strokeStyle = '#5a3a22'; c.stroke();
+    for (let i = 0; i < 6; i++) { const a = -Math.PI / 2 + (i - 2.5) * 0.55; c.beginPath(); c.moveTo(x + 10, y - h); c.quadraticCurveTo(x + 10 + Math.cos(a) * 70, y - h + Math.sin(a) * 40 - 20, x + 10 + Math.cos(a) * 130, y - h + Math.sin(a) * 40 + 40); c.lineWidth = 14; c.strokeStyle = col; c.stroke(); }
+  }
+  function pine(c, x, y, h, col) { for (let k = 0; k < 3; k++) poly(c, [x, y - h + k * h * 0.22, x - h * (0.22 + k * 0.08), y - h * (0.45 - k * 0.2), x + h * (0.22 + k * 0.08), y - h * (0.45 - k * 0.2)], col); rr(c, x - 5, y - h * 0.25, 10, h * 0.25, 2, '#3a2414'); }
+  function bareTree(c, x, y, h, col) {
+    const br = (x0, y0, a, len, w) => { if (len < 12) return; const x1 = x0 + Math.cos(a) * len; const y1 = y0 + Math.sin(a) * len; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.lineWidth = w; c.strokeStyle = col; c.lineCap = 'round'; c.stroke(); br(x1, y1, a - 0.45, len * 0.68, w * 0.65); br(x1, y1, a + 0.4, len * 0.62, w * 0.6); };
+    br(x, y, -Math.PI / 2, h * 0.4, 16);
+  }
+  function deco(c, x, y, r, col) { for (let k = 0; k < 6; k++) { c.beginPath(); c.arc(x, y, r - k * r * 0.15, Math.PI, 0); c.lineWidth = 4; c.strokeStyle = col; c.stroke(); } }
+  function sign(c, x, y, text, col, size = 54) {
+    c.save(); c.font = `900 ${size}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = col; c.shadowBlur = 26; c.fillStyle = col; c.fillText(text, x, y); c.shadowBlur = 0; c.fillStyle = '#fff'; c.globalAlpha = 0.6; c.fillText(text, x, y); c.restore();
+  }
+
+  // The venue's painted backdrop (P: the room's colours).
+  const BACKDROPS = {
+    classic(c, P, r) {
+      sky(c, ['#4aa8e8', '#9ad4f4', '#e8f6ff']);
+      circ(c, 1320, 150, 70, '#fff2a0'); circ(c, 1320, 150, 100, 'rgba(255,240,160,0.3)');
+      cloud(c, 260, 160, 50); cloud(c, 760, 110, 40); cloud(c, 1060, 220, 34);
+      // A big wheel on the far hill.
+      c.save(); c.translate(1150, 430); c.strokeStyle = '#d8402a'; c.lineWidth = 6; c.beginPath(); c.arc(0, 0, 170, 0, Math.PI * 2); c.stroke();
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * 170, Math.sin(a) * 170); c.lineWidth = 2.5; c.stroke(); rr(c, Math.cos(a) * 170 - 14, Math.sin(a) * 170, 28, 22, 5, ['#ffd23f', '#2a8af0', '#ff6ab4'][i % 3]); }
+      c.restore(); poly(c, [1150, 430, 1060, 720, 1240, 720], '#8a2a1a');
+      hills(c, 610, 30, 0.004, '#6ac04a'); hills(c, 690, 24, 0.006, '#4aa03a', 2);
+    },
+    dive(c, P, r) {
+      c.fillStyle = '#3a2218'; c.fillRect(0, 0, W, H);
+      for (let y = 0; y < H; y += 40) for (let x = ((y / 40) % 2) * 45; x < W; x += 90) rr(c, x + 3, y + 3, 84, 34, 3, ['#6a3424', '#7a3c28', '#5a2c1e'][Math.floor(r() * 3)]);
+      sign(c, 360, 200, 'BAR', '#ff4a2e', 110); sign(c, 1180, 180, 'OPEN', '#3ae0ff', 80); sign(c, 800, 120, '★ LIVE DARTS ★', '#ffd23f', 40);
+    },
+    tavern(c, P, r) {
+      c.fillStyle = '#4a2e1a'; c.fillRect(0, 0, W, H);
+      for (let x = 0; x < W; x += 120) rr(c, x, 0, 116, H, 0, x % 240 ? '#56361e' : '#4e3018');
+      for (const x of [200, 560, 1040, 1400]) { c.save(); c.translate(x, 190); DRAW.shield(c, 46); c.restore(); }
+      for (const x of [380, 1220]) { c.save(); c.translate(x, 210); DRAW.tankard(c, 34); c.restore(); }
+      const g = c.createRadialGradient(800, H, 50, 800, H, 600); g.addColorStop(0, 'rgba(255,140,40,0.45)'); g.addColorStop(1, 'rgba(255,140,40,0)'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    },
+    club(c, P, r) {
+      sky(c, ['#07060d', '#1a0e36']);
+      for (let i = 0; i < 9; i++) { c.globalAlpha = 0.3; c.strokeStyle = i % 2 ? '#29f0ff' : '#ff2bd6'; c.lineWidth = 5; c.beginPath(); c.moveTo(800, -20); c.lineTo(i * 200, H); c.stroke(); }
+      c.globalAlpha = 1; for (let i = 0; i < 300; i++) circ(c, r() * W, r() * H, 2, ['#ff2bd6', '#29f0ff', '#fff'][i % 3]);
+      c.save(); c.translate(800, 130); DRAW.disco(c, 70); c.restore();
+    },
+    castle(c, P, r) {
+      c.fillStyle = '#4a4656'; c.fillRect(0, 0, W, H);
+      for (let y = 0; y < H; y += 70) for (let x = ((y / 70) % 2) * 70; x < W; x += 140) rr(c, x + 3, y + 3, 134, 64, 6, ['#5a5668', '#524e60', '#625e70'][Math.floor(r() * 3)]);
+      for (const x of [260, 800, 1340]) { poly(c, [x - 70, 70, x + 70, 70, x + 70, 420, x, 370, x - 70, 420], P.accent); poly(c, [x - 56, 90, x + 56, 90, x + 56, 390, x, 350, x - 56, 390], mix(P.danger, '#000000', 0.2)); c.save(); c.translate(x, 210); DRAW.crow(c, 0, '', 0); c.restore(); }
+      for (const x of [530, 1070]) { rr(c, x - 8, 200, 16, 60, 3, '#3a2a1a'); circ(c, x, 186, 26, 'rgba(255,170,60,0.5)'); ell(c, x, 186, 10, 20, '#ffb040'); }
+    },
+    jazz(c, P, r) {
+      for (let x = 0; x < W; x += 60) { const g = c.createLinearGradient(x, 0, x + 60, 0); g.addColorStop(0, '#5a0e1a'); g.addColorStop(0.5, '#a81e2e'); g.addColorStop(1, '#4a0a14'); c.fillStyle = g; c.fillRect(x, 0, 60, H); }
+      const g = c.createRadialGradient(800, 120, 40, 800, 300, 700); g.addColorStop(0, 'rgba(255,230,170,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0.35)'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+      for (const x of [200, 800, 1400]) deco(c, x, 260, 160, '#e3b04b');
+    },
+    diner(c, P, r) {
+      sky(c, ['#f6efe2', '#f1e4cf']);
+      c.fillStyle = '#1e1e22';
+      for (let y = 500; y < H; y += 50) for (let x = ((y / 50) % 2) * 50; x < W; x += 100) c.fillRect(x, y, 50, 50);
+      rr(c, 0, 470, W, 30, 0, '#e63946'); rr(c, 0, 500, W, 8, 0, '#c8ccd2');
+      sign(c, 800, 200, 'EAT', '#e63946', 140); sign(c, 340, 250, 'PIE', '#2a9d8f', 70); sign(c, 1260, 250, 'SHAKES', '#ff6ab4', 60);
+    },
+    tiki(c, P, r) {
+      sky(c, ['#2a1a4a', '#c84a5a', '#ff8a3d', '#ffd070'], 620); circ(c, 800, 590, 130, '#ffe080');
+      c.fillStyle = '#1e5a6a'; c.fillRect(0, 600, W, H); for (let i = 0; i < 40; i++) ell(c, r() * W, 620 + r() * 260, 50, 4, 'rgba(255,220,160,0.35)');
+      palm(c, 130, 900, 520); palm(c, 1470, 900, 480); palm(c, 1330, 900, 360, '#24442a');
+    },
+    speakeasy(c, P, r) {
+      c.fillStyle = '#1e2a22'; c.fillRect(0, 0, W, H);
+      c.strokeStyle = 'rgba(201,162,74,0.55)'; c.lineWidth = 2.5;
+      for (let x = 0; x < W + 100; x += 100) for (let y = 0; y < H; y += 140) { c.beginPath(); c.moveTo(x, y); c.lineTo(x + 50, y + 70); c.lineTo(x, y + 140); c.lineTo(x - 50, y + 70); c.closePath(); c.stroke(); deco(c, x, y + 70, 24, 'rgba(201,162,74,0.4)'); }
+    },
+    casino(c, P, r) {
+      c.fillStyle = '#5a0a12'; c.fillRect(0, 0, W, H);
+      c.fillStyle = 'rgba(245,197,66,0.16)'; for (let x = 0; x < W; x += 80) for (let y = 0; y < H; y += 80) poly(c, [x + 40, y, x + 80, y + 40, x + 40, y + 80, x, y + 40], 'rgba(245,197,66,0.12)');
+      for (const x of [300, 800, 1300]) { const g = c.createRadialGradient(x, 0, 10, x, 200, 400); g.addColorStop(0, 'rgba(255,230,150,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(x - 400, 0, 800, 700); }
+      for (let i = 0; i < 5; i++) { c.save(); c.translate(200 + i * 300, 200 + (i % 2) * 60); c.rotate(i); DRAW.chip(c, 40); c.restore(); }
+    },
+    saloon(c, P, r) {
+      sky(c, ['#f8b860', '#ffd890', '#ffe8c0'], 640); circ(c, 1200, 300, 90, '#fff0b0');
+      c.fillStyle = '#c86a3a'; for (const [x, w, h] of [[150, 300, 220], [700, 220, 150], [1100, 380, 260]]) { c.fillRect(x, 640 - h, w, h); poly(c, [x - 30, 640, x, 640 - h, x + w, 640 - h, x + w + 40, 640], '#b85a2a'); }
+      c.fillStyle = '#e0a860'; c.fillRect(0, 630, W, H);
+      for (const [x, h] of [[480, 220], [1460, 170]]) { rr(c, x - 16, 630 - h, 32, h, 14, '#4a7a3a'); rr(c, x - 60, 630 - h * 0.7, 18, h * 0.4, 9, '#4a7a3a'); rr(c, x - 60, 630 - h * 0.7 + h * 0.3, 60, 16, 8, '#4a7a3a'); rr(c, x + 40, 630 - h * 0.85, 18, h * 0.35, 9, '#4a7a3a'); rr(c, x, 630 - h * 0.85 + h * 0.27, 58, 16, 8, '#4a7a3a'); }
+    },
+    pirate(c, P, r) {
+      sky(c, ['#1a2a4a', '#c85a4a', '#ffb060'], 560); circ(c, 400, 540, 90, '#ffd890');
+      c.fillStyle = '#1a3a5a'; c.fillRect(0, 540, W, H); for (let i = 0; i < 50; i++) ell(c, r() * W, 560 + r() * 320, 60, 5, 'rgba(255,255,255,0.18)');
+      // A ship on the horizon, sails up.
+      c.save(); c.translate(1150, 540); c.fillStyle = '#1a120e';
+      poly(c, [-150, 0, 150, 0, 120, 40, -120, 40], '#2a1a12'); for (const [x, h] of [[-70, 200], [30, 240], [110, 170]]) { c.fillRect(x - 3, -h, 6, h); poly(c, [x - 50, -h + 20, x + 50, -h + 20, x + 56, -h * 0.35, x - 56, -h * 0.35], '#e8dcc0'); }
+      poly(c, [30, -240, 30, -275, 70, -258], '#111'); c.restore();
+    },
+    beerhall(c, P, r) {
+      c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
+      for (let x = 0; x < W + 120; x += 120) for (let y = 0; y < H; y += 120) poly(c, [x, y - 60, x + 60, y, x, y + 60, x - 60, y], (x / 120 + y / 120) % 2 ? '#2a6fdb' : '#d8e6fa');
+      c.globalAlpha = 0.85; sky(c, ['rgba(160,200,255,1)', 'rgba(230,240,255,1)'], 0); c.globalAlpha = 1;
+      for (const x of [260, 800, 1340]) { c.save(); c.translate(x, 230); DRAW.pretzel(c, 60); c.restore(); }
+    },
+    space(c, P, r) {
+      sky(c, ['#03020c', '#120a2e', '#1a0e40']); stars(c, 320, H, r);
+      const n = c.createRadialGradient(400, 300, 20, 400, 300, 420); n.addColorStop(0, 'rgba(255,90,216,0.35)'); n.addColorStop(1, 'rgba(90,60,255,0)'); c.fillStyle = n; c.fillRect(0, 0, W, H);
+      circ(c, 1250, 260, 120, '#c86a4a'); ell(c, 1250, 260, 210, 34, 'rgba(255,220,180,0.55)', -0.35); circ(c, 1210, 230, 30, 'rgba(0,0,0,0.15)');
+      circ(c, 300, 620, 46, '#7cf0ff'); circ(c, 290, 610, 46, 'rgba(255,255,255,0.25)');
+    },
+    lighthouse(c, P, r) {
+      sky(c, ['#0b1626', '#1b3050'], 560); stars(c, 120, 500, r); circ(c, 300, 160, 56, '#f4ecc8');
+      c.fillStyle = '#10243a'; c.fillRect(0, 560, W, H); for (let i = 0; i < 40; i++) ell(c, r() * W, 580 + r() * 300, 50, 4, 'rgba(255,255,255,0.15)');
+      poly(c, [1180, 560, 1280, 560, 1260, 260, 1200, 260], '#f4f0e8'); for (const y of [320, 420, 510]) poly(c, [1188 + (560 - y) * 0.05, y, 1272 - (560 - y) * 0.05, y, 1270, y + 30, 1190, y + 30], '#d8302f');
+      rr(c, 1196, 220, 68, 40, 4, '#ffe080'); poly(c, [1230, 240, 0, 120, 0, 340], 'rgba(255,240,160,0.18)');
+      hills(c, 560, 10, 0.01, '#1a1a22');
+    },
+    vineyard(c, P, r) {
+      sky(c, ['#8ac4f0', '#f0e0b0']); circ(c, 1300, 180, 70, '#fff4c0');
+      hills(c, 430, 40, 0.004, '#8aa050'); hills(c, 520, 36, 0.005, '#6a8a3a', 1);
+      for (let y = 560; y < H; y += 34) { c.strokeStyle = '#3a5a22'; c.lineWidth = 10; c.setLineDash([16, 10]); c.beginPath(); c.moveTo(0, y); c.lineTo(W, y - 40); c.stroke(); } c.setLineDash([]);
+      for (const x of [220, 300, 1400]) ell(c, x, 470, 18, 90, '#2a4a22');
+    },
+    frat(c, P, r) {
+      c.fillStyle = '#5a2a1a'; c.fillRect(0, 0, W, H);
+      for (let y = 0; y < H; y += 40) for (let x = ((y / 40) % 2) * 45; x < W; x += 90) rr(c, x + 3, y + 3, 84, 34, 3, ['#7a3a24', '#6a3220', '#843e26'][Math.floor(r() * 3)]);
+      for (const [x, col] of [[220, '#d62828'], [560, '#2a6fdb'], [1040, '#2b9a5a'], [1380, '#ffd23f']]) { poly(c, [x - 90, 150, x + 90, 190, x - 90, 230], col); c.fillStyle = '#fff'; c.font = '900 34px system-ui'; c.fillText('ΒΩΩΛ', x - 80, 200); }
+      for (let x = 0; x < W; x += 50) circ(c, x + 25, 300 + Math.sin(x / 120) * 20, 8, ['#ffd23f', '#ff6ab4', '#7dff9e'][(x / 50) % 3]);
+    },
+    garage(c, P, r) {
+      c.fillStyle = '#c8b088'; c.fillRect(0, 0, W, H);
+      c.fillStyle = 'rgba(0,0,0,0.3)'; for (let x = 20; x < W; x += 40) for (let y = 20; y < H; y += 40) c.fillRect(x, y, 5, 5);
+      c.fillStyle = '#3a3f47'; for (const [x, y] of [[200, 200], [480, 170], [1100, 190], [1380, 220]]) { rr(c, x - 10, y, 20, 150, 4, '#3a3f47'); circ(c, x, y, 34, '#3a3f47'); circ(c, x, y, 16, '#c8b088'); }
+      for (const x of [760, 840]) { rr(c, x - 30, 150, 60, 200, 6, '#d8302f'); }
+    },
+    chateau(c, P, r) {
+      sky(c, ['#a8d0f0', '#f0f4e8']); cloud(c, 300, 150, 40); cloud(c, 1200, 120, 46);
+      c.fillStyle = '#e8e0cc'; c.fillRect(500, 260, 600, 260); for (const x of [470, 1100]) { c.fillRect(x, 220, 60, 300); poly(c, [x - 10, 220, x + 30, 140, x + 70, 220], '#4a5a7a'); }
+      poly(c, [500, 260, 800, 180, 1100, 260], '#4a5a7a'); for (let x = 540; x < 1080; x += 60) rr(c, x, 300, 30, 50, 12, '#6a8aaa');
+      hills(c, 520, 6, 0.01, '#5f8a36'); for (let x = 0; x < W; x += 120) ell(c, x + 60, 560, 50, 30, '#3a6a2a');
+    },
+    christmas(c, P, r) {
+      sky(c, ['#0a1a3a', '#2a4a7a']); stars(c, 100, 500, r); circ(c, 1300, 160, 60, '#f4f0e0');
+      hills(c, 560, 40, 0.004, '#e8f0ff'); hills(c, 660, 30, 0.006, '#d8e4f8', 2);
+      for (const [x, h] of [[160, 300], [300, 220], [1250, 260], [1420, 320]]) pine(c, x, 680, h, '#1a4a2a');
+      for (let i = 0; i < 180; i++) circ(c, r() * W, r() * H, r() * 3 + 1, 'rgba(255,255,255,0.8)');
+    },
+    halloween(c, P, r) {
+      sky(c, ['#0d0812', '#2a1a35', '#4a2a5a']); stars(c, 80, 400, r); circ(c, 1250, 190, 110, '#f8e8b0'); circ(c, 1290, 160, 18, '#e8d8a0');
+      hills(c, 600, 30, 0.004, '#1a1020');
+      bareTree(c, 220, 640, 420, '#120a14'); bareTree(c, 1450, 640, 360, '#120a14');
+      for (const x of [500, 640, 900, 1060]) { rr(c, x - 22, 560, 44, 70, 20, '#3a3444'); }
+      for (let i = 0; i < 6; i++) { c.save(); c.translate(600 + i * 110, 140 + (i % 3) * 40); DRAW.bat(c, 18, '', i); c.restore(); }
+    },
+    stpatricks(c, P, r) {
+      sky(c, ['#8ab4d8', '#d8e8f0']); cloud(c, 400, 160, 50, 'rgba(240,244,250,0.95)'); cloud(c, 1100, 120, 40, 'rgba(240,244,250,0.95)');
+      hills(c, 420, 50, 0.003, '#5a8a4a'); hills(c, 520, 40, 0.005, '#4a7a3a', 1); hills(c, 620, 30, 0.007, '#3a6a2e', 3);
+      c.strokeStyle = '#8a8a80'; c.lineWidth = 6; c.beginPath(); c.moveTo(0, 600); c.quadraticCurveTo(800, 540, W, 620); c.stroke();
+      for (const [x, y] of [[300, 640], [380, 660], [1200, 600]]) { ell(c, x, y, 26, 18, '#f4f0e8'); circ(c, x + 24, y - 6, 9, '#2a2a2a'); }
+    },
   };
+  // Prizes hanging from the awning at the sides: drawn in colour (animals and toys).
+  const PRIZES = ['🧸', '🦒', '🐙', '🦄', '🐻', '🐸'];
+
   function drawBooth(c, set) {
     c.save();
     c.scale(c.canvas.width / W, c.canvas.height / H);
     if (set === 'duckPond') { drawPond(c); c.restore(); return; }
-    const bg = cssVar('bg', '#1c1a26');
-    const card = cssVar('card', '#2a2833');
-    const card2 = cssVar('card-2', '#3a3644');
-    const accent = cssVar('accent', '#e8a83c');
-    const wall = BOOTH[set];
-    // The back wall.
-    const grd = c.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, mix(card, '#000000', 0.25));
-    grd.addColorStop(1, mix(bg, '#000000', 0.1));
-    c.fillStyle = grd;
-    c.fillRect(0, 0, W, H);
-    let seed = 7;
-    const r = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-    if (wall === 'stars') for (let i = 0; i < 220; i++) circ(c, r() * W, r() * H * 0.8, r() * 2 + 0.4, `rgba(255,255,255,${0.3 + r() * 0.7})`);
-    if (wall === 'stars') { circ(c, 1280, 200, 70, '#c86a4a'); ell(c, 1280, 200, 120, 18, 'rgba(255,220,180,0.4)', -0.3); }
-    if (wall === 'moon') { circ(c, 1300, 170, 80, '#f4ecc8'); circ(c, 1330, 150, 14, '#e0d6a8'); circ(c, 1275, 200, 10, '#e0d6a8'); }
-    if (wall === 'snow') for (let i = 0; i < 160; i++) circ(c, r() * W, r() * H * 0.8, r() * 3 + 1, 'rgba(255,255,255,0.7)');
-    if (wall === 'sunset') { const s = c.createLinearGradient(0, 0, 0, 600); s.addColorStop(0, '#2a1a4a'); s.addColorStop(0.6, '#ff7a3a'); s.addColorStop(1, '#ffd070'); c.fillStyle = s; c.fillRect(0, 0, W, 600); circ(c, 800, 560, 120, '#ffe080'); }
-    if (wall === 'sea' || wall === 'sunset') { c.fillStyle = mix('#13304d', bg, 0.3); c.fillRect(0, 560, W, 200); for (let i = 0; i < 30; i++) ell(c, r() * W, 580 + r() * 160, 40, 4, 'rgba(255,255,255,0.15)'); }
-    if (wall === 'neon') for (let i = 0; i < 6; i++) { c.strokeStyle = i % 2 ? '#29f0ff' : '#ff2bd6'; c.globalAlpha = 0.35; c.lineWidth = 6; c.beginPath(); c.moveTo(i * 300, 0); c.lineTo(i * 300 + 400, 700); c.stroke(); c.globalAlpha = 1; }
-    if (wall === 'planks' || wall === 'bricks' || wall === 'stone') {
-      c.globalAlpha = 0.18;
-      const bw = wall === 'planks' ? 0 : wall === 'stone' ? 140 : 90;
-      const bh = wall === 'planks' ? 70 : wall === 'stone' ? 70 : 40;
-      for (let y = 0; y < H; y += bh) {
-        c.fillStyle = '#000';
-        c.fillRect(0, y, W, 3);
-        if (bw) for (let x = ((y / bh) % 2) * bw * 0.5; x < W; x += bw) c.fillRect(x, y, 3, bh);
-      }
-      c.globalAlpha = 1;
+    const P = { bg: cssVar('bg', '#1c1a26'), card: cssVar('card', '#2a2833'), card2: cssVar('card-2', '#3a3644'), accent: cssVar('accent', '#e8a83c'), danger: cssVar('danger', '#c8303f') };
+    const r = seeded(11);
+    (BACKDROPS[set] || BACKDROPS.classic)(c, P, r);
+    // The rails: a dark slot, the chain and a brass rod.
+    for (const y of RAIL_Y) {
+      const Y = y * H;
+      c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, Y - 2, W, 26);
+      c.fillStyle = '#2a2a2e'; for (let x = 0; x < W; x += 22) c.fillRect(x, Y + 8, 14, 6);
+      const g = c.createLinearGradient(0, Y - 6, 0, Y + 6); g.addColorStop(0, '#fff2c0'); g.addColorStop(0.5, mix(P.accent, '#c9a24a', 0.5)); g.addColorStop(1, '#6a4a1a');
+      c.fillStyle = g; c.fillRect(0, Y - 6, W, 11);
     }
-    // Light from above.
-    const glow = c.createRadialGradient(W / 2, 0, 50, W / 2, 0, 900);
-    glow.addColorStop(0, 'rgba(255,240,200,0.18)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = glow;
-    c.fillRect(0, 0, W, H);
-    // The rails the cut-outs ride (brass rods), with a slot behind each.
-    for (const y of [0.35, 0.6]) {
-      c.fillStyle = 'rgba(0,0,0,0.35)';
-      c.fillRect(0, y * H, W, 26);
-      c.fillStyle = mix(accent, '#ffffff', 0.25);
-      c.fillRect(0, y * H - 4, W, 8);
-      c.fillStyle = 'rgba(0,0,0,0.3)';
-      c.fillRect(0, y * H + 3, W, 3);
-    }
-    // The shelf and the counter in front of it.
-    const wood = mix(card2, '#8a5a2e', 0.55);
-    c.fillStyle = mix(wood, '#000000', 0.25);
-    c.fillRect(0, 0.86 * H, W, 12);
-    c.fillStyle = wood;
-    c.fillRect(0, 0.86 * H + 12, W, H);
-    for (let x = 0; x < W; x += 160) { c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x, 0.86 * H + 12, 4, H); }
-    c.fillStyle = mix(wood, '#ffffff', 0.18);
-    c.fillRect(0, 0.86 * H + 12, W, 6);
-    // The striped awning along the top, scalloped.
+    // The shelf and the counter, with a painted sign along it.
+    const wood = '#8a5a2e';
+    c.fillStyle = '#4a2e14'; c.fillRect(0, SHELF * H - 10, W, 12);
+    const cg = c.createLinearGradient(0, SHELF * H, 0, H); cg.addColorStop(0, mix(wood, '#ffffff', 0.15)); cg.addColorStop(1, mix(wood, '#000000', 0.35));
+    c.fillStyle = cg; c.fillRect(0, SHELF * H, W, H);
+    for (let x = 0; x < W; x += 150) { c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(x, SHELF * H, 3, H); }
+    rr(c, 560, SHELF * H + 14, 480, 62, 10, P.danger); rr(c, 566, SHELF * H + 20, 468, 50, 8, mix(P.danger, '#000000', 0.25));
+    c.fillStyle = '#fff4d0'; c.font = '900 34px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★ SHOOTING GALLERY ★', 800, SHELF * H + 46);
+    for (let x = 60; x < W; x += 110) if (x < 540 || x > 1060) circ(c, x, SHELF * H + 46, 9, x % 220 < 110 ? '#ffe080' : '#ffffff');
+    // The awning: stripes, a scalloped edge with a bulb on each scallop, and bunting below it.
     const sw = 100;
     for (let x = 0; x < W; x += sw) {
-      c.fillStyle = (x / sw) % 2 ? mix(card2, '#ffffff', 0.7) : accent;
-      c.fillRect(x, 0, sw, 46);
-      c.beginPath();
-      c.arc(x + sw / 2, 46, sw / 2, 0, Math.PI);
-      c.fill();
+      c.fillStyle = (x / sw) % 2 ? '#fff6e8' : P.danger;
+      c.fillRect(x, 0, sw, 60);
+      c.beginPath(); c.arc(x + sw / 2, 60, sw / 2, 0, Math.PI); c.fill();
+      circ(c, x + sw / 2, 112, 11, 'rgba(255,230,140,0.35)'); circ(c, x + sw / 2, 112, 6, '#fff2b0');
     }
-    c.fillStyle = 'rgba(0,0,0,0.25)';
-    c.fillRect(0, 0, W, 6);
-    // Curtains either side.
+    c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(0, 0, W, 8);
+    c.strokeStyle = '#3a2a1a'; c.lineWidth = 2; c.beginPath(); c.moveTo(70, 130); for (let x = 70; x <= W - 70; x += 20) c.lineTo(x, 130 + Math.sin(((x - 70) / (W - 140)) * Math.PI) * 26); c.stroke();
+    for (let i = 0; i < 26; i++) { const x = 90 + i * 55; const y = 130 + Math.sin(((x - 70) / (W - 140)) * Math.PI) * 26; poly(c, [x - 15, y, x + 15, y, x, y + 30], [P.accent, '#2a8af0', '#ffffff', '#2ab84a', P.danger][i % 5]); }
+    // Posts and curtains either side, with a column of bulbs, and prizes hanging.
     for (const side of [0, 1]) {
-      const x = side ? W - 70 : 0;
-      const cg = c.createLinearGradient(x, 0, x + 70, 0);
-      const cc = mix(cssVar('danger', '#c8303f'), '#000000', 0.35);
-      cg.addColorStop(side ? 1 : 0, cc);
-      cg.addColorStop(side ? 0 : 1, mix(cc, '#000000', 0.5));
-      c.fillStyle = cg;
-      c.fillRect(x, 0, 70, H);
-      for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(x + 10 + k * 16, 0, 5, H); }
+      const x = side ? W - 80 : 0;
+      const g = c.createLinearGradient(x, 0, x + 80, 0); const cc = mix(P.danger, '#000000', 0.3);
+      g.addColorStop(side ? 1 : 0, cc); g.addColorStop(side ? 0 : 1, mix(cc, '#000000', 0.55));
+      c.fillStyle = g; c.fillRect(x, 0, 80, H);
+      for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x + 12 + k * 18, 0, 6, H); }
+      for (let y = 160; y < SHELF * H; y += 70) { circ(c, x + 40, y, 12, 'rgba(255,230,140,0.35)'); circ(c, x + 40, y, 7, '#fff2b0'); }
     }
+    c.font = '64px system-ui, sans-serif';
+    PRIZES.forEach((p, i) => { const x = i < 3 ? 120 + i * 70 : W - 120 - (i - 3) * 70; c.strokeStyle = '#3a2a1a'; c.beginPath(); c.moveTo(x, 60); c.lineTo(x, 150); c.stroke(); c.fillText(p, x, 190); });
     c.restore();
+  }
+
+  // In front of each rail: a row of painted wooden waves (over the targets riding it, which stand
+  // behind them on sticks). On the pond, ripples. One canvas per rail, made with the booth.
+  function railFront(set, lane, scale) {
+    const pond = set === 'duckPond';
+    const y = (pond ? POND_Y : RAIL_Y)[lane];
+    if (y == null) return null;
+    const h = 60;
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(W * scale);
+    cv.height = Math.round(h * scale);
+    const c = cv.getContext('2d');
+    c.scale(scale, scale);
+    if (pond) {
+      c.fillStyle = 'rgba(70,90,130,0.55)';
+      c.fillRect(0, 26, W, 34);
+      for (let x = 0; x < W; x += 40) ell(c, x + 20, 28, 26, 4, 'rgba(255,240,210,0.4)');
+    } else {
+      const acc = cssVar('accent', '#e8a83c');
+      const cols = [mix('#2a8af0', '#1a3a6a', lane * 0.25), mix('#4ab0ff', '#2a5a9a', lane * 0.25)];
+      for (let k = 0; k < 2; k++) {
+        c.beginPath(); c.moveTo(0, h);
+        for (let x = 0; x <= W; x += 8) c.lineTo(x, 18 + k * 12 + Math.sin((x + k * 60 + lane * 90) / 46) * 10);
+        c.lineTo(W, h); c.closePath(); c.fillStyle = cols[k]; c.fill(); c.lineWidth = 2.5; c.strokeStyle = k ? '#ffffff' : acc; c.stroke();
+      }
+    }
+    return { cv, y: (y * H) - 22, h, z: 2 + lane * 0.1 };
   }
 
   // The duck pond at dawn: a pale sky going gold at the horizon, a low sun, a line of far trees,
@@ -725,29 +889,29 @@
   // 120 × 48 box) and how it sounds.
   // (Possible later: collect guns across venues.)
   const GUNS = {
-    corkRifle: { name: 'Carnival Cork Rifle', finish: '#8a5a2e', accent: '#c8ccd2', snd: { n: 1800, len: 0.06, tone: 520, to: 260, ng: 0.5, tg: 0.18 } },
-    tapPistol: { name: 'Tap-Handle Pistol', finish: '#3a3f47', accent: '#ff5a36', snd: { n: 1200, len: 0.08, tone: 220, to: 110, ng: 0.55, tg: 0.2 } },
-    musket: { name: 'Old Musket', finish: '#6a4428', accent: '#c9a24a', snd: { n: 700, len: 0.16, tone: 140, to: 70, ng: 0.6, tg: 0.2 } },
-    neonLaser: { name: 'Neon Laser', finish: '#1e1e22', accent: '#ff2bd6', snd: { n: 0, len: 0.14, tone: 1400, to: 300, ng: 0, tg: 0.16, type: 'square' } },
-    crossbow: { name: 'Crossbow', finish: '#6a4428', accent: '#c8ccd2', snd: { n: 3000, len: 0.05, tone: 180, to: 160, ng: 0.3, tg: 0.22, type: 'triangle' } },
-    trumpetBuss: { name: 'Trumpet-Bell Blunderbuss', finish: '#e3b23c', accent: '#8a1a2a', snd: { n: 600, len: 0.12, tone: 330, to: 300, ng: 0.4, tg: 0.18, type: 'sawtooth' } },
-    ketchup: { name: 'Ketchup Squirter', finish: '#c8302f', accent: '#f4f4f4', snd: { n: 900, len: 0.12, tone: 300, to: 600, ng: 0.35, tg: 0.1 } },
-    blowpipe: { name: 'Blowpipe', finish: '#a8703a', accent: '#2a8a4a', snd: { n: 2600, len: 0.1, tone: 0, ng: 0.35, tg: 0 } },
-    drumRepeater: { name: 'Drum Repeater', finish: '#1e1e22', accent: '#8a5a2e', snd: { n: 1400, len: 0.05, tone: 180, to: 90, ng: 0.55, tg: 0.18 } },
-    derringer: { name: 'Gold Derringer', finish: '#e3b23c', accent: '#f4f4f4', snd: { n: 2200, len: 0.05, tone: 600, to: 300, ng: 0.4, tg: 0.14 } },
-    sixShooter: { name: 'Six-Shooter', finish: '#c8ccd2', accent: '#8a5a2e', snd: { n: 1100, len: 0.1, tone: 160, to: 80, ng: 0.6, tg: 0.22 } },
-    flintlock: { name: 'Flintlock', finish: '#6a4428', accent: '#c9a24a', snd: { n: 800, len: 0.15, tone: 120, to: 60, ng: 0.6, tg: 0.2, click: true } },
-    corkPopper: { name: 'Cork Popper', finish: '#2a6fdb', accent: '#f4f4f4', snd: { n: 2000, len: 0.05, tone: 700, to: 400, ng: 0.3, tg: 0.2, type: 'sine' } },
-    rayGun: { name: 'Ray Gun', finish: '#c8ccd2', accent: '#7cf0ff', snd: { n: 0, len: 0.22, tone: 1800, to: 200, ng: 0, tg: 0.14, type: 'sine', wob: 30 } },
-    flarePistol: { name: 'Flare Pistol', finish: '#ff8a1f', accent: '#1e1e22', snd: { n: 900, len: 0.2, tone: 260, to: 520, ng: 0.4, tg: 0.1 } },
-    slingshot: { name: 'Vine Slingshot', finish: '#8a5a2e', accent: '#c0392b', snd: { n: 3500, len: 0.06, tone: 400, to: 900, ng: 0.25, tg: 0.12, type: 'triangle' } },
-    foamBlaster: { name: 'Foam Dart Blaster', finish: '#ff8a1f', accent: '#2a8af0', snd: { n: 1500, len: 0.08, tone: 500, to: 380, ng: 0.35, tg: 0.12, type: 'triangle' } },
-    nailGun: { name: 'Nail Gun', finish: '#ffd23f', accent: '#1e1e22', snd: { n: 2500, len: 0.04, tone: 300, to: 200, ng: 0.5, tg: 0.15, type: 'square' } },
-    duelPistol: { name: 'Duelling Pistol', finish: '#3a3f47', accent: '#e6c06a', snd: { n: 900, len: 0.12, tone: 150, to: 75, ng: 0.55, tg: 0.2 } },
-    candyPopgun: { name: 'Candy-Cane Popgun', finish: '#f4f4f4', accent: '#c8302f', snd: { n: 2200, len: 0.05, tone: 900, to: 500, ng: 0.3, tg: 0.18, type: 'sine', bell: true } },
-    pumpkinBlaster: { name: 'Pumpkin Blaster', finish: '#ff7a1a', accent: '#2a1a35', snd: { n: 500, len: 0.18, tone: 90, to: 45, ng: 0.5, tg: 0.22, type: 'triangle' } },
-    stalkingRifle: { name: 'Stalking Rifle', finish: '#5a3e26', accent: '#3a3f47', snd: { n: 1000, len: 0.13, tone: 130, to: 65, ng: 0.6, tg: 0.2 } },
-    sideBySide: { name: 'Side-by-Side Shotgun', finish: '#5a3e26', accent: '#9aa0a6', snd: { n: 650, len: 0.2, tone: 100, to: 50, ng: 0.65, tg: 0.22 } },
+    corkRifle: { mag: 5, name: 'Carnival Cork Rifle', finish: '#8a5a2e', accent: '#c8ccd2', snd: { n: 1800, len: 0.06, tone: 520, to: 260, ng: 0.5, tg: 0.18 } },
+    tapPistol: { mag: 6, name: 'Tap-Handle Pistol', finish: '#3a3f47', accent: '#ff5a36', snd: { n: 1200, len: 0.08, tone: 220, to: 110, ng: 0.55, tg: 0.2 } },
+    musket: { mag: 1, name: 'Old Musket', finish: '#6a4428', accent: '#c9a24a', snd: { n: 700, len: 0.16, tone: 140, to: 70, ng: 0.6, tg: 0.2 } },
+    neonLaser: { mag: 10, name: 'Neon Laser', finish: '#1e1e22', accent: '#ff2bd6', snd: { n: 0, len: 0.14, tone: 1400, to: 300, ng: 0, tg: 0.16, type: 'square' } },
+    crossbow: { mag: 1, name: 'Crossbow', finish: '#6a4428', accent: '#c8ccd2', snd: { n: 3000, len: 0.05, tone: 180, to: 160, ng: 0.3, tg: 0.22, type: 'triangle' } },
+    trumpetBuss: { mag: 1, name: 'Trumpet-Bell Blunderbuss', finish: '#e3b23c', accent: '#8a1a2a', snd: { n: 600, len: 0.12, tone: 330, to: 300, ng: 0.4, tg: 0.18, type: 'sawtooth' } },
+    ketchup: { mag: 12, name: 'Ketchup Squirter', finish: '#c8302f', accent: '#f4f4f4', snd: { n: 900, len: 0.12, tone: 300, to: 600, ng: 0.35, tg: 0.1 } },
+    blowpipe: { mag: 1, name: 'Blowpipe', finish: '#a8703a', accent: '#2a8a4a', snd: { n: 2600, len: 0.1, tone: 0, ng: 0.35, tg: 0 } },
+    drumRepeater: { mag: 16, name: 'Drum Repeater', finish: '#1e1e22', accent: '#8a5a2e', snd: { n: 1400, len: 0.05, tone: 180, to: 90, ng: 0.55, tg: 0.18 } },
+    derringer: { mag: 2, name: 'Gold Derringer', finish: '#e3b23c', accent: '#f4f4f4', snd: { n: 2200, len: 0.05, tone: 600, to: 300, ng: 0.4, tg: 0.14 } },
+    sixShooter: { mag: 6, name: 'Six-Shooter', finish: '#c8ccd2', accent: '#8a5a2e', snd: { n: 1100, len: 0.1, tone: 160, to: 80, ng: 0.6, tg: 0.22 } },
+    flintlock: { mag: 1, name: 'Flintlock', finish: '#6a4428', accent: '#c9a24a', snd: { n: 800, len: 0.15, tone: 120, to: 60, ng: 0.6, tg: 0.2, click: true } },
+    corkPopper: { mag: 4, name: 'Cork Popper', finish: '#2a6fdb', accent: '#f4f4f4', snd: { n: 2000, len: 0.05, tone: 700, to: 400, ng: 0.3, tg: 0.2, type: 'sine' } },
+    rayGun: { mag: 8, name: 'Ray Gun', finish: '#c8ccd2', accent: '#7cf0ff', snd: { n: 0, len: 0.22, tone: 1800, to: 200, ng: 0, tg: 0.14, type: 'sine', wob: 30 } },
+    flarePistol: { mag: 1, name: 'Flare Pistol', finish: '#ff8a1f', accent: '#1e1e22', snd: { n: 900, len: 0.2, tone: 260, to: 520, ng: 0.4, tg: 0.1 } },
+    slingshot: { mag: 1, name: 'Vine Slingshot', finish: '#8a5a2e', accent: '#c0392b', snd: { n: 3500, len: 0.06, tone: 400, to: 900, ng: 0.25, tg: 0.12, type: 'triangle' } },
+    foamBlaster: { mag: 8, name: 'Foam Dart Blaster', finish: '#ff8a1f', accent: '#2a8af0', snd: { n: 1500, len: 0.08, tone: 500, to: 380, ng: 0.35, tg: 0.12, type: 'triangle' } },
+    nailGun: { mag: 20, name: 'Nail Gun', finish: '#ffd23f', accent: '#1e1e22', snd: { n: 2500, len: 0.04, tone: 300, to: 200, ng: 0.5, tg: 0.15, type: 'square' } },
+    duelPistol: { mag: 1, name: 'Duelling Pistol', finish: '#3a3f47', accent: '#e6c06a', snd: { n: 900, len: 0.12, tone: 150, to: 75, ng: 0.55, tg: 0.2 } },
+    candyPopgun: { mag: 5, name: 'Candy-Cane Popgun', finish: '#f4f4f4', accent: '#c8302f', snd: { n: 2200, len: 0.05, tone: 900, to: 500, ng: 0.3, tg: 0.18, type: 'sine', bell: true } },
+    pumpkinBlaster: { mag: 3, name: 'Pumpkin Blaster', finish: '#ff7a1a', accent: '#2a1a35', snd: { n: 500, len: 0.18, tone: 90, to: 45, ng: 0.5, tg: 0.22, type: 'triangle' } },
+    stalkingRifle: { mag: 4, name: 'Stalking Rifle', finish: '#5a3e26', accent: '#3a3f47', snd: { n: 1000, len: 0.13, tone: 130, to: 65, ng: 0.6, tg: 0.2 } },
+    sideBySide: { mag: 2, name: 'Side-by-Side Shotgun', finish: '#5a3e26', accent: '#9aa0a6', snd: { n: 650, len: 0.2, tone: 100, to: 50, ng: 0.65, tg: 0.22 } },
   };
   const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'slingshot', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle' };
   const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
@@ -760,42 +924,216 @@
     return HOUSE[room] || HOUSE.classic;
   };
 
-  // Side-on drawings. f: finish, a: accent; dark metal and wood are shades of them.
-  const dk = (c) => mix(c, '#000000', 0.35);
-  const lt = (c) => mix(c, '#ffffff', 0.3);
+  // ---------- The guns, side on ----------
+  // Drawn into a 240 × 96 box, muzzle to the right, from a kit of parts (barrels, a hammer, the
+  // trigger guard, a checkered or grained grip...), shaded with gradients of the finish (f) and
+  // accent (a) colours and inked like the rest of the art. Each drawing also says where its muzzle
+  // is (the flash), where the thumb goes (the hammer: the FIRE screen marks it) and shows its
+  // rounds on the gun (class sg-rounds: the FIRE screen greys out the spent ones).
+  const INK = '#16110d';
+  const dk = (c, k = 0.35) => mix(c, '#000000', k);
+  const lt = (c, k = 0.3) => mix(c, '#ffffff', k);
+  function kit(u, f, a) {
+    const st = `stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"`;
+    const grad = (id, c) => `<linearGradient id="${u}${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lt(c, 0.5)}"/><stop offset="0.38" stop-color="${c}"/><stop offset="1" stop-color="${dk(c, 0.5)}"/></linearGradient>`;
+    const F = (c = 'f') => (c.startsWith('#') ? c : `url(#${u}${c})`);
+    const K = {
+      defs: `<defs>${grad('f', f)}${grad('a', a)}${grad('s', '#a8aeb8')}${grad('b', '#d8a84a')}${grad('w', '#7a4a26')}${grad('d', '#2a2a30')}
+        <pattern id="${u}k" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0H3.2M0 0V3.2" stroke="rgba(0,0,0,0.4)" stroke-width="0.7"/></pattern>
+        <pattern id="${u}g" width="46" height="5" patternUnits="userSpaceOnUse"><path d="M0 2.5 Q11 0.6 23 2.5 T46 2.5" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="0.7"/></pattern>
+        <pattern id="${u}e" width="10" height="8" patternUnits="userSpaceOnUse"><path d="M0 4 q2.5 -4 5 0 t5 0" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/></pattern>
+        <radialGradient id="${u}x"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#ffe680"/><stop offset="0.65" stop-color="#ff8a1f"/><stop offset="1" stop-color="#ff5a1f" stop-opacity="0"/></radialGradient></defs>`,
+      st,
+      F,
+      shape: (d, c = 'f') => `<path d="${d}" fill="${F(c)}" ${st}/>`,
+      // A shape with a texture over it: g grain, k checkering, e engraving.
+      tex: (d, c = 'f', t = 'g') => `<path d="${d}" fill="${F(c)}" ${st}/><path d="${d}" fill="url(#${u}${t})"/>`,
+      shine: (d, w = 2) => `<path d="${d}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="${w}" stroke-linecap="round"/>`,
+      line: (d, w = 1.2, c = INK) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`,
+      barrel: (x0, x1, y, h, c = 'f') => `<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${h}" rx="${Math.min(3, h / 3)}" fill="${F(c)}" ${st}/><path d="M${x0 + 3} ${y + h * 0.28}H${x1 - 4}" stroke="rgba(255,255,255,0.5)" stroke-width="${Math.max(1, h * 0.13)}" stroke-linecap="round"/><rect x="${x1 - 5}" y="${y - 1.2}" width="6" height="${h + 2.4}" rx="1.5" fill="${F(c)}" ${st}/>`,
+      band: (x, y, h, w = 4, c = 'b') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1" fill="${F(c)}" ${st}/>`,
+      screw: (x, y, r = 2.2) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${lt(f, 0.55)}" stroke="${INK}" stroke-width="1"/><path d="M${x - r * 0.7} ${y - r * 0.3}L${x + r * 0.7} ${y + r * 0.3}" stroke="${INK}" stroke-width="0.8"/>`,
+      sight: (x, y, h = 5, c = 'f') => `<path d="M${x} ${y} l1.5 -${h} h3.5 l1 ${h}z" fill="${F(c)}" ${st}/>`,
+      hammer: (x, y, c = 'f') => `<path d="M${x} ${y} l-3 -9 q-5 -6 -12 -2 q6 1 7 5 l2 7z" fill="${F(c)}" ${st}/>`,
+      guard: (x, y, r = 11, c = 'f') => `<path d="M${x - r} ${y} q0 ${r * 1.25} ${r} ${r * 1.25} q${r} 0 ${r * 1.1} -${r * 1.25}" fill="none" stroke="${INK}" stroke-width="6.2"/><path d="M${x - r} ${y} q0 ${r * 1.25} ${r} ${r * 1.25} q${r} 0 ${r * 1.1} -${r * 1.25}" fill="none" stroke="${F(c)}" stroke-width="3.4"/><path d="M${x + 2} ${y} q-1 ${r * 0.7} -6 ${r * 0.9}" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`,
+      flash: (x, y) => `<g class="sg-muzzle" transform="translate(${x} ${y})"><ellipse cx="14" rx="30" ry="17" fill="url(#${u}x)"/><path d="M2 0 L44 -8 L30 0 L44 8Z M2 0 L22 -20 L16 -3Z M2 0 L22 20 L16 3Z" fill="#fff3b0"/></g>`,
+      // The rounds: shells (or dots, or anything) in a row; the FIRE screen greys the spent ones.
+      rounds: (x, y, n, { dx = 6.5, dy = 0, kind = 'shell', w = 4.4, h = 10, rot = 0 } = {}) => `<g class="sg-rounds">${Array.from({ length: n }, (_, i) => {
+        const X = +(x + i * dx).toFixed(1);
+        const Y = +(y + i * dy).toFixed(1);
+        if (kind === 'dot') return `<circle cx="${X}" cy="${Y}" r="${w / 2}" fill="url(#${u}b)" stroke="${INK}" stroke-width="0.9"/>`;
+        if (kind === 'cell') return `<rect x="${X - w / 2}" y="${Y - h / 2}" width="${w}" height="${h}" rx="1.5" fill="${a}" stroke="${INK}" stroke-width="0.9"/>`;
+        return `<g transform="translate(${X} ${Y}) rotate(${rot})"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${w / 2}" fill="url(#${u}b)" stroke="${INK}" stroke-width="0.8"/><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h * 0.36}" rx="${w / 2}" fill="#c8602a"/></g>`;
+      }).join('')}</g>`,
+      group: (inner) => `<g class="sg-rounds">${inner}</g>`,
+    };
+    return K;
+  }
+  // Each: (K, f, a, n rounds) -> { body, m: [muzzle x, y], t: [thumb x, y] }.
   const GUN_ART = {
-    corkRifle: (f, a) => `<path d="M4 30 L34 24 L40 34 L14 42 Z" fill="${f}"/><rect x="32" y="20" width="80" height="7" rx="2" fill="${a}"/><rect x="34" y="27" width="40" height="5" fill="${dk(f)}"/><path d="M50 32 q4 8 10 0" fill="none" stroke="${dk(a)}" stroke-width="2.5"/><circle cx="114" cy="23.5" r="4" fill="#d8b070"/>`,
-    tapPistol: (f, a) => `<rect x="30" y="16" width="70" height="12" rx="3" fill="${f}"/><path d="M36 28 L58 28 L52 46 L34 46 Z" fill="${dk(f)}"/><rect x="40" y="2" width="9" height="16" rx="4" fill="${a}"/><rect x="96" y="18" width="10" height="8" fill="${lt(f)}"/><path d="M58 28 q4 8 10 0" fill="none" stroke="${lt(f)}" stroke-width="2.5"/>`,
-    musket: (f, a) => `<path d="M2 32 L36 22 L44 34 L10 44 Z" fill="${f}"/><rect x="36" y="20" width="82" height="6" rx="2" fill="${dk(a)}"/><rect x="40" y="26" width="58" height="5" fill="${f}"/><rect x="44" y="16" width="8" height="6" fill="${a}"/><path d="M48 31 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/>`,
-    neonLaser: (f, a) => `<path d="M24 14 L96 14 L104 22 L96 30 L40 30 L34 46 L22 46 L26 30 Z" fill="${f}"/><rect x="30" y="19" width="66" height="4" rx="2" fill="${a}"/><rect x="104" y="19" width="14" height="6" rx="3" fill="${a}"/><circle cx="50" cy="38" r="3" fill="${a}"/>`,
-    crossbow: (f, a) => `<rect x="10" y="22" width="92" height="8" rx="3" fill="${f}"/><path d="M84 2 Q74 26 84 46" fill="none" stroke="${a}" stroke-width="5"/><path d="M84 4 L40 26 L84 44" fill="none" stroke="#e8e0d0" stroke-width="1.5"/><rect x="40" y="24" width="72" height="3" fill="${lt(a)}"/><path d="M112 22 l8 3.5 l-8 3.5z" fill="${lt(a)}"/><path d="M20 30 L30 30 L26 44 L16 44 Z" fill="${dk(f)}"/>`,
-    trumpetBuss: (f, a) => `<path d="M4 32 L30 24 L36 34 L12 42 Z" fill="${a}"/><rect x="28" y="21" width="60" height="7" fill="${f}"/><path d="M86 24 L118 8 L118 42 L86 26 Z" fill="${f}"/><ellipse cx="117" cy="25" rx="3" ry="17" fill="${dk(f)}"/><circle cx="50" cy="18" r="3" fill="${lt(f)}"/><circle cx="60" cy="18" r="3" fill="${lt(f)}"/><circle cx="70" cy="18" r="3" fill="${lt(f)}"/>`,
-    ketchup: (f, a) => `<rect x="30" y="10" width="40" height="34" rx="12" fill="${f}"/><path d="M70 18 L104 22 L104 26 L70 30 Z" fill="${a}"/><rect x="104" y="22" width="12" height="4" rx="2" fill="${dk(f)}"/><rect x="38" y="18" width="24" height="10" rx="3" fill="${a}"/><text x="50" y="26" font-size="7" text-anchor="middle" fill="${f}" font-family="sans-serif" font-weight="900">57</text>`,
-    blowpipe: (f, a) => `<rect x="2" y="21" width="116" height="7" rx="3.5" fill="${f}"/>${[16, 40, 64, 88].map((x) => `<rect x="${x}" y="20" width="5" height="9" rx="1" fill="${a}"/>`).join('')}<path d="M2 18 q-2 6 0 12" fill="none" stroke="${dk(f)}" stroke-width="3"/><path d="M60 29 q2 10 -4 14 M66 29 q2 10 6 13" stroke="${a}" stroke-width="2" fill="none"/>`,
-    drumRepeater: (f, a) => `<path d="M2 30 L28 24 L32 34 L8 40 Z" fill="${a}"/><rect x="28" y="20" width="84" height="8" rx="2" fill="${f}"/><circle cx="52" cy="34" r="10" fill="${dk(f)}"/><circle cx="52" cy="34" r="4" fill="${lt(f)}"/><path d="M78 28 L86 28 L84 42 L76 42 Z" fill="${a}"/><rect x="100" y="16" width="4" height="5" fill="${f}"/>`,
-    derringer: (f, a) => `<rect x="40" y="16" width="48" height="12" rx="4" fill="${f}"/><rect x="40" y="16" width="48" height="5" rx="2" fill="${lt(f)}"/><path d="M40 26 L54 26 L46 46 L32 44 Z" fill="${a}"/><path d="M54 28 q3 7 8 0" fill="none" stroke="${dk(f)}" stroke-width="2"/>`,
-    sixShooter: (f, a) => `<rect x="44" y="16" width="70" height="8" rx="2" fill="${f}"/><rect x="40" y="14" width="26" height="16" rx="5" fill="${dk(f)}"/><path d="M42 26 L58 28 L50 48 L34 46 Z" fill="${a}"/><path d="M56 30 q4 8 10 0" fill="none" stroke="${dk(f)}" stroke-width="2.5"/><rect x="110" y="12" width="3" height="5" fill="${f}"/><path d="M40 16 l-6 -6" stroke="${f}" stroke-width="3"/>`,
-    flintlock: (f, a) => `<path d="M30 22 L102 20 L104 28 L34 30 Z" fill="${dk(a)}"/><path d="M30 22 Q16 26 18 44 L32 46 Q30 34 40 30 Z" fill="${f}"/><path d="M40 14 l8 2 l-2 8 z" fill="${a}"/><circle cx="20" cy="44" r="3.5" fill="${a}"/><path d="M42 30 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/>`,
-    corkPopper: (f, a) => `<rect x="26" y="16" width="70" height="12" rx="6" fill="${f}"/><path d="M30 28 L48 28 L42 46 L28 46 Z" fill="${dk(f)}"/><rect x="96" y="17" width="16" height="10" rx="3" fill="#c8a070"/><path d="M48 28 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/>${[40, 60, 80].map((x) => `<rect x="${x}" y="16" width="4" height="12" fill="${a}"/>`).join('')}`,
-    rayGun: (f, a) => `<ellipse cx="52" cy="22" rx="26" ry="11" fill="${f}"/>${[60, 70, 80].map((x, i) => `<ellipse cx="${x + 12}" cy="22" rx="3" ry="${10 - i * 2}" fill="${a}"/>`).join('')}<rect x="78" y="19" width="28" height="6" fill="${f}"/><circle cx="110" cy="22" r="6" fill="${a}"/><path d="M36 30 L52 30 L44 46 L30 44 Z" fill="${dk(f)}"/><circle cx="44" cy="18" r="4" fill="${lt(a)}"/>`,
-    flarePistol: (f, a) => `<rect x="34" y="12" width="64" height="18" rx="5" fill="${f}"/><rect x="92" y="10" width="10" height="22" rx="3" fill="${dk(f)}"/><path d="M36 28 L54 28 L48 46 L32 46 Z" fill="${a}"/><path d="M54 30 q4 7 9 0" fill="none" stroke="${a}" stroke-width="2.5"/>`,
-    slingshot: (f, a) => `<path d="M60 46 L60 28 L46 4 M60 28 L74 4" fill="none" stroke="${f}" stroke-width="7" stroke-linecap="round"/><path d="M46 6 Q60 40 74 6" fill="none" stroke="${a}" stroke-width="2.5"/><circle cx="60" cy="24" r="5" fill="#6a2a8a"/>`,
-    foamBlaster: (f, a) => `<rect x="24" y="12" width="76" height="16" rx="6" fill="${f}"/><rect x="40" y="6" width="40" height="7" rx="3" fill="${a}"/><path d="M30 28 L48 28 L42 46 L28 46 Z" fill="${a}"/><rect x="100" y="16" width="12" height="8" rx="2" fill="${dk(f)}"/><path d="M112 18 h6 v4 h-6z" fill="${a}"/><circle cx="62" cy="20" r="3" fill="#fff"/>`,
-    nailGun: (f, a) => `<path d="M30 10 L96 10 L96 26 L44 26 L40 44 L26 44 L30 26 Z" fill="${f}"/><rect x="96" y="12" width="18" height="12" rx="2" fill="${a}"/><rect x="58" y="26" width="30" height="8" fill="${a}"/><rect x="34" y="14" width="30" height="5" rx="2" fill="${dk(f)}"/>`,
-    duelPistol: (f, a) => `<rect x="36" y="18" width="78" height="7" rx="2" fill="${f}"/><path d="M36 18 Q18 22 20 44 L34 46 Q34 32 44 26 Z" fill="${dk(a)}"/><path d="M36 18 L50 16 L50 26 L38 26Z" fill="${a}"/><path d="M44 26 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/><circle cx="22" cy="44" r="3" fill="${a}"/>`,
-    candyPopgun: (f, a) => `<rect x="30" y="17" width="80" height="10" rx="5" fill="${f}"/>${[34, 46, 58, 70, 82, 94].map((x) => `<path d="M${x} 27 l8 -10 h5 l-8 10z" fill="${a}"/>`).join('')}<path d="M36 27 Q16 30 20 46" fill="none" stroke="${a}" stroke-width="7" stroke-linecap="round"/><path d="M36 27 Q16 30 20 46" fill="none" stroke="${f}" stroke-width="3" stroke-dasharray="4 4"/><circle cx="112" cy="22" r="5" fill="${a}"/>`,
-    pumpkinBlaster: (f, a) => `<ellipse cx="54" cy="22" rx="22" ry="16" fill="${f}"/><path d="M42 10 q-3 12 0 24 M66 10 q3 12 0 24" stroke="${dk(f)}" stroke-width="2" fill="none"/><rect x="74" y="18" width="40" height="8" rx="2" fill="${a}"/><path d="M48 20 l4 -5 l4 5z M58 20 l4 -5 l4 5z" fill="${dk(a)}"/><path d="M38 34 L50 34 L44 47 L32 46 Z" fill="${a}"/><rect x="52" y="2" width="4" height="7" fill="#4a6a2a"/>`,
-    stalkingRifle: (f, a) => `<path d="M2 32 L36 24 L42 34 L10 44 Z" fill="${f}"/><rect x="36" y="22" width="82" height="5" rx="2" fill="${a}"/><rect x="38" y="27" width="50" height="5" fill="${f}"/><rect x="48" y="12" width="34" height="7" rx="3" fill="${dk(a)}"/><path d="M54 19 v3 M76 19 v3" stroke="${dk(a)}" stroke-width="2"/><path d="M50 32 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/>`,
-    sideBySide: (f, a) => `<path d="M2 32 L36 22 L44 34 L10 44 Z" fill="${f}"/><rect x="38" y="18" width="80" height="5" rx="2" fill="${a}"/><rect x="38" y="23" width="80" height="5" rx="2" fill="${dk(a)}"/><rect x="40" y="28" width="40" height="5" fill="${f}"/><path d="M52 33 q4 8 10 0" fill="none" stroke="${a}" stroke-width="2.5"/>`,
+    corkRifle: (K, f, a, n) => ({ m: [232, 37], t: [96, 26], body: `
+      ${K.tex('M8 46 L64 32 L104 32 L104 50 L74 52 Q44 62 14 76 Q4 66 8 46Z', 'f')}${K.shine('M14 50 L62 37', 1.5)}
+      ${K.barrel(98, 232, 32, 10, 'a')}${K.barrel(104, 200, 44, 7, 'a')}
+      ${K.shape('M92 30 H122 V52 H92Z', 'a')}${K.screw(100, 41)}${K.screw(114, 41)}
+      ${K.sight(224, 32)}${K.sight(150, 32, 4)}${K.guard(102, 54)}${K.band(196, 42, 10)}
+      ${K.rounds(132, 47.5, n, { dx: 12, kind: 'dot', w: 6.4 })}` }),
+    tapPistol: (K, f, a, n) => ({ m: [214, 34], t: [96, 14], body: `
+      ${K.tex('M84 44 L118 46 Q110 68 108 90 L72 90 Q72 66 84 44Z', 'a', 'k')}
+      ${K.shape('M70 22 H206 Q210 22 210 26 V42 H70Z', 'f')}${K.shine('M74 26 H204')}
+      ${Array.from({ length: 7 }, (_, i) => K.line(`M${78 + i * 4} 27 V38`, 1.2)).join('')}
+      ${K.barrel(204, 216, 28, 10, 'd')}${K.sight(196, 22)}
+      ${K.shape('M90 4 Q90 0 96 0 H104 Q110 0 110 4 V22 H90Z', 'a')}${K.shape('M93 4 H107 V12 H93Z', '#f4ecd8')}${K.line('M96 8 H104', 1.6, dk(a))}
+      ${K.guard(126, 44)}${K.screw(94, 66)}
+      ${K.rounds(140, 33, n, { dx: 8.5 })}` }),
+    musket: (K, f, a, n) => ({ m: [236, 36], t: [90, 22], body: `
+      ${K.tex('M4 50 L60 34 L100 32 L100 48 L64 52 Q36 66 10 80 Q0 70 4 50Z', 'f')}${K.shine('M12 54 L60 39', 1.4)}
+      ${K.barrel(90, 236, 31, 9, 's')}${K.line('M100 46 H226', 2.2, dk(f))}
+      ${K.shape('M76 32 Q80 26 104 28 L108 42 Q90 46 78 42Z', 's')}${K.screw(90, 37)}
+      ${K.shape('M84 28 L80 16 Q86 10 92 14 L90 28Z', 's')}${K.shape('M80 14 l8 -4 l2 4 l-8 4z', '#4a4a50')}
+      ${[130, 172, 214].map((x) => K.band(x, 29, 13)).join('')}${K.guard(100, 48, 10, 'b')}${K.sight(228, 31, 4)}
+      ${K.rounds(116, 24, n, { kind: 'dot', w: 7 })}` }),
+    neonLaser: (K, f, a, n) => ({ m: [226, 34], t: [96, 16], body: `
+      ${K.shape('M70 20 L196 20 L214 28 L214 40 L196 46 L112 46 L102 54 L106 88 L78 90 L80 50 L66 46 Z', 'f')}
+      <path d="M78 28 H198 M84 40 H190" stroke="${a}" stroke-width="3.2" stroke-linecap="round" opacity="0.95"/><path d="M78 28 H198" stroke="${a}" stroke-width="9" opacity="0.25" stroke-linecap="round"/>
+      ${K.shape('M214 28 H228 Q232 34 228 40 H214Z', 'a')}<circle cx="230" cy="34" r="8" fill="${a}" opacity="0.3"/>
+      ${K.shape('M150 12 H184 V20 H150Z', 'd')}${K.line('M86 60 V82', 2.5, a)}${K.guard(122, 50, 9)}
+      ${K.rounds(120, 34, n, { kind: 'cell', dx: 7, w: 4, h: 6 })}` }),
+    crossbow: (K, f, a, n) => ({ m: [234, 34], t: [96, 26], body: `
+      ${K.tex('M4 46 L60 34 L210 34 L210 42 L120 42 L96 46 Q50 58 12 76 Q0 64 4 46Z', 'f')}${K.shine('M64 37 H206', 1.4)}
+      <path d="M190 2 Q170 38 190 94" fill="none" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M190 2 Q170 38 190 94" fill="none" stroke="${K.F('a')}" stroke-width="6" stroke-linecap="round"/>
+      ${K.line('M190 4 L120 37 L190 92', 1.4, '#e8e0d0')}${K.shape('M176 30 H192 V44 H176Z', 's')}
+      ${K.group(`<path d="M122 32 H226" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><path d="M122 32 H226" stroke="#c8b088" stroke-width="2"/><path d="M224 28 L236 32 L224 36Z" fill="#b8bcc4" stroke="${INK}"/><path d="M122 32 l-8 -6 h10z M122 32 l-8 6 h10z" fill="${a}" stroke="${INK}" stroke-width="0.8"/>`)}
+      ${K.shape('M96 44 L104 44 L100 64 L94 64Z', 's')}${K.screw(84, 40)}` }),
+    trumpetBuss: (K, f, a, n) => ({ m: [234, 36], t: [86, 24], body: `
+      ${K.tex('M6 52 L58 36 L94 34 L94 50 L66 54 Q38 68 12 82 Q2 72 6 52Z', 'a')}
+      ${K.barrel(86, 186, 30, 12, 'f')}${K.shape('M184 30 Q206 26 232 6 Q240 36 232 66 Q206 46 184 42Z', 'f')}
+      <ellipse cx="233" cy="36" rx="5" ry="29" fill="${dk(f, 0.6)}" stroke="${INK}" stroke-width="1.6"/>${K.shine('M190 32 Q210 24 228 12', 2)}
+      ${[112, 130, 148].map((x) => `${K.shape(`M${x} 30 V16 H${x + 9} V30Z`, 'f')}${K.shape(`M${x - 1.5} 16 H${x + 10.5} V11 H${x - 1.5}Z`, 'a')}`).join('')}
+      ${K.hammer(88, 30)}${K.guard(96, 50, 9, 'f')}
+      ${K.rounds(166, 36, n, { kind: 'dot', w: 7 })}` }),
+    ketchup: (K, f, a, n) => ({ m: [234, 36], t: [100, 18], body: `
+      ${K.shape('M70 14 Q70 8 80 8 H150 Q166 8 166 22 V54 Q166 64 150 64 H80 Q70 64 70 54Z', 'f')}${K.shine('M80 14 H150', 3)}
+      ${K.shape('M166 24 L208 30 L208 42 L166 48Z', 'a')}${K.shape('M206 32 H230 Q234 36 230 40 H206Z', 'a')}
+      ${K.shape('M90 20 H146 V50 H90Z', '#f4ecd8')}<text x="118" y="40" font-size="13" text-anchor="middle" fill="${f}" font-family="sans-serif" font-weight="900">FIRE</text>
+      ${K.shape('M84 64 L112 64 Q106 76 104 92 L80 92 Q78 76 84 64Z', 'a')}${K.guard(124, 62, 9, 'a')}
+      ${K.rounds(96, 26, n, { kind: 'dot', dx: 4.6, w: 3.6 })}` }),
+    blowpipe: (K, f, a, n) => ({ m: [236, 38], t: [70, 30], body: `
+      ${K.barrel(6, 236, 32, 12, 'f')}${[28, 70, 112, 154, 196].map((x) => K.band(x, 30, 16, 5, 'a')).join('')}
+      ${K.shape('M2 30 Q-2 38 2 46 H10 V30Z', 'a')}
+      ${[0, 1, 2].map((i) => `<path d="M${90 + i * 6} 44 q${2 - i * 2} 18 ${-4 + i * 4} 34" fill="none" stroke="${['#e83a2a', '#ffd23f', '#2a6ae8'][i]}" stroke-width="3" stroke-linecap="round"/>`).join('')}
+      ${K.group(`<path d="M132 22 H196" stroke="${INK}" stroke-width="3" stroke-linecap="round"/><path d="M132 22 H196" stroke="#e8d8b0" stroke-width="1.4"/><path d="M130 22 l-10 -6 l2 6 l-2 6z" fill="${a}" stroke="${INK}" stroke-width="0.8"/>`)}` }),
+    drumRepeater: (K, f, a, n) => ({ m: [234, 34], t: [96, 18], body: `
+      ${K.tex('M4 46 L58 34 L92 32 L92 46 L66 50 Q36 62 10 76 Q0 66 4 46Z', 'a')}
+      ${K.shape('M86 24 H170 V46 H86Z', 'f')}${K.barrel(168, 234, 29, 10, 'f')}
+      ${K.shape('M176 22 H212 V48 H176Z', 'd')}${Array.from({ length: 6 }, (_, i) => K.line(`M${180 + i * 5.5} 24 V46`, 1.6, '#55555c')).join('')}
+      <circle cx="128" cy="62" r="24" fill="${K.F('f')}" ${K.st}/><circle cx="128" cy="62" r="7" fill="${lt(f, 0.4)}" ${K.st}/>
+      ${K.tex('M186 48 L204 48 Q208 64 200 80 L186 80 Q190 64 186 48Z', 'a', 'k')}${K.hammer(90, 26)}${K.guard(104, 46, 8)}
+      ${K.group(Array.from({ length: n }, (_, i) => { const t = (i / n) * Math.PI * 2; return `<circle cx="${(128 + Math.cos(t) * 15).toFixed(1)}" cy="${(62 + Math.sin(t) * 15).toFixed(1)}" r="2.6" fill="url(#U b)" stroke="${INK}" stroke-width="0.8"/>`; }).join('').replace(/#U b/g, '#Ub'))}` }),
+    derringer: (K, f, a, n) => ({ m: [214, 40], t: [98, 22], body: `
+      ${K.tex('M76 46 Q70 56 60 74 Q52 92 70 92 Q86 90 92 74 L112 50Z', 'a', 'k')}
+      ${K.shape('M80 24 H206 Q212 24 212 30 V52 Q212 58 206 58 H96 L82 50Z', 'f')}<path d="M84 28 H204 V54 H96Z" fill="url(#${'U'}e)"/>
+      ${K.line('M100 41 H210', 1.4)}${K.shine('M88 28 H204', 2.4)}${K.hammer(90, 26)}${K.screw(124, 36)}
+      ${K.shape('M112 58 Q116 72 128 72 L124 58Z', 'f')}${K.sight(196, 24)}
+      ${K.rounds(208, 33, n, { kind: 'dot', dx: 0, dy: 15, w: 6 })}` }),
+    sixShooter: (K, f, a, n) => ({ m: [232, 34], t: [78, 16], body: `
+      ${K.tex('M72 44 L100 50 Q92 70 90 92 L58 92 Q52 76 66 52 Z', 'a', 'k')}${K.screw(78, 70)}
+      ${K.shape('M70 22 H134 V44 L124 58 H98 L88 50 L70 46 Z', 'f')}
+      ${K.barrel(130, 232, 27, 13, 'f')}${K.barrel(134, 200, 42, 6, 'f')}${K.sight(222, 27, 6)}
+      ${K.shape('M92 20 H130 Q134 34 130 50 H92 Q88 34 92 20Z', 'f')}${K.line('M100 24 V46 M110 24 V46 M120 24 V46', 2, dk(f, 0.5))}${K.shine('M94 24 H128', 1.6)}
+      ${K.hammer(76, 24)}${K.guard(106, 56, 10)}
+      ${K.rounds(96.5, 35, n, { kind: 'dot', dx: 5.6, w: 4.6 })}` }),
+    flintlock: (K, f, a, n) => ({ m: [234, 33], t: [92, 18], body: `
+      ${K.tex('M84 26 L232 26 L232 38 L96 40 Q76 46 66 70 Q60 86 44 90 Q30 92 32 80 Q42 58 60 38 Z', 'f')}
+      ${K.barrel(104, 234, 26, 12, 'b')}${[150, 200].map((x) => K.band(x, 24, 16, 4, 'b')).join('')}
+      ${K.shape('M78 28 Q88 22 110 24 L112 40 Q92 44 82 40Z', 's')}${K.shape('M90 26 L84 12 Q92 6 98 12 L96 26Z', 's')}${K.shape('M84 10 l10 -4 l2 4 l-10 4z', '#4a4a50')}
+      ${K.shape('M30 80 Q28 94 44 92 Q40 84 46 78Z', 'b')}${K.guard(104, 42, 9, 'b')}
+      ${K.rounds(126, 18, n, { kind: 'dot', w: 7 })}` }),
+    corkPopper: (K, f, a, n) => ({ m: [234, 34], t: [92, 20], body: `
+      ${K.shape('M80 48 L108 48 Q100 68 98 90 L70 90 Q70 68 80 48Z', 'a')}
+      ${K.shape('M68 22 Q68 14 78 14 H206 Q214 14 214 22 V46 Q214 52 206 52 H78 Q68 52 68 46Z', 'f')}${K.shine('M78 20 H204', 3)}
+      ${[100, 136, 172].map((x) => K.band(x, 14, 38, 6, 'a')).join('')}
+      ${K.shape('M212 22 H230 Q236 24 236 34 Q236 44 230 46 H212Z', '#c8a070')}${K.line('M218 26 V42 M224 26 V42', 0.8, '#8a6a40')}
+      ${K.guard(118, 50, 9, 'a')}
+      ${K.group(Array.from({ length: n }, (_, i) => `<rect x="${140 + i * 15}" y="58" width="11" height="9" rx="2" fill="#c8a070" stroke="${INK}" stroke-width="0.9"/>`).join(''))}${K.line('M136 56 H206', 1.2, '#888')}` }),
+    rayGun: (K, f, a, n) => ({ m: [234, 34], t: [92, 16], body: `
+      ${K.shape('M86 52 L114 52 L106 90 L78 90Z', 'd')}${K.line('M84 62 H108 M83 70 H106 M82 78 H104', 1.6, '#555')}
+      <ellipse cx="118" cy="34" rx="48" ry="22" fill="${K.F('f')}" ${K.st}/>${K.shine('M84 24 Q118 12 150 22', 3)}
+      ${[164, 180, 196].map((x, i) => `<ellipse cx="${x}" cy="34" rx="5" ry="${18 - i * 4}" fill="${K.F('a')}" ${K.st}/>`).join('')}
+      ${K.barrel(160, 216, 30, 8, 'f')}<circle cx="222" cy="34" r="10" fill="${a}" ${K.st}/><circle cx="222" cy="34" r="16" fill="${a}" opacity="0.25"/>
+      ${K.shape('M84 14 L70 2 L98 12Z', 'a')}${K.shape('M84 54 L68 64 L100 56Z', 'a')}
+      ${K.rounds(96, 38, n, { kind: 'cell', dx: 6.5, w: 4.4, h: 8 })}` }),
+    flarePistol: (K, f, a, n) => ({ m: [224, 34], t: [96, 16], body: `
+      ${K.tex('M82 50 L112 50 Q104 70 104 90 L72 90 Q70 70 82 50Z', 'a', 'k')}
+      ${K.shape('M74 18 H200 Q206 18 206 24 V48 H74Z', 'f')}${K.shine('M80 23 H198', 3)}
+      ${K.shape('M196 12 H222 Q226 12 226 16 V52 Q226 56 222 56 H196Z', 'f')}<ellipse cx="224" cy="34" rx="3" ry="18" fill="${dk(f, 0.6)}"/>
+      ${K.hammer(80, 22)}${K.guard(124, 50, 9, 'a')}${K.screw(130, 34, 3)}
+      ${K.group(`<rect x="140" y="27" width="50" height="14" rx="4" fill="#e83a2a" stroke="${INK}"/><rect x="140" y="27" width="10" height="14" rx="2" fill="url(#${'U'}b)" stroke="${INK}"/>`)}` }),
+    slingshot: (K, f, a, n) => ({ m: [232, 46], t: [70, 44], body: `
+      ${K.tex('M10 40 Q40 36 120 42 L120 52 Q40 58 10 54 Q4 47 10 40Z', 'f')}${K.line('M30 40 V54 M44 40 V54', 3, a)}
+      ${K.tex('M116 40 Q150 30 210 8 L218 16 Q164 40 130 48Z', 'f')}${K.tex('M116 54 Q150 64 210 86 L218 78 Q164 54 130 46Z', 'f')}
+      <path d="M214 12 Q160 46 214 82" fill="none" stroke="${a}" stroke-width="3"/><path d="M150 40 h16 v14 h-16z" fill="#6a3a22" stroke="${INK}"/>
+      ${K.group(`<circle cx="158" cy="47" r="7" fill="#6a2a8a" stroke="${INK}"/><circle cx="156" cy="44" r="2" fill="rgba(255,255,255,0.5)"/>`)}` }),
+    foamBlaster: (K, f, a, n) => ({ m: [234, 38], t: [94, 22], body: `
+      ${K.shape('M80 52 L110 52 Q102 70 100 90 L72 90 Q70 70 80 52Z', 'a')}
+      ${K.shape('M66 26 Q66 20 72 20 H206 Q212 20 212 26 V54 H66Z', 'f')}${K.shine('M72 25 H204', 3)}
+      ${K.shape('M206 30 H232 V46 H206Z', 'a')}${K.shape('M86 8 H190 Q196 8 196 14 V20 H86Z', 'a')}
+      <circle cx="150" cy="38" r="6" fill="#fff" ${K.st}/>${K.line('M140 48 H200', 3, a)}${K.guard(122, 54, 9, 'a')}
+      ${K.group(Array.from({ length: n }, (_, i) => `<g transform="translate(${92 + i * 12} 2)"><rect width="8" height="12" rx="2" fill="#2a8af0" stroke="${INK}" stroke-width="0.8"/><rect width="8" height="4" rx="2" fill="#ff8a1f"/></g>`).join(''))}` }),
+    nailGun: (K, f, a, n) => ({ m: [228, 40], t: [74, 22], body: `
+      ${K.shape('M60 16 H180 Q192 16 192 28 V44 H104 L98 52 Q96 72 100 90 H70 Q66 70 74 46 L60 40Z', 'f')}${K.shine('M66 21 H178', 3)}
+      ${K.shape('M190 30 H226 V50 H190Z', 'd')}${K.shape('M224 34 H234 V46 H224Z', 'd')}
+      ${K.shape('M108 46 L200 52 L196 66 L104 60Z', 'a')}${K.line('M112 52 L194 58', 0.8)}
+      ${K.shape('M54 24 H62 V34 H54Z', 'd')}${K.screw(84, 30)}${K.screw(170, 28)}${K.guard(118, 44, 8, 'd')}
+      ${K.rounds(116, 56, n, { kind: 'cell', dx: 4.1, dy: 0.28, w: 2, h: 6 })}` }),
+    duelPistol: (K, f, a, n) => ({ m: [234, 31], t: [90, 18], body: `
+      ${K.tex('M82 28 L120 26 L120 40 L96 42 Q78 48 70 70 Q64 88 48 90 Q34 90 36 78 Q46 58 62 38Z', '#6a3e1e')}
+      ${K.barrel(100, 234, 25, 12, 'f')}<path d="M104 31 H228" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+      ${K.shape('M78 28 Q88 22 108 24 L110 38 Q92 42 82 38Z', 'a')}<path d="M82 28 L108 26 L108 36 Z" fill="url(#${'U'}e)"/>
+      ${K.hammer(88, 26, 'a')}${K.shape('M34 78 Q32 92 48 90 Q44 84 50 76Z', 'a')}${K.guard(102, 40, 9, 'a')}${K.band(224, 24, 14, 4, 'a')}
+      ${K.rounds(140, 46, n, { kind: 'dot', w: 7 })}` }),
+    candyPopgun: (K, f, a, n) => ({ m: [234, 34], t: [92, 18], body: `
+      <path d="M84 40 Q60 44 56 66 Q54 84 70 88" fill="none" stroke="${INK}" stroke-width="16" stroke-linecap="round"/><path d="M84 40 Q60 44 56 66 Q54 84 70 88" fill="none" stroke="${f}" stroke-width="12" stroke-linecap="round"/><path d="M84 40 Q60 44 56 66 Q54 84 70 88" fill="none" stroke="${a}" stroke-width="12" stroke-dasharray="6 7" stroke-linecap="butt"/>
+      ${K.shape('M76 24 H224 Q232 24 232 34 Q232 44 224 44 H76Z', '#ffffff')}
+      ${Array.from({ length: 12 }, (_, i) => `<path d="M${84 + i * 12} 44 l8 -20 h5 l-8 20z" fill="${a}"/>`).join('')}${K.shape('M76 24 H224 Q232 24 232 34 Q232 44 224 44 H76Z', 'rgba(0,0,0,0)')}${K.shine('M80 28 H224', 2.2)}
+      ${K.shape('M96 16 q-12 -10 -4 -14 q8 2 8 12z M100 16 q12 -10 4 -14 q-8 2 -8 12z', '#2a8a4a')}<circle cx="98" cy="17" r="4" fill="#2a8a4a" ${K.st}/>
+      ${K.guard(108, 44, 9, 'a')}
+      ${K.group(Array.from({ length: n }, (_, i) => `<path d="M${140 + i * 14} 62 q6 -12 12 0z" fill="${['#e83a2a', '#2ab84a', '#ffd23f', '#2a6ae8', '#ff6ab4'][i % 5]}" stroke="${INK}" stroke-width="0.9"/>`).join(''))}` }),
+    pumpkinBlaster: (K, f, a, n) => ({ m: [234, 36], t: [88, 14], body: `
+      ${K.shape('M84 54 L108 54 L104 90 L80 90Z', 'a')}
+      ${[0, 1, 2].map((i) => `<ellipse cx="${110 + (i - 1) * 16}" cy="36" rx="${i === 1 ? 26 : 20}" ry="26" fill="${K.F('f')}" ${K.st}/>`).join('')}
+      ${K.shape('M96 30 l6 -8 l6 8z M118 30 l6 -8 l6 8z', '#2a1408')}${K.shape('M96 42 l6 6 l6 -4 l6 4 l6 -4 l6 6 q-12 8 -30 0z', '#2a1408')}
+      ${K.shape('M106 10 q-2 -8 6 -8', '#4a6a2a')}
+      ${K.barrel(138, 230, 30, 12, '#ece6dc')}<circle cx="232" cy="31" r="6" fill="#ece6dc" ${K.st}/><circle cx="232" cy="41" r="6" fill="#ece6dc" ${K.st}/>
+      ${K.guard(116, 62, 8, 'a')}
+      ${K.group(Array.from({ length: n }, (_, i) => `<ellipse cx="${160 + i * 18}" cy="58" rx="7" ry="6" fill="#ff8a1f" stroke="${INK}" stroke-width="0.9"/>`).join(''))}` }),
+    stalkingRifle: (K, f, a, n) => ({ m: [236, 38], t: [104, 22], body: `
+      ${K.tex('M4 48 L60 36 L176 36 L176 48 L120 50 L100 54 Q44 64 12 80 Q2 70 4 48Z', 'f')}${K.tex('M60 40 L96 40 L94 52 L64 54Z', 'f', 'k')}
+      ${K.barrel(120, 236, 31, 8, 'a')}${K.shape('M96 26 H140 V40 H96Z', 'a')}${K.shape('M120 24 L132 24 L132 20 L140 20 L140 24Z', 'a')}
+      ${K.shape('M90 12 H156 Q160 16 156 20 H90 Q86 16 90 12Z', 'd')}<ellipse cx="156" cy="16" rx="3" ry="6" fill="#6ab0ff" opacity="0.6"/>${K.shape('M108 20 h6 v6 h-6z M134 20 h6 v6 h-6z', 'd')}
+      ${K.shape('M104 30 h-8 v-6 h8 Q108 27 104 30Z', 'a')}${K.guard(118, 50, 9, 'a')}
+      ${K.rounds(138, 46, n, { dx: 8 })}` }),
+    sideBySide: (K, f, a, n) => ({ m: [236, 34], t: [98, 22], body: `
+      ${K.tex('M4 50 L62 36 L104 34 L104 50 L72 54 Q40 66 12 82 Q2 72 4 50Z', 'f')}${K.tex('M64 40 L98 38 L96 50 L68 54Z', 'f', 'k')}${K.shine('M12 54 L60 41', 1.4)}
+      ${K.barrel(100, 236, 26, 8, 'a')}${K.barrel(100, 236, 34, 8, 'a')}${K.shape('M120 42 H200 V48 H120Z', 'f')}
+      ${K.shape('M92 26 H122 V50 H92Z', 'a')}<path d="M94 28 H120 V48 H94Z" fill="url(#${'U'}e)"/>${K.hammer(98, 28, 'a')}${K.hammer(104, 28, 'a')}
+      ${K.guard(108, 52, 9, 'a')}${K.sight(230, 26, 3)}
+      ${K.rounds(150, 60, n, { dx: 18, w: 8, h: 14, rot: 90 })}` }),
   };
+  let gunUid = 0;
+  function gunMarkup(gun, n = gun.def.mag || 6, { flash = false, thumb = false } = {}) {
+    const u = `g${++gunUid}`;
+    const K = kit(u, gun.finish, gun.accent);
+    const art = (GUN_ART[gun.model] || GUN_ART.corkRifle)(K, gun.finish, gun.accent, n);
+    return `${K.defs}${art.body.replace(/#U/g, `#${u}`)}${flash ? K.flash(...art.m) : ''}${thumb ? `<g class="sg-thumb" transform="translate(${art.t[0]} ${art.t[1]})"><circle r="16" fill="rgba(255,255,255,0.12)" stroke="#fff" stroke-width="2.2" stroke-dasharray="5 4"/><circle r="5" fill="#fff" opacity="0.85"/></g>` : ''}`;
+  }
   function gunOf(s, id) {
     const model = houseOf(s);
     const look = s?.game?.guns?.[id] || (id === s?.me ? myLook() : null) || {};
     const def = GUNS[model] || GUNS.corkRifle;
     return { model, def, finish: look.finish || def.finish, accent: look.accent || def.accent, sight: look.sight || 'ring' };
   }
-  function gunSvg(gun, cls = '') {
-    return `<svg class="sg-gun ${cls}" viewBox="0 0 120 48" aria-label="${esc(gun.def.name)}">${(GUN_ART[gun.model] || GUN_ART.corkRifle)(gun.finish, gun.accent)}</svg>`;
+  function gunSvg(gun, cls = '', opts = {}) {
+    return `<svg class="sg-gun ${cls}" viewBox="${opts.flash ? '-44 -4 328 104' : '0 0 240 96'}" aria-label="${esc(gun.def.name)}">${gunMarkup(gun, opts.n, opts)}</svg>`;
   }
   // The TV's little picture of each player's gun, by its crosshair.
   const gunImgs = new Map();
@@ -804,7 +1142,7 @@
     let img = gunImgs.get(key);
     if (!img) {
       img = new Image();
-      img.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48" width="240" height="96">${(GUN_ART[gun.model] || GUN_ART.corkRifle)(gun.finish, gun.accent)}</svg>`)}`;
+      img.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 96" width="240" height="96">${gunMarkup(gun)}</svg>`)}`;
       gunImgs.set(key, img);
     }
     return img;
@@ -969,11 +1307,12 @@
       const scale = PB.isTV ? 1 : Math.min(1, (el.clientWidth * (window.devicePixelRatio || 1)) / W);
       for (const cv of [bg, fg]) { cv.width = Math.round(W * scale); cv.height = Math.round(H * scale); }
       drawBooth(bg.getContext('2d'), s.game.set);
-      return { el, fg, c: fg.getContext('2d'), scale, time: el.querySelector('.sg-time'), score: el.querySelector('.sg-score-now') };
+      const fronts = [0, 1, 2].map((i) => railFront(s.game.set, i, scale)).filter(Boolean);
+      return { el, fg, bgCv: bg, c: fg.getContext('2d'), scale, fronts, time: el.querySelector('.sg-time'), score: el.querySelector('.sg-score-now') };
     });
     kick();
   }
-  const kick = () => { if (!frame && !document.hidden && views.length) frame = requestAnimationFrame(draw); };
+  const kick = () => { if (!frame && !document.hidden && (views.length || document.getElementById('sg-phone-time'))) frame = requestAnimationFrame(draw); };
   document.addEventListener('visibilitychange', () => { if (document.hidden && frame) { cancelAnimationFrame(frame); frame = null; } else kick(); });
 
   let lastDraw = 0;
@@ -981,7 +1320,7 @@
     frame = null;
     views = views.filter((v) => v.el.isConnected);
     const s = PB.state;
-    if (!views.length || s?.gameType !== 'shootingGallery' || !s.game) return;
+    if ((!views.length && !document.getElementById('sg-phone-time')) || s?.gameType !== 'shootingGallery' || !s.game) return;
     const dt = Math.min(0.05, (ms - lastDraw) / 1000 || 0.016);
     lastDraw = ms;
     const t = clock.now();
@@ -1011,7 +1350,14 @@
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.clearRect(0, 0, v.fg.width, v.fg.height);
       c.setTransform(v.scale, 0, 0, v.scale, 0, 0);
-      for (const tg of zs) drawTarget(c, tg, t, s.game.set);
+      // Back to front, each rail's waves over the targets riding it.
+      let f = 0;
+      for (const tg of zs) {
+        while (f < v.fronts.length && v.fronts[f].z < tg.z - 1e-6) { const fr = v.fronts[f++]; c.drawImage(fr.cv, 0, fr.y, W, fr.h); }
+        drawTarget(c, tg, t, s.game.set);
+      }
+      while (f < v.fronts.length) { const fr = v.fronts[f++]; c.drawImage(fr.cv, 0, fr.y, W, fr.h); }
+      if (s.game.set !== 'duckPond') { c.drawImage(v.bgCv, 0, 0, 80 * v.scale, H * v.scale, 0, 0, 80, H); c.drawImage(v.bgCv, (W - 80) * v.scale, 0, 80 * v.scale, H * v.scale, W - 80, 0, 80, H); }
       for (const b of bits) if (b.on) { c.globalAlpha = Math.min(1, b.life * 2); c.fillStyle = b.c; c.fillRect(b.x - b.s / 2, b.y - b.s / 2, b.s, b.s); }
       c.globalAlpha = 1;
       // Muzzle flashes, at the shot.
@@ -1037,7 +1383,7 @@
         const age = (now - p.at) / 1000;
         if (age > 1.1) { p.on = false; continue; }
         c.globalAlpha = Math.min(1, (1.1 - age) * 3);
-        c.font = '900 54px system-ui, sans-serif';
+        c.font = '900 64px system-ui, sans-serif';
         c.lineWidth = 8;
         c.strokeStyle = 'rgba(0,0,0,0.6)';
         c.strokeText(p.text, p.x, p.y - age * 90);
@@ -1079,8 +1425,10 @@
     const flip = (tg.p === 'rail' || tg.p === 'arc') && tg.vx < 0;
     c.save();
     c.globalAlpha = alpha;
+    // (Inside the booth's curtains, but for what flies over them.)
+    if (tg.z < 5 && set !== 'duckPond') { c.beginPath(); c.rect(80, 0, W - 160, H); c.clip(); }
     // (The shelf's pop-ups are hidden behind the counter's front.)
-    if (tg.p === 'pop') { c.beginPath(); c.rect(0, 0, W, 0.86 * H); c.clip(); }
+    if (tg.p === 'pop') { c.beginPath(); c.rect(0, 0, W, SHELF * H - 8); c.clip(); }
     if (tg.p === 'swing' && tg.k === 'sign') {
       // The ropes up to where it hangs.
       c.beginPath(); c.moveTo(tg.x * W, tg.y * H); c.lineTo(x, y - s * 1.5); c.lineWidth = 3; c.strokeStyle = '#2a1a0e'; c.stroke();
@@ -1106,7 +1454,7 @@
     c.lineWidth = 6;
     c.strokeStyle = 'rgba(0,0,0,0.5)';
     c.fillStyle = col;
-    const R = mine && !PB.isTV ? 30 : 26;
+    const R = 38;
     const shape = () => {
       c.beginPath();
       if (gun.sight === 'dot') { c.arc(0, 0, R * 0.42, 0, Math.PI * 2); return 'fill'; }
@@ -1119,14 +1467,14 @@
     };
     const how = shape();
     c.lineCap = 'round';
-    if (how === 'fill') { c.lineWidth = 9; c.stroke(); c.fill(); c.lineWidth = 3; c.strokeStyle = '#fff'; c.stroke(); } else { c.lineWidth = 10; c.stroke(); c.lineWidth = 5; c.strokeStyle = col; c.stroke(); }
+    if (how === 'fill') { c.lineWidth = 12; c.stroke(); c.fill(); c.lineWidth = 4; c.strokeStyle = '#fff'; c.stroke(); } else { c.lineWidth = 15; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); c.lineWidth = 8; c.strokeStyle = col; c.stroke(); c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,0.7)'; c.stroke(); }
     // Their avatar and gun beside it.
-    c.font = '30px system-ui, sans-serif';
+    c.font = '38px system-ui, sans-serif';
     c.textAlign = 'left';
     c.textBaseline = 'middle';
     c.fillText(look.avatar, R + 6, -R * 0.6);
     const img = gunImg(gun);
-    if (img.complete && img.naturalWidth) c.drawImage(img, R + 4, -R * 0.2, 60, 24);
+    if (img.complete && img.naturalWidth) c.drawImage(img, R + 4, -R * 0.15, 80, 32);
     // Rounds left, under it (R when it's empty, a bar while it reloads).
     const i = order.indexOf(id);
     const left = mine && !PB.isTV ? mag.left : ammoNow[i];
@@ -1368,6 +1716,8 @@
     el.dataset.k = key;
     el.innerHTML = left < 0 ? '<b class="sg-reloading">RELOADING…</b>'
       : `${'<i class="on"></i>'.repeat(left)}${'<i></i>'.repeat(Math.max(0, st.mag - left))}${left === 0 ? '<b class="sg-empty">TILT UP TO RELOAD</b>' : ''}`;
+    // ...and on the gun itself: the spent rounds greyed.
+    document.querySelectorAll('.sg-fire .sg-rounds > *').forEach((r, i, all) => r.classList.toggle('spent', left >= 0 && i >= left && all.length > 0));
     document.querySelector('.sg-fire')?.classList.toggle('empty', left === 0);
     document.querySelector('.sg-fire')?.classList.toggle('reloading', left < 0);
   }
@@ -1522,7 +1872,7 @@
       ${s.tv ? '' : stage(s, { overlay: false })}
       ${s.tv && !motion.live ? '<div class="sg-pad" id="sg-pad"><p class="muted">No motion sensor: drag here to aim</p></div>' : ''}
       <span id="sg-hitnote" class="sg-hitnote"></span>
-      <button class="sg-fire ${hand() === 'left' ? 'left' : ''}" id="sg-fire" style="--pc:${esc(PB.look(s.me).color)}">${gunSvg(gun)}<span class="sg-fire-word">TAP TO FIRE</span></button>
+      <button class="sg-fire ${hand() === 'left' ? 'left' : ''}" id="sg-fire" style="--pc:${esc(PB.look(s.me).color)}">${gunSvg(gun, '', { flash: true, thumb: true, n: g.gunStats?.mag || gun.def.mag })}<span class="sg-fire-word">TAP TO FIRE</span></button>
       <div class="sg-ammo" id="sg-ammo"></div>
       <div class="sg-foot">${PB.endButton()}<button class="secondary tr-small" data-sg="hand">${hand() === 'left' ? '🫲 Left-handed' : '🫱 Right-handed'}</button>${motion.live ? '' : '<button class="secondary tr-small" data-sg="reload">🔄 Reload</button>'}</div>
     </div>`;

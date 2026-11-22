@@ -32,50 +32,50 @@ const SLACK = 0.012; // a little give round every target (screen heights)
 // ---------- What there is to shoot ----------
 // r: hit radius (screen heights), pts: points (bad: points lost). The screens draw each kind.
 const KINDS = {
-  can: { r: 0.04, pts: 10 },
-  bottle: { r: 0.045, pts: 10 },
-  duckCut: { r: 0.055, pts: 15 },
-  bullseye: { r: 0.06, pts: 20 },
-  clay: { r: 0.032, pts: 25 },
-  star: { r: 0.03, pts: 50, gold: true },
-  bystander: { r: 0.065, pts: 25, bad: true },
-  barrel: { r: 0.055, pts: 10 },
-  gull: { r: 0.045, pts: 25 },
-  tentacle: { r: 0.06, pts: 30 },
-  asteroid: { r: 0.05, pts: 20 },
-  ufo: { r: 0.045, pts: 25 },
-  ghost: { r: 0.055, pts: 15 },
-  pumpkin: { r: 0.05, pts: 10 },
-  bat: { r: 0.035, pts: 25 },
-  cat: { r: 0.055, pts: 25, bad: true },
-  bauble: { r: 0.04, pts: 10 },
-  present: { r: 0.05, pts: 10 },
-  snowman: { r: 0.06, pts: 15 },
-  sign: { r: 0.06, pts: 20 },
-  coconut: { r: 0.04, pts: 10 },
-  tikiMask: { r: 0.055, pts: 15 },
-  parrot: { r: 0.04, pts: 25 },
-  shield: { r: 0.055, pts: 15 },
-  crow: { r: 0.04, pts: 25 },
-  disco: { r: 0.05, pts: 20 },
-  record: { r: 0.055, pts: 20 },
-  cocktail: { r: 0.045, pts: 10 },
-  chip: { r: 0.045, pts: 20 },
-  dice: { r: 0.04, pts: 10 },
-  stein: { r: 0.05, pts: 10 },
-  pretzel: { r: 0.045, pts: 15 },
-  buoy: { r: 0.05, pts: 15 },
-  grapes: { r: 0.045, pts: 10 },
-  cup: { r: 0.04, pts: 10 },
-  hubcap: { r: 0.055, pts: 20 },
-  oilcan: { r: 0.045, pts: 10 },
-  champagne: { r: 0.045, pts: 10 },
-  donut: { r: 0.045, pts: 15 },
-  tankard: { r: 0.045, pts: 10 },
-  duck: { r: 0.05, pts: 25 },
-  duckSwim: { r: 0.05, pts: 15 },
-  goldDuck: { r: 0.04, pts: 50, gold: true },
-  swan: { r: 0.065, pts: 25, bad: true },
+  can: { r: 0.054, pts: 10 },
+  bottle: { r: 0.061, pts: 10 },
+  duckCut: { r: 0.074, pts: 15 },
+  bullseye: { r: 0.081, pts: 20 },
+  clay: { r: 0.043, pts: 25 },
+  star: { r: 0.041, pts: 50, gold: true },
+  bystander: { r: 0.088, pts: 25, bad: true },
+  barrel: { r: 0.074, pts: 10 },
+  gull: { r: 0.061, pts: 25 },
+  tentacle: { r: 0.081, pts: 30 },
+  asteroid: { r: 0.068, pts: 20 },
+  ufo: { r: 0.061, pts: 25 },
+  ghost: { r: 0.074, pts: 15 },
+  pumpkin: { r: 0.068, pts: 10 },
+  bat: { r: 0.047, pts: 25 },
+  cat: { r: 0.074, pts: 25, bad: true },
+  bauble: { r: 0.054, pts: 10 },
+  present: { r: 0.068, pts: 10 },
+  snowman: { r: 0.081, pts: 15 },
+  sign: { r: 0.081, pts: 20 },
+  coconut: { r: 0.054, pts: 10 },
+  tikiMask: { r: 0.074, pts: 15 },
+  parrot: { r: 0.054, pts: 25 },
+  shield: { r: 0.074, pts: 15 },
+  crow: { r: 0.054, pts: 25 },
+  disco: { r: 0.068, pts: 20 },
+  record: { r: 0.074, pts: 20 },
+  cocktail: { r: 0.061, pts: 10 },
+  chip: { r: 0.061, pts: 20 },
+  dice: { r: 0.054, pts: 10 },
+  stein: { r: 0.068, pts: 10 },
+  pretzel: { r: 0.061, pts: 15 },
+  buoy: { r: 0.068, pts: 15 },
+  grapes: { r: 0.061, pts: 10 },
+  cup: { r: 0.054, pts: 10 },
+  hubcap: { r: 0.074, pts: 20 },
+  oilcan: { r: 0.061, pts: 10 },
+  champagne: { r: 0.061, pts: 10 },
+  donut: { r: 0.061, pts: 15 },
+  tankard: { r: 0.061, pts: 10 },
+  duck: { r: 0.068, pts: 25 },
+  duckSwim: { r: 0.068, pts: 15 },
+  goldDuck: { r: 0.054, pts: 50, gold: true },
+  swan: { r: 0.088, pts: 25, bad: true },
 };
 
 // Each venue's gallery: what rides the rails, sits on the shelf, flies across, spins up top, the
@@ -165,12 +165,13 @@ function gunLook(a = {}) {
 }
 
 // ---------- The gallery's layout ----------
-const RAILS = [{ y: 0.35, dir: 1 }, { y: 0.6, dir: -1 }];
-const POND_LANES = [{ y: 0.74, dir: 1 }, { y: 0.84, dir: -1 }];
-const SHELF_Y = 0.86;
+const RAILS = [{ y: 0.33, dir: 1 }, { y: 0.53, dir: -1 }, { y: 0.73, dir: 1 }];
+const POND_LANES = [{ y: 0.72, dir: 1 }, { y: 0.84, dir: -1 }];
+const SHELF_Y = 0.9;
 const SHELF_SLOTS = [0.12, 0.23, 0.34, 0.45, 0.56, 0.67, 0.78, 0.89];
 const SHELF_MAX = 4;
 // What's drawn over what (and so what a shot hits first, where two overlap).
+// (Each rail is its own layer, front to back: a target's `lane`.)
 const Z = { shelf: 1, rail: 2, swing: 3, spin: 4, fly: 5, gold: 6 };
 
 // A small seeded random number generator (mulberry32): its state is a number in room.game.
@@ -223,7 +224,7 @@ const alive = (tg, t) => !tg.hit && t >= tg.t0 && t <= tg.t0 + tg.life;
 
 function newTarget(g, role, kind, fields) {
   const k = KINDS[kind];
-  const tg = { id: ++g.nextId, k: kind, z: Z[role], r: k.r, pts: k.pts, ...(k.bad ? { bad: 1 } : {}), ...(k.gold ? { gold: 1 } : {}), a: 0, w: 0, ph: 0, vx: 0, vy: 0, g: 0, l: 0, ...fields };
+  const tg = { id: ++g.nextId, k: kind, z: Z[role], lane: -1, r: k.r, pts: k.pts, ...(k.bad ? { bad: 1 } : {}), ...(k.gold ? { gold: 1 } : {}), a: 0, w: 0, ph: 0, vx: 0, vy: 0, g: 0, l: 0, ...fields };
   for (const key of ['x', 'y', 'vx', 'vy', 'g', 'a', 'w', 'ph', 'l', 'life', 't0']) tg[key] = Math.round(tg[key] * 1e4) / 1e4;
   g.live.push(tg);
   g.fresh.push(tg);
@@ -241,10 +242,10 @@ function spawn(g, upTo) {
       const t0 = s.rail[i];
       const bad = rnd(g) < badOdds;
       const kind = bad ? set.bad : pickR(g, set.rail);
-      const speed = (set.pond ? 0.07 + rnd(g) * 0.05 : 0.1 + rnd(g) * 0.07) * lane.dir;
+      const speed = (set.pond ? 0.07 + rnd(g) * 0.05 : 0.09 + rnd(g) * 0.06) * lane.dir;
       const r = KINDS[kind].r;
-      newTarget(g, 'rail', kind, { p: 'rail', t0, x: lane.dir > 0 ? -0.08 : 1.08, y: lane.y - r * 0.9, vx: speed, a: set.pond ? 0.005 : 0.004, w: set.pond ? 2.2 : 7, ph: rnd(g) * 6.28, life: 1.18 / Math.abs(speed) });
-      s.rail[i] = t0 + (set.pond ? 1.8 : 1.0) + rnd(g) * 1.1;
+      newTarget(g, 'rail', kind, { p: 'rail', lane: i, z: 2 + i * 0.1, t0, x: lane.dir > 0 ? -0.08 : 1.08, y: lane.y - r * 0.9, vx: speed, a: set.pond ? 0.005 : 0.004, w: set.pond ? 2.2 : 7, ph: rnd(g) * 6.28, life: 1.2 / Math.abs(speed) });
+      s.rail[i] = t0 + (set.pond ? 1.8 : 1.5) + rnd(g) * 1.2;
     }
   });
   while (set.shelf.length && s.shelf <= upTo) {
@@ -352,7 +353,7 @@ function countdown(room, ctx) {
   g.fresh = [];
   g.shots = [];
   g.rng = (g.seed + g.round * 7919) >>> 0;
-  g.spawn = { rail: [0.2, 1.1], shelf: 0.4, fly: 2.5, spin: 1.5, swing: 5, gold: 8 + rnd(g) * 6 };
+  g.spawn = { rail: [0.2, 1.1, 0.6], shelf: 0.4, fly: 2.5, spin: 1.5, swing: 5, gold: 8 + rnd(g) * 6 };
   for (const id of g.order) {
     const st = stat(g, id);
     st.round = 0;
