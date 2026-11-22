@@ -1176,3 +1176,7 @@ html[data-room="speakeasyNoir"] #scenery .sc:not(.sc-noirflicker):not(.sc-redflo
 .sc-banner.studio { --banner-font: "Bungee"; color: #ffcf3f; text-shadow: 0 4px 0 #050c4a, 0 0 30px rgba(74, 122, 255, 0.9); }
 .sc-banner.studio b { font-size: clamp(32px, 4.4vw, 62px); }
 .sc-quote.studio b { font-family: "Bungee", system-ui, sans-serif; color: #ffcf3f; font-size: clamp(40px, 6vw, 90px); text-shadow: 0 5px 0 #050c4a, 0 0 40px rgba(74, 122, 255, 0.9); }
+
+/* The duck pond (Shooting Gallery at the Highlands pub): dawn mist over the water. */
+.sc-banner.pond { --banner-font: "Uncial Antiqua"; color: #fff4dc; text-shadow: 0 3px 0 #3e2a18, 0 0 26px rgba(255, 190, 110, 0.85); }
+.sc-pondmist { background: linear-gradient(transparent, rgba(255, 236, 220, 0.22) 55%, rgba(255, 236, 220, 0.08)); animation: sc-fogdrift 11s ease-in-out infinite alternate; pointer-events: none; }

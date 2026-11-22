@@ -154,13 +154,15 @@ const GUN_STATS = {
   sideBySide: { rate: 300, mag: 2, reload: 1300, spread: 0.03 },
 };
 const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
-const SIGHTS = ['ring', 'dot', 'cross', 'star'];
+const SIGHTS = ['ring', 'dot', 'cross', 'star', 'chevron', 'diamond'];
 // A gun as a phone sent it, cleaned (null finish or accent: the gun's own colours).
 function gunLook(a = {}) {
   return {
     finish: FINISHES.includes(a.finish) ? a.finish : null,
     accent: FINISHES.includes(a.accent) ? a.accent : null,
     sight: SIGHTS.includes(a.sight) ? a.sight : 'ring',
+    bold: a.bold !== false && a.bold !== 'false', // a bold line (or thin)
+    pip: a.pip === true || a.pip === 'true', // a dot in the middle too
   };
 }
 

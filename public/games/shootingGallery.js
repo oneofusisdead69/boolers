@@ -534,6 +534,8 @@
   };
   // Kinds that animate (wings): drawn fresh each frame, not from a sprite.
   const LIVE = new Set(['gull', 'bat', 'parrot', 'crow', 'duck', 'goldDuck', 'ufo']);
+  // Kinds with writing on (never drawn mirrored).
+  const NOFLIP = new Set(['bystander', 'cat', 'swan', 'sign', 'chip', 'ketchup']);
   // Kinds that spin as they go.
   const SPIN = { bullseye: 1.4, asteroid: 0.8, record: 3, hubcap: 2.5, chip: 2, disco: 1, clay: 0, buoy: 0.6, shield: 0.8, bauble: 0.4, pumpkin: 0.3 };
   // Hit colours (the bits that fly off).
@@ -729,6 +731,8 @@
       for (const [x, y] of [[300, 640], [380, 660], [1200, 600]]) { ell(c, x, y, 26, 18, '#f4f0e8'); circ(c, x + 24, y - 6, 9, '#2a2a2a'); }
     },
   };
+  // The awning's stripe, per venue (else the room's accent).
+  const AWNING = { classic: '#e8384f', dive: '#c8302f', halloween: '#ff7a1a', christmas: '#c8302f', saloon: '#c8452f', pirate: '#1a2a4a', tiki: '#2a8a4a', diner: '#e63946', frat: '#d62828', stpatricks: '#2a7044' };
   // Prizes hanging from the awning at the sides: drawn in colour (animals and toys).
   const PRIZES = ['🧸', '🦒', '🐙', '🦄', '🐻', '🐸'];
 
@@ -753,13 +757,12 @@
     const cg = c.createLinearGradient(0, SHELF * H, 0, H); cg.addColorStop(0, mix(wood, '#ffffff', 0.15)); cg.addColorStop(1, mix(wood, '#000000', 0.35));
     c.fillStyle = cg; c.fillRect(0, SHELF * H, W, H);
     for (let x = 0; x < W; x += 150) { c.fillStyle = 'rgba(0,0,0,0.2)'; c.fillRect(x, SHELF * H, 3, H); }
-    rr(c, 560, SHELF * H + 14, 480, 62, 10, P.danger); rr(c, 566, SHELF * H + 20, 468, 50, 8, mix(P.danger, '#000000', 0.25));
-    c.fillStyle = '#fff4d0'; c.font = '900 34px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★ SHOOTING GALLERY ★', 800, SHELF * H + 46);
-    for (let x = 60; x < W; x += 110) if (x < 540 || x > 1060) circ(c, x, SHELF * H + 46, 9, x % 220 < 110 ? '#ffe080' : '#ffffff');
+    // (The scores go along the counter, on the TV.)
+    for (let x = 60; x < W; x += 110) circ(c, x, SHELF * H + 46, 9, x % 220 < 110 ? '#ffe080' : '#ffffff');
     // The awning: stripes, a scalloped edge with a bulb on each scallop, and bunting below it.
     const sw = 100;
     for (let x = 0; x < W; x += sw) {
-      c.fillStyle = (x / sw) % 2 ? '#fff6e8' : P.danger;
+      c.fillStyle = (x / sw) % 2 ? '#fff6e8' : AWNING[set] || P.accent;
       c.fillRect(x, 0, sw, 60);
       c.beginPath(); c.arc(x + sw / 2, 60, sw / 2, 0, Math.PI); c.fill();
       circ(c, x + sw / 2, 112, 11, 'rgba(255,230,140,0.35)'); circ(c, x + sw / 2, 112, 6, '#fff2b0');
@@ -776,11 +779,21 @@
       for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x + 12 + k * 18, 0, 6, H); }
       for (let y = 160; y < SHELF * H; y += 70) { circ(c, x + 40, y, 12, 'rgba(255,230,140,0.35)'); circ(c, x + 40, y, 7, '#fff2b0'); }
     }
-    c.font = '64px system-ui, sans-serif';
-    PRIZES.forEach((p, i) => { const x = i < 3 ? 120 + i * 70 : W - 120 - (i - 3) * 70; c.strokeStyle = '#3a2a1a'; c.beginPath(); c.moveTo(x, 60); c.lineTo(x, 150); c.stroke(); c.fillText(p, x, 190); });
+    c.font = '50px system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    PRIZES.forEach((p, i) => { const x = i < 3 ? 120 + i * 62 : W - 120 - (i - 3) * 62; c.strokeStyle = '#3a2a1a'; c.beginPath(); c.moveTo(x, 60); c.lineTo(x, 125); c.stroke(); c.fillText(p, x, 155); });
     c.restore();
   }
 
+  // The waves' colours, per venue (blue sea by default): snowdrifts at Christmas, dunes in the
+  // saloon, a purple mist at Halloween...
+  const WAVES = {
+    halloween: ['#3a1f4d', '#6a3a8a'], christmas: ['#cfdcf4', '#ffffff'], space: ['#2a1a5a', '#5a3aa8'], saloon: ['#c86a3a', '#e8a860'],
+    tiki: ['#1e7a8a', '#3ac0c8'], castle: ['#3a3648', '#6a6680'], club: ['#3a0a4a', '#ff2bd6'], jazz: ['#5a0e1a', '#a81e2e'], casino: ['#0c4a2a', '#1a7a4a'],
+    speakeasy: ['#1e2a22', '#c9a24a'], vineyard: ['#3a5a22', '#6a8a3a'], chateau: ['#3a6a2a', '#5f8a36'], stpatricks: ['#3a6a2e', '#5a8a4a'],
+    beerhall: ['#1f56ad', '#ffffff'], garage: ['#3a3f47', '#ffd23f'], frat: ['#d62828', '#ffffff'], dive: ['#2a1a14', '#ff5a36'], diner: ['#2a9d8f', '#e63946'], tavern: ['#4a2e1a', '#e8a83c'],
+  };
   // In front of each rail: a row of painted wooden waves (over the targets riding it, which stand
   // behind them on sticks). On the pond, ripples. One canvas per rail, made with the booth.
   function railFront(set, lane, scale) {
@@ -794,12 +807,18 @@
     const c = cv.getContext('2d');
     c.scale(scale, scale);
     if (pond) {
-      c.fillStyle = 'rgba(70,90,130,0.55)';
-      c.fillRect(0, 26, W, 34);
-      for (let x = 0; x < W; x += 40) ell(c, x + 20, 28, 26, 4, 'rgba(255,240,210,0.4)');
+      // The water round a swimming duck's waterline: a soft band, and a ripple or two.
+      const g = c.createLinearGradient(0, 24, 0, h);
+      g.addColorStop(0, 'rgba(150,140,180,0)');
+      g.addColorStop(0.35, 'rgba(130,130,170,0.75)');
+      g.addColorStop(1, 'rgba(110,120,160,0.9)');
+      c.fillStyle = g;
+      c.fillRect(46, 24, W - 92, h - 24);
+      for (let x = 60; x < W - 60; x += 70) ell(c, x + ((x * 7) % 30), 36 + ((x * 3) % 10), 22, 2.5, 'rgba(255,236,210,0.45)');
     } else {
       const acc = cssVar('accent', '#e8a83c');
-      const cols = [mix('#2a8af0', '#1a3a6a', lane * 0.25), mix('#4ab0ff', '#2a5a9a', lane * 0.25)];
+      const base = WAVES[set] || ['#2a8af0', '#4ab0ff'];
+      const cols = [mix(base[0], '#000000', lane * 0.12), mix(base[1], '#000000', lane * 0.12)];
       for (let k = 0; k < 2; k++) {
         c.beginPath(); c.moveTo(0, h);
         for (let x = 0; x <= W; x += 8) c.lineTo(x, 18 + k * 12 + Math.sin((x + k * 60 + lane * 90) / 46) * 10);
@@ -915,7 +934,19 @@
   };
   const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'slingshot', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle' };
   const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
-  const SIGHTS = { ring: '◯ Ring', dot: '• Dot', cross: '✚ Cross', star: '✦ Star' };
+  const SIGHTS = { ring: '◯ Ring', dot: '• Dot', cross: '✚ Cross', star: '✦ Star', chevron: '⌄ Chevron', diamond: '◇ Diamond' };
+  // A crosshair's outline, as an SVG path R across (the same drawing on the TV's canvas, as a
+  // Path2D made once, and in the gun picker's preview). Dot is filled; the rest are lines.
+  const circlePath = (r) => `M${r} 0 A${r} ${r} 0 1 1 ${-r} 0 A${r} ${r} 0 1 1 ${r} 0Z`;
+  function sightPath(kind, R) {
+    if (kind === 'dot') return circlePath(R * 0.42);
+    if (kind === 'cross') return `M${-R} 0H${-R * 0.3}M${R * 0.3} 0H${R}M0 ${-R}V${-R * 0.3}M0 ${R * 0.3}V${R}`;
+    if (kind === 'star') return `${Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? R * 0.42 : R; const a = (i / 10) * Math.PI * 2 - Math.PI / 2; return `${i ? 'L' : 'M'}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`; }).join('')}Z`;
+    if (kind === 'chevron') return `M${-R * 0.8} ${R * 0.8}L0 ${R * 0.18}L${R * 0.8} ${R * 0.8}M${-R * 0.5} ${-R * 0.75}L0 ${-R * 0.35}L${R * 0.5} ${-R * 0.75}`;
+    if (kind === 'diamond') return `M0 ${-R}L${R} 0L0 ${R}L${-R} 0Z`;
+    return circlePath(R);
+  }
+  const PIP = (R) => circlePath(R * 0.1);
   // The house gun where the room is (the lobby has no game view: from the look).
   const houseOf = (s) => {
     if (s?.game?.gun) return s.game.gun;
@@ -1130,7 +1161,7 @@
     const model = houseOf(s);
     const look = s?.game?.guns?.[id] || (id === s?.me ? myLook() : null) || {};
     const def = GUNS[model] || GUNS.corkRifle;
-    return { model, def, finish: look.finish || def.finish, accent: look.accent || def.accent, sight: look.sight || 'ring' };
+    return { model, def, finish: look.finish || def.finish, accent: look.accent || def.accent, sight: look.sight || 'ring', bold: look.bold !== false, pip: !!look.pip };
   }
   function gunSvg(gun, cls = '', opts = {}) {
     return `<svg class="sg-gun ${cls}" viewBox="${opts.flash ? '-44 -4 328 104' : '0 0 240 96'}" aria-label="${esc(gun.def.name)}">${gunMarkup(gun, opts.n, opts)}</svg>`;
@@ -1264,37 +1295,41 @@
   const SAVED = 'sg-gun';
   const myLook = () => { try { return JSON.parse(localStorage.getItem(SAVED) || 'null'); } catch { return null; } };
   function setLook(k, v) {
-    const look = { finish: null, accent: null, sight: 'ring', ...(myLook() || {}) };
-    look[k] = v || null;
+    const look = { finish: null, accent: null, sight: 'ring', bold: true, pip: false, ...(myLook() || {}) };
+    look[k] = k === 'bold' || k === 'pip' ? v === 'true' : v || null;
     try { localStorage.setItem(SAVED, JSON.stringify(look)); } catch {}
     if (PB.state?.gameType === 'shootingGallery' && PB.state.game && !PB.isTV) PB.act('gun', look);
   }
-  function gunPanel(s, { open = false } = {}) {
+  let armoryOpen = false; // (the panel stays as you left it through redraws)
+  const keepOpen = () => document.querySelector('.sg-armory')?.addEventListener('toggle', (e) => { armoryOpen = e.target.open; });
+  function gunPanel(s, { open = armoryOpen } = {}) {
     const gun = gunOf(s, s.me);
     const sw = (k, cur, def) => [[null, def], ...FINISHES.map((c) => [c, ''])].map(([v, label]) => `<button class="tr-swatch ${cur === v ? 'selected' : ''} ${v ? '' : 'none'}" data-sg="look" data-k="${k}" data-v="${esc(v || '')}" style="--sw:${esc(v || 'transparent')}" aria-label="${esc(label || v)}">${label ? `<span>${esc(label)}</span>` : ''}</button>`).join('');
     const look = myLook() || {};
     return `<details class="card sg-armory" ${open ? 'open' : ''}>
       <summary>🔫 Your gun <small>${esc(gun.def.name)}</small></summary>
       <div class="sg-armory-in">
-        <div class="sg-gun-show">${gunSvg(gun)}${sightSvg(gun.sight, PB.look(s.me).color)}</div>
+        <div class="sg-gun-show">${gunSvg(gun)}${sightSvg(gun, PB.look(s.me).color)}</div>
         <p class="muted sg-house">Tonight’s piece: <b>the ${esc(gun.def.name)}</b>, the house gun here. Make it yours:</p>
         <h3>Finish</h3><div class="tr-swatches">${sw('finish', look.finish || null, 'House')}</div>
         <h3>Accent</h3><div class="tr-swatches">${sw('accent', look.accent || null, 'House')}</div>
-        <h3>Crosshair</h3><div class="tr-chips">${Object.entries(SIGHTS).map(([k, label]) => `<button class="${gun.sight === k ? 'selected' : ''}" data-sg="look" data-k="sight" data-v="${k}">${label}</button>`).join('')}</div>
+        <h3>Crosshair <small>(in your colour, so everyone can tell whose is whose)</small></h3><div class="tr-chips">${Object.entries(SIGHTS).map(([k, label]) => `<button class="${gun.sight === k ? 'selected' : ''}" data-sg="look" data-k="sight" data-v="${k}">${label}</button>`).join('')}</div>
+        <div class="tr-chips"><button class="${gun.bold ? '' : 'selected'}" data-sg="look" data-k="bold" data-v="false">Thin</button><button class="${gun.bold ? 'selected' : ''}" data-sg="look" data-k="bold" data-v="true">Bold</button>
+          ${gun.sight === 'dot' ? '' : `<button class="${gun.pip ? 'selected' : ''}" data-sg="look" data-k="pip" data-v="${gun.pip ? 'false' : 'true'}">${gun.pip ? '✓ ' : ''}Centre dot</button>`}</div>
         <button class="secondary tr-small" data-sg="sound">${soundOn() ? '🔈 Gun sound on' : '🔇 Gun sound off'}</button>
       </div>
     </details>`;
   }
-  function sightSvg(kind, color) {
+  function sightSvg(gun, color) {
     const c = esc(color);
-    const body = {
-      ring: `<circle r="14" fill="none" stroke="${c}" stroke-width="4"/><circle r="2.5" fill="${c}"/>`,
-      dot: `<circle r="7" fill="${c}" stroke="#fff" stroke-width="2"/>`,
-      cross: `<path d="M-16 0H-5M5 0H16M0 -16V-5M0 5V16" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/>`,
-      star: `<path d="M0 -16 L4 -5 L16 -5 L6 2 L10 14 L0 7 L-10 14 L-6 2 L-16 -5 L-4 -5Z" fill="none" stroke="${c}" stroke-width="3.5" stroke-linejoin="round"/>`,
-    }[kind] || '';
-    return `<svg class="sg-sight" viewBox="-20 -20 40 40">${body}</svg>`;
+    const R = 16;
+    const d = sightPath(gun.sight, R);
+    const w = gun.bold ? 4.4 : 2.2;
+    const body = gun.sight === 'dot' ? `<path d="${d}" fill="${c}" stroke="#000" stroke-opacity="0.5" stroke-width="${w}"/>`
+      : `<path d="${d}" fill="none" stroke="#000" stroke-opacity="0.55" stroke-width="${w * 2}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>${gun.pip ? `<path d="${PIP(R * 1.6)}" fill="${c}"/>` : ''}`;
+    return `<svg class="sg-sight" viewBox="-21 -21 42 42">${body}</svg>`;
   }
+
 
   // ---------- Drawing the gallery, every frame ----------
   let views = [];
@@ -1336,7 +1371,7 @@
     }
     // This phone's own crosshair is its own, not the server's echo.
     const meIdx = PB.isTV ? -1 : order.indexOf(s.me);
-    if (meIdx >= 0 && aim.ok) aimShown[meIdx] = [aim.x, aim.y];
+    if (meIdx >= 0 && aim.ok) { const b = (aimShown[meIdx] ||= [0, 0]); b[0] = aim.x; b[1] = aim.y; }
     zs.length = 0;
     if (round && t != null) for (const tg of targets.values()) {
       if (t > tg.t0 + tg.life + 0.7) { targets.delete(tg.id); continue; }
@@ -1422,7 +1457,7 @@
       alpha = Math.max(0, 1 - age / 0.6);
     }
     // Facing the way it's going.
-    const flip = (tg.p === 'rail' || tg.p === 'arc') && tg.vx < 0;
+    const flip = (tg.p === 'rail' || tg.p === 'arc') && tg.vx < 0 && !NOFLIP.has(tg.k);
     c.save();
     c.globalAlpha = alpha;
     // (Inside the booth's curtains, but for what flies over them.)
@@ -1438,16 +1473,30 @@
     if (flip) c.scale(-1, 1);
     if (LIVE.has(tg.k)) DRAW[tg.k](c, s, set, t);
     else {
-      const img = sprite(tg.k, s, set);
+      // (Its picture, kept on it: looked up once, not every frame.)
+      const img = tg.spr && tg.sprS === s ? tg.spr : ((tg.sprS = s), (tg.spr = sprite(tg.k, s, set)));
       c.drawImage(img, -img.width / 2, -img.height / 2);
     }
     if (tg.gold && !tg.hitAt) { c.globalAlpha = 0.35 + 0.25 * Math.sin(t * 10); circ(c, 0, 0, s * 1.4, 'rgba(255,220,80,0.5)'); }
     c.restore();
   }
 
+  const paths = new Map();
+  function sightPath2D(kind, R) {
+    const key = `${kind}:${R}`;
+    let p = paths.get(key);
+    if (!p) paths.set(key, (p = new Path2D(kind === 'pip' ? PIP(R) : sightPath(kind, R))));
+    return p;
+  }
+  // Each player's look and gun, worked out once a state (not every frame).
+  const seen = new Map();
+  function seenOf(s, id) {
+    let v = seen.get(id);
+    if (!v) seen.set(id, (v = { look: PB.look(id), gun: gunOf(s, id) }));
+    return v;
+  }
   function drawSight(c, s, id, x, y, mine) {
-    const look = PB.look(id);
-    const gun = gunOf(s, id);
+    const { look, gun } = seenOf(s, id);
     const col = look.color;
     c.save();
     c.translate(x, y);
@@ -1455,19 +1504,16 @@
     c.strokeStyle = 'rgba(0,0,0,0.5)';
     c.fillStyle = col;
     const R = 38;
-    const shape = () => {
-      c.beginPath();
-      if (gun.sight === 'dot') { c.arc(0, 0, R * 0.42, 0, Math.PI * 2); return 'fill'; }
-      if (gun.sight === 'cross') { for (const [a, b, e, f] of [[-R, 0, -R * 0.3, 0], [R * 0.3, 0, R, 0], [0, -R, 0, -R * 0.3], [0, R * 0.3, 0, R]]) { c.moveTo(a, b); c.lineTo(e, f); } return 'stroke'; }
-      if (gun.sight === 'star') { for (let i = 0; i < 10; i++) { const r = i % 2 ? R * 0.42 : R; const a = (i / 10) * Math.PI * 2 - Math.PI / 2; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); return 'stroke'; }
-      c.arc(0, 0, R, 0, Math.PI * 2);
-      c.moveTo(3, 0);
-      c.arc(0, 0, 3, 0, Math.PI * 2);
-      return 'stroke';
-    };
-    const how = shape();
+    const p = sightPath2D(gun.sight, R);
     c.lineCap = 'round';
-    if (how === 'fill') { c.lineWidth = 12; c.stroke(); c.fill(); c.lineWidth = 4; c.strokeStyle = '#fff'; c.stroke(); } else { c.lineWidth = 15; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(); c.lineWidth = 8; c.strokeStyle = col; c.stroke(); c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,0.7)'; c.stroke(); }
+    c.lineJoin = 'round';
+    if (gun.sight === 'dot') { c.lineWidth = gun.bold ? 12 : 7; c.stroke(p); c.fill(p); c.lineWidth = gun.bold ? 4 : 2; c.strokeStyle = '#fff'; c.stroke(p); } else {
+      const w = gun.bold ? 8 : 4;
+      c.lineWidth = w + 7; c.strokeStyle = 'rgba(0,0,0,0.6)'; c.stroke(p);
+      c.lineWidth = w; c.strokeStyle = col; c.stroke(p);
+      c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.7)'; c.stroke(p);
+      if (gun.pip) { c.fill(sightPath2D('pip', R)); }
+    }
     // Their avatar and gun beside it.
     c.font = '38px system-ui, sans-serif';
     c.textAlign = 'left';
@@ -1504,6 +1550,7 @@
     for (const tg of d.n || []) addTarget(tg);
     if (d.m) {
       ammoNow = d.m;
+      updateBoard(s);
       const mine = order.indexOf(s.me);
       // (The server's count wins, unless this phone has just fired or started a reload it hasn't
       // heard back about.)
@@ -1765,13 +1812,15 @@
   // ---------- Screens ----------
   function stage(s, { overlay = true } = {}) {
     return `<div class="sg-stage ${s.game.set === 'duckPond' ? 'pond' : ''}"><canvas></canvas><canvas></canvas>
-      ${overlay ? `<div class="sg-hud"><span class="sg-round">Round ${Math.max(1, s.game.round)}/${s.game.rounds}</span><span class="sg-time">${s.game.length}s</span></div>` : ''}
-      <div class="sg-over-layer" id="sg-layer">${layer(s)}</div></div>`;
+      ${overlay ? (s.phase === 'calibrate' ? '<div class="sg-hud"><span>🎯 Calibrate your guns</span></div>' : `<div class="sg-hud"><span class="sg-round">Round ${Math.max(1, s.game.round)}/${s.game.rounds}</span><span class="sg-time">${s.game.length}s</span></div>`) : ''}
+      <div class="sg-over-layer" id="sg-layer">${layer(s)}</div>
+      ${overlay ? `<div class="sg-strip">${board(s)}</div>` : ''}</div>`;
   }
   // What's over the gallery: the calibration dots, the countdown.
   function layer(s) {
     const g = s.game;
     if (s.phase === 'countdown') return `<div class="sg-count">${g.count}</div>`;
+    if (s.phase === 'roundEnd' || s.phase === 'over') return results(s);
     const steps = g.calStep || {};
     const on = (n) => Object.keys(steps).filter((id) => steps[id] === n);
     const middle = s.phase === 'calibrate' ? s.players.filter((p) => !g.cal[p.id] && steps[p.id] !== 2).map((p) => p.id) : on(1);
@@ -1784,15 +1833,21 @@
     return html;
   }
 
+  // The scores, in a strip along the bottom of the gallery: everyone's avatar, name, gun, points
+  // (this round's while it's on) and rounds left, in their colour; the leader lit up.
   function board(s) {
     const g = s.game;
     const ids = g.order.filter((id) => s.players.some((p) => p.id === id));
     const live = s.phase === 'round';
-    const rows = ids.map((id, i) => ({ id, pts: live ? scores[g.order.indexOf(id)] ?? g.stats[id]?.round ?? 0 : g.stats[id]?.score ?? 0 })).sort((a, b) => b.pts - a.pts);
-    return `<div class="card sg-scores"><h2>${live ? `Round ${g.round}` : 'Scores'}</h2><ol>${rows.map((r) => {
-      const gun = gunOf(s, r.id);
-      return `<li style="--pc:${esc(PB.look(r.id).color)}">${PB.avatar(r.id, 'sm')}<span>${esc(name(r.id))}</span>${gunSvg(gun, 'mini')}<b>${r.pts}</b></li>`;
-    }).join('')}</ol></div>`;
+    const max = g.gunStats?.mag || 6;
+    const rows = ids.map((id) => ({ id, i: g.order.indexOf(id), pts: live ? scores[g.order.indexOf(id)] ?? g.stats[id]?.round ?? 0 : g.stats[id]?.score ?? 0 }));
+    const best = Math.max(...rows.map((r) => r.pts));
+    return `<ol class="sg-scores">${rows.map((r) => {
+      const left = ammoNow[r.i];
+      const n = Math.min(max, 10);
+      const pips = !live ? '' : left === 0 ? '<em class="sg-r">R</em>' : left < 0 ? '<em class="sg-r">…</em>' : `<i>${'<u></u>'.repeat(Math.ceil(((left ?? max) / max) * n))}${'<u class="x"></u>'.repeat(n - Math.ceil(((left ?? max) / max) * n))}</i>`;
+      return `<li class="${r.pts === best && best > 0 ? 'lead' : ''}" style="--pc:${esc(PB.look(r.id).color)}">${PB.avatar(r.id, 'sm')}<span>${esc(name(r.id))}</span><img src="${gunImg(gunOf(s, r.id)).src}" alt=""><b>${r.pts}</b>${pips}</li>`;
+    }).join('')}</ol>`;
   }
   let boardKey = '';
   function updateBoard(s) {
@@ -1886,15 +1941,14 @@
       return `${done ? `<div class="card sg-cal"><h2>✅ Calibrated</h2><p>Your crosshair should follow your phone${s.tv ? ' on the TV' : ''}. Waiting for ${PB.plural(Object.values(s.players).filter((p) => p.connected && !g.cal[p.id]).length, 'more player')}…</p><button class="secondary" data-sg="recal">🎯 Recalibrate</button></div>` : calibrateCard(s)}
         ${s.isHost && s.phase === 'calibrate' ? '<button class="secondary" data-act="start" data-confirm="Start the first round now?">▶ Start now</button>' : ''}
         ${!s.tv ? stage(s, { overlay: false }) : ''}
-        ${gunPanel(s, { open: false })}
+        ${gunPanel(s)}
         ${s.phase !== 'calibrate' ? '<button class="link" data-sg="cancelcal">Cancel</button>' : ''}`;
     }
     return fireScreen(s);
   }
 
   function tvScreen(s) {
-    if (s.phase === 'roundEnd' || s.phase === 'over') return `${results(s)}${board(s)}`;
-    return `${stage(s)}${board(s)}`;
+    return stage(s);
   }
 
   let lastKey = '';
@@ -1924,8 +1978,8 @@
     },
     stage: '.sg-stage',
     tvTable: false,
-    tvStage: '.sg-stage, .sg-scores, .sg-results',
-    tvLeft: '.sg-scores',
+    // The TV is all gallery: the scores along its bottom, the results over it between rounds.
+    tvStage: '.sg-stage',
     sounds(prev, s) {
       if (s.phase === 'round' && prev.phase === 'countdown') return ['go'];
       if (s.phase === 'countdown' && (prev.phase !== 'countdown' || s.game.count !== prev.game.count)) return ['beep'];
@@ -1934,6 +1988,7 @@
     },
     render(s) {
       listen();
+      seen.clear();
       if (s.game.order) order = s.game.order;
       // (A reconnect mid-round: the targets out now.)
       for (const tg of s.game.live || []) addTarget(tg);
@@ -1954,6 +2009,7 @@
       attachViews();
       if (document.getElementById('sg-ammo')) { document.getElementById('sg-ammo').dataset.k = ''; showAmmo(s); }
       turnWithScreen();
+      keepOpen();
       const fireBtn = document.getElementById('sg-fire');
       if (fireBtn) {
         fireBtn.onpointerdown = (e) => { e.preventDefault(); fire(); };
@@ -1975,24 +2031,22 @@
           if (what === 'reload') return startReload();
           if (what === 'sound') { try { localStorage.setItem('sg-sound', soundOn() ? 'off' : 'on'); } catch {} }
           if (what === 'look') setLook(b.dataset.k, b.dataset.v);
-          // (Keep the panel open while you pick.)
           lastKey = '';
           PB.rerender();
-          document.querySelector('.sg-armory')?.setAttribute('open', '');
         };
       });
     },
     onGallery,
     // The lobby, with this game picked: your gun, to set up before the game.
-    lobby(s) { return gunPanel({ ...s, me: s.me, game: null }, { open: false }); },
+    lobby(s) { return gunPanel({ ...s, me: s.me, game: null }); },
     lobbyBind() {
+      keepOpen();
       document.querySelectorAll('.sg-armory [data-sg]').forEach((b) => {
         b.onclick = (e) => {
           e.preventDefault();
           if (b.dataset.sg === 'sound') { try { localStorage.setItem('sg-sound', soundOn() ? 'off' : 'on'); } catch {} }
           if (b.dataset.sg === 'look') setLook(b.dataset.k, b.dataset.v);
           PB.rerender();
-          document.querySelector('.sg-armory')?.setAttribute('open', '');
         };
       });
     },
