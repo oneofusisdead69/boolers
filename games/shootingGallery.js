@@ -121,7 +121,7 @@ const setIdOf = (room) => (room.style === POND_ROOM ? 'duckPond' : SETS[room.sty
 const GUNS = {
   classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss',
   diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock',
-  beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'slingshot', frat: 'foamBlaster', garage: 'nailGun',
+  beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun',
   chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle', duckPond: 'sideBySide',
 };
 // How each fires (the same for everyone in a venue, so it's fair; across venues roughly even):
@@ -144,7 +144,7 @@ const GUN_STATS = {
   corkPopper: { rate: 350, mag: 4, reload: 1000, spread: 0.008 },
   rayGun: { rate: 300, mag: 8, reload: 1400, spread: 0.008 },
   flarePistol: { rate: 400, mag: 1, reload: 900, spread: 0.03 },
-  slingshot: { rate: 400, mag: 1, reload: 700, spread: 0.014 },
+  overUnder: { rate: 300, mag: 2, reload: 1300, spread: 0.028 },
   foamBlaster: { rate: 220, mag: 8, reload: 1300, spread: 0 },
   nailGun: { rate: 120, mag: 20, reload: 1600, spread: -0.008 },
   duelPistol: { rate: 400, mag: 1, reload: 900, spread: 0.025 },
@@ -508,13 +508,13 @@ function botsAim(room, g) {
         if (d < bestD) { best = x; bestD = d; }
       }
       b.target = best ? best.id : 0;
-      b.ready = g.t + 0.6 + (1 - skill) * 0.8 + Math.random() * 0.5;
+      b.ready = g.t + 0.9 + (1 - skill) * 1.2 + Math.random() * 0.8;
       tg = best;
     }
     const wobble = 0.004 + (1 - skill) * 0.02;
     if (tg) {
       posAt(tg, g.t + 0.1 * skill, tmp); // (a good one leads a moving target)
-      const k = 1 - Math.exp(-(1.8 + 3.8 * skill) * DT);
+      const k = 1 - Math.exp(-(1.2 + 2.6 * skill) * DT);
       b.x += (tmp.x - b.x) * k + (Math.random() - 0.5) * wobble;
       b.y += (tmp.y - b.y) * k + (Math.random() - 0.5) * wobble;
     } else {
@@ -713,8 +713,11 @@ module.exports = {
     posAt(tg, g.t, tmp);
     const d = Math.hypot((tmp.x - b.x) * ASPECT, tmp.y - b.y);
     if (d > tg.r * (0.4 + 0.6 * (1 - skill))) return later;
+    // Bots aren't perfect shots: they pull a fair share wide (Booler about 1 in 5, NPC about half).
     const shake = (1 - skill) * 0.03;
-    return { type: 'shoot', x: b.x + (Math.random() - 0.5) * shake, y: b.y + (Math.random() - 0.5) * shake, t: g.t, delay: 20 };
+    const wide = Math.random() > 0.35 + 0.5 * skill;
+    const miss = wide ? (tg.r + 0.03 + Math.random() * 0.05) * (Math.random() < 0.5 ? -1 : 1) : 0;
+    return { type: 'shoot', x: b.x + (Math.random() - 0.5) * shake + miss / ASPECT, y: b.y + (Math.random() - 0.5) * shake, t: g.t, delay: 20 };
   },
 
   // Someone leaving: calibration may now be complete; and a round's tick lost in a restart

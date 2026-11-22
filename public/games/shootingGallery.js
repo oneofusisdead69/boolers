@@ -1143,7 +1143,7 @@
     corkPopper: { mag: 4, name: 'Cork Popper', finish: '#2a6fdb', accent: '#f4f4f4', snd: { n: 2000, len: 0.05, tone: 700, to: 400, ng: 0.3, tg: 0.2, type: 'sine' } },
     rayGun: { mag: 8, name: 'Ray Gun', finish: '#c8ccd2', accent: '#7cf0ff', snd: { n: 0, len: 0.22, tone: 1800, to: 200, ng: 0, tg: 0.14, type: 'sine', wob: 30 } },
     flarePistol: { mag: 1, name: 'Flare Pistol', finish: '#ff8a1f', accent: '#1e1e22', snd: { n: 900, len: 0.2, tone: 260, to: 520, ng: 0.4, tg: 0.1 } },
-    slingshot: { mag: 1, name: 'Vine Slingshot', finish: '#8a5a2e', accent: '#c0392b', snd: { n: 3500, len: 0.06, tone: 400, to: 900, ng: 0.25, tg: 0.12, type: 'triangle' } },
+    overUnder: { mag: 2, name: 'Vintner’s Over-Under', finish: '#6a3a1e', accent: '#c8ccd2', snd: { n: 850, len: 0.22, tone: 120, to: 48, ng: 0.62, tg: 0.24, tail: true } },
     foamBlaster: { mag: 8, name: 'Foam Dart Blaster', finish: '#ff8a1f', accent: '#2a8af0', snd: { n: 1500, len: 0.08, tone: 500, to: 380, ng: 0.35, tg: 0.12, type: 'triangle' } },
     nailGun: { mag: 20, name: 'Nail Gun', finish: '#ffd23f', accent: '#1e1e22', snd: { n: 2500, len: 0.04, tone: 300, to: 200, ng: 0.5, tg: 0.15, type: 'square' } },
     duelPistol: { mag: 1, name: 'Duelling Pistol', finish: '#3a3f47', accent: '#e6c06a', snd: { n: 900, len: 0.12, tone: 150, to: 75, ng: 0.55, tg: 0.2 } },
@@ -1152,7 +1152,7 @@
     stalkingRifle: { mag: 4, name: 'Stalking Rifle', finish: '#5a3e26', accent: '#3a3f47', snd: { n: 1000, len: 0.13, tone: 130, to: 65, ng: 0.6, tg: 0.2 } },
     sideBySide: { mag: 2, name: 'Side-by-Side Shotgun', finish: '#5a3e26', accent: '#9aa0a6', snd: { n: 650, len: 0.2, tone: 100, to: 50, ng: 0.65, tg: 0.22 } },
   };
-  const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'slingshot', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle' };
+  const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle' };
   const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
   // Classic reticles. Each is drawn about its aim point (0, 0) (the chevron's is its tip), as
   // layers of SVG paths: [path, line weight (× the thin or bold line), filled?]. The same drawing
@@ -1264,12 +1264,31 @@
       ${K.shape('M214 28 H228 Q232 34 228 40 H214Z', 'a')}<circle cx="230" cy="34" r="8" fill="${a}" opacity="0.3"/>
       ${K.shape('M150 12 H184 V20 H150Z', 'd')}${K.line('M86 60 V82', 2.5, a)}${K.guard(122, 50, 9)}
       ${K.rounds(120, 34, n, { kind: 'cell', dx: 7, w: 4, h: 6 })}` }),
-    crossbow: (K, f, a, n) => ({ m: [234, 34], t: [96, 26], body: `
-      ${K.tex('M4 46 L60 34 L210 34 L210 42 L120 42 L96 46 Q50 58 12 76 Q0 64 4 46Z', 'f')}${K.shine('M64 37 H206', 1.4)}
-      <path d="M190 2 Q170 38 190 94" fill="none" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M190 2 Q170 38 190 94" fill="none" stroke="${K.F('a')}" stroke-width="6" stroke-linecap="round"/>
-      ${K.line('M190 4 L120 37 L190 92', 1.4, '#e8e0d0')}${K.shape('M176 30 H192 V44 H176Z', 's')}
-      ${K.group(`<path d="M122 32 H226" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><path d="M122 32 H226" stroke="#c8b088" stroke-width="2"/><path d="M224 28 L236 32 L224 36Z" fill="#b8bcc4" stroke="${INK}"/><path d="M122 32 l-8 -6 h10z M122 32 l-8 6 h10z" fill="${a}" stroke="${INK}" stroke-width="0.8"/>`)}
-      ${K.shape('M96 44 L104 44 L100 64 L94 64Z', 's')}${K.screw(84, 40)}` }),
+    // A medieval crossbow, side on: the carved tiller (stock) with its grain, the steel prod (the
+    // bow) crossing it near the front, edge on with a little of its curve showing, lashed on with
+    // cord; the string drawn back to the nut; the bolt in its groove (the one round: it's gone
+    // when it's been shot); the stirrup out front, the long trigger lever underneath.
+    crossbow: (K, f, a, n) => ({ m: [230, 27], t: [120, 20], body: `
+      ${K.tex('M4 36 Q4 28 14 28 L58 30 Q80 31 96 31 L198 30 Q204 30 204 35 L204 41 Q204 45 198 45 L132 45 Q116 47 104 50 L70 52 Q46 54 30 62 Q14 68 7 62 Q2 56 4 36Z', 'f')}
+      ${K.shine('M14 31 L196 33', 1.4)}${K.line('M14 58 Q40 50 102 48', 1, 'rgba(0,0,0,0.3)')}
+      <path d="M22 38 q22 -3 40 2 q-20 8 -40 6z" fill="${dk(f, 0.3)}" opacity="0.55"/>
+      ${K.shape('M2 34 Q2 27 8 27 L12 27 L12 64 Q6 64 4 58Z', 'a')}${K.screw(7, 34, 1.6)}${K.screw(7, 56, 1.6)}
+      ${K.line('M124 30.5 L200 30.5', 2.6, dk(f, 0.6))}
+      ${K.shape('M168 29 H182 V46 H168Z', 'a')}${K.screw(175, 41, 1.6)}
+      ${K.shape('M110 29 H132 V46 H110Z', 'a')}${K.screw(115, 41, 1.8)}${K.screw(127, 41, 1.8)}
+      ${K.shape('M104 46 Q100 58 86 72 Q82 76 78 73 Q90 60 96 46Z', 'a')}
+      <path d="M200 30 Q230 14 226 36 Q230 58 200 46" fill="none" stroke="${INK}" stroke-width="6.5" stroke-linecap="round"/><path d="M200 30 Q230 14 226 36 Q230 58 200 46" fill="none" stroke="${K.F('a')}" stroke-width="3.6" stroke-linecap="round"/>
+      <path d="M182 4 Q172 8 177 18 Q192 38 192 38 Q192 38 177 60 Q172 70 182 92" fill="none" stroke="${INK}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M182 4 Q172 8 177 18 Q192 38 192 38 Q192 38 177 60 Q172 70 182 92" fill="none" stroke="${K.F('a')}" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>
+      ${K.shine('M178 14 Q186 28 190 37', 1.4)}
+      ${K.line('M181 6 L124 30 L181 90', 1.5, '#efe4c8')}
+      ${K.shape('M182 27 H198 V49 H182Z', '#8a6a3a')}${[185, 189, 193].map((x) => K.line(`M${x} 27 L${x + 3} 49`, 1, '#4a3418')).join('')}
+      <circle cx="124" cy="29" r="4.2" fill="${K.F('a')}" stroke="${INK}" stroke-width="1.2"/>
+      <g class="sg-rounds vanish"><g>
+        <path d="M126 29 H216" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M126 29 H216" stroke="#c8a870" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M214 24.5 L231 29 L214 33.5 L217 29Z" fill="${K.F('s')}" stroke="${INK}" stroke-width="1"/>
+        <path d="M130 29 L142 29 L138 21 L128 23Z" fill="#c8302f" stroke="${INK}" stroke-width="0.9"/><path d="M146 29 L156 29 L152 22 L144 24Z" fill="#f4ecd8" stroke="${INK}" stroke-width="0.8"/>
+      </g></g>` }),
     trumpetBuss: (K, f, a, n) => ({ m: [234, 36], t: [86, 24], body: `
       ${K.tex('M6 52 L58 36 L94 34 L94 50 L66 54 Q38 68 12 82 Q2 72 6 52Z', 'a')}
       ${K.barrel(86, 186, 30, 12, 'f')}${K.shape('M184 30 Q206 26 232 6 Q240 36 232 66 Q206 46 184 42Z', 'f')}
@@ -1334,11 +1353,27 @@
       ${K.shape('M196 12 H222 Q226 12 226 16 V52 Q226 56 222 56 H196Z', 'f')}<ellipse cx="224" cy="34" rx="3" ry="18" fill="${dk(f, 0.6)}"/>
       ${K.hammer(80, 22)}${K.guard(124, 50, 9, 'a')}${K.screw(130, 34, 3)}
       ${K.group(`<rect x="140" y="27" width="50" height="14" rx="4" fill="#e83a2a" stroke="${INK}"/><rect x="140" y="27" width="10" height="14" rx="2" fill="url(#${'U'}b)" stroke="${INK}"/>`)}` }),
-    slingshot: (K, f, a, n) => ({ m: [232, 46], t: [70, 44], body: `
-      ${K.tex('M10 40 Q40 36 120 42 L120 52 Q40 58 10 54 Q4 47 10 40Z', 'f')}${K.line('M30 40 V54 M44 40 V54', 3, a)}
-      ${K.tex('M116 40 Q150 30 210 8 L218 16 Q164 40 130 48Z', 'f')}${K.tex('M116 54 Q150 64 210 86 L218 78 Q164 54 130 46Z', 'f')}
-      <path d="M214 12 Q160 46 214 82" fill="none" stroke="${a}" stroke-width="3"/><path d="M150 40 h16 v14 h-16z" fill="#6a3a22" stroke="${INK}"/>
-      ${K.group(`<circle cx="158" cy="47" r="7" fill="#6a2a8a" stroke="${INK}"/><circle cx="156" cy="44" r="2" fill="rgba(255,255,255,0.5)"/>`)}` }),
+    // An Italian over-and-under: the two barrels one above the other under a ventilated rib, a
+    // bead at the muzzle; a silver receiver with scroll engraving and a little bunch of grapes on
+    // it; the figured walnut stock and fore-end, checkered; a gold trigger. Its two shells show
+    // at the breech, one per barrel.
+    overUnder: (K, f, a, n) => ({ m: [236, 31], t: [104, 24], body: `
+      ${K.tex('M4 54 L58 40 L98 37 L98 56 L72 59 Q42 70 12 85 Q2 76 4 54Z', 'f')}
+      <path d="M14 66 Q34 56 52 60 Q70 64 86 56 M10 76 Q30 70 46 72" fill="none" stroke="${dk(f, 0.55)}" stroke-width="1.4" opacity="0.6"/>
+      ${K.tex('M60 43 L94 40 L92 55 L66 58Z', 'f', 'k')}${K.shine('M12 57 L58 44', 1.4)}
+      <rect x="2" y="70" width="10" height="17" rx="2" transform="rotate(-27 7 78)" fill="#2a1a12" stroke="${INK}" stroke-width="1.2"/>
+      ${K.barrel(130, 236, 25, 8, 'd')}${K.barrel(130, 236, 33.5, 8, 'd')}
+      ${K.line('M132 24 H232', 1.6, '#55555c')}${Array.from({ length: 12 }, (_, i) => K.line(`M${138 + i * 8} 24 V25.5`, 1.4, '#888')).join('')}
+      <circle cx="233" cy="23" r="1.9" fill="#e6c06a" stroke="${INK}" stroke-width="0.6"/>
+      ${K.tex('M132 40.5 H200 Q205 42 203 49 Q202 53 196 53 H140 Q132 52 132 46Z', 'f')}${K.tex('M146 43 H192 V50 H146Z', 'f', 'k')}${K.shine('M136 43 H198', 1.2)}
+      ${K.shape('M94 26 H128 Q134 26 134 32 V52 Q134 58 126 58 H100 Q92 58 92 50Z', 'a')}
+      <path d="M95 28 H131 V55 H95Z" fill="url(#${'U'}e)"/>
+      ${K.line('M98 52 Q104 44 112 48 T126 44', 1, dk(a, 0.5))}
+      <g transform="translate(112 34)">${[[0, 0], [3, 0], [6, 0], [1.5, 2.6], [4.5, 2.6], [3, 5.2]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#6a2a8a" stroke="${INK}" stroke-width="0.5"/>`).join('')}<path d="M3 -1 q2 -5 6 -4 q-2 4 -6 4z" fill="#4a7a2a"/></g>
+      ${K.shape('M98 26 L86 21 L88 18 L101 23Z', 'a')}
+      ${K.guard(110, 56, 9, 'a')}<path d="M112 56 q-1 7 -6 9" fill="none" stroke="#e6c06a" stroke-width="2.6" stroke-linecap="round"/>
+      ${K.screw(100, 50, 1.8)}
+      ${K.rounds(131, 29, n, { kind: 'dot', dy: 8.5, dx: 0, w: 6.5 })}` }),
     foamBlaster: (K, f, a, n) => ({ m: [234, 38], t: [94, 22], body: `
       ${K.shape('M80 52 L110 52 Q102 70 100 90 L72 90 Q70 70 80 52Z', 'a')}
       ${K.shape('M66 26 Q66 20 72 20 H206 Q212 20 212 26 V54 H66Z', 'f')}${K.shine('M72 25 H204', 3)}
@@ -1458,6 +1493,20 @@
         o.connect(g).connect(out);
         o.start(t);
         o.stop(t + p.len * 1.3 + 0.02);
+      }
+      if (p.tail) {
+        // (A shotgun's boom carries: a soft second thump, a little after.)
+        const o = ac.createOscillator();
+        const g2 = ac.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(70, t + 0.06);
+        o.frequency.exponentialRampToValueAtTime(40, t + 0.35);
+        g2.gain.setValueAtTime(0.0001, t + 0.06);
+        g2.gain.exponentialRampToValueAtTime(0.12, t + 0.08);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+        o.connect(g2).connect(out);
+        o.start(t + 0.06);
+        o.stop(t + 0.4);
       }
       if (p.bell) {
         const o = ac.createOscillator();
