@@ -191,6 +191,10 @@ document.addEventListener('visibilitychange', () => {
   if (room) socket.emit('join', { code: room, playerId, key: playerKey, name: store.get('name'), ...lookToSend() }, () => {});
 });
 
+// A new version of the site: reload, once any game in progress is over (see PB.checkBuild).
+const midGame = () => !!PB.state && PB.state.phase !== 'lobby';
+socket.on('build', (build) => PB.checkBuild(build, midGame));
+
 socket.on('connect', () => {
   // Rejoin automatically after a refresh or a dropped connection.
   const room = store.get('room');
@@ -690,6 +694,7 @@ function turnGlow() {
 }
 
 function render() {
+  PB.reloadIfDue(midGame);
   turnGlow();
   compactAlert();
   ROOM_STYLES.apply(PB.state?.look || PB.state?.style);
