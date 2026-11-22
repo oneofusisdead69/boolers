@@ -17,7 +17,9 @@ const store = {
   set: (code) => { try { localStorage.setItem('tv-room', code); } catch {} },
   del: () => { try { localStorage.removeItem('tv-room'); } catch {} },
 };
-let code = (params.get('room') || store.get() || '').toUpperCase();
+// (Codes are letters and numbers: a random 4-letter one, or a room name of up to 12.)
+const cleanCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+let code = cleanCode(params.get('room') || store.get());
 const preview = params.has('preview');
 let error = '';
 let soundOn = false; // browsers only allow sound after the first click
@@ -199,15 +201,15 @@ function joinScreen() {
       <p class="tagline">TV mode: the table, the scores and the sounds on the big screen</p>
       <div class="card">
         <h2>Create a room on your phone, then enter its code here</h2>
-        <input id="tv-code" class="code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+        <input id="tv-code" class="code" maxlength="12" placeholder="CODE" autocomplete="off" autocapitalize="characters">
         <button id="tv-go">Show this room</button>
         <p class="error">${esc(error)}</p>
       </div>
     </div>`;
   const $code = document.getElementById('tv-code');
   const go = () => {
-    const c = $code.value.trim().toUpperCase();
-    if (c.length === 4) watch(c);
+    const c = cleanCode($code.value);
+    if (c.length >= 3) watch(c);
   };
   document.getElementById('tv-go').onclick = go;
   $code.addEventListener('keydown', (e) => e.key === 'Enter' && go());
@@ -225,7 +227,7 @@ function lobbyScreen(s) {
         <p class="tagline">Join on your phone: scan the code, or go to <b>${esc(location.host)}</b></p>
         <div class="tv-room">
           <img class="qr" src="/qr/${esc(s.code)}" alt="QR code to join">
-          <div><small>Room code</small><div class="room-code">${esc(s.code)}</div></div>
+          <div><small>Room code</small><div class="room-code${s.code.length > 6 ? ' long' : ''}">${esc(s.code)}</div></div>
         </div>
         <div class="tv-lobby-players">${s.players.map((p) => `
           <div class="tv-player ${p.connected ? '' : 'offline'}">${PB.avatar(p.id, 'lg')}<span>${esc(p.name)}${p.id === s.hostId ? ' 👑' : ''}</span></div>`).join('') || '<p class="muted">Nobody here yet</p>'}</div>
