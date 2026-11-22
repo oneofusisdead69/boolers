@@ -1846,18 +1846,62 @@
   }
   const wrap = (d) => ((d + 540) % 360) - 180;
 
+  // The gyroscope and gravity (devicemotion), when the phone has them: turning left and right is
+  // the rotation rate about the vertical (gravity), added up; up and down is the pointer's angle
+  // to gravity. Unlike alpha/beta/gamma, neither goes haywire with the phone on its side (held like
+  // a pistol, gamma near 90°, where the Euler angles lock up and the heading spins).
+  const imu = { live: false, t: 0, g: null, yaw: 0 };
+  function onMotion(e) {
+    const r = e.rotationRate;
+    const a = e.accelerationIncludingGravity;
+    if (!r || r.alpha == null || !a || a.x == null) return;
+    const now = performance.now();
+    const dt = imu.t ? Math.min(0.1, (now - imu.t) / 1000) : 0;
+    imu.t = now;
+    // Gravity in the phone's frame, lightly smoothed (it's what's left of the acceleration).
+    const raw = [a.x, a.y, a.z];
+    imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
+    const n = Math.hypot(...imu.g) || 1;
+    const gx = imu.g[0] / n, gy = imu.g[1] / n, gz = imu.g[2] / n;
+    // rotationRate: alpha about the screen's normal (z), beta about x, gamma about y; degrees/s.
+    imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
+    const s = PB.state;
+    const hold = cal.hold || holdFor(s);
+    // The pointer: the top edge (0, 1, 0), or the back (0, 0, −1) held like a camera.
+    const pitch = Math.asin(clamp(hold === 'remote' ? gy : -gz, -1, 1)) * R2D;
+    if (!imu.live) { imu.live = true; motion.last = e; }
+    point(imu.yaw, pitch, true);
+  }
+
   function onOrient(e) {
     if (e.alpha == null && e.beta == null) return;
     motion.last = e;
+    if (imu.live) return; // the gyroscope's better
+    const s = PB.state;
+    const p = pointing(e, cal.hold || holdFor(s));
+    point(p.yaw, p.pitch, false);
+  }
+
+  // Where the phone points (degrees) → the crosshair. During the corner step the crosshair already
+  // follows, at a rough size, so you can see it on the TV.
+  const ROUGH_K = { x: 22, y: 12 };
+  function point(yaw, pitch, gyro) {
     if (!motion.live) { motion.live = true; lastKey = ''; PB.rerender(); }
     const s = PB.state;
     if (s?.gameType !== 'shootingGallery' || PB.isTV) return;
-    const hold = cal.hold || holdFor(s);
-    const p = pointing(e, hold);
-    // A light smoothing (low lag beats smooth).
-    if (!aim.live) { aim.yaw = p.yaw; aim.pitch = p.pitch; aim.live = true; } else {
-      aim.yaw += wrap(p.yaw - aim.yaw) * 0.6;
-      aim.pitch += (p.pitch - aim.pitch) * 0.6;
+    // A light smoothing (low lag beats smooth); the gyroscope's own sum needs none.
+    if (!aim.live || gyro) { aim.yaw = yaw; aim.pitch = pitch; aim.live = true; } else {
+      aim.yaw += wrap(yaw - aim.yaw) * 0.6;
+      aim.pitch += (pitch - aim.pitch) * 0.6;
+    }
+    if (!cal.done && cal.step === 2) {
+      // The rough size's direction: whichever way this phone turns for "right" and "up" isn't known
+      // until the corner tap, so show the movement as is.
+      aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / -ROUGH_K.x, -0.12, 1.12);
+      aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / ROUGH_K.y, -0.12, 1.12);
+      aim.ok = true;
+      sendAim();
+      return;
     }
     if (cal.done) {
       aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
@@ -1876,8 +1920,11 @@
     if (motion.listening || PB.isTV || typeof window === 'undefined') return;
     motion.listening = true;
     window.addEventListener('deviceorientation', onOrient);
+    window.addEventListener('devicemotion', onMotion);
   }
   function askMotion() {
+    // iPhones ask for the gyroscope (motion) and the compass (orientation) separately.
+    try { if (typeof DeviceMotionEvent?.requestPermission === 'function') DeviceMotionEvent.requestPermission().catch(() => {}); } catch {}
     DeviceOrientationEvent.requestPermission().then((st) => {
       motion.granted = st === 'granted';
       motion.denied = !motion.granted;

@@ -48,6 +48,8 @@ function watch(c) {
   });
 }
 
+// A new version of the site: the TV reloads straight away (it comes back to the same room).
+socket.on('build', (build) => PB.checkBuild(build));
 socket.on('connect', () => (code ? watch(code) : render()));
 socket.on('disconnect', (reason) => reason === 'io server disconnect' && socket.connect());
 // Turned away by a server that's handing over to a new one: try again in a moment (it won't on its own).

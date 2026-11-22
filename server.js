@@ -479,10 +479,28 @@ function removePlayer(room, playerId) {
 // ---------- Sockets ----------
 
 // The list of games never changes, so each phone and TV gets it once, when it connects.
+// Which version of the pages this server serves: a hash of everything under public/ (and the games,
+// whose rules phones run in pass and play). A page from an older one reloads itself (public/pb.js:
+// PB.checkBuild), so it doesn't run old screens against new games.
+const BUILD = (() => {
+  const h = crypto.createHash('sha1');
+  const walk = (dir) => {
+    for (const f of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const at = path.join(dir, f.name);
+      if (f.isDirectory()) walk(at);
+      else h.update(f.name).update(fs.readFileSync(at));
+    }
+  };
+  walk(path.join(__dirname, 'public'));
+  walk(path.join(__dirname, 'games'));
+  return h.digest('hex').slice(0, 12);
+})();
+
 // menu: 'bool' (the drinking games) or 'notBool' (group games that aren't about drinking).
 const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [], bestWithTv = false, menu = 'bool', lobbyPanel = false }) => ({ id, name, description, minPlayers, rules, bestWithTv, menu, lobbyPanel }));
 
 io.on('connection', (socket) => {
+  socket.emit('build', BUILD);
   socket.emit('games', GAME_LIST);
   let room = null;
   let player = null;
