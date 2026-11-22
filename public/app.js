@@ -374,6 +374,7 @@ function renderHome() {
   // Redrawing (e.g. turning the phone) keeps whatever's been typed.
   const typedName = document.getElementById('name')?.value;
   const typedCode = document.getElementById('code')?.value;
+  const typedRoomName = document.getElementById('room-name')?.value;
   const savedName = typedName ?? (store.get('name') || (seat ? `Player ${seat}` : ''));
   $app.innerHTML = `
     <h1 class="ls-l"><span class="logo-emoji">🍻</span> Bool <span>Games</span> <span class="logo-emoji">🎲</span></h1>
@@ -383,11 +384,15 @@ function renderHome() {
       <input id="name" placeholder="Your name" maxlength="16" autocomplete="off" value="${PB.esc(savedName)}">
     </div>
     <div class="card ls-l">
-      <input id="code" class="code" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" value="${PB.esc(typedCode ?? urlRoom ?? '')}">
+      <input id="code" class="code" placeholder="CODE" maxlength="12" autocomplete="off" autocapitalize="characters" value="${PB.esc(typedCode ?? urlRoom ?? '')}">
       <button id="join">Join room</button>
     </div>
     <p class="or ls-l">or</p>
-    <button id="create" class="secondary ls-l">Create a new room</button>
+    <div class="card ls-l">
+      <input id="room-name" placeholder="Room name (optional)" maxlength="16" autocomplete="off" autocapitalize="characters" aria-describedby="room-name-hint" value="${PB.esc(typedRoomName ?? '')}">
+      <p class="muted room-name-hint" id="room-name-hint">Friends type this to join. 3 to 12 letters or numbers, or leave it blank for a random code.</p>
+      <button id="create" class="secondary">Create a new room</button>
+    </div>
     <p class="tv-note ls-l">📺 <b>Got a TV or a laptop?</b> Open <b>${PB.esc(location.host)}/tv</b> on it and enter your room code. The table, the scores and the sound go on the big screen.</p>
     <p class="error ls-l" id="err">${PB.esc(homeError)}</p>
     <div class="card">
@@ -444,12 +449,16 @@ function renderHome() {
   }
 
   document.getElementById('join').onclick = () => {
-    const code = $code.value.trim().toUpperCase();
-    if (code.length !== 4) { $err.textContent = 'Room codes are 4 letters'; $code.focus(); return; }
+    // (Codes are letters and numbers; the server checks them the same way.)
+    const code = $code.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length < 3) { $err.textContent = 'Enter the room code'; $code.focus(); return; }
     go('join', { code });
   };
-  document.getElementById('create').onclick = () => go('create', {});
+  // A room name the host picks becomes the room's code (the server checks it); blank is random.
+  const $roomName = document.getElementById('room-name');
+  document.getElementById('create').onclick = () => go('create', { roomName: $roomName.value });
   $code.addEventListener('keydown', (e) => e.key === 'Enter' && document.getElementById('join').click());
+  $roomName.addEventListener('keydown', (e) => e.key === 'Enter' && document.getElementById('create').click());
   if (!seat) (urlRoom && !savedName ? $name : urlRoom ? $code : $name).focus();
 }
 
@@ -551,7 +560,7 @@ function renderLobby() {
   $app.innerHTML = `
     <div class="card center ls-l">
       <h2>Room code</h2>
-      <div class="room-code">${PB.esc(s.code)}</div>
+      <div class="room-code${s.code.length > 6 ? ' long' : ''}">${PB.esc(s.code)}</div>
       <img class="qr" src="/qr/${PB.esc(s.code)}" alt="QR code to join">
       <button id="share" class="secondary">Share invite link</button>
     </div>

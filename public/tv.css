@@ -27,6 +27,7 @@ body.tv .tagline { font-size: 1.3rem; }
 .tv-room .qr { width: 15rem; height: 15rem; margin: 0; }
 .tv-room small { color: var(--muted); font-size: 1.2rem; }
 .tv-room .room-code { font-size: 6rem; }
+.tv-room .room-code.long { font-size: 3.6rem; }
 .tv-lobby-players { display: flex; flex-wrap: wrap; gap: 1.4rem; justify-content: center; }
 .tv-player { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; font-size: 1.2rem; animation: tv-pop 0.4s ease-out; }
 .tv-player.offline { opacity: 0.4; }

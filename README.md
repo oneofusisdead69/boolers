@@ -1,6 +1,9 @@
 # Bool Games
 
-Phone-only party drinking games. One person creates a room on their phone, and everyone else joins by scanning the QR code, tapping the shared link or typing the 4-letter room code. No app, no TV.
+Phone-only party drinking games. One person creates a room on their phone, and everyone else joins by scanning the QR code, tapping the shared link or typing the room code. No app, no TV.
+
+## Room codes
+A new room gets a random 4-letter code, unless the person creating it fills in **Room name (optional)** on the home screen: then that name is the code friends type to join (and what the QR code and shared link use). Room names are 3 to 12 letters or numbers; spaces are dropped ("Noahs Place" becomes `NOAHSPLACE`) and anything else is refused. Codes aren't case-sensitive (they're stored uppercase), the server checks every name itself, and a name that's already a live room's is refused ("That room name is taken, try another") rather than joining it. A handful of rude words are refused too. This is separate from the venue name below, which the host sets in the lobby and is only for show. Rules in `lib/roomCode.js`.
 
 ## Games
 | Game | Status |

@@ -17,6 +17,7 @@ const custom = require('./lib/custom');
 const analytics = require('./lib/analytics');
 const { createBots, isBot } = require('./lib/bots');
 const { createRoomStore } = require('./lib/roomStore');
+const roomCode = require('./lib/roomCode');
 const { createQuestionBank } = require('./lib/questionBank');
 
 // Every file in ./games is a game. See games/README.md for the module shape.
@@ -100,7 +101,7 @@ app.get('/shared/bundle.js', (req, res) => {
 // A Big Tom drawing, once the final vote has started: each phone fetches it once (and caches it)
 // instead of every drawing riding along with every update.
 app.get('/drawing/:code/:key/:i', (req, res) => {
-  const g = rooms.get(String(req.params.code).toUpperCase())?.game;
+  const g = rooms.get(roomCode.normalizeCode(req.params.code))?.game;
   const ready = g?.type === 'bigTom' && (g.phase === 'finalVote' || g.phase === 'final') && g.drawingKey === req.params.key;
   const image = ready && g.drawings[g.finalOrder[Number(req.params.i)]];
   const match = typeof image === 'string' && image.match(/^data:image\/png;base64,(.+)$/);
@@ -110,7 +111,7 @@ app.get('/drawing/:code/:key/:i', (req, res) => {
 
 // QR code that links straight to the join screen for a room.
 app.get('/qr/:code', async (req, res) => {
-  const code = String(req.params.code).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  const code = roomCode.normalizeCode(req.params.code);
   const url = `${req.protocol}://${req.get('host')}/?room=${code}`;
   res.type('image/svg+xml').send(await QRCode.toString(url, { type: 'svg', margin: 1 }));
 });
@@ -120,15 +121,6 @@ app.get('/qr/:code', async (req, res) => {
 const rooms = new Map();
 // Rooms survive a restart when ROOM_STORE is set (see lib/roomStore.js).
 const roomStore = createRoomStore();
-const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O to avoid confusion with 1/0
-
-function makeCode() {
-  let code;
-  do {
-    code = Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join('');
-  } while (rooms.has(code));
-  return code;
-}
 
 // A room by its code. One this server doesn't have may have been made by another server (during a
 // deploy both run for a moment), and one loaded when this server started may have been saved by the
@@ -388,8 +380,8 @@ function setStyle(room, style) {
   return true;
 }
 
-function newRoom(hostId) {
-  const code = makeCode();
+// (`code` comes from roomCode.pickCode: a random one, or the room name the host picked.)
+function newRoom(hostId, code) {
   const r = {
     code,
     hostId,
@@ -521,12 +513,18 @@ io.on('connection', (socket) => {
     ensureHost(r);
   }
 
-  on('create', ({ name, playerId, key, avatar, color, drink, style } = {}, ack = () => {}) => {
+  // `roomName` is the room's code if the host picked one (lib/roomCode.js), not the venue name.
+  on('create', async ({ name, playerId, key, avatar, color, drink, style, roomName } = {}, ack = () => {}) => {
     name = cleanName(name);
     if (!name) return ack({ error: 'Enter your name' });
     if (!validId(playerId)) return ack({ error: 'Missing player id' });
+    const checked = roomCode.checkRoomName(roomName);
+    if (checked.error) return ack({ error: checked.error });
     if (!allowCreate(clientIp(socket)) || rooms.size >= MAX_ROOMS) return ack({ error: 'Too many rooms right now. Try again in a minute.' });
-    const r = newRoom(playerId);
+    // A picked name that's a live room's (here, or saved by another server) is refused, not joined.
+    const picked = await roomCode.pickCode(roomName, { inUse: (c) => rooms.has(c), isLive: async (c) => !!(await findRoom(c)) });
+    if (picked.error) return ack({ error: picked.error });
+    const r = newRoom(playerId, picked.code);
     const { code } = r;
     analytics.track('room_created');
     const p = { id: playerId, key: validId(key) ? key : null, name, drinks: 0, connected: true, socketId: socket.id, ...LOOKS.choose({ avatar, color, drink }) };
@@ -539,7 +537,7 @@ io.on('connection', (socket) => {
   });
 
   on('join', async ({ code, name, playerId, key, avatar, color, drink } = {}, ack = () => {}) => {
-    code = String(code || '').toUpperCase().trim().slice(0, 4);
+    code = roomCode.normalizeCode(code);
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
     const r = await findRoom(code);
     if (!r) {
@@ -748,7 +746,7 @@ io.on('connection', (socket) => {
   // A TV joins a room to show it on a big screen.
   on('watch', async ({ code } = {}, ack = () => {}) => {
     if (guessing(clientIp(socket))) return ack({ error: 'Too many tries. Wait a minute and try again.' });
-    const r = await findRoom(String(code || '').toUpperCase().trim().slice(0, 4));
+    const r = await findRoom(roomCode.normalizeCode(code));
     if (!r) {
       guessing(clientIp(socket), true);
       return ack({ error: `No room called ${code || '????'}` });

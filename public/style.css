@@ -97,6 +97,8 @@ button.link { background: none; color: var(--muted); font-weight: 500; padding: 
   text-align: center;
   color: var(--accent-ink, var(--accent));
 }
+.room-code.long { font-size: 2rem; letter-spacing: 0.05em; overflow-wrap: anywhere; }
+.room-name-hint { font-size: 0.85rem; margin: -4px 0 0; }
 .qr { width: 180px; height: 180px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 8px; }
 
 .players { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
