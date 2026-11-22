@@ -508,7 +508,7 @@ function botsAim(room, g) {
         if (d < bestD) { best = x; bestD = d; }
       }
       b.target = best ? best.id : 0;
-      b.ready = g.t + 0.9 + (1 - skill) * 1.2 + Math.random() * 0.8;
+      b.ready = g.t + 0.7 + (1 - skill) * 1.1 + Math.random() * 0.5;
       tg = best;
     }
     const wobble = 0.004 + (1 - skill) * 0.02;
