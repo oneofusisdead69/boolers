@@ -262,6 +262,9 @@
     // Halloween: graveyard green from one side, pumpkin orange from the other.
     halloween: { sil: '#05030a', rims: [{ x: 1, y: -0.5, c: '#7cff9a' }, { x: -1, y: -0.4, c: '#ff8a1a' }] },
     // The Highlands pub: the peat fire, and the sky at the window (evening, rain, fog).
+    // The duck pond at dawn (Shooting Gallery at the Highlands pub): a deep plum silhouette, the
+    // low gold sun from the right, the pale sky's lilac.
+    stpatricksDuckPond: { sil: '#1e1a26', rims: [{ x: 1, y: -0.3, c: '#ffc070' }, { x: -0.4, y: -1, c: '#c8b0e0', o: 0.6 }] },
     stpatricks: { sil: NIGHT, rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#f0c0a0', o: 0.6 }] },
     stpatricksRain: { sil: NIGHT, rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#a8b8c8', o: 0.6 }] },
     stpatricksFog: { sil: '#141414', rims: [{ x: -1, y: -0.4, c: '#ffa848' }, { x: 1, y: -0.5, c: '#d0d8dc', o: 0.55 }] },
@@ -2365,6 +2368,21 @@
       () => { cue('snaps'); for (let i = 0; i < 4; i++) later(() => popup('🫰', { x: rand(2, 14), bottom: rand(4, 20), size: 40, life: 1600 }), i * 400); },
       () => { const x = rand(2, 10); drift('🍅', { from: [-6, 60], to: [x, 72], dur: 0.9, size: 40, spin: 360 }); later(() => popup('💥', { x, bottom: 24, size: 50, life: 900 }), 900); cue('thud', 900); },
       () => layer.querySelector('.sc-sign.mic')?.animate([{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1200, easing: 'steps(1)' }),
+    ],
+  };
+
+  // Shooting Gallery at the Highlands pub: the duck pond at dawn. The mist lifts off the water,
+  // ducks go over in a V now and then (in colour, like every animal here), a heron stalks past.
+  const FLY_DUCK = `<svg viewBox="0 0 80 40" width="1em" height="0.5em" overflow="visible"><ellipse cx="38" cy="22" rx="22" ry="8" fill="#8a8a80" stroke="${INK}" stroke-width="1.4"/><circle cx="62" cy="18" r="7" fill="#1f6a3a" stroke="${INK}" stroke-width="1.4"/><path d="M68 17 L78 19 L68 21Z" fill="#e8b030"/><g class="sc-wing"><path d="M30 18 Q34 0 48 4 Q44 14 42 20Z" fill="#b8b0a0" stroke="${INK}" stroke-width="1.2"/></g></svg>`;
+  SCENES.stpatricksDuckPond = {
+    decor() {
+      el('', { left: '0', bottom: '0', width: '100vw', height: '30vh' }).classList.add('sc-pondmist');
+      banner('The Duck Pond', 'Dawn, out the back of the Highlands pub', 'pond');
+    },
+    moments: [
+      () => { const y = rand(8, 26); for (let i = 0; i < 5; i++) later(() => drift(FLY_DUCK, { from: [-8 - i * 3, y + Math.abs(i - 2) * 3], to: [108, y - 8 + Math.abs(i - 2) * 3], dur: 9, size: 54 }), i * 120); },
+      () => drift(FLY_DUCK, { from: [108, rand(10, 30)], to: [-10, rand(5, 20)], dur: 6, size: 64, extra: { transform: 'scaleX(-1)' } }),
+      () => popup('🐸', { x: rand(2, 12), bottom: 4, size: 40, life: 3000 }),
     ],
   };
 

@@ -480,7 +480,7 @@ function removePlayer(room, playerId) {
 
 // The list of games never changes, so each phone and TV gets it once, when it connects.
 // menu: 'bool' (the drinking games) or 'notBool' (group games that aren't about drinking).
-const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [], bestWithTv = false, menu = 'bool' }) => ({ id, name, description, minPlayers, rules, bestWithTv, menu }));
+const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [], bestWithTv = false, menu = 'bool', lobbyPanel = false }) => ({ id, name, description, minPlayers, rules, bestWithTv, menu, lobbyPanel }));
 
 io.on('connection', (socket) => {
   socket.emit('games', GAME_LIST);

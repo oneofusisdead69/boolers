@@ -313,6 +313,8 @@ function playSounds(prev, s) {
 socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
 // Where the cars are in a race, many times a second (games/trackRacing.js).
 socket.on('cars', (cars) => PB.screens[PB.state?.gameType]?.onCars?.(cars));
+// The shooting gallery's crosshairs, new targets and shots, every tick (games/shootingGallery.js).
+socket.on('gallery', (d) => PB.screens[PB.state?.gameType]?.onGallery?.(d));
 
 // Full-screen "drink!" alert when someone hands you sips.
 socket.on('drink', ({ sips, reason, from, title }) => {
@@ -538,6 +540,15 @@ function gamePicker(s) {
       </button>`).join('') || '<p class="muted center">More coming soon.</p>'}</div>`;
 }
 
+// A game can add its own panel to the lobby (Shooting Gallery: your gun), from its screens'
+// lobby(state); its screens load the first time it's picked.
+function lobbyPanel(game) {
+  if (!game?.lobbyPanel) return '';
+  const screens = PB.screens[game.id];
+  if (!screens) { PB.loadScreens(game.id, render); return ''; }
+  return screens.lobby?.(PB.state) || '';
+}
+
 function renderLobby() {
   const s = PB.state;
   // Someone joining redraws the lobby: keep the venue name the host is typing.
@@ -569,6 +580,7 @@ function renderLobby() {
         : `<p class="muted game-menu-tag">${game.menu === 'notBool' ? '🎲 (Not) Bool Games' : '🍻 Bool Games'}</p><p><strong>${PB.esc(game.name)}</strong>${game.bestWithTv ? ' <span class="tv-best">📺 Best with a TV</span>' : ''}</p><p class="muted">${PB.esc(game.description)}</p>`}
       ${PB.howToPlay(game.rules, `How to play ${game.name}`)}
       ${renderOptions()}
+      ${lobbyPanel(game)}
       ${host && s.custom.length ? `
         <div class="custom-row">
           <small>${PB.hasCustom(game.id) ? '✏️ Using your edits' : 'Write your own questions and rules'}</small>
@@ -629,6 +641,7 @@ function renderLobby() {
   $app.querySelectorAll('[data-option]').forEach((b) => {
     b.onclick = () => socket.emit('setOption', { id: b.dataset.option, value: JSON.parse(b.dataset.value) });
   });
+  PB.screens[game.id]?.lobbyBind?.();
   document.getElementById('customize')?.addEventListener('click', () => PB.editCustom(game.id, game.name, s.custom, render));
   const $start = document.getElementById('start');
   if ($start) {

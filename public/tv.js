@@ -79,6 +79,8 @@ socket.on('state', (s) => {
 socket.on('aim', (aim) => PB.screens[PB.state?.gameType]?.onAim?.(aim));
 // Where the cars are in a race, many times a second (games/trackRacing.js).
 socket.on('cars', (cars) => PB.screens[PB.state?.gameType]?.onCars?.(cars));
+// The shooting gallery's crosshairs, new targets and shots, every tick (games/shootingGallery.js).
+socket.on('gallery', (d) => PB.screens[PB.state?.gameType]?.onGallery?.(d));
 
 // Every drink pops up on the TV, with a buzz, and the drinker's glass tips up.
 const sipping = new Set();

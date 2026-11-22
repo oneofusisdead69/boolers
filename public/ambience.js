@@ -920,6 +920,9 @@
     // The rain outside the windows, with thunder far off (the windows flicker first, on screen).
     stpatricksRain: (out) => [...session(out, 0.8, 'bed-rain-1')],
     stpatricksFog: (out) => session(out, 0.8),
+    // The duck pond at dawn: the pub's tune, soft, carried out from inside, the water lapping, and
+    // the birds waking up.
+    stpatricksDuckPond: (out) => [...session(out, 0.5, 'bed-waves-3'), now(9, (t) => birdsong(out, t))],
   };
 
   // ---------- One-off sounds, in time with the scenery ----------
