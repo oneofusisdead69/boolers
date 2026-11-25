@@ -28,6 +28,7 @@
   .stat { background: var(--card); border-radius: 10px; padding: 6px 8px; }
   .stat small { display: block; color: var(--muted); font-size: 12px; }
   .stat b { font-variant-numeric: tabular-nums; font-size: 16px; }
+.raw { font: 12px/1.3 ui-monospace, monospace; color: var(--muted); overflow-wrap: anywhere; }
   .note { min-height: 1.4em; color: var(--accent); font-weight: 700; }
   /* The screen: the gallery fills it (16:9), the code and numbers in a strip along the bottom. */
   #screen { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; background: #000; }
@@ -64,10 +65,12 @@
       <div class="stat"><small>Tilt</small><b id="t-pitch">–</b></div>
       <div class="stat"><small>Held</small><b id="t-side">–</b></div>
       <div class="stat"><small>Wobble</small><b id="t-wob">–</b></div>
+      <div class="stat"><small>Sensor</small><b id="t-mode">–</b></div>
       <div class="stat"><small>Smoothing</small><b id="t-sm">–</b></div>
       <div class="stat"><small>Readings/s</small><b id="t-hz">–</b></div>
       <div class="stat"><small>Hits / shots</small><b id="t-hits">0 / 0</b></div>
       <div class="stat"><small>Miss by</small><b id="t-miss">–</b></div>
+      <div class="stat" style="min-width:260px"><small>Raw (rotation · acceleration · orientation)</small><b id="t-raw" style="font-size:12px;font-weight:500">–</b></div>
     </div>
   </div>
 
@@ -78,7 +81,8 @@
     <p class="note" id="note"></p>
     <div class="field" id="solo-field" hidden><canvas id="cv-solo"></canvas></div>
     <button id="fire" hidden>FIRE</button>
-    <div class="row"><button id="smooth" class="on">Smoothing: on</button><button id="recal">Recalibrate</button></div>
+    <div class="row"><button id="sensor">Sensor: Gyro</button><button id="smooth" class="on">Smoothing: on</button><button id="recal">Recalibrate</button></div>
+    <p class="raw" id="raw">–</p>
     <div class="stats">
       <div class="stat"><small>Turn (yaw)</small><b id="s-yaw">–</b></div>
       <div class="stat"><small>Tilt (pitch)</small><b id="s-pitch">–</b></div>
@@ -157,7 +161,7 @@
       G.step = d.step; G.aim = d.step === 3 || d.step === 2 ? [d.x, d.y] : null;
       $('t-link').textContent = 'paired';
       $('t-yaw').textContent = `${d.yaw.toFixed(1)}°`; $('t-pitch').textContent = `${d.pitch.toFixed(1)}°`;
-      $('t-side').textContent = d.side; $('t-sm').textContent = d.sm ? 'on' : 'off'; $('t-hz').textContent = d.hz || '–';
+      $('t-side').textContent = d.side; $('t-sm').textContent = d.sm ? 'on' : 'off'; $('t-mode').textContent = d.mode === 'angles' ? 'Angles' : 'Gyro'; $('t-raw').textContent = d.raw || ''; $('t-hz').textContent = d.hz || '–';
       const now = performance.now(); wob.push([now, d.x, d.y]); while (wob.length && now - wob[0][0] > 1000) wob.shift();
       const mx = wob.reduce((m, p) => m + p[1], 0) / wob.length, my = wob.reduce((m, p) => m + p[2], 0) / wob.length;
       $('t-wob').textContent = `±${(Math.max(...wob.map((p) => Math.hypot(p[1] - mx, p[2] - my))) * 100).toFixed(1)}%`;
@@ -192,13 +196,23 @@
     let smoothing = true, side = '–', ammo = MAG, shots = 0, hits = 0, tilt = null, reloadUntil = 0, sent = 0;
     const rest = []; let driftFrom = null;
 
+    // Two ways to read where the phone points (switch with "Sensor"):
+    //  gyro:   the gyroscope's turning rate about the vertical (gravity), added up, and the tilt from
+    //          gravity (what the game uses now).
+    //  angles: the phone's orientation angles (alpha, beta, gamma) turned into the direction the top
+    //          edge points: no adding up, so no drift, and no reliance on how the rotation axes are
+    //          labelled (which differs between phones).
+    let mode = 'gyro';
+    const rawv = { rot: null, acc: null, ori: null };
+    const wrap = (d) => ((d + 540) % 360) - 180;
     function onMotion(e) {
       const r = e.rotationRate, a = e.accelerationIncludingGravity;
       if (!r || r.alpha == null || !a || a.x == null) return;
+      rawv.rot = [r.alpha, r.beta, r.gamma]; rawv.acc = [a.x, a.y, a.z];
       const now = performance.now();
       const dt = imu.t ? Math.min(0.1, (now - imu.t) / 1000) : 0;
-      imu.t = now; imu.n++;
-      if (now - imu.hzAt > 1000) { imu.hz = imu.n; imu.n = 0; imu.hzAt = now; }
+      imu.t = now;
+      if (mode === 'gyro') { imu.n++; if (now - imu.hzAt > 1000) { imu.hz = imu.n; imu.n = 0; imu.hzAt = now; } }
       const raw = [a.x, a.y, a.z];
       imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
       const n = Math.hypot(...imu.g) || 1;
@@ -206,16 +220,30 @@
       side = gx > 0.45 ? 'one way' : gx < -0.45 ? 'other way' : side === '–' ? 'flat' : side;
       const pitch = Math.asin(clamp(gy, -1, 1)) * R2D;
       if (Math.abs(pitch - (cal.step >= 2 ? cal.pitch0 : 0)) < FREEZE) imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
+      if (mode === 'gyro') update(imu.yaw, pitch, now);
+    }
+    function onOrient(e) {
+      if (e.alpha == null || e.beta == null) return;
+      rawv.ori = [e.alpha, e.beta, e.gamma];
+      if (mode !== 'angles') return;
+      const now = performance.now();
+      imu.n++; if (now - imu.hzAt > 1000) { imu.hz = imu.n; imu.n = 0; imu.hzAt = now; }
+      const al = e.alpha / R2D, be = e.beta / R2D;
+      // The top edge's direction: R(alpha, beta, gamma)·(0, 1, 0), which gamma doesn't change.
+      const vx = -Math.sin(al) * Math.cos(be), vy = Math.cos(al) * Math.cos(be), vz = Math.sin(be);
+      update(Math.atan2(vx, vy) * R2D, Math.asin(clamp(vz, -1, 1)) * R2D, now);
+    }
+    function update(yaw, pitch, now) {
       if (!aim.live && /No motion|not allowed/.test($('note').textContent)) note('');
-      aim.yaw = imu.yaw; aim.pitch = pitch; aim.live = true;
+      aim.yaw = yaw; aim.pitch = pitch; aim.live = true;
       if (cal.step === 2) {
         // The corner step: show the crosshair moving at a rough size, so you can see it working.
-        aim.x = clamp(0.5 + ((CORNER.x - 0.5) * (aim.yaw - cal.yaw0)) / -22, -0.12, 1.12);
+        aim.x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / -22, -0.12, 1.12);
         aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / 12, -0.12, 1.12);
       }
       if (cal.step === 3) {
         if (Math.abs(pitch - cal.pitch0) < FREEZE) {
-          const x = clamp(0.5 + ((CORNER.x - 0.5) * (aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
+          const x = clamp(0.5 + ((CORNER.x - 0.5) * wrap(aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
           const y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
           if (!aim.steady || !smoothing) { aim.x = x; aim.y = y; aim.steady = true; } else {
             const k = clamp(0.08 + Math.hypot(x - aim.x, y - aim.y) * 9, 0.08, 0.75);
@@ -228,8 +256,10 @@
         } else if (Math.abs(pitch - cal.pitch0) < RELOAD - 15) tilt = null;
       }
       if (G) { G.step = cal.step; G.aim = cal.step >= 2 ? [aim.x, aim.y] : null; }
-      if (socket && now - sent > 33) { sent = now; socket.emit('labAim', { x: +aim.x.toFixed(4), y: +aim.y.toFixed(4), step: cal.step, yaw: aim.yaw, pitch: aim.pitch, side, hz: imu.hz, sm: smoothing }); }
+      if (socket && now - sent > 33) { sent = now; socket.emit('labAim', { x: +aim.x.toFixed(4), y: +aim.y.toFixed(4), step: cal.step, yaw: aim.yaw, pitch: aim.pitch, side, hz: imu.hz, sm: smoothing, mode, raw: rawText() }); }
     }
+    const f1 = (v) => (v == null ? '–' : (Math.round(v * 10) / 10).toString());
+    const rawText = () => `rot ${rawv.rot ? rawv.rot.map(f1).join('/') : '–'} · acc ${rawv.acc ? rawv.acc.map(f1).join('/') : '–'} · ori ${rawv.ori ? rawv.ori.map(f1).join('/') : '–'}`;
     function steps() {
       $('main').textContent = cal.step === 1 ? (solo ? '1. Point at a spot (the middle), tap' : '1. Point at the dot in the middle of the screen, tap')
         : cal.step === 2 ? (solo ? '2. Point up and right (the corner), tap' : '2. Point at the dot in the top-right corner, tap') : 'Calibrated: tap to redo';
@@ -239,7 +269,7 @@
       if (!aim.live) return enable();
       if (cal.step === 0 || cal.step === 3) { cal.step = 1; aim.steady = false; return steps(); }
       if (cal.step === 1) { cal.yaw0 = aim.yaw; cal.pitch0 = aim.pitch; cal.step = 2; return steps(); }
-      const kx = aim.yaw - cal.yaw0; let ky = aim.pitch - cal.pitch0;
+      const kx = wrap(aim.yaw - cal.yaw0); let ky = aim.pitch - cal.pitch0;
       if (Math.abs(kx) < 2.5 || Math.abs(ky) < 1.2) return note('Turn a bit further to the corner, then tap.');
       const ratio = Math.abs(ky / kx);
       if (ratio < 0.3 || ratio > 1.2) ky = Math.sign(ky) * Math.abs(kx) * (9 / 16);
@@ -247,7 +277,7 @@
       note(solo ? 'Aim around. Tap the picture to fire.' : 'Aim at the targets on the screen and tap FIRE.'); steps();
     }
     function enable() {
-      const go = () => { window.addEventListener('devicemotion', onMotion); setTimeout(() => { if (!aim.live) note('No motion readings: this device has no gyroscope (or it was refused).'); }, 1500); cal.step = 1; steps(); };
+      const go = () => { window.addEventListener('devicemotion', onMotion); window.addEventListener('deviceorientation', onOrient); setTimeout(() => { if (!aim.live) note('No motion readings: this device has no gyroscope (or it was refused).'); }, 1500); cal.step = 1; steps(); };
       if (typeof DeviceMotionEvent?.requestPermission !== 'function') return go();
       DeviceMotionEvent.requestPermission().then((s) => { go(); if (s !== 'granted') note('Motion not allowed: on iPhone, Settings › Safari › Motion & Orientation Access, then reload.'); }).catch(() => go());
       try { DeviceOrientationEvent?.requestPermission?.().catch(() => {}); } catch {}
@@ -262,12 +292,15 @@
     if (socket) socket.on('labHit', (d) => { if (d.hit) hits++; });
     $('main').onclick = main;
     $('recal').onclick = () => { cal.step = 1; aim.steady = false; steps(); };
+    // Switching the sensor changes how "turn" is measured, so it needs calibrating again.
+    $('sensor').onclick = (e) => { mode = mode === 'gyro' ? 'angles' : 'gyro'; e.target.textContent = `Sensor: ${mode === 'gyro' ? 'Gyro' : 'Angles'}`; imu.n = 0; cal.step = 1; aim.steady = false; steps(); note('Sensor switched: calibrate again.'); };
     $('smooth').onclick = (e) => { smoothing = !smoothing; e.target.textContent = `Smoothing: ${smoothing ? 'on' : 'off'}`; e.target.classList.toggle('on', smoothing); };
     $('fire').addEventListener('pointerdown', fire);
     $('solo-field').addEventListener('pointerdown', fire);
     (function show(now) {
       $('s-yaw').textContent = aim.live ? `${aim.yaw.toFixed(1)}°` : '–';
       $('s-pitch').textContent = aim.live ? `${aim.pitch.toFixed(1)}°` : '–';
+      $('raw').textContent = rawText();
       $('s-side').textContent = side; $('s-ammo').textContent = ammo < 0 ? '…' : ammo;
       $('s-hits').textContent = hits; $('s-shots').textContent = shots; $('s-hz').textContent = imu.hz || '–';
       if (cal.step === 3) {
