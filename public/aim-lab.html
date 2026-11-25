@@ -5,179 +5,287 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aim Lab · Bool Games</title>
 <style>
-  /* Aim Lab: a bench for the Shooting Gallery's phone aiming, with no room or TV. It uses the same
-     sums as public/games/shootingGallery.js (gyroscope + gravity, freeze when tipped, adaptive
-     smoothing, reload up or down), shows them live, and lets you turn the smoothing off to compare.
-     Hold the phone sideways like a pistol, point the top edge at a spot on a wall, calibrate. */
-  :root { color-scheme: dark; --bg: #14121c; --card: #221f2e; --ink: #f3efe6; --muted: #a39cb5; --accent: #ffcf3f; --hit: #5ad8a6; --bad: #ff5a5a; }
+  /* Aim Lab: a bench for the Shooting Gallery's phone aiming. Two ways:
+     - Paired: open it on a laptop or TV (the screen), scan its code with a phone (the gun). The
+       screen shows the calibration dots, targets and your crosshair, with the numbers.
+     - Solo: the phone alone, pointing at a spot on a wall (the feel: shake, drift, flip, reload).
+     The aiming is the same sums as public/games/shootingGallery.js. */
+  :root { color-scheme: dark; --bg: #14121c; --card: #221f2e; --ink: #f3efe6; --muted: #a39cb5; --accent: #ffcf3f; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; padding: env(safe-area-inset-top) 12px 16px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
+  .page { padding: env(safe-area-inset-top) 12px 16px; max-width: 900px; margin: 0 auto; }
   h1 { font-size: 20px; margin: 12px 0 4px; }
   p { margin: 6px 0; color: var(--muted); }
-  button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 12px 14px; background: var(--card); color: var(--ink); min-height: 44px; }
+  button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 12px 14px; background: var(--card); color: var(--ink); min-height: 44px; cursor: pointer; }
   button.go { background: var(--accent); color: #1a1400; width: 100%; font-size: 17px; }
   button.on { outline: 2px solid var(--accent); }
+  input { font: inherit; font-size: 22px; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; padding: 10px; border-radius: 12px; border: 0; width: 100%; background: var(--card); color: var(--ink); }
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
   .row > * { flex: 1; }
-  #field { position: relative; width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(#2a6fdb, #87c6ff 60%, #3a9a4a 60%); border-radius: 14px; overflow: hidden; touch-action: none; }
-  #field canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .field { position: relative; width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(#2a6fdb, #87c6ff 60%, #3a9a4a 60%); border-radius: 14px; overflow: hidden; touch-action: none; }
+  .field canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
   .stat { background: var(--card); border-radius: 10px; padding: 6px 8px; }
   .stat small { display: block; color: var(--muted); font-size: 12px; }
   .stat b { font-variant-numeric: tabular-nums; font-size: 16px; }
-  #note { min-height: 1.4em; color: var(--accent); font-weight: 700; }
+  .note { min-height: 1.4em; color: var(--accent); font-weight: 700; }
+  /* The screen: the gallery fills it (16:9), the code and numbers in a strip along the bottom. */
+  #screen { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; background: #000; }
+  #screen .field { border-radius: 0; margin: auto; width: min(100vw, calc((100vh - 96px) * 16 / 9)); }
+  #screen .strip { display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: var(--bg); overflow-x: auto; }
+  #screen .strip .stat { flex: none; min-width: 92px; }
+  #screen .pair { display: flex; gap: 10px; align-items: center; flex: none; }
+  #screen .pair img { width: 72px; height: 72px; background: #fff; border-radius: 8px; padding: 3px; }
+  #screen .pair b { font-size: 28px; letter-spacing: 0.15em; }
+  /* The gun: a big fire area. */
+  #fire { width: 100%; min-height: 38vh; font-size: 28px; background: radial-gradient(#3a2a4a, var(--card)); border: 3px solid var(--accent); }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-  <h1>🎯 Aim Lab</h1>
-  <p>Test the Shooting Gallery's aiming on this phone alone. Hold it <b>sideways like a pistol</b>, top edge pointing at a spot on a wall.</p>
-  <button class="go" id="main">Enable motion</button>
-  <p id="note"></p>
-  <div id="field"><canvas id="cv"></canvas></div>
-  <div class="row">
-    <button id="smooth" class="on">Smoothing: on</button>
-    <button id="recal">Recalibrate</button>
+  <!-- Start: which is this? -->
+  <div class="page" id="start">
+    <h1>🎯 Aim Lab</h1>
+    <p>Test the Shooting Gallery's phone aiming, with live numbers.</p>
+    <button class="go" id="as-screen">📺 This is the screen to aim at</button>
+    <p>Open this page on a laptop or TV first. Then on your phone, scan its code (or enter it below).</p>
+    <div class="row"><input id="code" maxlength="4" placeholder="CODE" autocomplete="off"><button id="as-gun">🔫 This phone is the gun</button></div>
+    <p class="note" id="start-note"></p>
+    <button id="as-solo">Or test the phone alone (point at a wall)</button>
   </div>
-  <div class="stats">
-    <div class="stat"><small>Turn (yaw)</small><b id="s-yaw">–</b></div>
-    <div class="stat"><small>Tilt (pitch)</small><b id="s-pitch">–</b></div>
-    <div class="stat"><small>Held</small><b id="s-side">–</b></div>
-    <div class="stat"><small>Wobble at rest</small><b id="s-wob">–</b></div>
-    <div class="stat"><small>Drift /min</small><b id="s-drift">–</b></div>
-    <div class="stat"><small>Ammo</small><b id="s-ammo">6</b></div>
-    <div class="stat"><small>Hits</small><b id="s-hits">0</b></div>
-    <div class="stat"><small>Shots</small><b id="s-shots">0</b></div>
-    <div class="stat"><small>Readings/s</small><b id="s-hz">–</b></div>
+
+  <!-- The screen -->
+  <div id="screen" hidden>
+    <div class="field"><canvas id="cv-screen"></canvas></div>
+    <div class="strip">
+      <div class="pair"><img id="qr" alt="Scan to pair"><div><small>Pair a phone: scan, or bool.games/aim-lab and enter</small><br><b id="pair-code">····</b></div></div>
+      <div class="stat"><small>Phone</small><b id="t-link">waiting</b></div>
+      <div class="stat"><small>Turn</small><b id="t-yaw">–</b></div>
+      <div class="stat"><small>Tilt</small><b id="t-pitch">–</b></div>
+      <div class="stat"><small>Held</small><b id="t-side">–</b></div>
+      <div class="stat"><small>Wobble</small><b id="t-wob">–</b></div>
+      <div class="stat"><small>Smoothing</small><b id="t-sm">–</b></div>
+      <div class="stat"><small>Readings/s</small><b id="t-hz">–</b></div>
+      <div class="stat"><small>Hits / shots</small><b id="t-hits">0 / 0</b></div>
+      <div class="stat"><small>Miss by</small><b id="t-miss">–</b></div>
+    </div>
   </div>
-  <p>Tap the picture to fire. Tip the gun well up <i>or</i> down to reload. Hold still to read the wobble; leave it still for a minute to read the drift.</p>
+
+  <!-- The gun (paired) and solo -->
+  <div class="page" id="gun" hidden>
+    <h1 id="gun-title">🔫 Aim Lab</h1>
+    <button class="go" id="main">Enable motion</button>
+    <p class="note" id="note"></p>
+    <div class="field" id="solo-field" hidden><canvas id="cv-solo"></canvas></div>
+    <button id="fire" hidden>FIRE</button>
+    <div class="row"><button id="smooth" class="on">Smoothing: on</button><button id="recal">Recalibrate</button></div>
+    <div class="stats">
+      <div class="stat"><small>Turn (yaw)</small><b id="s-yaw">–</b></div>
+      <div class="stat"><small>Tilt (pitch)</small><b id="s-pitch">–</b></div>
+      <div class="stat"><small>Held</small><b id="s-side">–</b></div>
+      <div class="stat"><small>Wobble at rest</small><b id="s-wob">–</b></div>
+      <div class="stat"><small>Drift /min</small><b id="s-drift">–</b></div>
+      <div class="stat"><small>Ammo</small><b id="s-ammo">6</b></div>
+      <div class="stat"><small>Hits</small><b id="s-hits">0</b></div>
+      <div class="stat"><small>Shots</small><b id="s-shots">0</b></div>
+      <div class="stat"><small>Readings/s</small><b id="s-hz">–</b></div>
+    </div>
+    <p id="gun-help">Hold it sideways like a pistol. Tip it well up or down to reload.</p>
+  </div>
+<script src="/socket.io/socket.io.js"></script>
 <script>
 {
-  // ---- The same sums as the game ----
-  const R2D = 180 / Math.PI, CORNER = { x: 0.94, y: 0.08 }, FREEZE = 35, RELOAD = 55, MAG = 6;
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const imu = { t: 0, g: null, yaw: 0, n: 0, hz: 0, hzAt: 0 };
-  const cal = { step: 0, yaw0: 0, pitch0: 0, kx: 0, ky: 0 };
-  const aim = { x: 0.5, y: 0.5, yaw: 0, pitch: 0, steady: false, live: false };
-  let smoothing = true, side = '–', ammo = MAG, hits = 0, shots = 0, tilt = null, reloadUntil = 0;
   const $ = (id) => document.getElementById(id);
-  const note = (t) => { $('note').textContent = t; };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const R2D = 180 / Math.PI, CORNER = { x: 0.94, y: 0.08 }, FREEZE = 35, RELOAD = 55, MAG = 6;
+  let socket = null;
+  const params = new URLSearchParams(location.search);
 
-  function onMotion(e) {
-    const r = e.rotationRate, a = e.accelerationIncludingGravity;
-    if (!r || r.alpha == null || !a || a.x == null) return;
-    const now = performance.now();
-    const dt = imu.t ? Math.min(0.1, (now - imu.t) / 1000) : 0;
-    imu.t = now;
-    imu.n++;
-    if (now - imu.hzAt > 1000) { imu.hz = imu.n; imu.n = 0; imu.hzAt = now; }
-    const raw = [a.x, a.y, a.z];
-    imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
-    const n = Math.hypot(...imu.g) || 1;
-    const gx = imu.g[0] / n, gy = imu.g[1] / n, gz = imu.g[2] / n;
-    side = gx > 0.45 ? 'one way' : gx < -0.45 ? 'other way' : side === '–' ? 'flat' : side;
-    const pitch = Math.asin(clamp(gy, -1, 1)) * R2D;
-    if (Math.abs(pitch - (cal.step ? cal.pitch0 : 0)) < FREEZE) imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
-    if (!aim.live && /not allowed|No motion/.test($('note').textContent)) note(''); // (readings came after all)
-    aim.yaw = imu.yaw; aim.pitch = pitch; aim.live = true;
-    if (cal.step === 3) {
-      if (Math.abs(pitch - cal.pitch0) < FREEZE) {
-        const x = clamp(0.5 + ((CORNER.x - 0.5) * (aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
-        const y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
-        if (!aim.steady || !smoothing) { aim.x = x; aim.y = y; aim.steady = true; } else {
-          const k = clamp(0.08 + Math.hypot(x - aim.x, y - aim.y) * 9, 0.08, 0.75);
-          aim.x += (x - aim.x) * k; aim.y += (y - aim.y) * k;
-        }
+  // ---------- Targets (the screen's, or the solo phone's) ----------
+  function gallery(cv) {
+    const c = cv.getContext('2d');
+    const targets = [];
+    const spawn = () => { const left = Math.random() < 0.5; targets.push({ x: left ? -0.05 : 1.05, y: 0.18 + Math.random() * 0.64, v: (0.05 + Math.random() * 0.08) * (left ? 1 : -1), r: 0.06 }); };
+    for (let i = 0; i < 4; i++) spawn();
+    let last = performance.now(), flash = null;
+    const G = { aim: null, step: 0, hits: 0, shots: 0, miss: null };
+    G.shoot = (x, y) => {
+      G.shots++;
+      let bi = -1, bd = Infinity;
+      targets.forEach((t, i) => { const d = Math.hypot((t.x - x) * 16 / 9, t.y - y); if (d < bd) { bd = d; bi = i; } });
+      const hit = bi >= 0 && bd < targets[bi].r * 1.15;
+      G.miss = bi >= 0 ? Math.max(0, bd - targets[bi].r) : null;
+      flash = { x, y, at: performance.now(), hit };
+      if (hit) { G.hits++; targets.splice(bi, 1); spawn(); }
+      return hit;
+    };
+    (function frame(now) {
+      const dpr = devicePixelRatio || 1, W = cv.width = cv.clientWidth * dpr, H = cv.height = cv.clientHeight * dpr;
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      c.clearRect(0, 0, W, H);
+      for (const t of targets) { t.x += t.v * dt; if (t.x < -0.1 || t.x > 1.1) t.x = t.v > 0 ? -0.05 : 1.05; }
+      if (G.step === 3) for (const t of targets) for (const [k, col] of [[1, '#fff'], [0.75, '#e23b3b'], [0.5, '#fff'], [0.25, '#e23b3b']]) { c.beginPath(); c.arc(t.x * W, t.y * H, t.r * H * k, 0, 7); c.fillStyle = col; c.fill(); }
+      if (G.step === 1 || G.step === 2) {
+        c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
+        const p = G.step === 1 ? [0.5, 0.5] : [CORNER.x, CORNER.y];
+        const pulse = 1 + 0.15 * Math.sin(now / 150);
+        c.beginPath(); c.arc(p[0] * W, p[1] * H, 0.025 * H * pulse, 0, 7); c.fillStyle = '#ffcf3f'; c.fill();
+        c.font = `700 ${0.04 * H}px system-ui`; c.textAlign = 'center'; c.fillStyle = '#fff';
+        c.fillText(G.step === 1 ? 'Aim here, then tap on the phone' : 'Now here, then tap', W / 2, G.step === 1 ? 0.62 * H : 0.2 * H);
       }
-      if (Math.abs(pitch - cal.pitch0) > RELOAD) {
-        tilt ??= now;
-        if (now - tilt > 200 && ammo < MAG && now > reloadUntil) { reloadUntil = now + 1000; ammo = -1; tilt = Infinity; note('Reloading…'); setTimeout(() => { ammo = MAG; note(''); }, 1000); }
-      } else if (Math.abs(pitch - cal.pitch0) < RELOAD - 15) tilt = null;
-    }
+      if (flash && now - flash.at < 250) { c.beginPath(); c.arc(flash.x * W, flash.y * H, 0.04 * H, 0, 7); c.fillStyle = flash.hit ? 'rgba(90,216,166,0.75)' : 'rgba(255,90,90,0.65)'; c.fill(); }
+      if (G.aim) {
+        const x = G.aim[0] * W, y = G.aim[1] * H, s = 0.035 * H, g = 0.01 * H;
+        const cross = () => { c.beginPath(); c.moveTo(x - s, y); c.lineTo(x - g, y); c.moveTo(x + g, y); c.lineTo(x + s, y); c.moveTo(x, y - s); c.lineTo(x, y - g); c.moveTo(x, y + g); c.lineTo(x, y + s); c.stroke(); };
+        c.lineWidth = 0.012 * H; c.strokeStyle = '#000'; cross(); c.lineWidth = 0.006 * H; c.strokeStyle = '#ffcf3f'; cross();
+      }
+      requestAnimationFrame(frame);
+    })(performance.now());
+    return G;
   }
 
-  // ---- Calibration: the main button walks through it ----
-  function main() {
-    if (!aim.live) return enable();
-    if (cal.step === 0 || cal.step === 3) { Object.assign(cal, { step: 1 }); aim.steady = false; return steps(); }
-    if (cal.step === 1) { cal.yaw0 = aim.yaw; cal.pitch0 = aim.pitch; cal.step = 2; return steps(); }
-    if (cal.step === 2) {
+  // ---------- The screen ----------
+  function startScreen() {
+    $('start').hidden = true; $('screen').hidden = false;
+    const G = gallery($('cv-screen'));
+    const wob = [];
+    socket = io();
+    const pair = () => socket.emit('labScreen', {}, ({ code }) => { $('pair-code').textContent = code; $('qr').src = `/qr-lab/${code}`; });
+    socket.on('connect', pair);
+    socket.on('labHello', () => { $('t-link').textContent = 'paired'; });
+    socket.on('labAim', (d) => {
+      G.step = d.step; G.aim = d.step === 3 || d.step === 2 ? [d.x, d.y] : null;
+      $('t-link').textContent = 'paired';
+      $('t-yaw').textContent = `${d.yaw.toFixed(1)}°`; $('t-pitch').textContent = `${d.pitch.toFixed(1)}°`;
+      $('t-side').textContent = d.side; $('t-sm').textContent = d.sm ? 'on' : 'off'; $('t-hz').textContent = d.hz || '–';
+      const now = performance.now(); wob.push([now, d.x, d.y]); while (wob.length && now - wob[0][0] > 1000) wob.shift();
+      const mx = wob.reduce((m, p) => m + p[1], 0) / wob.length, my = wob.reduce((m, p) => m + p[2], 0) / wob.length;
+      $('t-wob').textContent = `±${(Math.max(...wob.map((p) => Math.hypot(p[1] - mx, p[2] - my))) * 100).toFixed(1)}%`;
+    });
+    socket.on('labShot', (d) => {
+      const hit = G.shoot(d.x, d.y);
+      $('t-hits').textContent = `${G.hits} / ${G.shots}`;
+      $('t-miss').textContent = hit ? 'hit' : G.miss == null ? '–' : `${(G.miss * 100).toFixed(1)}%`;
+      socket.emit('labHit', { hit });
+    });
+  }
+
+  // ---------- The gun (paired, or solo) ----------
+  function startGun(code) {
+    $('start').hidden = true; $('gun').hidden = false;
+    const solo = !code;
+    $('gun-title').textContent = solo ? '🎯 Aim Lab: solo' : `🔫 Gun for screen ${code}`;
+    $('solo-field').hidden = !solo; $('fire').hidden = solo;
+    $('gun-help').textContent = solo
+      ? 'Hold it sideways like a pistol and point the top edge at a spot on a wall. Tap the picture to fire; tip well up or down to reload.'
+      : 'Hold it sideways like a pistol, top edge at the screen. Tap FIRE to shoot; tip well up or down to reload.';
+    const G = solo ? gallery($('cv-solo')) : null;
+    if (!solo) {
+      socket = io();
+      const join = () => socket.emit('labGun', { code }, (res) => { if (res.error) note(res.error); });
+      socket.on('connect', join);
+    }
+    const note = (t) => { $('note').textContent = t; };
+    const imu = { t: 0, g: null, yaw: 0, n: 0, hz: 0, hzAt: 0 };
+    const cal = { step: 0, yaw0: 0, pitch0: 0, kx: 0, ky: 0 };
+    const aim = { x: 0.5, y: 0.5, yaw: 0, pitch: 0, steady: false, live: false };
+    let smoothing = true, side = '–', ammo = MAG, shots = 0, hits = 0, tilt = null, reloadUntil = 0, sent = 0;
+    const rest = []; let driftFrom = null;
+
+    function onMotion(e) {
+      const r = e.rotationRate, a = e.accelerationIncludingGravity;
+      if (!r || r.alpha == null || !a || a.x == null) return;
+      const now = performance.now();
+      const dt = imu.t ? Math.min(0.1, (now - imu.t) / 1000) : 0;
+      imu.t = now; imu.n++;
+      if (now - imu.hzAt > 1000) { imu.hz = imu.n; imu.n = 0; imu.hzAt = now; }
+      const raw = [a.x, a.y, a.z];
+      imu.g = imu.g ? imu.g.map((v, i) => v + (raw[i] - v) * 0.25) : raw;
+      const n = Math.hypot(...imu.g) || 1;
+      const gx = imu.g[0] / n, gy = imu.g[1] / n, gz = imu.g[2] / n;
+      side = gx > 0.45 ? 'one way' : gx < -0.45 ? 'other way' : side === '–' ? 'flat' : side;
+      const pitch = Math.asin(clamp(gy, -1, 1)) * R2D;
+      if (Math.abs(pitch - (cal.step >= 2 ? cal.pitch0 : 0)) < FREEZE) imu.yaw += (r.beta * gx + r.gamma * gy + r.alpha * gz) * dt;
+      if (!aim.live && /No motion|not allowed/.test($('note').textContent)) note('');
+      aim.yaw = imu.yaw; aim.pitch = pitch; aim.live = true;
+      if (cal.step === 2) {
+        // The corner step: show the crosshair moving at a rough size, so you can see it working.
+        aim.x = clamp(0.5 + ((CORNER.x - 0.5) * (aim.yaw - cal.yaw0)) / -22, -0.12, 1.12);
+        aim.y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / 12, -0.12, 1.12);
+      }
+      if (cal.step === 3) {
+        if (Math.abs(pitch - cal.pitch0) < FREEZE) {
+          const x = clamp(0.5 + ((CORNER.x - 0.5) * (aim.yaw - cal.yaw0)) / cal.kx, -0.12, 1.12);
+          const y = clamp(0.5 - ((0.5 - CORNER.y) * (aim.pitch - cal.pitch0)) / cal.ky, -0.12, 1.12);
+          if (!aim.steady || !smoothing) { aim.x = x; aim.y = y; aim.steady = true; } else {
+            const k = clamp(0.08 + Math.hypot(x - aim.x, y - aim.y) * 9, 0.08, 0.75);
+            aim.x += (x - aim.x) * k; aim.y += (y - aim.y) * k;
+          }
+        }
+        if (Math.abs(pitch - cal.pitch0) > RELOAD) {
+          tilt ??= now;
+          if (now - tilt > 200 && ammo < MAG && now > reloadUntil) { reloadUntil = now + 1000; ammo = -1; tilt = Infinity; note('Reloading…'); setTimeout(() => { ammo = MAG; note(''); }, 1000); }
+        } else if (Math.abs(pitch - cal.pitch0) < RELOAD - 15) tilt = null;
+      }
+      if (G) { G.step = cal.step; G.aim = cal.step >= 2 ? [aim.x, aim.y] : null; }
+      if (socket && now - sent > 33) { sent = now; socket.emit('labAim', { x: +aim.x.toFixed(4), y: +aim.y.toFixed(4), step: cal.step, yaw: aim.yaw, pitch: aim.pitch, side, hz: imu.hz, sm: smoothing }); }
+    }
+    function steps() {
+      $('main').textContent = cal.step === 1 ? (solo ? '1. Point at a spot (the middle), tap' : '1. Point at the dot in the middle of the screen, tap')
+        : cal.step === 2 ? (solo ? '2. Point up and right (the corner), tap' : '2. Point at the dot in the top-right corner, tap') : 'Calibrated: tap to redo';
+      if (G) G.step = cal.step;
+    }
+    function main() {
+      if (!aim.live) return enable();
+      if (cal.step === 0 || cal.step === 3) { cal.step = 1; aim.steady = false; return steps(); }
+      if (cal.step === 1) { cal.yaw0 = aim.yaw; cal.pitch0 = aim.pitch; cal.step = 2; return steps(); }
       const kx = aim.yaw - cal.yaw0; let ky = aim.pitch - cal.pitch0;
-      if (Math.abs(kx) < 2.5 || Math.abs(ky) < 1.2) return note('Turn a bit further to the corner spot, then tap.');
+      if (Math.abs(kx) < 2.5 || Math.abs(ky) < 1.2) return note('Turn a bit further to the corner, then tap.');
       const ratio = Math.abs(ky / kx);
       if (ratio < 0.3 || ratio > 1.2) ky = Math.sign(ky) * Math.abs(kx) * (9 / 16);
-      Object.assign(cal, { kx, ky, step: 3 });
-      note(''); steps();
+      Object.assign(cal, { kx, ky, step: 3 }); aim.steady = false;
+      note(solo ? 'Aim around. Tap the picture to fire.' : 'Aim at the targets on the screen and tap FIRE.'); steps();
     }
+    function enable() {
+      const go = () => { window.addEventListener('devicemotion', onMotion); setTimeout(() => { if (!aim.live) note('No motion readings: this device has no gyroscope (or it was refused).'); }, 1500); cal.step = 1; steps(); };
+      if (typeof DeviceMotionEvent?.requestPermission !== 'function') return go();
+      DeviceMotionEvent.requestPermission().then((s) => { go(); if (s !== 'granted') note('Motion not allowed: on iPhone, Settings › Safari › Motion & Orientation Access, then reload.'); }).catch(() => go());
+      try { DeviceOrientationEvent?.requestPermission?.().catch(() => {}); } catch {}
+    }
+    function fire() {
+      if (cal.step !== 3) return note('Calibrate first.');
+      if (ammo <= 0) return note('Empty: tip the gun up or down to reload.');
+      ammo--; shots++;
+      try { navigator.vibrate?.(15); } catch {}
+      if (G) { if (G.shoot(aim.x, aim.y)) hits++; } else socket.emit('labShot', { x: aim.x, y: aim.y });
+    }
+    if (socket) socket.on('labHit', (d) => { if (d.hit) hits++; });
+    $('main').onclick = main;
+    $('recal').onclick = () => { cal.step = 1; aim.steady = false; steps(); };
+    $('smooth').onclick = (e) => { smoothing = !smoothing; e.target.textContent = `Smoothing: ${smoothing ? 'on' : 'off'}`; e.target.classList.toggle('on', smoothing); };
+    $('fire').addEventListener('pointerdown', fire);
+    $('solo-field').addEventListener('pointerdown', fire);
+    (function show(now) {
+      $('s-yaw').textContent = aim.live ? `${aim.yaw.toFixed(1)}°` : '–';
+      $('s-pitch').textContent = aim.live ? `${aim.pitch.toFixed(1)}°` : '–';
+      $('s-side').textContent = side; $('s-ammo').textContent = ammo < 0 ? '…' : ammo;
+      $('s-hits').textContent = hits; $('s-shots').textContent = shots; $('s-hz').textContent = imu.hz || '–';
+      if (cal.step === 3) {
+        rest.push([now, aim.x, aim.y]); while (rest.length && now - rest[0][0] > 1000) rest.shift();
+        const mx = rest.reduce((m, p) => m + p[1], 0) / rest.length, my = rest.reduce((m, p) => m + p[2], 0) / rest.length;
+        const wob = Math.max(...rest.map((p) => Math.hypot(p[1] - mx, p[2] - my)));
+        $('s-wob').textContent = `±${(wob * 100).toFixed(1)}%`;
+        if (wob < 0.01) { driftFrom ??= [now, aim.yaw]; if (now - driftFrom[0] > 5000) $('s-drift').textContent = `${(((aim.yaw - driftFrom[1]) / (now - driftFrom[0])) * 60000).toFixed(1)}°`; } else driftFrom = null;
+      }
+      requestAnimationFrame(show);
+    })(performance.now());
   }
-  function steps() {
-    const b = $('main');
-    b.textContent = cal.step === 1 ? '1. Point at a spot on the wall (the middle), tap' : cal.step === 2 ? '2. Now point up and right (the corner), tap' : 'Calibrated: tap to redo';
-    if (cal.step === 3) note('Aim around. Tap the picture to fire.');
-  }
-  function enable() {
-    const go = () => { window.addEventListener('devicemotion', onMotion); setTimeout(() => { if (!aim.live) note('No motion readings: this browser or device has no gyroscope (or it was refused).'); }, 1500); cal.step = 1; steps(); };
-    const ask = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
-    if (!ask) return go();
-    // (Listen whatever the answer: some browsers say no yet send readings anyway. If none come,
-    // the note after 1.5 s says so.)
-    DeviceMotionEvent.requestPermission().then((s) => { go(); if (s !== 'granted') note('Motion not allowed: on iPhone, Settings › Safari › Motion & Orientation Access, then reload.'); }).catch(() => go());
-    try { DeviceOrientationEvent?.requestPermission?.().catch(() => {}); } catch {}
-  }
-  $('main').onclick = main;
-  $('recal').onclick = () => { cal.step = 1; aim.steady = false; steps(); };
-  $('smooth').onclick = (e) => { smoothing = !smoothing; e.target.textContent = `Smoothing: ${smoothing ? 'on' : 'off'}`; e.target.classList.toggle('on', smoothing); };
 
-  // ---- Targets, shooting, and the picture ----
-  const cv = $('cv'), c = cv.getContext('2d');
-  const targets = [];
-  function spawn() { const y = 0.2 + Math.random() * 0.6; targets.push({ x: Math.random() < 0.5 ? -0.05 : 1.05, y, v: (0.06 + Math.random() * 0.08), r: 0.06, born: performance.now() }); targets.at(-1).v *= targets.at(-1).x < 0 ? 1 : -1; }
-  for (let i = 0; i < 4; i++) spawn();
-  $('field').addEventListener('pointerdown', () => {
-    if (cal.step !== 3) return note('Calibrate first.');
-    if (ammo <= 0) return note('Empty: tip the gun up or down to reload.');
-    ammo--; shots++;
-    try { navigator.vibrate?.(15); } catch {}
-    const hit = targets.findIndex((t) => Math.hypot((t.x - aim.x) * 16 / 9, t.y - aim.y) < t.r * 1.15);
-    flash = { x: aim.x, y: aim.y, at: performance.now(), hit: hit >= 0 };
-    if (hit >= 0) { hits++; targets.splice(hit, 1); spawn(); }
-  });
-  let flash = null, last = performance.now();
-  const rest = []; let driftFrom = null;
-  function frame(now) {
-    const W = cv.width = cv.clientWidth * devicePixelRatio, H = cv.height = cv.clientHeight * devicePixelRatio;
-    const dt = (now - last) / 1000; last = now;
-    c.clearRect(0, 0, W, H);
-    for (const t of targets) { t.x += t.v * dt; if (t.x < -0.1 || t.x > 1.1) { t.x = t.v > 0 ? -0.05 : 1.05; } }
-    for (const t of targets) {
-      const R = t.r * H;
-      for (const [k, col] of [[1, '#fff'], [0.75, '#e23b3b'], [0.5, '#fff'], [0.25, '#e23b3b']]) { c.beginPath(); c.arc(t.x * W, t.y * H, R * k, 0, 7); c.fillStyle = col; c.fill(); }
-    }
-    if (flash && now - flash.at < 250) { c.beginPath(); c.arc(flash.x * W, flash.y * H, 30 * devicePixelRatio, 0, 7); c.fillStyle = flash.hit ? 'rgba(90,216,166,0.7)' : 'rgba(255,90,90,0.6)'; c.fill(); }
-    if (cal.step === 3) {
-      const x = aim.x * W, y = aim.y * H, s = 18 * devicePixelRatio, g = 5 * devicePixelRatio;
-      c.lineWidth = 6 * devicePixelRatio; c.strokeStyle = '#000';
-      const cross = () => { c.beginPath(); c.moveTo(x - s, y); c.lineTo(x - g, y); c.moveTo(x + g, y); c.lineTo(x + s, y); c.moveTo(x, y - s); c.lineTo(x, y - g); c.moveTo(x, y + g); c.lineTo(x, y + s); c.stroke(); };
-      cross(); c.lineWidth = 3 * devicePixelRatio; c.strokeStyle = '#ffcf3f'; cross();
-      // Wobble: how far the crosshair strays over the last second (hold still to read it).
-      rest.push([now, aim.x, aim.y]); while (rest.length && now - rest[0][0] > 1000) rest.shift();
-      const mx = rest.reduce((m, p) => m + p[1], 0) / rest.length, my = rest.reduce((m, p) => m + p[2], 0) / rest.length;
-      const wob = Math.max(...rest.map((p) => Math.hypot(p[1] - mx, p[2] - my)));
-      $('s-wob').textContent = `±${(wob * 100).toFixed(1)}%`;
-      // Drift: how fast the turn creeps while you're still.
-      if (wob < 0.01) { driftFrom ??= [now, aim.yaw]; if (now - driftFrom[0] > 5000) $('s-drift').textContent = `${(((aim.yaw - driftFrom[1]) / (now - driftFrom[0])) * 60000).toFixed(1)}°`; } else driftFrom = null;
-    } else if (cal.step) {
-      c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, W, H);
-      const p = cal.step === 1 ? [0.5, 0.5] : [CORNER.x, CORNER.y];
-      c.beginPath(); c.arc(p[0] * W, p[1] * H, 14 * devicePixelRatio, 0, 7); c.fillStyle = '#ffcf3f'; c.fill();
-    }
-    $('s-yaw').textContent = aim.live ? `${aim.yaw.toFixed(1)}°` : '–';
-    $('s-pitch').textContent = aim.live ? `${aim.pitch.toFixed(1)}°` : '–';
-    $('s-side').textContent = side;
-    $('s-ammo').textContent = ammo < 0 ? '…' : ammo;
-    $('s-hits').textContent = hits; $('s-shots').textContent = shots; $('s-hz').textContent = imu.hz || '–';
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  // ---------- Which one ----------
+  $('as-screen').onclick = startScreen;
+  $('as-solo').onclick = () => startGun(null);
+  $('as-gun').onclick = () => { const c = $('code').value.trim().toUpperCase(); if (c.length !== 4) return void ($('start-note').textContent = 'Codes are 4 letters (on the screen).'); startGun(c); };
+  if (params.get('gun')) startGun(params.get('gun').toUpperCase().slice(0, 4));
 }
 </script>
 </body>
