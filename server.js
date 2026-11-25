@@ -111,6 +111,13 @@ app.get('/drawing/:code/:key/:i', (req, res) => {
 });
 
 // QR code that links straight to the join screen for a room.
+// The Aim Lab's pairing code, as a QR that opens the lab on a phone as the gun.
+app.get('/qr-lab/:code', async (req, res) => {
+  const code = String(req.params.code).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  const url = `${req.protocol}://${req.get('host')}/aim-lab?gun=${code}`;
+  res.type('image/svg+xml').send(await QRCode.toString(url, { type: 'svg', margin: 1 }));
+});
+
 app.get('/qr/:code', async (req, res) => {
   const code = String(req.params.code).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
   const url = `${req.protocol}://${req.get('host')}/?room=${code}`;
@@ -501,8 +508,36 @@ const BUILD = (() => {
 // menu: 'bool' (the drinking games) or 'notBool' (group games that aren't about drinking).
 const GAME_LIST = Object.values(GAMES).map(({ id, name, description, minPlayers, rules = [], bestWithTv = false, menu = 'bool', lobbyPanel = false }) => ({ id, name, description, minPlayers, rules, bestWithTv, menu, lobbyPanel }));
 
+// Aim Lab pairs (public/aim-lab.html): a screen's code -> its socket. A phone with the code
+// sends its aim and shots straight through to that screen; nothing is kept.
+const labs = new Map();
+
 io.on('connection', (socket) => {
   socket.emit('build', BUILD);
+  socket.on('labScreen', (_, ack) => {
+    if (typeof ack !== 'function') return;
+    let code;
+    do code = Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join('');
+    while (labs.has(code));
+    labs.set(code, socket.id);
+    socket.data.lab = code;
+    ack({ code });
+  });
+  socket.on('labGun', (d, ack) => {
+    if (typeof ack !== 'function') return;
+    const to = labs.get(String(d?.code || '').toUpperCase());
+    if (!to) return ack({ error: 'No Aim Lab screen with that code' });
+    socket.data.labTo = to;
+    const screen = io.sockets.sockets.get(to);
+    if (screen) screen.data.labGun = socket.id;
+    io.to(to).emit('labHello');
+    ack({ ok: true });
+  });
+  // Aim many times a second (volatile: a late one is no use), shots reliably.
+  socket.on('labAim', (d) => { if (socket.data.labTo && d && typeof d === 'object') io.to(socket.data.labTo).volatile.emit('labAim', d); });
+  socket.on('labShot', (d) => { if (socket.data.labTo && d && typeof d === 'object') io.to(socket.data.labTo).emit('labShot', d); });
+  socket.on('labHit', (d) => { if (socket.data.labGun && d && typeof d === 'object') io.to(socket.data.labGun).emit('labHit', { hit: !!d.hit }); });
+  socket.on('disconnect', () => { if (socket.data.lab) labs.delete(socket.data.lab); });
   socket.emit('games', GAME_LIST);
   let room = null;
   let player = null;
