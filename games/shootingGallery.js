@@ -76,6 +76,10 @@ const KINDS = {
   duckSwim: { r: 0.068, pts: 15 },
   goldDuck: { r: 0.054, pts: 50, gold: true },
   swan: { r: 0.088, pts: 25, bad: true },
+  turkey: { r: 0.081, pts: 15 },
+  pie: { r: 0.061, pts: 15 },
+  corn: { r: 0.054, pts: 15 },
+  gourd: { r: 0.054, pts: 10 },
 };
 
 // Each venue's gallery: what rides the rails, sits on the shelf, flies across, spins up top, the
@@ -103,6 +107,9 @@ const SETS = {
   chateau: { rail: ['champagne', 'grapes'], shelf: ['champagne', 'bottle'], fly: ['clay'], spin: ['bullseye'], gold: 'star', bad: 'bystander' },
   christmas: { rail: ['present', 'snowman'], shelf: ['bauble', 'present', 'bauble'], fly: ['bauble'], spin: ['bauble'], gold: 'star', bad: 'bystander' },
   halloween: { rail: ['pumpkin', 'ghost'], shelf: ['pumpkin', 'bottle'], fly: ['bat', 'bat', 'ghost'], spin: ['pumpkin'], gold: 'star', bad: 'cat' },
+  // The harvest fair: cartoon turkeys and corn on the rails, pies and gourds on the shelf, pies
+  // flung up like clays. Don't shoot the fellow in the buckled hat.
+  thanksgiving: { rail: ['turkey', 'pumpkin', 'corn'], shelf: ['pie', 'gourd', 'pie'], fly: ['pie'], spin: ['pumpkin'], gold: 'star', bad: 'bystander' },
   stpatricks: { rail: ['tankard', 'duckCut'], shelf: ['tankard', 'bottle'], fly: ['crow'], spin: ['bullseye'], gold: 'star', bad: 'bystander' },
   // The easter egg (EGGS in lib/roomStyles.js: 'stpatricks:shootingGallery'): a reedy pond at
   // dawn. Ducks swim across the water and flap up out of the reeds; a rare golden one; leave the
@@ -122,7 +129,8 @@ const GUNS = {
   classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss',
   diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock',
   beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun',
-  chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle', duckPond: 'sideBySide',
+  chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', thanksgiving: 'cranberryBuss', stpatricks: 'stalkingRifle',
+  duckPond: 'sideBySide',
 };
 // How each fires (the same for everyone in a venue, so it's fair; across venues roughly even):
 // ms between shots, rounds in the magazine, ms to reload (tilt the phone up), and `spread`: extra
@@ -150,6 +158,7 @@ const GUN_STATS = {
   duelPistol: { rate: 400, mag: 1, reload: 900, spread: 0.025 },
   candyPopgun: { rate: 300, mag: 5, reload: 1100, spread: 0.005 },
   pumpkinBlaster: { rate: 500, mag: 3, reload: 1300, spread: 0.025 },
+  cranberryBuss: { rate: 400, mag: 2, reload: 1100, spread: 0.03 },
   stalkingRifle: { rate: 600, mag: 4, reload: 1300, spread: 0.004 },
   sideBySide: { rate: 300, mag: 2, reload: 1300, spread: 0.03 },
 };

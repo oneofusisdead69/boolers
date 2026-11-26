@@ -1,5 +1,5 @@
 // Moving scenery for the room styles, on the TV only, behind everything on the screen: bats flying past at
-// Halloween, a disco ball dropping from the ceiling in the club, snow at Christmas, a tumbleweed in
+// Halloween, leaves falling at Thanksgiving, a disco ball dropping from the ceiling in the club, snow at Christmas, a tumbleweed in
 // the saloon… One moment at a time with quiet in between, and off for people who ask their phone
 // for less motion.
 //
@@ -261,6 +261,8 @@
     christmas: { sil: NIGHT, rims: [{ x: -1, y: -0.45, c: '#ffa040' }, { x: 1, y: -0.5, c: '#b8d4ff', o: 0.7 }] },
     // Halloween: graveyard green from one side, pumpkin orange from the other.
     halloween: { sil: '#05030a', rims: [{ x: 1, y: -0.5, c: '#7cff9a' }, { x: -1, y: -0.4, c: '#ff8a1a' }] },
+    // Thanksgiving: the candles on the table from above, the sunset in the window from the side.
+    thanksgiving: { sil: NIGHT, rims: [{ x: -0.3, y: -1, c: '#ffbe6a' }, { x: 1, y: -0.35, c: '#ff8a5a', o: 0.75 }] },
     // The Highlands pub: the peat fire, and the sky at the window (evening, rain, fog).
     // The duck pond at dawn (Shooting Gallery at the Highlands pub): a deep plum silhouette, the
     // low gold sun from the right, the pale sky's lilac.
@@ -2213,6 +2215,148 @@
   }
 
   SCENES.halloween.moments.push(hwFog, hwBloodMoon, hwWindows, hwCrows, hwCoffin, hwWerewolf, hwTrick, hwCauldron, hwGust, hwJump, hwSwirl, hwFenceCat, hwFenceHand);
+
+  // ---------- Thanksgiving ----------
+  // The farmhouse dining room at dusk (see harvestTable() in lib/roomArt.js). Always: people at
+  // the table (silhouettes, glasses up now and then), the candles flickering, the garland's bulbs
+  // glowing, steam off the gravy, the turkey and the potatoes, autumn leaves drifting down. Now and
+  // then: a wild turkey hen (in colour) struts across the floor with her poults, geese go over in
+  // a V, a gust blows leaves through, someone brings in a pie, the dog makes off with a drumstick,
+  // the wishbone's pulled, a toast, a turkey wanders in from the yard and thinks better of it, the
+  // football game's on in the next room. Any game: a sip slides a slice of pie over, finishing a
+  // drink is "Gobble gobble!", a win is Happy Thanksgiving with the leaves coming down.
+  const tgOn = () => current === 'thanksgiving';
+  const TG_LEAF_COLS = ['#d8541e', '#e8862a', '#c0331e', '#e8b23a', '#a8461c', '#f0a030'];
+  const TG_LEAF = (c) => `<svg viewBox="-11 -11 22 24" width="1em" height="1.1em"><path d="M0 -10 L2 -5 L6 -7 L5 -2 L10 -3 L7 1 L9 4 L4 4 L3 8 L0 5 L-3 8 L-4 4 L-9 4 L-7 1 L-10 -3 L-5 -2 L-6 -7 L-2 -5Z M-0.6 5 h1.2 v6 h-1.2Z" fill="${c}"/></svg>`;
+  // A wild turkey, side on, facing right (in colour, the kit's flat way: no outlines): the fan of
+  // its tail up behind it, the bronze body, the blue-grey head, the red wattle and snood, legs
+  // that stride (sc-legs-f/b). 1em wide, its feet on the bottom edge.
+  const TG_TURKEY = (() => {
+    const fan = Array.from({ length: 11 }, (_, i) => {
+      const a = -170 + i * 16;
+      return `<g transform="rotate(${a + 90} 38 58)"><ellipse cx="38" cy="26" rx="8.5" ry="30" fill="${['#7a4420', '#a85a26', '#8a4a22'][i % 3]}"/><ellipse cx="38" cy="4" rx="7.5" ry="7" fill="#e8c890"/><ellipse cx="38" cy="10" rx="7.8" ry="3.4" fill="#2a1a12"/></g>`;
+    }).join('');
+    return `<svg viewBox="0 0 100 100" width="1em" height="1em" overflow="visible"><g class="tg-strutbob">${fan}
+      <g class="sc-legs-b"><path d="M46 78 L44 96 M44 96 l-6 2 M44 96 l5 2" stroke="#c8782a" stroke-width="3" stroke-linecap="round" fill="none"/></g>
+      <g class="sc-legs-f"><path d="M56 78 L58 96 M58 96 l-5 2 M58 96 l7 1" stroke="#d8882e" stroke-width="3" stroke-linecap="round" fill="none"/></g>
+      <ellipse cx="50" cy="64" rx="25" ry="19" fill="#5a3218"/><path d="M30 60 Q40 52 54 56 Q46 70 32 70Z" fill="#7a4a24"/><path d="M34 62 q6 -3 12 0 M36 66 q6 -3 12 0" stroke="#c89a5a" stroke-width="1.4" fill="none"/>
+      <path d="M64 56 Q70 46 70 36" stroke="#9ab0c8" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M60 58 q10 -2 10 -10" stroke="#3a2418" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <circle cx="71" cy="32" r="7" fill="#a8c0d8"/><path d="M77 30 L86 32.5 L77 35Z" fill="#f0a030"/><path d="M76 28 Q80 30 79 38 Q77 42 75 38" fill="#d8302a"/><ellipse cx="72" cy="41" rx="3.6" ry="5.4" fill="#e0402e"/><circle cx="72.5" cy="30" r="1.5" fill="#1a1010"/></g></svg>`;
+  })();
+  const TG_GOOSE = critter('bird', { color: '#2a2026' });
+  // The people at the table, silhouettes against the candlelight and the window: one sitting at
+  // the left end (on the TV's left edge), one standing at the right behind the turkey (between the
+  // table and the leaderboard). Glasses up now and then (tg-raise). Cut round the turkey in front.
+  const TG_DINER_L = behindCounter('tg-cut-l', 122, 742, 300, { hair: 'bun', build: 'slim', arms: ['down', [60, 70]], holding: 'wine', hooks: { armF: 'tg-raise' } });
+  const TG_DINER_R = behindCounter('tg-cut-r', 1100, 742, 360, { hair: 'short', beard: 'beard', build: 'broad', flip: true, arms: ['down', [60, 70]], holding: 'wine', hooks: { armF: 'tg-raise b' } }, 'M1128 772 a102 60 0 0 1 204 0Z M1300 760 l60 -80 l30 20 l-50 70Z');
+  // Someone bringing in a pie, held out in front (the pie in colour), and a slice of it.
+  const TG_PIE = `<svg viewBox="-12 -8 24 14" width="1em" height="0.58em"><ellipse cx="0" cy="2" rx="11" ry="4" fill="#a8a8b0"/><ellipse cx="0" cy="0" rx="11" ry="3.6" fill="#d8a050"/><ellipse cx="0" cy="-0.4" rx="9" ry="2.6" fill="#d46a1e"/><path d="M1 -1 q2 -2 4 0 q-2 1 -4 0Z" fill="#fff6e6"/></svg>`;
+  const TG_BAKER_LOOK = { hair: 'bob', top: '#7a2a1a', topStyle: 'apron', accent: '#e8dcc0', bottom: '#3a2a2a', bottomStyle: 'skirt', pose: 'carry', arms: ['carry', 'carry'], cls: 'fg-walk' };
+  const TG_BAKER = (() => {
+    const [hx, hy] = figure.points(TG_BAKER_LOOK).handF;
+    return `<svg viewBox="0 0 60 120" width="0.5em" height="1em" overflow="visible">${figureAt(30, 118, 120, TG_BAKER_LOOK)}<g transform="translate(${n1(hx + 4)} ${n1(hy - 3)}) scale(1.2)"><ellipse cx="0" cy="2" rx="11" ry="4" fill="#a8a8b0"/><ellipse cx="0" cy="0" rx="11" ry="3.6" fill="#d8a050"/><ellipse cx="0" cy="-0.4" rx="9" ry="2.6" fill="#d46a1e"/></g></svg>`;
+  })();
+  const TG_DRUMSTICK = `<svg viewBox="0 0 40 20" width="1em" height="0.5em"><path d="M4 10 Q4 2 14 3 Q24 4 26 9 L34 9" stroke="#a8581c" stroke-width="10" stroke-linecap="round" fill="none"/><path d="M8 6 q6 -3 12 0" stroke="#e0a060" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 9 h6 M36 6 l3 -3 M36 12 l3 3" stroke="#f4f0e8" stroke-width="3" stroke-linecap="round"/></svg>`;
+  const TG_DOG = `<span class="tg-dog">${critter('dog', { color: '#b8844a' })}<b>${TG_DRUMSTICK}</b></span>`;
+  // The wishbone, pulled from both ends till it snaps (tg-wish: each half its own way).
+  const TG_WISH = `<svg viewBox="0 0 100 100" width="1em" height="1em" overflow="visible"><g class="tg-wb l"><path d="M48 84 Q34 62 30 38 Q28 22 18 12" stroke="#f0e4c4" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="17" cy="11" r="5.5" fill="#f0e4c4"/><ellipse cx="47" cy="86" rx="6" ry="7" fill="#f0e4c4"/></g><g class="tg-wb r"><path d="M52 84 Q66 62 70 38 Q72 22 82 12" stroke="#e8dab8" stroke-width="7" stroke-linecap="round" fill="none"/><circle cx="83" cy="11" r="5.5" fill="#e8dab8"/></g></svg>`;
+
+  // A wild turkey hen strutting across the floor, her poults trotting after her.
+  function tgStrut() {
+    const right = Math.random() < 0.5;
+    const h = 0.13 * innerHeight;
+    const w = (h / innerWidth) * 100;
+    [[1, 0], [0.5, 1.1], [0.45, 1.7], [0.5, 2.3]].forEach(([k, lag], i) => {
+      const s = h * k;
+      const y = 99 - (s / innerHeight) * 100;
+      later(() => drift(`<span>${TG_TURKEY}</span>`, { from: [right ? -w - 2 : 102, y], to: [right ? 104 : -w - 4, y], dur: 12, size: s }).classList.add('blk', 'tg-hen', i ? 'poult' : 'hen', right ? 'sc-face-r' : 'sc-face-l'), lag * 1000);
+    });
+    cue('gobble', 1500);
+    cue('gobble', 7000);
+  }
+  // Geese going over in a V, honking (high up, through the strip under the heading).
+  function tgGeese() {
+    const right = Math.random() < 0.5;
+    const s = 0.045 * innerHeight;
+    const vw = (s / innerWidth) * 100;
+    const y = rand(3, 8);
+    [[0, 0], [1, -1], [1, 1], [2, -2], [2, 2], [3, -3], [3, 3]].forEach(([a, b]) => drift(TG_GOOSE, { from: [right ? -6 - a * vw * 1.2 : 104 + a * vw * 1.2, y + b * 1.6], to: [right ? 110 - a * vw * 1.2 : -10 + a * vw * 1.2, y + b * 1.6 - 2], dur: 13, size: s }).classList.add(right ? 'sc-face-r' : 'sc-face-l'));
+    cue('geese', 1500);
+    cue('geese', 5000);
+  }
+  // A gust: a flurry of leaves blown across the room.
+  function tgGust() {
+    cue('wind');
+    const right = Math.random() < 0.5;
+    shower(4, 0.12, () => { const y = rand(5, 90); drift(TG_LEAF(pick(TG_LEAF_COLS)), { from: [right ? -6 : 106, y], to: [right ? 106 : -6, y + rand(-10, 25)], dur: rand(2.6, 4.2), size: rand(18, 34), spin: rand(-720, 720), opacity: 0.95 }); });
+  }
+  const tgPie = () => vvWalk(TG_BAKER, { vh: 26, dur: 11 });
+  function tgDog() {
+    crossing(TG_DOG, { y: 87, dur: 4.6, size: 0.14 * innerHeight, faces: 'right' });
+    cue('woof', 300);
+  }
+  function tgWish() {
+    popup(TG_WISH, { x: rand(2, 5), bottom: 4, size: 0.24 * innerHeight, life: 4600 });
+    later(() => { cue('snap'); inFront('<b>Make a wish!</b>', { left: '0', right: '26vw', top: '26vh' }, 2800).classList.add('sc-oneeighty', 'ton', 'tg'); }, 2500);
+  }
+  // A toast at the table: both glasses up, a glint, "Cheers!".
+  function tgToast(name = '') {
+    layer?.querySelectorAll('.tg-diner').forEach((d) => { d.classList.remove('toasting'); void d.offsetWidth; d.classList.add('toasting'); });
+    cue('clink', 900);
+    later(() => inFront(`<b>Cheers${name ? `, ${name}` : ''}!</b>`, { left: '0', right: '26vw', top: '26vh' }, 2600).classList.add('sc-oneeighty', 'ton', 'tg'), 700);
+  }
+  // A turkey wanders in from the yard, sees what's on the table, and legs it.
+  function tgVisitor() {
+    const d = crossing(TG_TURKEY, { y: 84, dur: 9, size: 0.14 * innerHeight, faces: 'right', bob: false, cls: ['tg-visitor'] });
+    cue('gobble', 600);
+    later(() => { if (d.isConnected) inFront('<b>Gobble?!</b>', { left: '0', right: '26vw', top: '30vh' }, 1800).classList.add('sc-oneeighty', 'ton', 'tg'); cue('gobble'); }, 3600);
+  }
+  // The football's on in the next room: a pass spirals across, and someone scores.
+  function tgFootball() {
+    const right = Math.random() < 0.5;
+    drift('🏈', { from: [right ? -6 : 104, 40], to: [right ? 104 : -6, rand(10, 30)], dur: 2.2, size: 46, spin: right ? 1080 : -1080 }).classList.add('tg-pass');
+    later(() => { cue('cheer'); inFront('<b>Touchdown!</b>', { left: '0', right: '26vw', top: '26vh' }, 2400).classList.add('sc-oneeighty', 'ton', 'tg'); }, 1800);
+  }
+  const tgWatch = vvWatch({
+    finish: (p) => {
+      popup(TG_TURKEY, { x: 2, bottom: 0, size: 0.2 * innerHeight, life: 4600 });
+      cue('gobble', 500);
+      later(() => inFront(`<b>Gobble gobble!</b><small>${esc(p.name)}, finish your drink</small>`, { left: '0', right: '26vw', top: '24vh' }, 3200).classList.add('sc-oneeighty', 'ton', 'tg', 'vv'), 300);
+    },
+    sip: () => { slide('🥧', { y: 90, size: 46 }); cue('slide', 200); },
+    over: (s) => {
+      const w = s?.game?.winnerId ?? s?.game?.winner;
+      const p = (s?.players || []).find((x) => x.id === w);
+      tgToast();
+      later(() => inFront(`<b>Happy Thanksgiving!</b>${p ? `<small>${esc(p.name)} gets the first slice of pie</small>` : ''}`, { left: '0', right: '26vw', top: '24vh' }, 3800).classList.add('sc-oneeighty', 'tg', 'vv'), 1200);
+      cue('cheer', 1300);
+      shower(7, 0.12, () => drift(TG_LEAF(pick(TG_LEAF_COLS)), { from: [rand(0, 100), -6], to: [rand(0, 100), 106], dur: rand(5, 8), size: rand(18, 32), spin: rand(-540, 540), opacity: 0.95 }));
+      later(() => burst(['🥧', '🦃', '🍂', '🌽'], { x: 8, y: 80, n: 14, spread: 10 }), 1600);
+    },
+  });
+  SCENES.thanksgiving = {
+    decor() {
+      tgWatch.reset();
+      // Leaves drifting down, all the time (a few, each round and round).
+      for (let i = 0; i < 7; i++) el(`<i>${TG_LEAF(TG_LEAF_COLS[i % TG_LEAF_COLS.length])}</i>`, { left: `${rand(2, 96).toFixed(1)}vw`, top: '-6vh', fontSize: `${rand(16, 28).toFixed(0)}px`, '--dx': `${rand(-12, 12).toFixed(1)}vw`, animationDuration: `${rand(13, 21).toFixed(1)}s`, animationDelay: `-${rand(0, 20).toFixed(1)}s` }).classList.add('tg-leaf');
+      if (!tgOn()) return;
+      // The people at the table.
+      for (const b of [TG_DINER_L, TG_DINER_R]) hwPut(b.svg, [b.x0, b.y0, b.w, b.ht], ['tg-diner', 'blk'], 0, { fontSize: `${hwPx(b.w).toFixed(1)}px` });
+      // The candles (on the table, the sill and the sconces) and the garland's bulbs.
+      for (const [x, y, s] of [[40, 642, 1], [520, 662, 0.9], [760, 616, 1], [860, 636, 1], [1560, 642, 1], [800, 486, 0.8], [1180, 222, 0.9], [1520, 222, 0.9]]) { const [vx, vy] = artAt(x, y); el('', { left: `${vx}vw`, top: `${vy}vh`, '--s': s, animationDelay: `-${rand(0, 2).toFixed(1)}s`, animationDuration: `${rand(1.1, 1.8).toFixed(1)}s` }).classList.add('hl-lamp', 'tg-candle'); }
+      for (let i = 0; i < 32; i++) {
+        const x = 25 + i * 50;
+        const [vx, vy] = artAt(x, 68 + 33 * Math.sin(((x % 400) / 400) * Math.PI));
+        el('', { left: `${vx}vw`, top: `${vy}vh`, '--c': '#ffd080', animationDelay: `-${rand(0, 3).toFixed(2)}s`, animationDuration: `${rand(1.8, 3.6).toFixed(2)}s` }).classList.add('fh-twinkle', 'tg-bulb');
+      }
+      // Steam off the gravy, the turkey and the potatoes.
+      for (const [x, y, s] of [[1050, 808, 0.8], [1230, 720, 1.3], [972, 762, 0.9]]) { const [vx, vy] = artAt(x, y); el('<i></i><i></i><i></i>', { left: `${vx}vw`, top: `${vy}vh`, '--s': s }).classList.add('tg-steam'); }
+      // The sun going down in the window, glowing.
+      hwPut('', [930 - 170, 402 - 170, 340, 340], ['tg-sun']);
+    },
+    update: tgWatch,
+    moments: [tgStrut, tgGeese, tgGust, tgPie, tgDog, tgWish, () => tgToast(), tgVisitor, tgFootball],
+  };
 
   // (The drawn madame, peacock, cyclist and balloon take over from the emoji ones.)
   SCENES.chateau = { decor: chDecor(false), update: chWatch, moments: [...chateauMoments(false).filter((m, i) => ![1, 2, 4, 5].includes(i)), ...chMore(false)] };
