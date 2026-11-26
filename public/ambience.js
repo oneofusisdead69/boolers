@@ -3,7 +3,8 @@
 // CC0 recordings from /sounds), a few sounds now and then (gulls, a creaking timber, chips, glasses)
 // and a tune, played on the fly with the Web Audio API: the blues on the dive bar's jukebox, a
 // lute in the tavern, Drunken Sailor on the pirate ship, Shenandoah at the lighthouse, a fiddle and
-// the pipes in the Highlands pub, Bach on the organ at Halloween... Classic is quiet.
+// the pipes in the Highlands pub, Bach on the organ at Halloween, a fiddle and banjo at Thanksgiving...
+// Classic is quiet.
 //
 //   Ambience.set(style, level, { party })   start, switch or stop (level 0 = off, up to 1)
 //
@@ -543,6 +544,68 @@
     ],
   };
 
+  // Thanksgiving: a harvest tune of our own, in G, an old-time folk feel. Round and round, the
+  // fiddle takes the tune over a banjo's rolls and a guitar's boom-chick, then the banjo takes it.
+  // A bar is 8 eighths; a chord a bar.
+  const HARVEST = [
+    [67, 2], [71, 1], [74, 1], [74, 2], [71, 2], [72, 1], [71, 1], [69, 1], [67, 1], [69, 4],
+    [72, 2], [76, 1], [74, 1], [72, 2], [69, 2], [69, 2], [66, 2], [62, 4],
+    [67, 2], [71, 1], [74, 1], [79, 2], [78, 1], [76, 1], [76, 2], [72, 2], [76, 1], [74, 1], [72, 2],
+    [74, 2], [69, 1], [71, 1], [72, 2], [66, 2], [67, 6], [null, 2],
+    [76, 2], [79, 1], [76, 1], [71, 2], [76, 2], [72, 2], [76, 1], [72, 1], [67, 2], [72, 2],
+    [71, 1], [72, 1], [74, 2], [71, 2], [67, 2], [69, 2], [71, 1], [69, 1], [66, 2], [62, 2],
+    [67, 1], [69, 1], [71, 2], [74, 2], [79, 2], [76, 2], [74, 1], [72, 1], [76, 2], [72, 2],
+    [71, 2], [69, 2], [66, 2], [69, 2], [67, 4], [null, 4],
+  ];
+  const G_ = [43, 50, 55, 59];
+  const C_ = [48, 52, 55, 60];
+  const D_ = [50, 57, 62, 66];
+  const EM = [40, 52, 55, 59];
+  const HARVEST_CHORDS = [G_, G_, C_, D_, G_, C_, D_, G_, EM, C_, G_, D_, G_, C_, D_, G_];
+  // A banjo: a bright, twangy pluck that dies away quickly.
+  function banjo(out, t, f, len, gain) {
+    const ring = Math.min(0.55, 0.2 + len * 0.3);
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = Math.min(4200, f * 3);
+    bp.Q.value = 0.9;
+    bp.connect(out);
+    note(bp, t, { freq: f, len: ring, gain: gain * 1.5, type: 'sawtooth', attack: 0.002 });
+    note(out, t, { freq: f, len: ring * 1.2, gain: gain * 0.6, type: 'triangle', attack: 0.002 });
+  }
+  function harvest(out) {
+    const bpm = party ? 128 : 100;
+    const eighth = 60 / bpm / 2;
+    let step = 0; // which note of the tune
+    let at = 0; // eighths left on the note playing
+    let bar = 0;
+    let pass = 0; // even: the fiddle has the tune; odd: the banjo
+    let chord = G_;
+    return [
+      background(out, 'bed-fire-1', { gain: party ? 0.12 : 0.22 }),
+      sequencer(bpm * 2, (t, n) => {
+        const k = n % 8;
+        if (k === 0) chord = HARVEST_CHORDS[bar++ % HARVEST_CHORDS.length];
+        const fiddleTune = pass % 2 === 0;
+        // The guitar: the bass on one and three (root, then the fifth), a strum on two and four.
+        if (k === 0 || k === 4) note(out, t, { freq: hz(k === 0 ? chord[0] : chord[1] - 12 < 36 ? chord[1] : chord[1] - 12), len: eighth * 3, gain: 0.05, type: 'triangle', attack: 0.004 });
+        if (k === 2 || k === 6) chord.slice(1).forEach((m, j) => note(out, t + j * 0.018, { freq: hz(m), len: 0.32, gain: 0.016, type: 'triangle', attack: 0.003 }));
+        // The banjo's roll under the fiddle: the chord's notes, an octave up, one an eighth.
+        if (fiddleTune) banjo(out, t, hz(chord[[1, 2, 3, 2][k % 4]] + 12), eighth, 0.009);
+        if (at === 0) {
+          const [m, len] = HARVEST[step];
+          if (m) (fiddleTune ? fiddle(out, t, hz(m), len * eighth, 0.032) : banjo(out, t, hz(m), len * eighth, 0.026));
+          at = len;
+          step = (step + 1) % HARVEST.length;
+          if (step === 0) pass += 1;
+        }
+        at -= 1;
+        if (party) beat(out, t, n, 8, eighth, chord, 0.032);
+      }, { own: true }),
+      now(45, (t) => CUES.gobble?.(out, t)),
+    ];
+  }
+
   // ---------- The rooms ----------
 
   // Birds singing in the vines or the garden: a few quick rising chirps.
@@ -777,6 +840,9 @@
         now(30, (t) => play(out, 'cue-creak-1', t, { gain: 0.5 })),
       ];
     },
+    // Thanksgiving: the fire, and the harvest tune (in party mode quicker, over a beat). A turkey
+    // gobbling out in the yard now and then.
+    thanksgiving: (out) => harvest(out),
     // Under the pergola in Tuscany: a mandolin serenade over a guitar, birds in the vines (crickets
     // and an owl once the sun's going down).
     vineyard: (out) => [
@@ -1310,6 +1376,37 @@
     // Knock, knock (on the speakeasy's door).
     knock(out, t) {
       for (const at of [0, 0.22, 0.6]) hit(out, t + at, { type: 'lowpass', freq: 260, gain: 0.3, len: 0.1, attack: 0.002 });
+    },
+    // A turkey gobbling: a quick warbling run, falling.
+    gobble(out, t) {
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 1300;
+      f.Q.value = 1.6;
+      f.connect(out);
+      for (let k = 0; k < 9; k++) note(f, t + k * 0.052, { freq: (760 - k * 22) * (k % 2 ? 1.22 : 1), to: 560 - k * 15, len: 0.055, gain: 0.07, type: 'sawtooth', attack: 0.004 });
+    },
+    // Geese going over: a couple of honks, a way off.
+    geese(out, t) {
+      const f = ac.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 950;
+      f.Q.value = 2.5;
+      f.connect(out);
+      for (const [at, f0] of [[0, 430], [0.28, 400], [0.7, 450]]) note(f, t + at, { freq: f0, to: f0 * 0.88, len: 0.17, gain: 0.05, type: 'sawtooth', attack: 0.02 });
+    },
+    // A dog: two quick barks.
+    woof(out, t) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 1000;
+      f.connect(out);
+      for (const at of [0, 0.24]) note(f, t + at, { freq: 300, to: 170, len: 0.15, gain: 0.09, type: 'sawtooth', attack: 0.006 });
+    },
+    // The wishbone snapping.
+    snap(out, t) {
+      hit(out, t, { freq: 2600, gain: 0.2, len: 0.05, attack: 0.001 });
+      hit(out, t + 0.02, { type: 'bandpass', freq: 900, q: 2, gain: 0.1, len: 0.06, attack: 0.001 });
     },
     // Two steins meeting.
     clink(out, t) {

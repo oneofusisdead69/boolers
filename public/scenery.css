@@ -694,6 +694,44 @@
 .hw-owl .sc-blink { animation: sc-blink 5s linear infinite; }
 .hw-bubble { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(160, 255, 180, 0.8); background: rgba(124, 255, 154, 0.25); }
 .sc-oneeighty.hw b { font-family: "Creepster", system-ui, sans-serif; color: #ff7a1a; text-shadow: 0 0 18px #7a2aff, 0 4px 0 #1a0024; }
+/* Thanksgiving (scenery.js: "Thanksgiving"): leaves drifting down, the candles, the bulbs, the
+   steam, the sun in the window; the diners' glasses; the turkey strutting outside, the geese, the
+   dog, the wishbone. */
+.tg-leaf { animation: tg-fall linear infinite; }
+.tg-leaf i { display: block; animation: tg-sway 2.8s ease-in-out infinite alternate; }
+.tg-leaf svg { display: block; }
+@keyframes tg-fall { from { transform: translate(0, 0); } to { transform: translate(var(--dx), 114vh); } }
+@keyframes tg-sway { from { transform: translateX(-1.4vw) rotate(-50deg); } to { transform: translateX(1.4vw) rotate(60deg); } }
+.hl-lamp.tg-candle { background: radial-gradient(circle, rgba(255, 214, 140, 0.42), transparent 65%); }
+.fh-twinkle.tg-bulb { width: 26px; height: 26px; margin: -13px 0 0 -13px; opacity: 0.35; animation-name: tg-bulb; }
+@keyframes tg-bulb { to { opacity: 0.8; } }
+.tg-steam { width: 0; height: 0; }
+.tg-steam i { position: absolute; left: calc(-16px * var(--s)); top: calc(-34px * var(--s)); width: calc(32px * var(--s)); height: calc(46px * var(--s)); border-radius: 50%; background: radial-gradient(ellipse, rgba(255, 248, 236, 0.4), transparent 68%); opacity: 0; animation: tg-steam 4.2s ease-out infinite; }
+.tg-steam i:nth-child(2) { left: calc(-4px * var(--s)); animation-delay: -1.4s; }
+.tg-steam i:nth-child(3) { left: calc(-26px * var(--s)); animation-delay: -2.8s; }
+@keyframes tg-steam { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 25% { opacity: 0.85; } 100% { opacity: 0; transform: translate(calc(12px * var(--s)), calc(-80px * var(--s))) scale(1.7); } }
+.tg-sun { border-radius: 50%; background: radial-gradient(circle, rgba(255, 210, 130, 0.4), rgba(255, 150, 80, 0.12) 40%, transparent 68%); animation: tg-glow 7s ease-in-out infinite alternate; }
+@keyframes tg-glow { from { opacity: 0.45; } to { opacity: 1; } }
+.tg-raise { animation: tg-raise 11s ease-in-out infinite; }
+.tg-raise.b { animation-delay: -5s; animation-duration: 13s; }
+@keyframes tg-raise { 0%, 72%, 100% { transform: rotate(0); } 78%, 88% { transform: rotate(-58deg); } }
+.tg-diner.toasting .tg-raise { animation: tg-toast 2.6s ease-in-out; }
+@keyframes tg-toast { 0%, 100% { transform: rotate(0); } 25%, 75% { transform: rotate(-82deg); } 45% { transform: rotate(-74deg); } }
+.tg-hen svg { display: block; }
+.tg-hen > span { display: block; animation: tg-bob 0.4s ease-in-out infinite alternate; }
+.tg-hen.poult > span { animation-duration: 0.22s; }
+.tg-strutbob { transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes tg-bob { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-3%) rotate(2deg); } }
+.tg-dog { position: relative; display: inline-block; }
+.tg-dog > svg { display: block; }
+.tg-dog b { position: absolute; left: 0.72em; top: 0.3em; font-size: 0.36em; }
+.tg-wb { transform-box: fill-box; animation: tg-snap 4.6s ease-in forwards; }
+.tg-wb.l { transform-origin: 0 0; }
+.tg-wb.r { transform-origin: 100% 0; --w: 1; }
+@keyframes tg-snap { 0%, 50% { transform: rotate(0); } 54% { transform: rotate(calc(4deg - var(--w, 0) * 8deg)); } 58%, 100% { transform: translate(calc(-10% + var(--w, 0) * 20%), 6%) rotate(calc(28deg - var(--w, 0) * 56deg)); } }
+.sc-walker.tg-visitor > span { animation: tg-bob 0.3s ease-in-out infinite alternate; }
+.sc-oneeighty.tg b { font-family: "Berkshire Swash", Georgia, serif; font-weight: 400; color: #ffe2a8; text-shadow: 0 3px 0 #6a1a0a, 0 0 24px rgba(255, 138, 42, 0.8); }
+.sc-oneeighty.tg small { color: #fff4e2; }
 /* Halloween, more (scenery.js: "Halloween, more"). Always: wisps, the crypt's light, the
    jack-o'-lanterns' faces, ground mist, stars. */
 .hw-wisp { animation-name: sc-fly; }

@@ -73,6 +73,8 @@
     rain: { light: [0.62, 0.66, 0.72], sky: ['#262c34', '#5a626c'], haze: [0.34, 0.37, 0.41], far: 480, wet: 1, fall: 'rain', flat: 'rgba(30, 40, 60, 0.3)' },
     fog: { light: [0.86, 0.87, 0.89], sky: ['#9aa2aa', '#c4c8cc'], haze: [0.72, 0.74, 0.76], far: 230, mute: 0.45, flat: 'rgba(200, 205, 210, 0.4)' },
     snow: { light: [0.9, 0.93, 1.02], sky: ['#6d7a8c', '#d8dee6'], haze: [0.8, 0.83, 0.88], far: 460, mute: 0.15, snow: true, fall: 'snow' },
+    // (Thanksgiving's: an autumn afternoon going gold, leaves blowing across.)
+    leaves: { light: [1.04, 0.9, 0.76], sky: ['#4a4a7a', '#ffb468'], haze: [0.9, 0.68, 0.48], far: 640, fall: 'leaves' },
   };
   const weatherOf = (s = PB.state) => (WX[s?.game?.weather] ? s.game.weather : 'clear');
 
@@ -308,6 +310,19 @@
       fx: { lightning: true, phantom: true, bats: true },
       words: { count: '…', go: 'BOO!', final: '💀 Final lap!', finish: '🎃' },
       cls: 'haunted', overlay: '<div class="tr-haunt" aria-hidden="true"><i class="tr-fog"></i><i class="tr-bats"></i><i class="tr-flash"></i></div>',
+    },
+    // Thanksgiving: out on the farm in the autumn. Farm roads through the stubble of the harvested
+    // fields, fallen leaves on the verges, a split-rail fence, hay bales on the bends, trees gone
+    // orange and red, pumpkins and corn stalks about, a red barn and a silo on the skyline (and
+    // beside the track), a turkey or two. The server races it in falling leaves, mostly.
+    thanksgiving: {
+      dim: 0.24, ground: 'stubble', verge: 'fallen', out: [0.52, 0.36, 0.18], line: '#fbecd2', kerb: '#fbecd2', kerbAlt: '#c8541e',
+      barrier: 'rail', wall: '#7a4a24', stack: 'hay', tree: 'autumn', trees: 0.75,
+      stand: '#6a3a1e', seat: [0.42, 0.24, 0.12], crowd: ['#c8541e', '#e8b23a', '#7a2a1a', '#fbecd2', '#5a6a2a'], roof: '#a8302a',
+      post: [0.48, 0.3, 0.16], beam: '#4a2a14',
+      sky: { skyline: 'farm' },
+      along: { kind: 'corn', size: [13, 4], every: 11 }, field: { kinds: [['pumpkin', 0.6], ['corn', 0.88], ['scarecrow', 1]], count: 34, size: [9, 5] },
+      words: { final: '🍂 Final lap!', finish: '🦃' },
     },
     // The Highlands: heather, dry stone walls, Scots pines, the hills.
     stpatricks: {
@@ -898,6 +913,36 @@
       blobs(g, rand, 30, ['rgba(110, 60, 110, 0.45)', 'rgba(70, 50, 30, 0.35)', 'rgba(90, 120, 60, 0.3)'], 3, 8);
       blades(g, rand, 220, ['#3a4a22', '#5a6a38', '#6a4a20'], 3);
       blobs(g, rand, 70, ['#9a5aa0', '#b070b4', '#7a4a80'], 0.6, 1.3);
+    },
+    // Thanksgiving: a harvested field, rows of golden stubble.
+    stubble(g, rand) {
+      g.fillStyle = '#b8883e';
+      g.fillRect(0, 0, 96, 96);
+      blobs(g, rand, 20, ['rgba(140, 90, 30, 0.3)', 'rgba(230, 190, 110, 0.25)'], 5, 12);
+      g.lineWidth = 1.2;
+      for (let y = 4; y < 96; y += 8) {
+        for (let k = 0; k < 22; k++) {
+          const x = rand() * 96;
+          g.strokeStyle = ['#8a5a22', '#e0b868', '#a8742e'][Math.floor(rand() * 3)];
+          g.beginPath();
+          g.moveTo(x, y + rand() * 2);
+          g.lineTo(x + (rand() - 0.5) * 2, y - 2.5 - rand() * 2);
+          g.stroke();
+        }
+      }
+      blobs(g, rand, 10, ['#c0401e', '#e8862a', '#d8a030'], 0.8, 1.6);
+    },
+    // ...and the verges: grass, fallen leaves all over it.
+    fallen(g, rand) {
+      g.fillStyle = '#5a6a2a';
+      g.fillRect(0, 0, 96, 96);
+      blades(g, rand, 220, ['#4a5a22', '#6a7a32', '#7a6a2a'], 3);
+      for (let k = 0; k < 46; k++) {
+        g.fillStyle = ['#d8541e', '#e8862a', '#c0331e', '#e8b23a', '#a8461c'][Math.floor(rand() * 5)];
+        g.beginPath();
+        g.ellipse(rand() * 96, rand() * 96, 1.6 + rand() * 1.6, 1 + rand(), rand() * Math.PI, 0, Math.PI * 2);
+        g.fill();
+      }
     },
     snow(g, rand) {
       g.fillStyle = '#e6ecf3';
@@ -1778,6 +1823,7 @@
 
   // What stands about in the fields, from above.
   const GREENS = ['#2f7d3a', '#3c8f45', '#2a6b34', '#4d9a3e'];
+  const AUTUMN = ['#d8742a', '#c0401e', '#e8a83a', '#a85a2a', '#b8862a'];
   function treeAbove(c, p, th, snowy) {
     const kind = th.tree;
     const disc = (x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
@@ -1818,10 +1864,10 @@
       }
       return;
     }
-    if (kind === 'pine' || kind === 'round' || kind === 'cypress') {
+    if (kind === 'pine' || kind === 'round' || kind === 'cypress' || kind === 'autumn') {
       const r = kind === 'cypress' ? p.r * 0.45 : p.r;
       disc(p.x + 4, p.y + 4, r, 'rgba(0, 0, 0, 0.3)');
-      disc(p.x, p.y, r, kind === 'cypress' ? '#1f4a28' : kind === 'round' ? ['#4a8a34', '#5a9a3a', '#3a7a2e', '#6aa040'][Math.floor(p.tone * 4)] : GREENS[Math.floor(p.tone * GREENS.length)]);
+      disc(p.x, p.y, r, kind === 'cypress' ? '#1f4a28' : kind === 'round' ? ['#4a8a34', '#5a9a3a', '#3a7a2e', '#6aa040'][Math.floor(p.tone * 4)] : kind === 'autumn' ? AUTUMN[Math.floor(p.tone * AUTUMN.length)] : GREENS[Math.floor(p.tone * GREENS.length)]);
       if (snowy) {
         c.fillStyle = 'rgba(250, 252, 255, 0.45)';
         c.fill();
@@ -2067,6 +2113,9 @@
     // (Halloween's jack-o'-lantern glows and flickers: the fifth, `glow`. Its tomb and cross stand
     // in the fields too, and more lanterns along the fence: see extrasOf.)
     halloween: [['lantern', 30, 0.9, 0, true], ['tomb', 32, 0.46], ['scarecrow', 52, 0.66], ['cross', 40, 0.5]],
+    // (Thanksgiving's pumpkins, corn and scarecrows stand out in the fields too, corn along the
+    // fence: see extrasOf.)
+    thanksgiving: [['barn', 56, 0.95], ['turkey', 32, 0.85], ['pumpkin', 24, 0.9], ['corn', 46, 0.5]],
     stpatricks: [['whisky', 30, 0.66], ['stone', 50, 0.4]],
   };
   const CELL = 256; // pixels a prop's square
@@ -2421,6 +2470,74 @@
       poly(c, '#241a26', 'M30 14 H70 L64 10 L58 1 L46 5 L40 10Z');
       fillRound(c, 40, 10, 22, 3, 1, '#8a2a2a');
       poly(c, '#0a080c', 'M78 34 Q76 26 82 24 L86 22 L84 26 Q90 28 88 34Z');
+    },
+    // Thanksgiving: a red barn (its roof a gambrel, white trim, the big doors crossed), a silo.
+    barn(c) {
+      poly(c, '#9a9aa8', 'M74 99 V30 Q84 18 94 30 V99Z');
+      poly(c, 'rgba(0, 0, 0, 0.18)', 'M86 99 V25 Q91 26 94 30 V99Z');
+      for (const y of [44, 60, 76]) c.fillRect(74, y, 20, 1.6);
+      poly(c, '#a8302a', 'M6 99 V52 H70 V99Z');
+      poly(c, '#3a2626', 'M2 54 L12 36 L38 26 L64 36 L74 54Z');
+      c.strokeStyle = '#f4ead8';
+      c.lineWidth = 1.6;
+      c.stroke(new Path2D('M2 54 L12 36 L38 26 L64 36 L74 54'));
+      c.lineWidth = 2;
+      c.strokeRect(24, 70, 28, 29);
+      c.stroke(new Path2D('M24 70 L52 99 M52 70 L24 99'));
+      c.strokeRect(32, 42, 12, 10);
+    },
+    // A pumpkin, ribbed, with its curly stem.
+    pumpkin(c) {
+      for (const [x, w, col] of [[30, 22, '#d8641a'], [70, 22, '#d8641a'], [50, 24, '#f08a2a']]) { c.fillStyle = col; c.beginPath(); c.ellipse(x, 72, w, 26, 0, 0, Math.PI * 2); c.fill(); }
+      poly(c, 'rgba(255, 255, 255, 0.18)', 'M36 56 Q32 72 38 88 Q30 72 36 56Z');
+      poly(c, '#5a4a22', 'M47 48 Q46 38 54 34 L57 39 Q52 41 53 48Z');
+      c.strokeStyle = '#4a6a2a';
+      c.lineWidth = 1.6;
+      c.stroke(new Path2D('M54 40 q8 -6 12 0 q3 5 -3 6'));
+    },
+    // A wild turkey, side on, its tail fanned (in colour, as on the TV at Thanksgiving).
+    turkey(c) {
+      for (let i = 0; i < 9; i++) {
+        c.save();
+        c.translate(40, 62);
+        c.rotate(-Math.PI * (0.08 + (i / 8) * 0.84));
+        c.fillStyle = ['#7a4420', '#a85a26', '#8a4a22'][i % 3];
+        c.beginPath(); c.ellipse(30, 0, 30, 8, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#e8c890';
+        c.beginPath(); c.ellipse(55, 0, 6, 6.5, 0, 0, Math.PI * 2); c.fill();
+        c.restore();
+      }
+      c.strokeStyle = '#d8882e';
+      c.lineWidth = 3;
+      c.stroke(new Path2D('M46 80 L44 98 M56 80 L58 98'));
+      c.fillStyle = '#5a3218';
+      c.beginPath(); c.ellipse(50, 66, 24, 18, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#9ab0c8';
+      c.lineWidth = 8;
+      c.lineCap = 'round';
+      c.stroke(new Path2D('M64 56 Q70 46 70 36'));
+      c.fillStyle = '#a8c0d8';
+      c.beginPath(); c.arc(71, 32, 7, 0, Math.PI * 2); c.fill();
+      poly(c, '#f0a030', 'M77 30 L86 32.5 L77 35Z');
+      poly(c, '#d8302a', 'M76 28 Q80 30 79 38 Q77 42 75 38Z');
+      c.fillStyle = '#1a1010';
+      c.beginPath(); c.arc(72.5, 30, 1.5, 0, Math.PI * 2); c.fill();
+    },
+    // A shock of corn stalks, tied round the middle.
+    corn(c) {
+      c.lineCap = 'round';
+      for (let k = 0; k < 11; k++) {
+        c.strokeStyle = ['#c8a868', '#b8945a', '#d8b878'][k % 3];
+        c.lineWidth = 3;
+        c.beginPath();
+        c.moveTo(50 + (k - 5) * 4, 99);
+        c.quadraticCurveTo(50 + (k - 5) * 0.8, 60, 50 + (k - 5) * 3.4, 6 + (k % 3) * 5);
+        c.stroke();
+      }
+      for (let k = 0; k < 6; k++) poly(c, ['#c8a868', '#b8945a'][k % 2], k % 2 ? `M50 ${20 + k * 9} q16 -6 22 6 q-12 -2 -22 0Z` : `M50 ${20 + k * 9} q-16 -6 -22 6 q12 -2 22 0Z`);
+      c.fillStyle = '#7a5a2a';
+      c.fillRect(38, 62, 24, 4);
+      for (const [x, col] of [[36, '#a8321e'], [64, '#d8a030']]) { c.fillStyle = col; c.beginPath(); c.ellipse(x, 84, 5, 12, x < 50 ? 0.3 : -0.3, 0, Math.PI * 2); c.fill(); }
     },
     stone(c) {
       poly(c, '#7d8085', 'M34 99 L30 62 Q32 22 46 8 Q60 4 64 24 Q70 60 68 99Z');
@@ -3301,9 +3418,10 @@
         const l2 = len * 0.55;
         m.limb(end, [end[0] + Math.cos(a2) * l2, end[1] + Math.sin(a2) * l2, end[2] + l2 * (rand() * 0.9 - 0.2)], 0.3, 0.1, DEAD);
       }
-    } else if (kind === 'round') {
-      // A broad-leaved tree: a trunk, a round crown.
-      const col = snowy([[0.29, 0.54, 0.2], [0.35, 0.6, 0.23], [0.23, 0.48, 0.18], [0.42, 0.63, 0.25]][Math.floor(p.tone * 4)], 0.35);
+    } else if (kind === 'round' || kind === 'autumn') {
+      // A broad-leaved tree: a trunk, a round crown (in the autumn, orange, red or gold).
+      const cols = kind === 'autumn' ? [[0.85, 0.45, 0.16], [0.75, 0.25, 0.12], [0.91, 0.66, 0.23], [0.66, 0.35, 0.16], [0.72, 0.53, 0.16]] : [[0.29, 0.54, 0.2], [0.35, 0.6, 0.23], [0.23, 0.48, 0.18], [0.42, 0.63, 0.25]];
+      const col = snowy(cols[Math.floor(p.tone * cols.length)], 0.35);
       m.cyl(p.x, p.y, 0, p.h * 0.5, 1.4, 1.1, [0.38, 0.26, 0.15], 6);
       m.cyl(p.x, p.y, p.h * 0.35, p.h * 0.7, p.r * 0.6, p.r, col, 8);
       m.cyl(p.x, p.y, p.h * 0.7, p.h, p.r, p.r * 0.4, col.map((c) => Math.min(1, c * 1.12)), 8);
@@ -4081,6 +4199,40 @@
       ridge(26, 26, [2, 5, 13], 1);
       c.fillStyle = near;
       ridge(10, 12, [3, 7, 31], 4);
+    }
+    if (line === 'farm') {
+      // Farms on the hills: autumn trees in clumps, red barns (a gambrel roof) and their silos, a
+      // light in the odd window.
+      const base = (x) => height(x, 10, 12, [3, 7, 31], 4);
+      const hazed = (c3, k = 0.35) => hex(mix(c3, horizon, k));
+      for (let k = 0; k < 70; k++) {
+        const x = r2() * 1024;
+        c.fillStyle = hazed([[0.85, 0.45, 0.16], [0.75, 0.25, 0.12], [0.91, 0.66, 0.23], [0.55, 0.3, 0.14]][k % 4], 0.45);
+        c.beginPath();
+        c.arc(x, base(x) - 2, 3 + r2() * 5, 0, Math.PI * 2);
+        c.fill();
+      }
+      for (const x0 of [120, 430, 760]) {
+        const y0 = base(x0 + 20) + 3;
+        c.save();
+        c.translate(x0, y0);
+        c.scale(1.5, 1.5);
+        c.fillStyle = hazed([0.66, 0.19, 0.16], 0.25);
+        c.fillRect(0, -14, 28, 14);
+        c.fillStyle = hazed([0.22, 0.15, 0.15], 0.25);
+        c.beginPath();
+        c.moveTo(-2, -13); c.lineTo(4, -20); c.lineTo(14, -24); c.lineTo(24, -20); c.lineTo(30, -13);
+        c.fill();
+        c.fillStyle = hazed([0.95, 0.92, 0.85], 0.3);
+        c.fillRect(10, -9, 8, 9);
+        c.fillStyle = hazed([0.62, 0.62, 0.68], 0.25);
+        c.fillRect(32, -30, 8, 30);
+        c.beginPath();
+        c.arc(36, -30, 4, Math.PI, 0);
+        c.fill();
+        if (wx.lamps) { c.fillStyle = 'rgba(255, 210, 130, 0.85)'; c.fillRect(12, -19, 3, 3); }
+        c.restore();
+      }
     }
     if (line === 'city' || line === 'towers') {
       // A city's skyline, windows lit; or a castle on its hill, towers and a flag on each.
@@ -5040,7 +5192,8 @@
     fall(s, wx, car, ms) {
       if (!wx.fall) return;
       const rain = wx.fall === 'rain';
-      const n = rain ? 110 : 150;
+      const leaves = wx.fall === 'leaves';
+      const n = rain ? 110 : leaves ? 60 : 150;
       if (!this.drops || this.drops.length !== n * 3) {
         this.drops = new Float32Array(n * 3);
         const rand = seeded('drops');
@@ -5059,16 +5212,23 @@
       const d = this.drops;
       c.setTransform(1, 0, 0, 1, 0, 0);
       c.beginPath();
+      // (Leaves: three colours, each its own path, tumbling as they come down.)
+      const tumble = leaves ? [new Path2D(), new Path2D(), new Path2D()] : null;
       for (let i = 0; i < n; i++) {
         const sp = 0.5 + d[i * 3 + 2] * 0.5;
         let x = d[i * 3] - turn * 0.8;
-        let y = d[i * 3 + 1] + dt * sp * (rain ? 1.5 + speed : 0.16 + speed * 0.3);
-        if (!rain) x += Math.sin(ms * 0.0013 + i) * 0.0006;
+        let y = d[i * 3 + 1] + dt * sp * (rain ? 1.5 + speed : leaves ? 0.1 + speed * 0.35 : 0.16 + speed * 0.3);
+        if (!rain) x += Math.sin(ms * 0.0013 + i) * (leaves ? 0.0016 : 0.0006);
         x -= Math.floor(x);
         y -= Math.floor(y);
         d[i * 3] = x;
         d[i * 3 + 1] = y;
-        if (rain) {
+        if (leaves) {
+          const r = (2.5 + sp * 4) * k;
+          const rot = ms * 0.002 * (i % 2 ? 1 : -1) + i;
+          tumble[i % 3].moveTo(x * W + r * Math.cos(rot), y * H + r * Math.sin(rot));
+          tumble[i % 3].ellipse(x * W, y * H, r, r * (0.3 + 0.3 * Math.abs(Math.sin(ms * 0.003 + i))), rot, 0, Math.PI * 2);
+        } else if (rain) {
           const len = (0.025 + 0.035 * speed) * H * sp;
           c.moveTo(x * W, y * H);
           c.lineTo(x * W - len * 0.12, y * H + len);
@@ -5077,7 +5237,9 @@
           c.rect(x * W - r, y * H - r, r * 2, r * 2);
         }
       }
-      if (rain) {
+      if (leaves) {
+        ['rgba(216, 84, 30, 0.9)', 'rgba(232, 168, 58, 0.9)', 'rgba(170, 60, 28, 0.9)'].forEach((col, j) => { c.fillStyle = col; c.fill(tumble[j]); });
+      } else if (rain) {
         c.lineWidth = Math.max(1, k);
         c.strokeStyle = 'rgba(205, 218, 238, 0.42)';
         c.stroke();

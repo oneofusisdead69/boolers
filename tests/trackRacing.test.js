@@ -310,6 +310,8 @@ test('weather: picked for each race, fitted to the room, and bots finish in ever
   assert.deepStrictEqual([...many({ style: 'vineyard', mood: 'vineyardSunset' })], ['sunset']);
   assert.ok(many({ style: 'dive' }).size >= 4, 'anything can happen at the dive');
   assert.deepStrictEqual([...many({ style: 'halloween' })].sort(), ['fog', 'night'], 'always dark at Halloween');
+  assert.deepStrictEqual([...many({ style: 'thanksgiving' })].sort(), ['clear', 'leaves', 'sunset'], 'autumn on the farm');
+  assert.ok(![...many({ style: 'dive' })].includes('leaves'), 'the leaves are Thanksgiving\'s');
   t.cleanup();
   for (const weather of Object.keys(game.WEATHERS)) {
     const t2 = setup(game, 3, { track: 'pretzel', laps: 2 });
@@ -320,6 +322,22 @@ test('weather: picked for each race, fitted to the room, and bots finish in ever
     for (const r of t2.room.game.result) assert.ok(r.time != null && r.time / 2 < 32, `${weather}: ${r.id} finished (${r.time})`);
     t2.cleanup();
   }
+});
+
+test('Thanksgiving: a race on the farm, told the harvest way, and the bots finish in the leaves', () => {
+  const t = setup(game, 3, { track: 'hairpin', laps: 2 });
+  t.room.style = 'thanksgiving';
+  t.room.game.weather = 'leaves';
+  startRace(t, [['p0', 1], ['p1', 1], ['p2', 1]]);
+  assert.ok(t.room.feed.some((f) => f.text.startsWith('🦃 Race 1 is off') && f.text.endsWith('Gobble gobble!')), 'a harvest start');
+  for (const p of t.room.players) p.bot = 'npc';
+  runRace(t);
+  const g = t.room.game;
+  for (const r of g.result) assert.ok(r.time != null, `${r.id} finished`);
+  assert.ok(t.room.feed.some((f) => /^🥧 .* wins race 1, and gets the first slice of pie!$/.test(f.text)), 'a harvest win');
+  t.act(0, 'nextRace');
+  assert.ok(['leaves', 'sunset', 'clear'].includes(g.weather));
+  t.cleanup();
 });
 
 test('Halloween: a dark race, told spookily, and the bots still finish', () => {

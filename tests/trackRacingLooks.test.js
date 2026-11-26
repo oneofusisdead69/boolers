@@ -24,7 +24,7 @@ function screen() {
 const KINDS = {
   barrier: ['tyres', 'fence', 'rail', 'rope', 'wall', 'hedge', 'neon', 'candy', 'bunting', 'none'],
   stack: ['tyres', 'graves', 'drums', 'barrels', 'hay', 'presents', 'speakers', 'stools', 'chips', 'rocks', 'topiary', 'none'],
-  tree: ['pine', 'dead', 'round', 'cypress', 'palm', 'cactus', 'lamp', 'rock', 'none'],
+  tree: ['pine', 'dead', 'round', 'autumn', 'cypress', 'palm', 'cactus', 'lamp', 'rock', 'none'],
   gantry: ['gantry', 'arch', 'neon', 'torch'],
 };
 const hex = /^#[0-9a-f]{6}$/i;
@@ -67,4 +67,9 @@ test('every venue has a race of its own, and every look a room can be in comes o
   const hw = themeOf({ look: 'halloween', style: 'halloween', game: {} });
   assert.deepStrictEqual([hw.ground, hw.barrier, hw.stack, hw.tree, hw.gantry, hw.crowd], ['earth', 'fence', 'graves', 'dead', 'arch', 'ghosts']);
   assert.ok(hw.fx.phantom && hw.fx.lightning && hw.fx.bats);
+  // And Thanksgiving's the farm in autumn: stubble fields, a split-rail fence, hay, autumn trees,
+  // the barn on the skyline, and the leaves falling (its own weather).
+  const tg = themeOf({ look: 'thanksgiving', style: 'thanksgiving', game: { weather: 'leaves' } });
+  assert.deepStrictEqual([tg.ground, tg.verge, tg.barrier, tg.stack, tg.tree, tg.sky.skyline], ['stubble', 'fallen', 'rail', 'hay', 'autumn', 'farm']);
+  assert.strictEqual(wxOf({ look: 'thanksgiving', style: 'thanksgiving', game: { weather: 'leaves' } }).fall, 'leaves');
 });

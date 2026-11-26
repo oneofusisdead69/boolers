@@ -250,7 +250,7 @@
       circ(c, 0, -s * 0.48, s * 0.24, k);
       poly(c, [-s * 0.45, s * 0.42, -s * 0.38, -s * 0.12, -s * 0.15, -s * 0.22, s * 0.15, -s * 0.22, s * 0.38, -s * 0.12, s * 0.45, s * 0.42], k);
       // a hat for the room
-      const hat = { saloon: 'cowboy', pirate: 'tricorn', castle: 'crown', christmas: 'santa', space: 'helmet', tiki: 'flower', casino: 'topper', speakeasy: 'fedora', jazz: 'fedora', chateau: 'topper' }[set];
+      const hat = { saloon: 'cowboy', pirate: 'tricorn', castle: 'crown', christmas: 'santa', thanksgiving: 'buckle', space: 'helmet', tiki: 'flower', casino: 'topper', speakeasy: 'fedora', jazz: 'fedora', chateau: 'topper' }[set];
       if (hat === 'cowboy') { ell(c, 0, -s * 0.68, s * 0.42, s * 0.08, k); rr(c, -s * 0.2, -s * 0.9, s * 0.4, s * 0.24, 6, k); }
       if (hat === 'tricorn') poly(c, [-s * 0.4, -s * 0.62, 0, -s * 0.95, s * 0.4, -s * 0.62], k);
       if (hat === 'crown') poly(c, [-s * 0.22, -s * 0.66, -s * 0.24, -s * 0.92, -s * 0.1, -s * 0.78, 0, -s * 0.95, s * 0.1, -s * 0.78, s * 0.24, -s * 0.92, s * 0.22, -s * 0.66], '#d4af37');
@@ -258,6 +258,8 @@
       if (hat === 'helmet') { c.beginPath(); c.arc(0, -s * 0.48, s * 0.34, 0, Math.PI * 2); outline(c, s * 0.08, '#9ab'); }
       if (hat === 'flower') circ(c, s * 0.2, -s * 0.66, s * 0.1, '#ff5a8a');
       if (hat === 'topper') { ell(c, 0, -s * 0.68, s * 0.32, s * 0.06, k); rr(c, -s * 0.18, -s * 1.0, s * 0.36, s * 0.34, 3, k); }
+      // A tall-crowned hat with a band and a buckle (the harvest fair's).
+      if (hat === 'buckle') { ell(c, 0, -s * 0.68, s * 0.42, s * 0.07, k); poly(c, [-s * 0.22, -s * 0.68, -s * 0.17, -s * 1.02, s * 0.17, -s * 1.02, s * 0.22, -s * 0.68], k); rr(c, -s * 0.2, -s * 0.8, s * 0.4, s * 0.08, 1, '#3a2a1a'); rr(c, -s * 0.06, -s * 0.82, s * 0.12, s * 0.12, 1, '#d8b040'); rr(c, -s * 0.03, -s * 0.79, s * 0.06, s * 0.06, 1, k); }
       if (hat === 'fedora') { ell(c, 0, -s * 0.68, s * 0.36, s * 0.07, k); rr(c, -s * 0.2, -s * 0.86, s * 0.4, s * 0.2, 6, k); }
       rr(c, -s * 0.7, s * 0.28, s * 1.4, s * 0.3, 4, '#d8302f');
       c.fillStyle = '#fff';
@@ -331,9 +333,11 @@
       ell(c, s * 0.25, -s * 0.15, s * 0.1, s * 0.16, '#1a1428');
       ell(c, 0, s * 0.2, s * 0.12, s * 0.16, '#1a1428');
     },
-    pumpkin(c, s) {
+    pumpkin(c, s, set) {
       for (const [x, w] of [[-0.45, 0.42], [0.45, 0.42], [0, 0.5]]) ell(c, s * x, s * 0.1, s * w, s * 0.7, x ? '#e8701a' : '#ff8a2a');
       rr(c, -s * 0.08, -s * 0.85, s * 0.16, s * 0.3, 3, '#4a6a2a');
+      // (At the harvest fair, a pumpkin's just a pumpkin: no face.)
+      if (set === 'thanksgiving') { for (const x of [-0.5, 0.5]) { c.beginPath(); c.moveTo(s * x * 0.5, -s * 0.5); c.quadraticCurveTo(s * x * 0.9, s * 0.1, s * x * 0.5, s * 0.75); c.lineWidth = s * 0.06; c.strokeStyle = 'rgba(120,50,10,0.45)'; c.stroke(); } ell(c, -s * 0.5, -s * 0.1, s * 0.1, s * 0.3, 'rgba(255,255,255,0.2)'); return; }
       poly(c, [-s * 0.4, -s * 0.05, -s * 0.2, -s * 0.3, -s * 0.05, -s * 0.05], '#3a1a08');
       poly(c, [s * 0.4, -s * 0.05, s * 0.2, -s * 0.3, s * 0.05, -s * 0.05], '#3a1a08');
       poly(c, [-s * 0.45, s * 0.3, -s * 0.2, s * 0.45, 0, s * 0.3, s * 0.2, s * 0.45, s * 0.45, s * 0.3, s * 0.2, s * 0.6, -s * 0.2, s * 0.6], '#3a1a08');
@@ -518,6 +522,48 @@
       c.beginPath(); c.arc(s * 0.55, s * 0.05, s * 0.35, -1.3, 1.3); outline(c, s * 0.16, '#9aa0a6');
       ell(c, -s * 0.05, -s * 0.75, s * 0.62, s * 0.22, '#f8f0dc');
     },
+    // Thanksgiving: a cartoon turkey cut-out on its stick (fan tail, a grin, a red wattle).
+    turkey(c, s) {
+      stick(c, s);
+      const fan = ['#a8401e', '#e8862a', '#f0c040', '#7a3a1a', '#d8541e', '#e8a83a', '#a8401e'];
+      fan.forEach((col, i) => { const a = -Math.PI * (0.06 + (i / (fan.length - 1)) * 0.88); c.save(); c.rotate(a + Math.PI / 2); ell(c, 0, -s * 0.62, s * 0.2, s * 0.5, col); ell(c, 0, -s * 0.98, s * 0.14, s * 0.12, '#f4e0b0'); c.restore(); });
+      ell(c, 0, s * 0.2, s * 0.5, s * 0.46, '#7a4420');
+      ell(c, 0, s * 0.3, s * 0.32, s * 0.3, '#a8662e');
+      circ(c, 0, -s * 0.3, s * 0.3, '#9a5a2a');
+      circ(c, -s * 0.11, -s * 0.38, s * 0.09, '#fff'); circ(c, s * 0.11, -s * 0.38, s * 0.09, '#fff');
+      circ(c, -s * 0.09, -s * 0.37, s * 0.045, '#1a1010'); circ(c, s * 0.13, -s * 0.37, s * 0.045, '#1a1010');
+      poly(c, [-s * 0.09, -s * 0.24, s * 0.09, -s * 0.24, 0, -s * 0.1], '#f0a030');
+      c.beginPath(); c.moveTo(s * 0.04, -s * 0.2); c.quadraticCurveTo(s * 0.12, -s * 0.06, s * 0.02, s * 0.06); c.lineWidth = s * 0.08; c.strokeStyle = '#d8302a'; c.lineCap = 'round'; c.stroke();
+      for (const x of [-0.16, 0.16]) { c.beginPath(); c.moveTo(s * x, s * 0.62); c.lineTo(s * x, s * 0.78); c.lineWidth = s * 0.06; c.strokeStyle = '#e8902a'; c.stroke(); }
+    },
+    // A pumpkin pie in its tin, a dollop of cream on top.
+    pie(c, s) {
+      ell(c, 0, s * 0.18, s * 0.95, s * 0.36, '#9a9aa4');
+      rr(c, -s * 0.92, -s * 0.1, s * 1.84, s * 0.3, s * 0.1, '#b8b8c0');
+      ell(c, 0, -s * 0.1, s * 0.92, s * 0.36, '#d8a050');
+      ell(c, 0, -s * 0.12, s * 0.74, s * 0.27, '#d46a1e');
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; circ(c, Math.cos(a) * s * 0.83, -s * 0.1 + Math.sin(a) * s * 0.32, s * 0.08, '#e8b868'); }
+      ell(c, s * 0.05, -s * 0.22, s * 0.24, s * 0.12, '#fff6e6'); circ(c, s * 0.08, -s * 0.32, s * 0.1, '#fff6e6');
+      ell(c, -s * 0.36, -s * 0.16, s * 0.18, s * 0.05, 'rgba(255,255,255,0.3)');
+    },
+    // An ear of corn, its husk peeled back.
+    corn(c, s) {
+      poly(c, [0, s * 0.95, -s * 0.5, s * 0.2, -s * 0.55, -s * 0.35, -s * 0.15, s * 0.3], '#a8b45a');
+      poly(c, [0, s * 0.95, s * 0.5, s * 0.25, s * 0.6, -s * 0.3, s * 0.15, s * 0.3], '#8a9a42');
+      ell(c, 0, -s * 0.1, s * 0.3, s * 0.85, '#f0c030');
+      for (let row = -6; row <= 5; row++) for (const x of [-0.16, 0, 0.16]) circ(c, s * x, s * row * 0.12, s * 0.065, row % 2 ? '#e8b020' : '#f8d050');
+      poly(c, [0, s * 0.95, -s * 0.25, s * 0.5, -s * 0.38, -s * 0.05, -s * 0.05, s * 0.55], '#c8d070');
+      circ(c, -s * 0.1, -s * 0.6, s * 0.06, 'rgba(255,255,255,0.5)');
+    },
+    // A crookneck gourd, yellow with green stripes.
+    gourd(c, s) {
+      c.beginPath(); c.moveTo(-s * 0.55, s * 0.6); c.quadraticCurveTo(-s * 0.7, -s * 0.05, -s * 0.15, -s * 0.15); c.quadraticCurveTo(-s * 0.2, -s * 0.7, s * 0.2, -s * 0.85); c.quadraticCurveTo(s * 0.25, -s * 0.5, s * 0.2, -s * 0.1); c.quadraticCurveTo(s * 0.7, 0, s * 0.55, s * 0.6); c.quadraticCurveTo(0, s * 0.85, -s * 0.55, s * 0.6);
+      c.fillStyle = '#e8c040'; c.fill();
+      c.lineWidth = s * 0.08; c.strokeStyle = '#4a8a2a';
+      for (const x of [-0.22, 0.05, 0.3]) { c.beginPath(); c.moveTo(s * x, s * 0.7); c.quadraticCurveTo(s * (x - 0.1), s * 0.2, s * (x * 0.4 + 0.05), -s * 0.3); c.stroke(); }
+      rr(c, s * 0.14, -s * 1.0, s * 0.1, s * 0.2, 2, '#5a4a22');
+      ell(c, -s * 0.3, s * 0.2, s * 0.08, s * 0.2, 'rgba(255,255,255,0.3)');
+    },
     duck(c, s, set, t) { mallard(c, s, Math.sin(t * 13) * 0.9 - 0.2); },
     duckSwim(c, s) { mallard(c, s, 0.15); c.fillStyle = 'rgba(180,210,230,0.5)'; c.fillRect(-s, s * 0.32, s * 2, s * 0.2); },
     goldDuck(c, s, set, t) { mallard(c, s, Math.sin(t * 15) * 0.9 - 0.2, true); },
@@ -540,7 +586,7 @@
   // Kinds that spin as they go.
   const SPIN = { bullseye: 1.4, asteroid: 0.8, record: 3, hubcap: 2.5, chip: 2, disco: 1, clay: 0, buoy: 0.6, shield: 0.8, bauble: 0.4, pumpkin: 0.3 };
   // Hit colours (the bits that fly off).
-  const BITS_OF = { can: ['#c8ccd2', '#d8302f'], bottle: ['#2e8a4a', '#8ad8a0', '#fff'], champagne: ['#1a4a2a', '#e6c06a'], clay: ['#e86a20', '#f49048'], star: ['#ffd23f', '#fff'], goldDuck: ['#ffd23f', '#fff'], duck: ['#9a9a8e', '#1f6a3a', '#fff'], duckSwim: ['#9a9a8e', '#fff'], ghost: ['#fff', '#cfe'], pumpkin: ['#ff8a2a', '#4a6a2a'], bauble: ['#c8302f', '#e8b84a', '#fff'], asteroid: ['#7a6a5e', '#5a4c44'], cocktail: ['#ff5ad8', '#cfefff'], grapes: ['#6a2a8a', '#9a5aba'] };
+  const BITS_OF = { can: ['#c8ccd2', '#d8302f'], bottle: ['#2e8a4a', '#8ad8a0', '#fff'], champagne: ['#1a4a2a', '#e6c06a'], clay: ['#e86a20', '#f49048'], star: ['#ffd23f', '#fff'], goldDuck: ['#ffd23f', '#fff'], duck: ['#9a9a8e', '#1f6a3a', '#fff'], duckSwim: ['#9a9a8e', '#fff'], ghost: ['#fff', '#cfe'], pumpkin: ['#ff8a2a', '#4a6a2a'], bauble: ['#c8302f', '#e8b84a', '#fff'], asteroid: ['#7a6a5e', '#5a4c44'], cocktail: ['#ff5ad8', '#cfefff'], grapes: ['#6a2a8a', '#9a5aba'], turkey: ['#7a4420', '#e8862a', '#f0c040', '#d8302a'], pie: ['#d8a050', '#d46a1e', '#fff6e6'], corn: ['#f0c030', '#a8b45a'], gourd: ['#e8c040', '#4a8a2a'] };
 
   const sprites = new Map();
   let spriteSet = '';
@@ -725,6 +771,21 @@
       for (const x of [500, 640, 900, 1060]) { rr(c, x - 22, 560, 44, 70, 20, '#3a3444'); }
       for (let i = 0; i < 6; i++) { c.save(); c.translate(600 + i * 110, 140 + (i % 3) * 40); DRAW.bat(c, 18, '', i); c.restore(); }
     },
+    // The harvest fair at sundown: an orange sky going purple, the low sun, rolling fields with a red
+    // barn and its silo, autumn trees and round hay bales.
+    thanksgiving(c, P, r) {
+      sky(c, ['#3a2a5a', '#8a4a6a', '#e87a4a', '#ffc070']);
+      circ(c, 1120, 560, 220, 'rgba(255,200,120,0.25)'); circ(c, 1120, 560, 70, '#ffe0a0');
+      for (const [x, y, w] of [[300, 180, 160], [760, 120, 220], [1300, 220, 140]]) { ell(c, x, y, w, 12, 'rgba(255,190,150,0.45)'); ell(c, x + 30, y + 8, w * 0.6, 7, 'rgba(200,110,130,0.4)'); }
+      hills(c, 560, 26, 0.004, '#6a3a50');
+      for (let i = 0; i < 40; i++) circ(c, (i * 97) % W, 548 - ((i * 37) % 30), 26 + ((i * 13) % 18), ['#b85a32', '#c87a3a', '#9a3a2a', '#d8943a'][i % 4]);
+      hills(c, 620, 18, 0.006, '#a8642a', 2);
+      // The barn and the silo.
+      rr(c, 280, 470, 200, 130, 0, '#a8302a'); poly(c, [266, 474, 300, 420, 380, 392, 460, 420, 494, 474], '#3a2626');
+      rr(c, 350, 520, 60, 80, 0, '#8a2420'); c.strokeStyle = '#f4ead8'; c.lineWidth = 4; c.strokeRect(350, 520, 60, 80); c.beginPath(); c.moveTo(350, 520); c.lineTo(410, 600); c.moveTo(410, 520); c.lineTo(350, 600); c.stroke();
+      rr(c, 494, 400, 56, 200, 0, '#a8a4b4'); ell(c, 522, 400, 28, 22, '#6a6a7a');
+      for (const [x, y, rad] of [[760, 640, 40], [880, 660, 46], [1300, 640, 38], [1440, 660, 44]]) { ell(c, x, y, rad * 1.1, rad * 0.85, '#d8a448'); ell(c, x - rad * 0.5, y, rad * 0.4, rad * 0.8, '#e8c068'); }
+    },
     stpatricks(c, P, r) {
       sky(c, ['#8ab4d8', '#d8e8f0']); cloud(c, 400, 160, 50, 'rgba(240,244,250,0.95)'); cloud(c, 1100, 120, 40, 'rgba(240,244,250,0.95)');
       hills(c, 420, 50, 0.003, '#5a8a4a'); hills(c, 520, 40, 0.005, '#4a7a3a', 1); hills(c, 620, 30, 0.007, '#3a6a2e', 3);
@@ -760,6 +821,7 @@
     chateau: { top: 'pergola', rail: 'chrome', side: 'pillar', counter: 'linen', decor: ['🥂', '🌹', '🍾', '🌹'], c: { top: '#8a8a7a', rail: ['#b08d45', '#e6c06a'], side: '#e8e0cc', counter: '#f4f0e4' } },
     christmas: { top: 'garland', rail: 'snow', side: 'pine', counter: 'snow', decor: ['🧦', '🔔', '⭐', '🧦'], c: { top: '#1a5a2a', rail: ['#cfdcf4', '#ffffff'], side: '#1a4a2a', counter: '#a3222b', garland: ['#1a5a2a', '#2a7a3a'] } },
     halloween: { top: 'cobweb', rail: 'fence', side: 'deadtree', counter: 'coffin', decor: ['🕯️', '💀', '🕸️', '🕯️'], c: { top: '#1a1020', rail: ['#120a14', '#2a1a30'], side: '#120a14', counter: '#2a1a1a' } },
+    thanksgiving: { top: 'harvest', rail: 'hay', side: 'cornstalk', counter: 'crates', decor: ['🌽', '🍁', '🥧', '🍁'], c: { top: '#b8925a', rail: ['#c8a050', '#e8c878'], side: '#2a160c', counter: '#8a5a2e' } },
     stpatricks: { top: 'beam', rail: 'shelf', side: 'post', counter: 'wood', decor: ['🍀', '🥃', '🪕', '🍀'], c: { top: '#4a2e17', rail: ['#4a2e17', '#6a4428'], side: '#4a2e17', counter: '#5a3a1e' } },
   };
   const boothOf = (set) => BOOTHS[set] || BOOTHS.classic;
@@ -842,6 +904,18 @@
         for (let i = 0; i < 80; i++) ell(c, (i * 71) % W, 26 + ((i * 37) % 40), 16, 9, ['#4a7a2a', '#5a8a32', '#3a6a22'][i % 3], (i % 5) / 3);
         for (let x = 140; x < W; x += 300) { for (let k = 0; k < 6; k++) circ(c, x + (k % 3) * 9 - 9, 62 + Math.floor(k / 3) * 10 + (k % 3 === 1 ? 4 : 0), 6, '#6a2a8a'); }
         break;
+      case 'harvest': {
+        // A burlap valance, scalloped, a garland of autumn leaves along it, warm bulbs in the leaves.
+        c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, 52);
+        for (let x = W; x >= 0; x -= 100) c.quadraticCurveTo(x - 50, 84, x - 100, 52);
+        c.fill();
+        c.strokeStyle = 'rgba(90,60,30,0.35)'; c.lineWidth = 1; for (let y = 6; y < 56; y += 6) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+        c.strokeStyle = '#6a4a2a'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, 52); for (let x = 0; x <= W; x += 100) c.quadraticCurveTo(x + 50, 84, x + 100, 52); c.stroke();
+        const leafCols = ['#d8541e', '#e8862a', '#c0331e', '#e8b23a', '#a8461c'];
+        for (let i = 0; i < 70; i++) { const x = (i * 23.3) % W; const y = 58 + Math.abs(Math.sin((x / 100) * Math.PI)) * 18 + ((i * 7) % 12) - 6; c.save(); c.translate(x, y); c.rotate(i * 1.7); poly(c, [0, -13, 3, -6, 8, -9, 6, -2, 13, -4, 9, 1, 12, 5, 5, 5, 4, 10, 0, 6, -4, 10, -5, 5, -12, 5, -9, 1, -13, -4, -6, -2, -8, -9, -3, -6], leafCols[i % 5]); c.restore(); }
+        for (let x = 50; x < W; x += 100) { const y = 76; circ(c, x, y, 14, 'rgba(255,210,130,0.3)'); circ(c, x, y, 7, '#ffe6a8'); }
+        break;
+      }
       case 'pennants':
         for (let x = 0; x < W; x += 50) circ(c, x + 25, 20 + Math.sin(x / 120) * 8, 6, ['#ffd23f', '#ff6ab4', '#7dff9e'][(x / 50) % 3 | 0]);
         for (const [x, k] of [[200, '#d62828'], [520, '#2a6fdb'], [1080, '#2b9a5a'], [1400, '#ffd23f']]) { poly(c, [x - 80, 40, x + 90, 70, x - 80, 100], k); c.fillStyle = '#fff'; c.font = '900 26px system-ui'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('ΒΩΩΛ', x - 70, 70); }
@@ -892,6 +966,14 @@
           c.fillStyle = '#0e2418'; c.fillRect(x, 0, SIDE, H); for (let y = 140; y < H; y += 170) pine(c, x + SIDE / 2, y + 120, 150, '#1a4a2a'), circ(c, x + SIDE / 2 - 20, y + 40, 5, '#ffd23f'), circ(c, x + SIDE / 2 + 18, y + 80, 5, '#ff5a5a');
           for (let y = 0; y < H; y += 60) circ(c, x + 10 + ((y * 7) % 60), y, 4, 'rgba(255,255,255,0.8)');
           break;
+        case 'cornstalk':
+          c.fillStyle = col; c.fillRect(x, 0, SIDE, H);
+          for (let k = 0; k < 9; k++) { const sx = x + 6 + k * ((SIDE - 12) / 8); c.strokeStyle = ['#c8a868', '#b8945a', '#d8b878'][k % 3]; c.lineWidth = 4; c.beginPath(); c.moveTo(x + SIDE / 2 + (k - 4) * 2, H); c.quadraticCurveTo(sx, H * 0.5, sx + (k - 4) * 3, 90); c.stroke(); }
+          c.lineCap = 'round';
+          for (let y = 130; y < H - 60; y += 52) { const dir = (y / 52 | 0) % 2 ? 1 : -1; const cx = x + SIDE / 2; c.beginPath(); c.moveTo(cx, y); c.quadraticCurveTo(cx + dir * 30, y - 22, cx + dir * 38, y + 26); c.lineWidth = 7; c.strokeStyle = ['#c8a868', '#b8945a', '#d8b878'][(y / 52 | 0) % 3]; c.stroke(); c.lineWidth = 1.2; c.strokeStyle = 'rgba(90,60,20,0.5)'; c.stroke(); }
+          c.strokeStyle = '#7a5a2a'; c.lineWidth = 6; c.beginPath(); c.moveTo(x + 6, 520); c.lineTo(x + SIDE - 6, 528); c.stroke();
+          for (const [dy, col2] of [[0, '#a8321e'], [16, '#d8a030']]) ell(c, x + SIDE / 2 + (dy ? 10 : -10), 560 + dy, 9, 24, col2);
+          break;
         case 'deadtree':
           c.fillStyle = '#0d0812'; c.fillRect(x, 0, SIDE, H); bareTree(c, x + SIDE / 2, H, 760, '#1e1426');
           break;
@@ -938,6 +1020,10 @@
       case 'snow':
         c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(0, top + 10); for (let x = 0; x <= W; x += 40) c.quadraticCurveTo(x + 20, top - 14, x + 40, top + 6); c.lineTo(W, top + 26); c.lineTo(0, top + 26); c.fill();
         for (let x = 30; x < W; x += 60) circ(c, x, top + 50, 5, ['#ffd23f', '#ff5a5a', '#7dff9e', '#5ad8ff'][(x / 60) % 4 | 0]);
+        break;
+      case 'crates':
+        for (let x = 0; x < W; x += 200) { c.strokeStyle = 'rgba(40,20,8,0.55)'; c.lineWidth = 3; c.strokeRect(x + 4, top + 6, 192, H - top - 6); for (const y of [top + 26, top + 52, top + 78]) { c.fillStyle = 'rgba(0,0,0,0.18)'; c.fillRect(x + 4, y, 192, 3); } }
+        for (const [x, rad, k] of [[150, 26, '#e8741e'], [420, 18, '#f4ecd8'], [700, 30, '#f08a2a'], [1000, 20, '#d8541e'], [1260, 28, '#e8741e'], [1480, 18, '#e8c040']]) { for (const dx of [-0.5, 0.5, 0]) ell(c, x + rad * dx, top - rad * 0.7, rad * 0.62, rad * 0.75, k); rr(c, x - 3, top - rad * 1.5, 6, 10, 2, '#5a4a22'); }
         break;
       case 'coffin':
         for (let x = 120; x < W; x += 300) { rr(c, x, top - 30, 12, 34, 3, '#e8e0d0'); circ(c, x + 6, top - 36, 6, '#ffb040'); circ(c, x + 6, top - 36, 22, 'rgba(255,170,60,0.25)'); }
@@ -1026,6 +1112,16 @@
       case 'fence':
         c.fillStyle = c0; c.fillRect(0, at + 2, W, 6); c.fillRect(0, at + 22, W, 5);
         for (let x = 10; x < W; x += 34) { c.fillRect(x, at - 10, 6, h); poly(c, [x - 4, at - 10, x + 3, at - 22, x + 10, at - 10], c0); }
+        break;
+      case 'hay':
+        // A row of straw bales: twine round each, stalks sticking out.
+        for (let x = 0; x < W; x += 120) {
+          const g = c.createLinearGradient(0, at - 6, 0, at + 22); g.addColorStop(0, c1); g.addColorStop(1, dk2(c0));
+          rr(c, x + 1, at - 6, 118, 28, 5, g);
+          c.fillStyle = 'rgba(120,80,30,0.35)'; for (let k = 0; k < 14; k++) c.fillRect(x + 6 + ((k * 37) % 108), at - 4 + ((k * 13) % 22), 10, 1.4);
+          for (const tx of [30, 90]) { c.fillStyle = '#7a5a2a'; c.fillRect(x + tx, at - 6, 3, 28); }
+          c.strokeStyle = c1; c.lineWidth = 1.5; for (let k = 0; k < 5; k++) { const sx = x + 10 + k * 24; c.beginPath(); c.moveTo(sx, at - 5); c.lineTo(sx + 4 - (k % 2) * 8, at - 12); c.stroke(); }
+        }
         break;
       case 'snow':
         c.fillStyle = '#5a3a22'; c.fillRect(0, at + 6, W, 10);
@@ -1149,10 +1245,11 @@
     duelPistol: { mag: 1, name: 'Duelling Pistol', finish: '#3a3f47', accent: '#e6c06a', snd: { n: 900, len: 0.12, tone: 150, to: 75, ng: 0.55, tg: 0.2 } },
     candyPopgun: { mag: 5, name: 'Candy-Cane Popgun', finish: '#f4f4f4', accent: '#c8302f', snd: { n: 2200, len: 0.05, tone: 900, to: 500, ng: 0.3, tg: 0.18, type: 'sine', bell: true } },
     pumpkinBlaster: { mag: 3, name: 'Pumpkin Blaster', finish: '#ff7a1a', accent: '#2a1a35', snd: { n: 500, len: 0.18, tone: 90, to: 45, ng: 0.5, tg: 0.22, type: 'triangle' } },
+    cranberryBuss: { mag: 2, name: 'Cranberry Blunderbuss', finish: '#9a1428', accent: '#c9a24a', snd: { n: 650, len: 0.16, tone: 170, to: 75, ng: 0.55, tg: 0.2, type: 'triangle', gobble: true } },
     stalkingRifle: { mag: 4, name: 'Stalking Rifle', finish: '#5a3e26', accent: '#3a3f47', snd: { n: 1000, len: 0.13, tone: 130, to: 65, ng: 0.6, tg: 0.2 } },
     sideBySide: { mag: 2, name: 'Side-by-Side Shotgun', finish: '#5a3e26', accent: '#9aa0a6', snd: { n: 650, len: 0.2, tone: 100, to: 50, ng: 0.65, tg: 0.22 } },
   };
-  const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', stpatricks: 'stalkingRifle' };
+  const HOUSE = { classic: 'corkRifle', dive: 'tapPistol', tavern: 'musket', club: 'neonLaser', castle: 'crossbow', jazz: 'trumpetBuss', diner: 'ketchup', tiki: 'blowpipe', speakeasy: 'drumRepeater', casino: 'derringer', saloon: 'sixShooter', pirate: 'flintlock', beerhall: 'corkPopper', space: 'rayGun', lighthouse: 'flarePistol', vineyard: 'overUnder', frat: 'foamBlaster', garage: 'nailGun', chateau: 'duelPistol', christmas: 'candyPopgun', halloween: 'pumpkinBlaster', thanksgiving: 'cranberryBuss', stpatricks: 'stalkingRifle' };
   const FINISHES = ['#3a3f47', '#23324a', '#c9a24a', '#c8ccd2', '#e3b23c', '#8a5a2e', '#c8302f', '#5ad8a6', '#ff6ab4', '#f4f4f4', '#1e1e22', '#7a4ad8', '#2a8af0', '#ff8a1f'];
   // Classic reticles. Each is drawn about its aim point (0, 0) (the chevron's is its tip), as
   // layers of SVG paths: [path, line weight (× the thin or bold line), filled?]. The same drawing
@@ -1407,6 +1504,16 @@
       ${K.barrel(138, 230, 30, 12, '#ece6dc')}<circle cx="232" cy="31" r="6" fill="#ece6dc" ${K.st}/><circle cx="232" cy="41" r="6" fill="#ece6dc" ${K.st}/>
       ${K.guard(116, 62, 8, 'a')}
       ${K.group(Array.from({ length: n }, (_, i) => `<ellipse cx="${160 + i * 18}" cy="58" rx="7" ry="6" fill="#ff8a1f" stroke="${INK}" stroke-width="0.9"/>`).join(''))}` }),
+    // The Cranberry Blunderbuss: a wooden stock with a leaf carved in it, a cranberry-red barrel
+    // with brass bands flaring to a brass bell, and its shot (cranberries) in a row along it.
+    cranberryBuss: (K, f, a, n) => ({ m: [234, 36], t: [86, 24], body: `
+      ${K.tex('M6 52 L58 36 L94 34 L94 50 L66 54 Q38 68 12 82 Q2 72 6 52Z', 'w')}${K.shine('M14 56 L58 41', 1.4)}
+      <path transform="translate(40 58) rotate(-20) scale(0.9)" d="M0 -10 L2 -5 L6 -7 L5 -2 L10 -3 L7 1 L9 4 L4 4 L3 8 L0 5 L-3 8 L-4 4 L-9 4 L-7 1 L-10 -3 L-5 -2 L-6 -7 L-2 -5Z" fill="${K.F('a')}" stroke="${INK}" stroke-width="0.8"/>
+      ${K.barrel(86, 192, 30, 12, 'f')}${K.shape('M190 30 Q208 26 232 8 Q240 36 232 64 Q208 46 190 42Z', 'a')}
+      <ellipse cx="233" cy="36" rx="5" ry="27" fill="${dk(a, 0.6)}" stroke="${INK}" stroke-width="1.6"/>${K.shine('M194 32 Q212 24 228 14', 2)}
+      ${[118, 150, 182].map((x) => K.band(x, 28, 16)).join('')}
+      ${K.shape('M84 28 Q86 24 98 26 L100 40 Q92 44 84 40Z', 'a')}${K.screw(92, 34)}${K.hammer(88, 28, 'a')}${K.guard(98, 50, 9, 'a')}
+      ${K.group(Array.from({ length: n }, (_, i) => `<g><circle cx="${132 + i * 18}" cy="52" r="6.5" fill="#c0182a" stroke="${INK}" stroke-width="0.9"/><circle cx="${130 + i * 18}" cy="50" r="2" fill="#fff" opacity="0.5"/></g>`).join(''))}` }),
     stalkingRifle: (K, f, a, n) => ({ m: [236, 38], t: [104, 22], body: `
       ${K.tex('M4 48 L60 36 L176 36 L176 48 L120 50 L100 54 Q44 64 12 80 Q2 70 4 48Z', 'f')}${K.tex('M60 40 L96 40 L94 52 L64 54Z', 'f', 'k')}
       ${K.barrel(120, 236, 31, 8, 'a')}${K.shape('M96 26 H140 V40 H96Z', 'a')}${K.shape('M120 24 L132 24 L132 20 L140 20 L140 24Z', 'a')}
@@ -1507,6 +1614,28 @@
         o.connect(g2).connect(out);
         o.start(t + 0.06);
         o.stop(t + 0.4);
+      }
+      if (p.gobble) {
+        // (A turkey's gobble answers the shot.)
+        const bp = ac.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 1300;
+        bp.Q.value = 1.6;
+        bp.connect(out);
+        for (let k = 0; k < 7; k++) {
+          const at = t + 0.16 + k * 0.05;
+          const o = ac.createOscillator();
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime((740 - k * 20) * (k % 2 ? 1.22 : 1), at);
+          o.frequency.exponentialRampToValueAtTime(560 - k * 15, at + 0.05);
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, at);
+          g.gain.exponentialRampToValueAtTime(0.06, at + 0.004);
+          g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+          o.connect(g).connect(bp);
+          o.start(at);
+          o.stop(at + 0.06);
+        }
       }
       if (p.bell) {
         const o = ac.createOscillator();
